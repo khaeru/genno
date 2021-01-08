@@ -1,0 +1,25 @@
+# Reporting configuration file for Dantzig's transport problem
+
+# Default report
+default: all
+
+# Exogenous data from files
+files:
+- path: ./report-input0.csv
+  key: d_check
+# 'dims' argument can be supplied as list or dict
+- path: ./report-input1.csv
+  key: report-input1-0
+  dims: [i, j_dim]  # Omit extra dimension 'foo'
+- path: ./report-input1.csv
+  key: report-input1-1
+  dims: {i: i, j_dim: j}
+
+# Aliases
+alias:
+  bar: d
+
+# Unrecognized section raises a warning
+notarealsection:
+- 0
+- 1
