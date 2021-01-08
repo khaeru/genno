@@ -5,13 +5,13 @@
 # The core design pattern uses dask graphs; see
 # http://docs.dask.org/en/latest/spec.html
 # - Reporter.graph is a dictionary where:
-#   - keys are strings or ixmp.reporting.key.Key objects (which compare/hash
+#   - keys are strings or genno.key.Key objects (which compare/hash
 #     equal to their str() representation), and
 #   - values are 'computations' (the Reporter.add() docstring repeats the
 #     definition of computations from the above URL).
-# - The results of 'internal' computations are ixmp.reporting.utils.Quantity
+# - The results of 'internal' computations are genno.utils.Quantity
 #   objects.
-#   - These resemble xarray.DataArray, but currently are ixmp.reporting.utils.
+#   - These resemble xarray.DataArray, but currently are genno.utils.
 #     AttrSeries, which duck-types DataArray. This is because many ixmp/
 #     message_ix quantities are large and sparse, and creating sparse
 #     DataArrays is non-trivial; see https://stackoverflow.com/q/56396122/
@@ -102,7 +102,7 @@ class Reporter:
 
         Returns
         -------
-        :class:`Reporter <ixmp.reporting.Reporter>`
+        :class:`Reporter <genno.Reporter>`
             A Reporter instance containing:
 
             - A 'scenario' key referring to the *scenario* object.
@@ -484,7 +484,7 @@ class Reporter:
 
         An ixmp variable 'foo' with dimensions (a, c, n, q, x) is available in
         the Reporter as ``'foo:a-c-n-q-x'``. This :class:`Key
-        <ixmp.reporting.utils.Key>` can be retrieved with::
+        <genno.utils.Key>` can be retrieved with::
 
             rep.full_key('foo')
             rep.full_key('foo:c')
@@ -707,7 +707,7 @@ class Reporter:
 
         See also
         --------
-        ixmp.reporting.computations.load_file
+        genno.computations.load_file
         """
         path = Path(path)
         key = key if key else "file:{}".format(path.name)

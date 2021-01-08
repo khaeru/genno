@@ -7,8 +7,8 @@ import xarray as xr
 from pandas.testing import assert_series_equal
 
 import ixmp
-from ixmp.reporting import Quantity, Reporter, computations
-from ixmp.reporting.testing import random_qty
+from genno import Quantity, Reporter, computations
+from genno.testing import random_qty
 from ixmp.testing import assert_logs, assert_qty_equal
 
 from . import add_test_data

@@ -1,4 +1,4 @@
-"""Tests for ixmp.reporting."""
+"""Tests for genno."""
 import logging
 import os
 
@@ -9,8 +9,8 @@ import pytest
 import xarray as xr
 
 import ixmp
-import ixmp.reporting
-from ixmp.reporting import (
+import genno
+from genno import (
     RENAME_DIMS,
     ComputationError,
     Key,
