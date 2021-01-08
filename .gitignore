@@ -1,5 +1,7 @@
 # Python
 *.egg-info
+.benchmarks
+.pytest_cache
 __pycache__
 build
 doc/_build
