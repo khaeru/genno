@@ -16,7 +16,12 @@ author = "Genno Contributors"
 
 # Add any Sphinx extension module names here, as strings. They can be extensions coming
 # with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ["sphinx.ext.autodoc"]
+extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.napoleon",
+]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -37,3 +42,11 @@ html_theme = "sphinx_rtd_theme"
 # to this directory. They are copied after the builtin static files, so a file named
 # "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+# -- Options for sphinx.ext.intersphinx ------------------------------------------------
+
+intersphinx_mapping = {
+    "dask": ("https://docs.dask.org/en/stable/", None),
+    "pint": ("https://pint.readthedocs.io/en/stable/", None),
+    "python": ("https://docs.python.org/3/", None),
+}
