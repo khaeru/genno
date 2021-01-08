@@ -24,7 +24,7 @@ RENAME_DIMS: Dict[str, str] = {}
 def clean_units(input_string):
     """Tolerate messy strings for units.
 
-    Handles two specific cases found in |MESSAGEix| test cases:
+    Handles two specific cases found in MESSAGEix test cases:
 
     - Dimensions enclosed in '[]' have these characters stripped.
     - The '%' symbol cannot be supported by pint, because it is a Python
