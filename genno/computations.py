@@ -237,7 +237,7 @@ def aggregate(quantity, groups, keep):
 
     Parameters
     ----------
-    quantity : :class:`Quantity <ixmp.reporting.utils.Quantity>`
+    quantity : :class:`Quantity <genno.utils.Quantity>`
     groups: dict of dict
         Top-level keys are the names of dimensions in `quantity`. Second-level
         keys are group names; second-level values are lists of labels along the
@@ -248,7 +248,7 @@ def aggregate(quantity, groups, keep):
 
     Returns
     -------
-    :class:`Quantity <ixmp.reporting.utils.Quantity>`
+    :class:`Quantity <genno.utils.Quantity>`
         Same dimensionality as `quantity`.
 
     """

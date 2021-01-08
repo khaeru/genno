@@ -1,4 +1,4 @@
-"""Tests for ixmp.reporting.quantity."""
+"""Tests for genno.quantity."""
 import numpy as np
 import pandas as pd
 import pytest
@@ -6,9 +6,9 @@ import xarray as xr
 from xarray.testing import assert_equal as assert_xr_equal
 
 from ixmp import Reporter, Scenario
-from ixmp.reporting import Quantity, computations
-from ixmp.reporting.attrseries import AttrSeries
-from ixmp.reporting.sparsedataarray import SparseDataArray
+from genno import Quantity, computations
+from genno.attrseries import AttrSeries
+from genno.sparsedataarray import SparseDataArray
 from ixmp.testing import assert_qty_allclose, assert_qty_equal
 
 

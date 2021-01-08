@@ -1,4 +1,4 @@
-from ixmp.reporting.key import Key
+from genno.key import Key
 
 
 def test_key():

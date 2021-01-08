@@ -7,7 +7,7 @@ class AttrSeries(pd.Series):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
-    :class:`xarray.DataArray`, so that :mod:`ixmp.reporting.computations`
+    :class:`xarray.DataArray`, so that :mod:`genno.computations`
     methods can use xarray-like syntax.
 
     Parameters

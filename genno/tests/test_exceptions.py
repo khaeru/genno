@@ -1,6 +1,6 @@
 import re
 
-from ixmp.reporting import ComputationError
+from genno import ComputationError
 from ixmp.testing import assert_logs, get_cell_output, run_notebook
 
 
