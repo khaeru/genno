@@ -1,6 +1,7 @@
 #!/bin/sh
 
 NAME=genno
+OTHER=ixmp
 
 # Make a directory for the new code
 mkdir -p $NAME/tests/data
@@ -8,17 +9,17 @@ mkdir -p $NAME/tests/data
 # Preserve files in new locations
 
 # Code
-if [ -d ixmp/reporting ]; then
-  mv ixmp/reporting/* $NAME/
+if [ -d $OTHER/reporting ]; then
+  mv $OTHER/reporting/* $NAME/
 fi
 
 # Tests and data
 if [ -e tests/test_reporting.py ]; then
   mv tests/test_reporting* $NAME/tests/
   mv tests/data/report* $NAME/tests/data/
-elif [ -d ixmp/tests/reporting ]; then
-  mv ixmp/tests/reporting/* $NAME/tests/
-  mv ixmp/tests/data/report* $NAME/tests/data/
+elif [ -d $OTHER/tests/reporting ]; then
+  mv $OTHER/tests/reporting/* $NAME/tests/
+  mv $OTHER/tests/data/report* $NAME/tests/data/
 fi
 
 # Documentation
