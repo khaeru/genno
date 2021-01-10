@@ -254,7 +254,7 @@ def test_reporter_read_config(test_mp, test_data_path):
     rep = Reporter.from_scenario(scen)
 
     # Configuration can be read from file
-    rep.configure(test_data_path / "report-config-0.yaml")
+    rep.configure(test_data_path / "config-0.yaml")
 
     # Data from configured file is available
     assert rep.get("d_check").loc["seattle", "chicago"] == 1.7
@@ -377,19 +377,17 @@ def test_file_formats(test_data_path, tmp_path):
     r = Reporter()
 
     expected = Quantity(
-        pd.read_csv(test_data_path / "report-input0.csv", index_col=["i", "j"])[
-            "value"
-        ],
+        pd.read_csv(test_data_path / "input0.csv", index_col=["i", "j"])["value"],
         units="km",
     )
 
     # CSV file is automatically parsed to xr.DataArray
-    p1 = test_data_path / "report-input0.csv"
+    p1 = test_data_path / "input0.csv"
     k = r.add_file(p1, units=pint.Unit("km"))
     assert_qty_equal(r.get(k), expected)
 
     # Dimensions can be specified
-    p2 = test_data_path / "report-input1.csv"
+    p2 = test_data_path / "input1.csv"
     k2 = r.add_file(p2, dims=dict(i="i", j_dim="j"))
     assert_qty_equal(r.get(k), r.get(k2))
 
@@ -402,14 +400,14 @@ def test_file_formats(test_data_path, tmp_path):
         r.get("bad")
 
     # Write to CSV
-    p3 = tmp_path / "report-output.csv"
+    p3 = tmp_path / "output.csv"
     r.write(k, p3)
 
     # Output is identical to input file, except for order
     assert sorted(p1.read_text().split("\n")) == sorted(p3.read_text().split("\n"))
 
     # Write to Excel
-    p4 = tmp_path / "report-output.xlsx"
+    p4 = tmp_path / "output.xlsx"
     r.write(k, p4)
     # TODO check the contents of the Excel file
 
@@ -575,7 +573,7 @@ def test_reporter_describe(test_mp, test_data_path, capsys):
     assert desc1 + "\n" == out1
 
     # Description of all keys is as expected
-    desc2 = (test_data_path / "report-describe.txt").read_text().format(id=id_)
+    desc2 = (test_data_path / "describe.txt").read_text().format(id=id_)
     assert desc2 == r.describe(quiet=False) + "\n"
 
     # Since quiet=False, description is also printed to stdout
@@ -611,7 +609,7 @@ def test_cli(ixmp_cli, test_mp, test_data_path):
         "standard",
         "report",
         "--config",
-        str(test_data_path / "report-config-0.yaml"),
+        str(test_data_path / "config-0.yaml"),
         "d_check",
     ]
 

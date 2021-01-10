@@ -39,7 +39,7 @@ TypeError: .*str.*float.*
 def test_computationerror_ipython(test_data_path, tmp_path, tmp_env):
     # NB this requires nbformat >= 5.0, because the output kind "evalue" was
     #    different pre-5.0
-    fname = test_data_path / "reporting-exceptions.ipynb"
+    fname = test_data_path / "exceptions.ipynb"
     nb, _ = run_notebook(fname, tmp_path, tmp_env, allow_errors=True)
 
     observed = get_cell_output(nb, 0, kind="evalue")
