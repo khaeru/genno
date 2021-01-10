@@ -1,0 +1,130 @@
+name: pytest
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+  - cron: "0 5 * * *"
+
+
+env:
+  GAMS_VERSION: 25.1.1
+  # See description in lint.yml
+  depth: 100
+
+jobs:
+  pytest:
+    strategy:
+      matrix:
+        os:
+        - macos-latest
+        - ubuntu-latest
+        - windows-latest
+        python-version:
+        - "3.7"  # Earliest version supported by genno; matches xarray
+        - "3.8"  # Latest version testable on GitHub Actions
+
+        # For development versions of Python, compiled binary wheels are not
+        # available for some dependencies, e.g. llvmlite, numba, numpy, and/or
+        # pandas. Compiling these on the job runner requires a more elaborate
+        # build environment, currently out of scope for the ixmp project.
+        # - "3.9"             # Latest Python release
+        # - "3.10.0-alpha.1"  # Development version
+
+        exclude:
+        # This job triggers error when importing ixmp.testing: no module named
+        # ixmp.backend. Not critical, since it's upstream.
+        - os: windows-latest
+          python-version: "3.7"
+
+      fail-fast: false
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.os }}-py${{ matrix.python-version }}
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: genno
+        fetch-depth: ${{ env.depth }}
+
+    - name: Fetch tags (for setuptools-scm)
+      working-directory: genno
+      run: git fetch --tags --depth=${{ env.depth }}
+
+    - name: Check out ixmp
+      uses: actions/checkout@v2
+      with:
+        repository: iiasa/ixmp
+        path: ixmp
+        fetch-depth: ${{ env.depth }}
+
+    - name: Fetch tags (for setuptools-scm)
+      working-directory: ixmp
+      run: git fetch --tags --depth=${{ env.depth }}
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Use OpenJDK 14 (macOS only)
+      # Using the default OpenJDK 1.8 on the macos-latest runner produces
+      # "Abort trap: 6" when JPype1 starts the JVM
+      if: ${{ startsWith(matrix.os, 'macos') }}
+      uses: actions/setup-java@v1
+      with:
+        java-version: '14'
+
+    - name: Cache GAMS installer, Python packages, and R packages
+      uses: actions/cache@v2
+      with:
+        path: |
+          gams
+          ~/.cache/pip
+          ~/Library/Caches/pip
+          ~/appdata/local/pip/cache
+          ${{ env.R_LIBS_USER }}
+        key: ${{ matrix.os }}-gams${{ env.GAMS_VERSION }}-py${{ matrix.python-version }}
+        restore-keys: |
+          ${{ matrix.os }}-gams${{ env.GAMS_VERSION }}-
+          ${{ matrix.os }}-
+
+    - name: Install GAMS and Graphviz
+      env:
+        CI_OS: ${{ matrix.os }}
+      working-directory: genno
+      shell: bash
+      run: |
+        ci/install-gams.sh
+        ci/install-graphviz.sh
+
+    - name: Check GAMS
+      run: gams
+      shell: bash
+
+    - name: Upgrade pip, wheel, setuptools-scm
+      run: python -m pip install --upgrade pip wheel setuptools-scm
+
+    - name: Install ixmp and dependencies, including testing dependencies
+      working-directory: ixmp
+      run: pip install .[tests]
+
+    - name: Install Python package and dependencies
+      working-directory: genno
+      run: pip install .[docs,tests]
+
+    - name: Run test suite using pytest
+      working-directory: genno
+      run: pytest genno --trace-config --verbose --cov-report=xml --color=yes
+
+    - name: Test documentation build using Sphinx
+      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      working-directory: genno/doc
+      run: make html
+
+    - name: Upload test coverage to Codecov.io
+      uses: codecov/codecov-action@v1.2.1
+      with:
+        root_dir: genno
