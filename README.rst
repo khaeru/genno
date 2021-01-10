@@ -1,6 +1,22 @@
 genno: efficient, transparent calculation on N-D data
 *****************************************************
 
+.. image:: https://img.shields.io/pypi/v/genno.svg
+   :target: https://pypi.python.org/pypi/genno/
+   :alt: PyPI version
+
+.. image:: https://readthedocs.org/projects/genno/badge/?version=latest
+   :target: https://genno.readthedocs.io/en/latest/?badge=latest
+   :alt: Documentation build
+
+.. image:: https://github.com/khaeru/genno/workflows/pytest/badge.svg
+   :target: https://github.com/khaeru/genno/actions?query=workflow:pytest
+   :alt: Build status
+
+.. image:: https://codecov.io/gh/khaeru/genno/branch/master/graph/badge.svg
+   :target: https://codecov.io/gh/khaeru/genno
+   :alt: Test coverage
+
 **genno** is a Python package for describing and executing complex calculations on labelled, multi-dimensional data.
 It aims to make these calculations efficient, transparent, and easily validated as part of scientific research.
 
