@@ -36,14 +36,13 @@ import pint
 import yaml
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
-from ixmp.utils import partial_split
 
 from . import computations
 from .describe import describe_recursive
 from .exceptions import ComputationError
 from .key import Key
 from .quantity import Quantity
-from .utils import RENAME_DIMS, REPLACE_UNITS, dims_for_qty
+from .utils import RENAME_DIMS, REPLACE_UNITS, dims_for_qty, partial_split
 
 __all__ = [
     "Key",
@@ -66,7 +65,7 @@ class MissingKeyError(KeyError):
 
 
 class Reporter:
-    """Class for generating reports on :class:`ixmp.Scenario` objects."""
+    """Class for describing and executing computations."""
 
     # TODO meet the requirements:
     # A3iii. Interpolation.
@@ -77,7 +76,7 @@ class Reporter:
     #: The default reporting key.
     default_key = None
 
-    # An index of ixmp names -> full keys
+    # An index of key names -> full keys
     _index: Dict[str, Key] = {}
 
     # Module containing pre-defined computations
@@ -481,12 +480,11 @@ class Reporter:
     def full_key(self, name_or_key):
         """Return the full-dimensionality key for *name_or_key*.
 
-        An ixmp variable 'foo' with dimensions (a, c, n, q, x) is available in
-        the Reporter as ``'foo:a-c-n-q-x'``. This :class:`Key
-        <genno.utils.Key>` can be retrieved with::
+        An quantity 'foo' with dimensions (a, c, n, q, x) is available in the Reporter
+        as ``'foo:a-c-n-q-x'``. This :class:`.Key` can be retrieved with::
 
-            rep.full_key('foo')
-            rep.full_key('foo:c')
+            rep.full_key("foo")
+            rep.full_key("foo:c")
             # etc.
         """
         name = str(Key.from_str_or_key(name_or_key, drop=True)).rstrip(":")
@@ -562,7 +560,7 @@ class Reporter:
             if value is None:
                 self.graph["config"]["filters"].pop(key, None)
 
-    # ixmp data model manipulations
+    # Convenience methods
     def add_product(self, key, *quantities, sums=True):
         """Add a computation that takes the product of *quantities*.
 
@@ -676,7 +674,6 @@ class Reporter:
 
         return self.add(key, tuple([method, qty] + args), strict=True)
 
-    # Convenience methods
     def add_file(self, path, key=None, **kwargs):
         """Add exogenous quantities from *path*.
 

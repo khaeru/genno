@@ -10,7 +10,7 @@ env:
   # For setuptools-scm. With fetch --tags below, this ensures that
   # enough history is fetched to contain the latest tag, so that
   # setuptools-scm can generate the version number. Update:
-  # - See https://github.com/iiasa/ixmp/releases, at "NN commits to
+  # - See https://github.com/khaeru/genno/releases, at "NN commits to
   #   master since this release". The value should be at least equal to
   #   NN + the number of commits on any PR branch.
   # - Reset to a lower value, e.g. 100, after a new release.

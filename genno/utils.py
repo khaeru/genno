@@ -1,5 +1,6 @@
 import logging
-from functools import lru_cache
+from functools import lru_cache, partial
+from inspect import Parameter, signature
 from typing import Dict
 
 import pandas as pd
@@ -153,3 +154,23 @@ def parse_units(units_series):
         raise invalid(unit)
 
     return unit
+
+
+def partial_split(func, kwargs):
+    """Forgiving version of :func:`functools.partial`.
+
+    Returns a partial object and leftover kwargs not applicable to `func`.
+    """
+    # Names of parameters to
+    par_names = signature(func).parameters
+    func_args, extra = {}, {}
+    for name, value in kwargs.items():
+        if (
+            name in par_names
+            and par_names[name].kind == Parameter.POSITIONAL_OR_KEYWORD
+        ):
+            func_args[name] = value
+        else:
+            extra[name] = value
+
+    return partial(func, **func_args), extra
