@@ -21,9 +21,12 @@ from genno import (
     computations,
     configure,
 )
-from genno.testing import assert_logs, assert_qty_allclose, assert_qty_equal
-
-from . import add_test_data
+from genno.testing import (
+    add_test_data,
+    assert_logs,
+    assert_qty_allclose,
+    assert_qty_equal,
+)
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
@@ -43,11 +46,6 @@ def scenario(test_mp):
     scen.add_timeseries(TS_DF)
     scen.commit("importing a testing timeseries")
     return scen
-
-
-@pytest.fixture(scope="session")
-def ureg():
-    yield pint.get_application_registry()
 
 
 def test_configure(test_mp, test_data_path):
@@ -432,29 +430,6 @@ def test_reporter_full_key():
     # Original and tagged key can both be retrieved
     assert r.full_key("a") == "a:i-j-k"
     assert r.full_key("a::foo") == "a:i-j-k:foo"
-
-
-def test_units(ureg):
-    """Test handling of units within Reporter computations."""
-    r = Reporter()
-
-    # Create some dummy data
-    dims = dict(coords=["a b c".split()], dims=["x"])
-    r.add("energy:x", Quantity(xr.DataArray([1.0, 3, 8], **dims), units="MJ"))
-    r.add("time", Quantity(xr.DataArray([5.0, 6, 8], **dims), units="hour"))
-    r.add("efficiency", Quantity(xr.DataArray([0.9, 0.8, 0.95], **dims)))
-
-    # Aggregation preserves units
-    r.add("energy", (computations.sum, "energy:x", None, ["x"]))
-    assert r.get("energy").attrs["_unit"] == ureg.parse_units("MJ")
-
-    # Units are derived for a ratio of two quantities
-    r.add("power", (computations.ratio, "energy:x", "time"))
-    assert r.get("power").attrs["_unit"] == ureg.parse_units("MJ/hour")
-
-    # Product of dimensioned and dimensionless quantities keeps the former
-    r.add("energy2", (computations.product, "energy:x", "efficiency"))
-    assert r.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
 
 
 def test_platform_units(test_mp, caplog, ureg):

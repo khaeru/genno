@@ -8,9 +8,7 @@ import xarray as xr
 from pandas.testing import assert_series_equal
 
 from genno import Quantity, Reporter, computations
-from genno.testing import assert_logs, assert_qty_equal, random_qty
-
-from . import add_test_data
+from genno.testing import add_test_data, assert_logs, assert_qty_equal, random_qty
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
