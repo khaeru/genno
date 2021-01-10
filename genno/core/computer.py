@@ -49,7 +49,13 @@ log = logging.getLogger(__name__)
 
 
 class Computer:
-    """Class for describing and executing computations."""
+    """Class for describing and executing computations.
+
+    Parameters
+    ----------
+    kwargs :
+        Passed to :meth:`configure`.
+    """
 
     # TODO meet the requirements:
     # A3iii. Interpolation.
@@ -122,9 +128,6 @@ class Computer:
         # Aliases
         for alias, original in config.get("alias", {}).items():
             self.add(alias, original)
-
-        # Filters
-        self.set_filters(**config.get("filters", {}))
 
         return self  # to allow chaining
 

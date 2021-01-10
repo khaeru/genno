@@ -115,6 +115,18 @@ class Reporter(Computer):
 
         return rep
 
+    def configure(self, path=None, **config):
+        """Configure the Reporter.
+
+        Calls :meth:`set_filters` for a "filters" keyword argument.
+        """
+        super().configure(path, **config)
+
+        # Handle filters configuration
+        self.set_filters(**self.graph["config"].get("filters", {}))
+
+        return self
+
     def finalize(self, scenario):
         """Prepare the Reporter to act on *scenario*.
 
@@ -127,19 +139,18 @@ class Reporter(Computer):
     def set_filters(self, **filters):
         """Apply *filters* ex ante (before computations occur).
 
-        Filters are stored in the reporter at the ``'filters'`` key, and are
-        passed to :meth:`ixmp.Scenario.par` and similar methods. All quantity
-        values read from the Scenario are filtered *before* any other
-        computations take place.
+        Filters are stored in the reporter at the ``'filters'`` key, and are passed to
+        :meth:`ixmp.Scenario.par` and similar methods. All quantity values read from
+        the Scenario are filtered *before* any other computations take place.
+
+        If no arguments are provided, *all* filters are cleared.
 
         Parameters
         ----------
         filters : mapping of str → (list of str or None)
-            Argument names are dimension names; values are lists of allowable
-            labels along the respective dimension, *or* None to clear any
-            existing filters for the dimension.
-
-            If no arguments are provided, *all* filters are cleared.
+            Argument names are dimension names; values are lists of allowable labels
+            along the respective dimension, *or* None to clear any existing filters for
+            the dimension.
         """
         self.graph["config"].setdefault("filters", {})
 
