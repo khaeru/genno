@@ -11,7 +11,7 @@ import pandas as pd
 import pint
 
 from .core.quantity import Quantity, assert_quantity
-from .utils import (
+from .util import (
     RENAME_DIMS,
     collect_units,
     dims_for_qty,

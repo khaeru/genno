@@ -37,7 +37,7 @@ from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfaul
 from dask.optimization import cull
 
 from genno import computations
-from genno.utils import partial_split
+from genno.util import partial_split
 
 from . import _config_args, configure
 from .describe import describe_recursive
