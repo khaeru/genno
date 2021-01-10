@@ -5,14 +5,14 @@ default: all
 
 # Exogenous data from files
 files:
-- path: ./report-input0.csv
+- path: ./input0.csv
   key: d_check
 # 'dims' argument can be supplied as list or dict
-- path: ./report-input1.csv
-  key: report-input1-0
+- path: ./input1.csv
+  key: input1-0
   dims: [i, j_dim]  # Omit extra dimension 'foo'
-- path: ./report-input1.csv
-  key: report-input1-1
+- path: ./input1.csv
+  key: input1-1
   dims: {i: i, j_dim: j}
 
 # Aliases

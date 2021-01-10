@@ -9,7 +9,7 @@ from .key import Key
 
 
 def describe_recursive(graph, comp, depth=0, seen=None):
-    """Recursive helper for :meth:`ixmp.reporting.Reporter.describe`.
+    """Recursive helper for :meth:`genno.Reporter.describe`.
 
     Parameters
     ----------
