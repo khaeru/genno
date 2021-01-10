@@ -2,14 +2,19 @@
 import logging
 import os
 
+import ixmp
 import numpy as np
 import pandas as pd
 import pint
 import pytest
 import xarray as xr
+from ixmp.testing import (
+    assert_logs,
+    assert_qty_allclose,
+    assert_qty_equal,
+    make_dantzig,
+)
 
-import ixmp
-import genno
 from genno import (
     RENAME_DIMS,
     ComputationError,
@@ -20,12 +25,6 @@ from genno import (
     Reporter,
     computations,
     configure,
-)
-from ixmp.testing import (
-    assert_logs,
-    assert_qty_allclose,
-    assert_qty_equal,
-    make_dantzig,
 )
 
 from . import add_test_data

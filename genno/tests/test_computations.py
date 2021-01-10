@@ -1,15 +1,15 @@
 import logging
 
+import ixmp
 import numpy as np
 import pint
 import pytest
 import xarray as xr
+from ixmp.testing import assert_logs, assert_qty_equal
 from pandas.testing import assert_series_equal
 
-import ixmp
 from genno import Quantity, Reporter, computations
 from genno.testing import random_qty
-from ixmp.testing import assert_logs, assert_qty_equal
 
 from . import add_test_data
 

@@ -1,7 +1,8 @@
 import re
 
-from genno import ComputationError
 from ixmp.testing import assert_logs, get_cell_output, run_notebook
+
+from genno import ComputationError
 
 
 def test_computationerror(caplog):

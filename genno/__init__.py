@@ -36,7 +36,6 @@ import pint
 import yaml
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
-
 from ixmp.utils import partial_split
 
 from . import computations
