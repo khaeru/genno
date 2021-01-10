@@ -8,12 +8,7 @@ import pandas as pd
 import pint
 import pytest
 import xarray as xr
-from ixmp.testing import (
-    assert_logs,
-    assert_qty_allclose,
-    assert_qty_equal,
-    make_dantzig,
-)
+from ixmp.testing import make_dantzig
 
 from genno import (
     RENAME_DIMS,
@@ -26,6 +21,7 @@ from genno import (
     computations,
     configure,
 )
+from genno.testing import assert_logs, assert_qty_allclose, assert_qty_equal
 
 from . import add_test_data
 

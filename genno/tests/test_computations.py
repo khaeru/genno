@@ -5,11 +5,10 @@ import numpy as np
 import pint
 import pytest
 import xarray as xr
-from ixmp.testing import assert_logs, assert_qty_equal
 from pandas.testing import assert_series_equal
 
 from genno import Quantity, Reporter, computations
-from genno.testing import random_qty
+from genno.testing import assert_logs, assert_qty_equal, random_qty
 
 from . import add_test_data
 
@@ -70,7 +69,9 @@ def test_apply_units(data, caplog):
     registry = pint.get_application_registry()
 
     # Brute-force replacement with incompatible units
-    with assert_logs(caplog, "Replace 'kilogram' with incompatible 'liter'"):
+    with assert_logs(
+        caplog, "Replace 'kilogram' with incompatible 'liter'", at_level=logging.DEBUG
+    ):
         result = computations.apply_units(x, "litres")
     assert result.attrs["_unit"] == registry.Unit("litre")
     # No change in values
