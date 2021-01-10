@@ -29,7 +29,8 @@ from functools import partial
 from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
-from typing import Dict, Union
+from types import ModuleType
+from typing import Callable, Dict, Optional, Sequence, Union
 
 import dask
 import pint
@@ -62,8 +63,9 @@ class Computer:
     # An index of key names -> full keys
     _index: Dict[str, Key] = {}
 
-    # Module containing pre-defined computations
-    _computations = computations
+    #: List of modules containing pre-defined computations. By default, this includes
+    #: the :mod:`genno` built-in computations in :mod:`genno.computations`.
+    _computations: Sequence[ModuleType] = [computations]
 
     def __init__(self, **kwargs):
         self.graph = {"config": {}}
@@ -126,6 +128,18 @@ class Computer:
 
         return self  # to allow chaining
 
+    @classmethod
+    def _get_comp(cls, name) -> Optional[Callable]:
+        """Return a computation with the given `name`, or :obj:`None`."""
+        for module in reversed(cls._computations):
+            try:
+                return getattr(module, name)
+            except AttributeError:
+                continue  # `name` not in this module
+            except TypeError:
+                return None  # `name` is not a string; can't be the name of a function
+        return None
+
     def add(self, data, *args, **kwargs):
         """General-purpose method to add computations.
 
@@ -166,7 +180,7 @@ class Computer:
             # A list. Use add_queue to add
             return self.add_queue(data, *args, **kwargs)
 
-        elif isinstance(data, str) and data in dir(self._computations):
+        elif isinstance(data, str) and self._get_comp(data):
             # *data* is the name of a pre-defined computation
             name = data
 
@@ -177,7 +191,7 @@ class Computer:
                 return getattr(self, f"add_{name}")(*args, **kwargs)
             else:
                 # Get the function directly
-                func = getattr(self._computations, name)
+                func = self._get_comp(name)
                 # Rearrange arguments: key, computation function, args, …
                 func, kwargs = partial_split(func, kwargs)
                 return self.add(args[0], func, *args[1:], **kwargs)
@@ -282,11 +296,11 @@ class Computer:
             4. A list containing one or more of #1, #2, and/or #3.
 
         strict : bool, optional
-            If True, *key* must not already exist in the Computer, and
-            any keys referred to by *computation* must exist.
+            If True, *key* must not already exist in the Computer, and any keys
+            referred to by *computation* must exist.
         index : bool, optional
-            If True, *key* is added to the index as a full-resolution key, so
-            it can be later retrieved with :meth:`full_key`.
+            If True, *key* is added to the index as a full-resolution key, so it can be
+            later retrieved with :meth:`full_key`.
         """
         if len(computation) == 1:
             # Unpack a length-1 tuple
