@@ -31,7 +31,7 @@ from itertools import chain, repeat
 import dask
 
 from genno import computations
-from genno.utils import RENAME_DIMS, dims_for_qty
+from genno.util import RENAME_DIMS, dims_for_qty
 
 from .computer import Computer
 from .key import Key
