@@ -2,6 +2,7 @@
 *.egg-info
 .benchmarks
 .pytest_cache
+.mypy_cache
 __pycache__
 build
 doc/_build

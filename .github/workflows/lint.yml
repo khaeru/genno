@@ -61,7 +61,7 @@ jobs:
 
     - name: Check typing with mypy
       run: |
-        pip install mypy xarray
+        pip install mypy pytest xarray
         mypy .
 
     - name: Test package build
