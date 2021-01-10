@@ -10,7 +10,7 @@ from warnings import filterwarnings
 import pandas as pd
 import pint
 
-from .quantity import Quantity, assert_quantity
+from .core.quantity import Quantity, assert_quantity
 from .utils import (
     RENAME_DIMS,
     collect_units,

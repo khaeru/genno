@@ -134,7 +134,7 @@ class Key:
 
     def iter_sums(self):
         """Generate (key, task) for all possible partial sums of the Key."""
-        from . import computations
+        from genno import computations
 
         for agg_dims, others in combo_partition(self.dims):
             yield (

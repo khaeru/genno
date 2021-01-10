@@ -37,12 +37,12 @@ from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfaul
 from dask.optimization import cull
 
 from genno import computations
-from genno.describe import describe_recursive
-from genno.exceptions import ComputationError, KeyExistsError, MissingKeyError
-from genno.key import Key
 from genno.utils import partial_split
 
 from . import _config_args, configure
+from .describe import describe_recursive
+from .exceptions import ComputationError, KeyExistsError, MissingKeyError
+from .key import Key
 
 log = logging.getLogger(__name__)
 
@@ -481,8 +481,7 @@ class Computer:
         weights : :class:`xarray.DataArray`, optional
             Weights for weighted aggregation.
         keep : bool, optional
-            Passed to :meth:`computations.aggregate
-            <imxp.reporting.computations.aggregate>`.
+            Passed to :meth:`computations.aggregate <genno.computations.aggregate>`.
         sums : bool, optional
             Passed to :meth:`add`.
 
