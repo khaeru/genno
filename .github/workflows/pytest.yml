@@ -33,6 +33,12 @@ jobs:
         # - "3.9"             # Latest Python release
         # - "3.10.0-alpha.1"  # Development version
 
+        exclude:
+        # This job triggers error when importing ixmp.testing: no module named
+        # ixmp.backend. Not critical, since it's upstream.
+        - os: windows-latest
+          python-version: "3.7"
+
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
