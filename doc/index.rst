@@ -1,7 +1,27 @@
-.. currentmodule:: ixmp.reporting
+.. genno documentation master file, created by
+   sphinx-quickstart on Fri Jan  8 16:17:54 2021.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-Reporting
-*********
+Welcome to genno's documentation!
+*********************************
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+
+Indices and tables
+******************
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+API
+***
+
+.. currentmodule:: genno
 
 Top-level methods and classes:
 
@@ -18,9 +38,9 @@ Others:
    :local:
    :depth: 3
 
-.. automethod:: ixmp.reporting.configure
+.. autofunction:: configure
 
-.. autoclass:: ixmp.reporting.Reporter
+.. autoclass:: genno.Reporter
    :members:
    :exclude-members: graph, add, add_load_file, apply
 
@@ -129,7 +149,7 @@ Others:
 
          rep.apply(my_gen, units='kg')
 
-.. autoclass:: ixmp.reporting.Key
+.. autoclass:: genno.Key
    :members:
 
    Quantities in a :class:`Scenario` can be indexed by one or more dimensions.
@@ -183,7 +203,7 @@ Others:
           >>> foo('a b c')
           foo:a-b-c
 
-.. autodata:: ixmp.reporting.Quantity(data, *args, **kwargs)
+.. autodata:: genno.Quantity(data, *args, **kwargs)
    :annotation:
 
 The :data:`.Quantity` constructor converts its arguments to an internal, :class:`xarray.DataArray`-like data format:
@@ -197,10 +217,10 @@ The :data:`.Quantity` constructor converts its arguments to an internal, :class:
    qty = Quantity(data, name="Quantity name", units="kg")
    rep.add("new_qty", qty)
 
-Common :mod:`ixmp.reporting` usage, e.g. in :mod:`message_ix`, creates large, sparse data frames (billions of possible elements, but <1% populated); :class:`~xarray.DataArray`'s default, 'dense' storage format would be too large for available memory.
+Common :mod:`genno` usage, e.g. in :mod:`message_ix`, creates large, sparse data frames (billions of possible elements, but <1% populated); :class:`~xarray.DataArray`'s default, 'dense' storage format would be too large for available memory.
 
 - Currently, Quantity is :class:`.AttrSeries`, a wrapped :class:`pandas.Series` that behaves like a :class:`~xarray.DataArray`.
-- In the future, :mod:`ixmp.reporting` will use :class:`.SparseDataArray`, and eventually :class:`~xarray.DataArray` backed by sparse data, directly.
+- In the future, :mod:`genno` will use :class:`.SparseDataArray`, and eventually :class:`~xarray.DataArray` backed by sparse data, directly.
 
 The goal is that reporting code, including built-in and user computations, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
 
@@ -208,11 +228,11 @@ The goal is that reporting code, including built-in and user computations, can t
 Computations
 ============
 
-.. automodule:: ixmp.reporting.computations
+.. automodule:: genno.computations
    :members:
 
    Unless otherwise specified, these methods accept and return
-   :class:`Quantity <ixmp.reporting.utils.Quantity>` objects for data
+   :class:`Quantity <genno.utils.Quantity>` objects for data
    arguments/return values.
 
    Calculations:
@@ -242,24 +262,24 @@ Computations
 Internal format for reporting quantities
 ========================================
 
-.. currentmodule:: ixmp.reporting.quantity
+.. currentmodule:: genno.quantity
 
-.. automodule:: ixmp.reporting.quantity
+.. automodule:: genno.quantity
    :members: assert_quantity
 
-.. currentmodule:: ixmp.reporting.attrseries
+.. currentmodule:: genno.attrseries
 
-.. automodule:: ixmp.reporting.attrseries
+.. automodule:: genno.attrseries
    :members:
 
-.. currentmodule:: ixmp.reporting.sparsedataarray
+.. currentmodule:: genno.sparsedataarray
 
-.. automodule:: ixmp.reporting.sparsedataarray
+.. automodule:: genno.sparsedataarray
    :members: SparseDataArray, SparseAccessor
 
 
 Utilities
 =========
 
-.. automodule:: ixmp.reporting.utils
+.. automodule:: genno.utils
    :members:

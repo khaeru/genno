@@ -1,11 +1,12 @@
 import logging
-from functools import lru_cache
+from functools import lru_cache, partial
+from inspect import Parameter, signature
 from typing import Dict
 
 import pandas as pd
 import pint
 
-from .key import Key
+from .core.key import Key
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ RENAME_DIMS: Dict[str, str] = {}
 def clean_units(input_string):
     """Tolerate messy strings for units.
 
-    Handles two specific cases found in |MESSAGEix| test cases:
+    Handles two specific cases found in MESSAGEix test cases:
 
     - Dimensions enclosed in '[]' have these characters stripped.
     - The '%' symbol cannot be supported by pint, because it is a Python
@@ -59,7 +60,7 @@ def dims_for_qty(data):
     If *data* is a :class:`pandas.DataFrame`, its columns are processed;
     otherwise it must be a list.
 
-    ixmp.reporting.RENAME_DIMS is used to rename dimensions.
+    genno.RENAME_DIMS is used to rename dimensions.
     """
     if isinstance(data, pd.DataFrame):
         # List of the dimensions
@@ -153,3 +154,23 @@ def parse_units(units_series):
         raise invalid(unit)
 
     return unit
+
+
+def partial_split(func, kwargs):
+    """Forgiving version of :func:`functools.partial`.
+
+    Returns a partial object and leftover kwargs not applicable to `func`.
+    """
+    # Names of parameters to
+    par_names = signature(func).parameters
+    func_args, extra = {}, {}
+    for name, value in kwargs.items():
+        if (
+            name in par_names
+            and par_names[name].kind == Parameter.POSITIONAL_OR_KEYWORD
+        ):
+            func_args[name] = value
+        else:
+            extra[name] = value
+
+    return partial(func, **func_args), extra

@@ -55,6 +55,16 @@ class ComputationError(Exception):
         )
 
 
+class KeyExistsError(KeyError):
+    def __str__(self):
+        return f"key {repr(self.args[0])} already exists"
+
+
+class MissingKeyError(KeyError):
+    def __str__(self):
+        return f"required keys {repr(self.args)} not defined"
+
+
 def process_dask_tb(exc):
     """Process *exc* arising from :meth:`.Reporter.get`.
 
