@@ -7,7 +7,7 @@ import pytest
 import xarray as xr
 from pandas.testing import assert_series_equal
 
-from .quantity import Quantity
+from .core.quantity import Quantity
 
 
 @contextlib.contextmanager

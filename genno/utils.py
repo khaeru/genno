@@ -6,7 +6,7 @@ from typing import Dict
 import pandas as pd
 import pint
 
-from .key import Key
+from .core.key import Key
 
 log = logging.getLogger(__name__)
 

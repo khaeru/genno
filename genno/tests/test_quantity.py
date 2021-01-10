@@ -7,8 +7,8 @@ from ixmp import Scenario
 from xarray.testing import assert_equal as assert_xr_equal
 
 from genno import Quantity, Reporter, computations
-from genno.attrseries import AttrSeries
-from genno.sparsedataarray import SparseDataArray
+from genno.core.attrseries import AttrSeries
+from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import assert_qty_allclose, assert_qty_equal
 
 
