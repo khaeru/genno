@@ -1,8 +1,8 @@
+from .compat.ixmp.reporter import Reporter
 from .core import configure
 from .core.exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .core.key import Key
 from .core.quantity import Quantity
-from .core.reporter import Reporter
 from .util import RENAME_DIMS
 
 __all__ = [

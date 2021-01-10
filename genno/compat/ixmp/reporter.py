@@ -30,17 +30,19 @@ from itertools import chain, repeat
 
 import dask
 
-from genno import computations
+from genno.core.computer import Computer
+from genno.core.key import Key
 from genno.util import RENAME_DIMS, dims_for_qty
 
-from .computer import Computer
-from .key import Key
+from . import computations as ixmp_computations
 
 log = logging.getLogger(__name__)
 
 
 class Reporter(Computer):
     """Class for describing and executing computations."""
+
+    _computations = list(Computer._computations) + [ixmp_computations]
 
     @classmethod
     def from_scenario(cls, scenario, **kwargs):
@@ -166,7 +168,7 @@ def keys_for_quantity(ix_type, name, scenario):
     result = [
         (
             key,
-            partial(computations.data_for_quantity, ix_type, name, column),
+            partial(ixmp_computations.data_for_quantity, ix_type, name, column),
             "scenario",
             "config",
         )
@@ -177,7 +179,7 @@ def keys_for_quantity(ix_type, name, scenario):
         result.append(
             (
                 Key("{}-margin".format(name), dims),
-                partial(computations.data_for_quantity, ix_type, name, "mrg"),
+                partial(ixmp_computations.data_for_quantity, ix_type, name, "mrg"),
                 "scenario",
                 "config",
             )
