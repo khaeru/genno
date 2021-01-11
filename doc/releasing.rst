@@ -11,7 +11,7 @@ Address any failures before releasing.
 1. Edit :file:`doc/whatsnew.rst` to replace "Next release" with the version number and date.
    Make a commit with a message like "Mark vX.Y.Z in whatsnew.rst".
 
-2. Tag the version, e.g.:
+2. Tag the version, e.g.::
 
     $ git tag v1.2.3b4
 
@@ -24,7 +24,7 @@ Address any failures before releasing.
    Address any warnings or errors that appear.
    If needed, make a new commit and go back to step (2).
 
-4. Upload the packages to the TEST instance of PyPI:
+4. Upload the packages to the TEST instance of PyPI::
 
     $ twine upload -r testpypi dist/*
 
@@ -36,14 +36,14 @@ Address any failures before releasing.
 
    If not, modify the code and go back to step (2).
 
-6. Upload to PyPI:
+6. Upload to PyPI::
 
     $ twine upload dist/*
 
 7. Edit :file:`doc/whatsnew.rst` to add a new heading for the next release.
    Make a commit with a message like "Reset whatsnew.rst to development state".
 
-8. Push the commits and tag to GitHub:
+8. Push the commits and tag to GitHub::
 
     $ git push --tags
 

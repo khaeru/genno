@@ -56,6 +56,9 @@ extlinks = {
 
 intersphinx_mapping = {
     "dask": ("https://docs.dask.org/en/stable/", None),
+    "ixmp": ("https://docs.messageix.org/projects/ixmp/en/latest", None),
+    "message_ix": ("https://docs.messageix.org/en/latest", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
+    "pyam": ("https://pyam-iamc.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
 }

@@ -132,7 +132,7 @@ def data_for_quantity(ix_type, name, column, scenario, config):
 def map_as_qty(set_df: pd.DataFrame, full_set):
     """Convert *set_df* to a :class:`.Quantity`.
 
-    For the MESSAGE sets named ``cat_*`` (see :ref:`mapping-sets`)
+    For the MESSAGE sets named ``cat_*`` (see :ref:`message_ix:mapping-sets`)
     :meth:`ixmp.Scenario.set` returns a :class:`~pandas.DataFrame` with two columns:
     the *category* set (S1) elements and the *category member* set (S2, also required
     as the argument `full_set`) elements.
