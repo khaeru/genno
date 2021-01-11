@@ -1,36 +1,45 @@
 import logging
+from collections import namedtuple
 from functools import partial
 from pathlib import Path
 
 import pandas as pd
 import pyam
 import pytest
-from message_ix import Reporter, Scenario
-from message_ix.testing import SCENARIO
 from pandas.testing import assert_frame_equal, assert_series_equal
 
+from genno import Computer, Quantity
 from genno.compat.pyam import computations
 
 
+@pytest.fixture(scope="session")
+def scenario():
+    """Mock object which resembles ixmp.Scenario."""
+    Scenario = namedtuple("Scenario", ["model", "scenario"])
+    yield Scenario(model="Canning problem (MESSAGE scheme)", scenario="standard")
+
+
 @pytest.fixture
-def dantzig_reporter(message_test_mp):
-    scen = Scenario(message_test_mp, **SCENARIO["dantzig"])
-    if not scen.has_solution():
-        scen.solve()
-    yield Reporter.from_scenario(scen)
+def dantzig_reporter(scenario):
+    """Computer with minimal contents for below tests."""
+    # TODO complete:
+    # - Copy dimensions of ACT from message_ix.
+    # - Create the quantities used by test_concat().
+
+    c = Computer()
+    c.add("ACT", Quantity(42), index=True)
+    c.add("scenario", scenario)
+    yield c
 
 
-def test_as_pyam(message_test_mp):
-    scen = Scenario(message_test_mp, **SCENARIO["dantzig"])
-    if not scen.has_solution():
-        scen.solve()
-    rep = Reporter.from_scenario(scen)
+def test_as_pyam(dantzig_reporter, scenario):
+    rep = dantzig_reporter
 
     # Quantities for 'ACT' variable at full resolution
     qty = rep.get(rep.full_key("ACT"))
 
     # Call as_pyam() with an empty quantity
-    p = computations.as_pyam(scen, qty[0:0], year_time_dim="ya")
+    p = computations.as_pyam(scenario, qty[0:0], year_time_dim="ya")
     assert isinstance(p, pyam.IamDataFrame)
 
 
