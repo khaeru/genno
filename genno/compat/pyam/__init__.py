@@ -17,18 +17,18 @@ def as_pyam(
 ):
     """Return a :class:`pyam.IamDataFrame` containing *quantity*.
 
-    Warnings are logged if the arguments result in additional, unhandled
-    columns in the resulting data frame that are not part of the IAMC spec.
+    Warnings are logged if the arguments result in additional, unhandled columns in the
+    resulting data frame that are not part of the IAMC spec.
 
     Raises
     ------
     ValueError
-        If the resulting data frame has duplicate values in the standard IAMC
-        index columns. :class:`pyam.IamDataFrame` cannot handle this data.
+        If the resulting data frame has duplicate values in the standard IAMC index
+        columns. :class:`pyam.IamDataFrame` cannot handle this data.
 
     See also
     --------
-    message_ix.reporting.Reporter.convert_pyam
+    .Computer.convert_pyam
     """
     rename_cols = {
         # Renamed automatically

@@ -60,6 +60,7 @@ Others:
       apply
       check_keys
       configure
+      convert_pyam
       describe
       disaggregate
       full_key

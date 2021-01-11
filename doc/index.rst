@@ -6,6 +6,7 @@ Welcome to genno's documentation!
    :caption: Contents:
 
    api
+   compat
    whatsnew
    releasing
 
