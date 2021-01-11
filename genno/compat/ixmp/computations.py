@@ -127,3 +127,43 @@ def data_for_quantity(ix_type, name, column, scenario, config):
         pass
 
     return qty
+
+
+def map_as_qty(set_df: pd.DataFrame, full_set):
+    """Convert *set_df* to a :class:`.Quantity`.
+
+    For the MESSAGE sets named ``cat_*`` (see :ref:`mapping-sets`)
+    :meth:`ixmp.Scenario.set` returns a :class:`~pandas.DataFrame` with two columns:
+    the *category* set (S1) elements and the *category member* set (S2, also required
+    as the argument `full_set`) elements.
+
+    map_as_qty converts such a DataFrame (*set_df*) into a Quantity with two
+    dimensions. At the coordinates *(s₁, s₂)*, the value is 1 if *s₂* is mapped from
+    *s₁*; otherwise 0.
+
+    A category named 'all', containing all elements of `full_set`, is added
+    automatically.
+
+    See also
+    --------
+    broadcast_map
+    """
+    set_from, set_to = set_df.columns
+    names = [RENAME_DIMS.get(c, c) for c in set_df.columns]
+
+    # Add an 'all' mapping
+    set_df = pd.concat(
+        [
+            set_df,
+            pd.DataFrame([("all", e) for e in full_set], columns=set_df.columns),
+        ]
+    )
+
+    # Add a value column
+    set_df["value"] = 1
+
+    return (
+        set_df.set_index([set_from, set_to])["value"]
+        .rename_axis(index=names)
+        .pipe(Quantity)
+    )

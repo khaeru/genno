@@ -16,6 +16,7 @@ from .util import collect_units, filter_concat_args
 __all__ = [
     "aggregate",
     "apply_units",
+    "broadcast_map",
     "concat",
     "disaggregate_shares",
     "load_file",
@@ -149,6 +150,23 @@ def aggregate(quantity, groups, keep):
     quantity.attrs = attrs
 
     return quantity
+
+
+def broadcast_map(quantity, map, rename={}):
+    """Broadcast *quantity* using a *map*.
+
+    The *map* must be a 2-dimensional quantity, such as returned by :func:`map_as_qty`.
+
+    *quantity* is 'broadcast' by multiplying it with the 2-dimensional *map*, and then
+    dropping the common dimension. The result has the second dimension of *map* instead
+    of the first.
+
+    Parameters
+    ----------
+    rename : dict (str -> str), optional
+        Dimensions to rename on the result.
+    """
+    return product(quantity, map).drop(map.dims[0]).rename(rename)
 
 
 def concat(*objs, **kwargs):
