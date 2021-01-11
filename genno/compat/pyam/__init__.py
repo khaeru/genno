@@ -1,10 +1,7 @@
 from logging import getLogger
 
 import pint
-from ixmp.reporting.computations import concat as ixmp_concat
-from ixmp.reporting.computations import write_report as ixmp_write_report
 from pyam import IAMC_IDX, IamDataFrame
-from pyam import concat as pyam_concat
 
 log = getLogger(__name__)
 
@@ -93,42 +90,6 @@ def as_pyam(
         )
 
     return IamDataFrame(df)
-
-
-# Computations that operate on pyam.IamDataFrame inputs
-
-
-def concat(*args, **kwargs):
-    """Concatenate *args*, which must all be :class:`pyam.IamDataFrame`."""
-    if isinstance(args[0], IamDataFrame):
-        # pyam.concat() takes an iterable of args
-        return pyam_concat(args, **kwargs)
-    else:
-        # ixmp.reporting.computations.concat() takes a variable number of
-        # positional arguments
-        return ixmp_concat(*args, **kwargs)
-
-
-def write_report(quantity, path):
-    """Write the report identified by *key* to the file at *path*.
-
-    If *quantity* is a :class:`pyam.IamDataFrame` and *path* ends with '.csv'
-    or '.xlsx', use :mod:`pyam` methods to write the file to CSV or Excel
-    format, respectively. Otherwise, equivalent to
-    :meth:`ixmp.reporting.computations.write_report`.
-    """
-    if not isinstance(quantity, IamDataFrame):
-        return ixmp_write_report(quantity, path)
-
-    if path.suffix == ".csv":
-        quantity.to_csv(path)
-    elif path.suffix == ".xlsx":
-        quantity.to_excel(path, merge_cells=False)
-    else:
-        raise ValueError(
-            "pyam.IamDataFrame can be written to .csv or .xlsx, "
-            "not {}".format(path.suffix)
-        )
 
 
 def collapse_message_cols(df, var, kind=None):
