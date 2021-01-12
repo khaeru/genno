@@ -1,0 +1,9 @@
+nl,t,yv,ya,m,h,value
+seattle,canning_plant,1963,1963,production,year,350.0
+seattle,transport_from_seattle,1963,1963,to_new-york,year, 50.0
+seattle,transport_from_seattle,1963,1963,to_chicago,year,300.0
+seattle,transport_from_seattle,1963,1963,to_topeka,year,  0.0
+san-diego,canning_plant,1963,1963,production,year,600.0
+san-diego,transport_from_san-diego,1963,1963,to_new-york,year,275.0
+san-diego,transport_from_san-diego,1963,1963,to_chicago,year,  0.0
+san-diego,transport_from_san-diego,1963,1963,to_topeka,year,275.0

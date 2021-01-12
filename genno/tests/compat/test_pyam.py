@@ -1,14 +1,14 @@
 import logging
 from collections import namedtuple
 from functools import partial
-from pathlib import Path
 
 import pandas as pd
 import pytest
 
 from pandas.testing import assert_frame_equal, assert_series_equal
 
-from genno import Computer, Quantity
+from genno import Computer, Key
+from genno.computations import load_file
 from genno.compat.pyam import computations
 
 
@@ -23,16 +23,23 @@ def scenario():
     yield Scenario(model="Canning problem (MESSAGE scheme)", scenario="standard")
 
 
-@pytest.fixture
-def dantzig_reporter(scenario):
+@pytest.fixture(scope="session")
+def dantzig_reporter(test_data_path, scenario, ureg):
     """Computer with minimal contents for below tests."""
     # TODO complete:
-    # - Copy dimensions of ACT from message_ix.
     # - Create the quantities used by test_concat().
 
+    ureg.define("USD = [money]")
+    ureg.define("case = [case]")
+
     c = Computer()
-    c.add("ACT", Quantity(42), index=True)
+
+    for name, units in (("ACT", ""), ("var_cost", "USD/case")):
+        qty = load_file(test_data_path / f"dantzig-{name}.csv", name=name, units=units)
+        c.add(Key(name, qty.dims), qty, index=True)
+
     c.add("scenario", scenario)
+
     yield c
 
 
@@ -47,7 +54,7 @@ def test_as_pyam(dantzig_reporter, scenario):
     assert isinstance(p, pyam.IamDataFrame)
 
 
-def test_reporter_convert_pyam(dantzig_reporter, caplog, tmp_path):
+def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
     rep = dantzig_reporter
 
     # Key for 'ACT' variable at full resolution
@@ -74,8 +81,11 @@ def test_reporter_convert_pyam(dantzig_reporter, caplog, tmp_path):
     assert idf1["variable"].unique() == "ACT"
 
     # Warning was logged because of extra columns
-    w = "Extra columns ['h', 'm', 't'] when converting 'ACT' to IAMC format"
-    assert ("message_ix.reporting.pyam", logging.WARNING, w) in caplog.record_tuples
+    assert (
+        "genno.compat.pyam.computations",
+        logging.WARNING,
+        "Extra columns ['h', 'm', 't'] when converting 'ACT' to IAMC format",
+    ) in caplog.record_tuples
 
     # Repeat, using the message_ix.Reporter convenience function
     def add_tm(df, name="Activity"):
@@ -123,8 +133,7 @@ def test_reporter_convert_pyam(dantzig_reporter, caplog, tmp_path):
     rep.write(key2, path)
 
     # File contents are as expected
-    expected = Path(__file__).parent / "data" / "report-pyam-write.csv"
-    assert path.read_text() == expected.read_text()
+    assert test_data_path.joinpath("pyam-write.csv").read_text() == path.read_text()
 
     # Use a name map to replace variable names
     rep.add("activity variables", {"Activity|canning_plant|production": "Foo"})
