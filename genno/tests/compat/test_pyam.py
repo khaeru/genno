@@ -25,7 +25,7 @@ def scenario():
 
 # Session scope so that ureg.define() is only called once
 @pytest.fixture(scope="session")
-def dantzig_reporter(test_data_path, scenario, ureg):
+def dantzig_computer(test_data_path, scenario, ureg):
     """Computer with minimal contents for below tests."""
     # Add units
     ureg.define("USD = [money]")
@@ -52,25 +52,25 @@ def dantzig_reporter(test_data_path, scenario, ureg):
     yield c
 
 
-def test_as_pyam(dantzig_reporter, scenario):
-    rep = dantzig_reporter
+def test_as_pyam(dantzig_computer, scenario):
+    c = dantzig_computer
 
     # Quantities for 'ACT' variable at full resolution
-    qty = rep.get(rep.full_key("ACT"))
+    qty = c.get(c.full_key("ACT"))
 
     # Call as_pyam() with an empty quantity
     p = computations.as_pyam(scenario, qty[0:0], year_time_dim="ya")
     assert isinstance(p, pyam.IamDataFrame)
 
 
-def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
-    rep = dantzig_reporter
+def test_convert_pyam(dantzig_computer, caplog, tmp_path, test_data_path):
+    c = dantzig_computer
 
     # Key for 'ACT' variable at full resolution
-    ACT = rep.full_key("ACT")
+    ACT = c.full_key("ACT")
 
     # Add a computation that converts ACT to a pyam.IamDataFrame
-    rep.add(
+    c.add(
         "ACT IAMC",
         (
             partial(computations.as_pyam, drop=["yv"], year_time_dim="ya"),
@@ -80,7 +80,7 @@ def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
     )
 
     # Result is an IamDataFrame
-    idf1 = rep.get("ACT IAMC")
+    idf1 = c.get("ACT IAMC")
     assert isinstance(idf1, pyam.IamDataFrame)
 
     # …of expected length
@@ -96,14 +96,14 @@ def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
         "Extra columns ['h', 'm', 't'] when converting 'ACT' to IAMC format",
     ) in caplog.record_tuples
 
-    # Repeat, using the message_ix.Reporter convenience function
+    # Repeat, using the convert_pyam() convenience function
     def add_tm(df, name="Activity"):
         """Callback for collapsing ACT columns."""
         df["variable"] = f"{name}|" + df["t"] + "|" + df["m"]
         return df.drop(["t", "m"], axis=1)
 
     # Use the convenience function to add the node
-    keys = rep.convert_pyam(ACT, "ya", collapse=add_tm)
+    keys = c.convert_pyam(ACT, "ya", collapse=add_tm)
 
     # Keys of added node(s) are returned
     assert len(keys) == 1
@@ -113,7 +113,7 @@ def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
     caplog.clear()
 
     # Result
-    idf2 = rep.get(key2)
+    idf2 = c.get(key2)
     df2 = idf2.as_pandas()
 
     # Extra columns have been removed:
@@ -137,19 +137,19 @@ def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
     )
     assert_frame_equal(df2[["region", "variable"]], reg_var)
 
-    # message_ix.Reporter uses pyam.IamDataFrame.to_csv() to write to file
+    # pyam.computations.write_file() is used, calling pyam.IamDataFrame.to_csv()
     path = tmp_path / "activity.csv"
-    rep.write(key2, path)
+    c.write(key2, path)
 
     # File contents are as expected
     assert test_data_path.joinpath("pyam-write.csv").read_text() == path.read_text()
 
     # Use a name map to replace variable names
-    rep.add("activity variables", {"Activity|canning_plant|production": "Foo"})
-    key3 = rep.convert_pyam(
+    c.add("activity variables", {"Activity|canning_plant|production": "Foo"})
+    key3 = c.convert_pyam(
         ACT, "ya", replace_vars="activity variables", collapse=add_tm
     ).pop()
-    df3 = rep.get(key3).as_pandas()
+    df3 = c.get(key3).as_pandas()
 
     # Values are the same; different names
     exp = df2[df2.variable == "Activity|canning_plant|production"][
@@ -159,30 +159,26 @@ def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
 
     # Now convert variable cost
     cb = partial(add_tm, name="Variable cost")
-    key4 = rep.convert_pyam("var_cost", "ya", collapse=cb).pop()
-    df4 = rep.get(key4).as_pandas().drop(["model", "scenario"], axis=1)
+    key4 = c.convert_pyam("var_cost", "ya", collapse=cb).pop()
+    df4 = c.get(key4).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
     assert all(df4["unit"] == "USD / case")
 
     # Also change units
-    key5 = rep.convert_pyam("var_cost", "ya", collapse=cb, unit="centiUSD / case").pop()
-    df5 = rep.get(key5).as_pandas().drop(["model", "scenario"], axis=1)
+    key5 = c.convert_pyam("var_cost", "ya", collapse=cb, unit="centiUSD / case").pop()
+    df5 = c.get(key5).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
     assert all(df5["unit"] == "centiUSD / case")
     assert_series_equal(df4["value"], df5["value"] / 100.0)
 
 
-def test_concat(dantzig_reporter):
+def test_concat(dantzig_computer):
     """pyam.computations.concat() passes through to base concat()."""
-    rep = dantzig_reporter
+    c = dantzig_computer
 
-    key = rep.add(
-        "test",
-        computations.concat,
-        "fom:nl-t-ya",
-        "vom:nl-t-ya",
-        "tom:nl-t-ya",
+    key = c.add(
+        "test", computations.concat, "fom:nl-t-ya", "vom:nl-t-ya", "tom:nl-t-ya"
     )
-    rep.get(key)
+    c.get(key)
