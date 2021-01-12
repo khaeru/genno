@@ -70,6 +70,10 @@ def test_as_pyam(dantzig_computer, scenario):
     p = computations.as_pyam(scenario, qty[0:0], year_time_dim="ya")
     assert isinstance(p, pyam.IamDataFrame)
 
+    # TODO test duplicate index
+    # TODO test non-unique units
+    raise NotImplementedError
+
 
 def test_convert_pyam(dantzig_computer, caplog, tmp_path, test_data_path):
     c = dantzig_computer
@@ -151,6 +155,16 @@ def test_convert_pyam(dantzig_computer, caplog, tmp_path, test_data_path):
 
     # File contents are as expected
     assert test_data_path.joinpath("pyam-write.csv").read_text() == path.read_text()
+
+    # File can be written as .xlsx
+    c.write(key2, tmp_path / "activity.xlsx")
+
+    # Other file extensions raise exceptions
+    with pytest.raises(ValueError, match=".csv or .xlsx, not .foo"):
+        c.write(key2, tmp_path / "activity.foo")
+
+    # Non-pyam objects are written using base write_file()
+    c.write(ACT, tmp_path / "ACT.csv")
 
     # Use a name map to replace variable names
     c.add("activity variables", {"Activity|canning_plant|production": "Foo"})

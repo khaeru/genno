@@ -94,6 +94,16 @@ def test_apply_units(data, caplog):
     assert_series_equal(result.to_series(), x.to_series())
 
 
+def test_broadcast_map():
+    raise NotImplementedError
+
+
+def test_load_file():
+    # TODO test non-unique units
+    # TODO test dimension names mapping
+    raise NotImplementedError
+
+
 @pytest.mark.xfail(reason="Outer join of non-intersecting dimensions (AttrSeries only)")
 def test_product0():
     A = Quantity(xr.DataArray([1, 2], coords=[["a0", "a1"]], dims=["a"]))
