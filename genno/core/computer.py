@@ -132,10 +132,9 @@ class Computer:
 
         return self  # to allow chaining
 
-    @classmethod
-    def _get_comp(cls, name) -> Optional[Callable]:
+    def _get_comp(self, name) -> Optional[Callable]:
         """Return a computation with the given `name`, or :obj:`None`."""
-        for module in reversed(cls.modules):
+        for module in reversed(self.modules):
             try:
                 return getattr(module, name)
             except AttributeError:
