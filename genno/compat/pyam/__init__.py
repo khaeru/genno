@@ -1,3 +1,17 @@
+try:
+    import pyam  # noqa: F401
+except ModuleNotFoundError:
+    HAS_PYAM = False
+    computations = object()
+else:
+    from . import computations
+
+    HAS_PYAM = True
+
+
+__all__ = ["computations", "collapse_message_cols"]
+
+
 def collapse_message_cols(df, var, kind=None):
     """:meth:`as_pyam` `collapse=...` callback for MESSAGE quantities.
 
