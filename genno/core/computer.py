@@ -26,6 +26,7 @@
 
 import logging
 from functools import partial
+from importlib import import_module
 from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
@@ -142,6 +143,14 @@ class Computer:
             except TypeError:
                 return None  # `name` is not a string; can't be the name of a function
         return None
+
+    def _require_compat(self, pkg: str):
+        module = import_module(f"genno.compat.{pkg}")
+        if not getattr(module, f"HAS_{pkg.upper()}"):
+            raise ModuleNotFoundError(
+                f"No module named '{pkg}', required by genno.compat.{pkg}"
+            )
+        self._computations.append(module.computations)
 
     def add(self, data, *args, **kwargs):
         """General-purpose method to add computations.
@@ -689,6 +698,8 @@ class Computer:
         --------
         compat.pyam.computations.as_pyam
         """
+        self._require_compat("pyam")
+
         if isinstance(quantities, (str, Key)):
             quantities = [quantities]
         quantities = self.check_keys(*quantities)
@@ -707,7 +718,7 @@ class Computer:
             # Prepare the computation
             comp = [
                 partial(
-                    computations.as_pyam,
+                    self._get_comp("as_pyam"),
                     year_time_dim=year_time_dim,
                     drop=to_drop,
                     collapse=collapse,
