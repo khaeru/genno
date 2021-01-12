@@ -8,7 +8,7 @@ import pytest
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from genno import Computer, Key
-from genno.computations import load_file
+from genno.computations import add, load_file
 from genno.compat.pyam import computations
 
 
@@ -23,21 +23,30 @@ def scenario():
     yield Scenario(model="Canning problem (MESSAGE scheme)", scenario="standard")
 
 
+# Session scope so that ureg.define() is only called once
 @pytest.fixture(scope="session")
 def dantzig_reporter(test_data_path, scenario, ureg):
     """Computer with minimal contents for below tests."""
-    # TODO complete:
-    # - Create the quantities used by test_concat().
-
+    # Add units
     ureg.define("USD = [money]")
     ureg.define("case = [case]")
 
     c = Computer()
 
-    for name, units in (("ACT", ""), ("var_cost", "USD/case")):
+    # Load files and add to graph
+    for name, units in (("ACT", ""), ("var_cost", "USD/case"), ("vom", "USD")):
+        # NB need to load the file here in order to identify the dims of each quantity
         qty = load_file(test_data_path / f"dantzig-{name}.csv", name=name, units=units)
-        c.add(Key(name, qty.dims), qty, index=True)
+        c.add(Key(name, qty.dims), qty, index=True, sums=True)
 
+    # Reduced version of the "total operation & maintenance" calculation in MESSAGEix;
+    # for test_concat()
+    vom = c.full_key("vom")
+    fom = Key("fom", dims=vom.dims)
+    c.add(fom, c.get(vom)[0:0], sums=True)
+    c.add(Key("tom", dims=vom.dims), add, fom, vom, sums=True)
+
+    # Mock scenario object
     c.add("scenario", scenario)
 
     yield c
@@ -166,7 +175,7 @@ def test_convert_pyam(dantzig_reporter, caplog, tmp_path, test_data_path):
 
 
 def test_concat(dantzig_reporter):
-    """pyam.concat() correctly passes through to ixmp…concat()."""
+    """pyam.computations.concat() passes through to base concat()."""
     rep = dantzig_reporter
 
     key = rep.add(
