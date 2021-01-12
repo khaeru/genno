@@ -4,13 +4,11 @@ from functools import partial
 
 import pandas as pd
 import pytest
-
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from genno import Computer, Key
-from genno.computations import add, load_file
 from genno.compat.pyam import computations
-
+from genno.computations import add, load_file
 
 # Skip this entire file if pyam is not installed
 pyam = pytest.importorskip("pyam", reason="pyam-iamc not installed")
