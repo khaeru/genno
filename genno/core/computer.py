@@ -72,7 +72,7 @@ class Computer:
 
     #: List of modules containing pre-defined computations. By default, this includes
     #: the :mod:`genno` built-in computations in :mod:`genno.computations`.
-    _computations: Sequence[ModuleType] = [computations]
+    modules: Sequence[ModuleType] = [computations]
 
     def __init__(self, **kwargs):
         self.graph = {"config": {}}
@@ -135,7 +135,7 @@ class Computer:
     @classmethod
     def _get_comp(cls, name) -> Optional[Callable]:
         """Return a computation with the given `name`, or :obj:`None`."""
-        for module in reversed(cls._computations):
+        for module in reversed(cls.modules):
             try:
                 return getattr(module, name)
             except AttributeError:
@@ -145,12 +145,12 @@ class Computer:
         return None
 
     def _require_compat(self, pkg: str):
-        module = import_module(f"genno.compat.{pkg}")
-        if not getattr(module, f"HAS_{pkg.upper()}"):
+        name = f"genno.compat.{pkg}"
+        if not getattr(import_module(name), f"HAS_{pkg.upper()}"):
             raise ModuleNotFoundError(
                 f"No module named '{pkg}', required by genno.compat.{pkg}"
             )
-        self._computations.append(module.computations)
+        self.modules = list(self.modules) + [import_module(f"{name}.computations")]
 
     def add(self, data, *args, **kwargs):
         """General-purpose method to add computations.
