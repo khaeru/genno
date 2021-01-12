@@ -283,7 +283,7 @@ def sum(quantity, weights=None, dimensions=None):
 
 
 # Input and output
-def load_file(path, dims={}, units=None):
+def load_file(path, dims={}, units=None, name=None):
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
 
     Some file formats are automatically converted into objects for direct use
@@ -304,6 +304,8 @@ def load_file(path, dims={}, units=None):
         the values are the target dimension names.
     units : str or pint.Unit
         Units to apply to the loaded Quantity.
+    name : str
+        Name for the loaded Quantity.
     """
     # TODO optionally cache: if the same Reporter is used repeatedly, then the
     #      file will be read each time; instead cache the contents in memory.
@@ -345,7 +347,7 @@ def load_file(path, dims={}, units=None):
             )
             index_columns = list(dims.values())
 
-        return Quantity(data.set_index(index_columns)["value"], units=units)
+        return Quantity(data.set_index(index_columns)["value"], units=units, name=name)
     elif path.suffix in (".xls", ".xlsx"):
         # TODO define expected Excel data input format
         raise NotImplementedError  # pragma: no cover
