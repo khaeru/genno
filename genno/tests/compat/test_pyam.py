@@ -28,7 +28,7 @@ def scenario():
 def dantzig_computer(test_data_path, scenario, ureg):
     """Computer with minimal contents for below tests."""
     # Add units
-    ureg.define("USD = [money]")
+    ureg.define("USD = [USD]")
     ureg.define("case = [case]")
 
     c = Computer()
