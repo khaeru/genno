@@ -1,9 +1,9 @@
+import pandas as pd
+import pytest
+
 from genno import Quantity
 from genno.compat.ixmp.computations import map_as_qty
 from genno.testing import assert_qty_equal
-
-import pandas as pd
-import pytest
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
