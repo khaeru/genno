@@ -1,20 +1,27 @@
 import logging
+from typing import Callable, Collection, Optional, Union
+from warnings import warn
 
-import pint
 import pyam
 
 import genno.computations
 
+from . import util
+
 log = logging.getLogger(__name__)
+
+
+__all__ = ["as_pyam", "concat", "write_report"]
 
 
 def as_pyam(
     scenario,
     quantity,
-    replace_vars=None,
+    replace=dict(),
     year_time_dim=None,
-    drop=[],
-    collapse=None,
+    rename=dict(),
+    collapse: Optional[Callable] = None,
+    drop: Union[Collection[str], str] = "auto",
     unit=None,
 ):
     """Return a :class:`pyam.IamDataFrame` containing *quantity*.
@@ -32,63 +39,52 @@ def as_pyam(
     --------
     .Computer.convert_pyam
     """
-    rename_cols = {
-        # Renamed automatically
-        "n": "region",
-        "nl": "region",
-        # Column to set as year or time dimension
-        year_time_dim: "year" if year_time_dim.startswith("y") else "time",
-    }
+    rename.update(
+        {
+            # TODO remove
+            # Renamed automatically for MESSAGEix
+            "n": "region",
+            "nl": "region",
+            # Column to set as year or time dimension
+            year_time_dim: "year" if year_time_dim.lower().startswith("y") else "time",
+        }
+    )
+
+    if len(replace) and not isinstance(next(iter(replace.values())), dict):
+        warn("Outdated replace_vars argument", DeprecationWarning)
+        replace = dict(variable=replace)
 
     # - Convert to pd.DataFrame
     # - Rename one dimension to 'year' or 'time'
     # - Fill variable, unit, model, and scenario columns
+    # - Replace values
     # - Apply the collapse callback, if given
-    # - Replace values in the variable column
     # - Drop any unwanted columns
+    # - Clean units
     df = (
         quantity.to_series()
         .rename("value")
         .reset_index()
-        .rename(columns=rename_cols)
         .assign(
             variable=quantity.name,
             unit=quantity.attrs.get("_unit", ""),
+            # TODO accept these from separate strings
             model=scenario.model,
             scenario=scenario.scenario,
         )
-        .pipe(collapse or (lambda df: df))
-        .replace(dict(variable=replace_vars or dict()))
-        .drop(drop, axis=1)
+        .rename(columns=rename)
+        .pipe(collapse or util.collapse)
+        .replace(replace, regex=True)
+        .pipe(util.drop, columns=drop)
+        .pipe(util.clean_units, unit)
     )
 
     # Raise exception for non-unique data
     duplicates = df.duplicated(subset=set(df.columns) - {"value"})
     if duplicates.any():
         raise ValueError(
-            "Duplicate IAMC indices cannot be converted:\n" + str(df[duplicates])
-        )
-
-    # Convert units
-    if len(df) and unit:
-        from_unit = df["unit"].unique()
-        if len(from_unit) > 1:
-            raise ValueError(f"cannot convert non-unique units {repr(from_unit)}")
-        q = pint.Quantity(df["value"].values, from_unit[0]).to(unit)
-        df["value"] = q.magnitude
-        df["unit"] = unit
-
-    # Ensure units are a string, for pyam
-    if len(df) and not isinstance(df.loc[0, "unit"], str):
-        # Convert pint.Unit to string
-        df["unit"] = f"{df.loc[0, 'unit']:~}"
-
-    # Warn about extra columns
-    extra = sorted(set(df.columns) - set(pyam.IAMC_IDX + ["year", "time", "value"]))
-    if extra:
-        log.warning(
-            f"Extra columns {repr(extra)} when converting "
-            f"{repr(quantity.name)} to IAMC format"
+            "Duplicate IAMC indices cannot be converted:\n"
+            + str(df[duplicates].drop(columns=["model", "scenario"]))
         )
 
     return pyam.IamDataFrame(df)
