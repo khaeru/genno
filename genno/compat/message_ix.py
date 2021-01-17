@@ -1,12 +1,12 @@
-# pragma: no cover
-
 from functools import partial
 from typing import Callable
 
 from genno.compat.pyam import util
 
 
-def collapse_message_cols(var: str = None, kind: str = None, var_cols=[]) -> Callable:
+def collapse_message_cols(
+    var: str = None, kind: str = None, var_cols=[]
+) -> Callable:  # pragma: no cover
     """:meth:`as_pyam` `collapse=...` callback for MESSAGEix quantities.
 
     Wraps :func:`.collapse` with arguments particular to MESSAGEix.
