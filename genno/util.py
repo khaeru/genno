@@ -48,8 +48,8 @@ def collect_units(*args):
             if isinstance(arg.attrs["_unit"], str):
                 arg.attrs["_unit"] = registry.parse_units(arg.attrs["_unit"])
         else:
-            log.debug("assuming {} is unitless".format(arg))
-            arg.attrs["_unit"] = registry.parse_units("")
+            log.debug(f"Assume {str(arg)} is unitless")
+            arg.attrs["_unit"] = registry.dimensionless
 
     return [arg.attrs["_unit"] for arg in args]
 

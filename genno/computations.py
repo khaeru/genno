@@ -166,7 +166,11 @@ def broadcast_map(quantity, map, rename={}):
     rename : dict (str -> str), optional
         Dimensions to rename on the result.
     """
-    return product(quantity, map).drop(map.dims[0]).rename(rename)
+    # NB int() is for AttrSeries
+    if int(map.sum()) != len(map.coords[map.dims[1]]):
+        raise ValueError("invalid map")
+
+    return product(quantity, map).sum(map.dims[0]).rename(rename)
 
 
 def concat(*objs, **kwargs):
