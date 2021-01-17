@@ -146,17 +146,14 @@ def map_as_qty(set_df: pd.DataFrame, full_set):
 
     See also
     --------
-    broadcast_map
+    .broadcast_map
     """
     set_from, set_to = set_df.columns
     names = [RENAME_DIMS.get(c, c) for c in set_df.columns]
 
     # Add an 'all' mapping
     set_df = pd.concat(
-        [
-            set_df,
-            pd.DataFrame([("all", e) for e in full_set], columns=set_df.columns),
-        ]
+        [set_df, pd.DataFrame([("all", e) for e in full_set], columns=set_df.columns)]
     )
 
     # Add a value column
