@@ -657,7 +657,7 @@ class Computer:
         quantities,
         year_time_dim,
         tag="iamc",
-        drop={},
+        drop: Union[set, str] = "auto",
         collapse=None,
         unit=None,
         replace_vars=None,
@@ -709,17 +709,12 @@ class Computer:
             qty = Key.from_str_or_key(qty)
             new_key = ":".join([qty.name, tag])
 
-            # Dimensions to drop automatically
-            to_drop = set(drop) | set(qty.dims) & (
-                {"h", "y", "ya", "yr", "yv"} - {year_time_dim}
-            )
-
             # Prepare the computation
             comp = [
                 partial(
                     self._get_comp("as_pyam"),
                     year_time_dim=year_time_dim,
-                    drop=to_drop,
+                    drop=drop,
                     collapse=collapse,
                     unit=unit,
                 ),
