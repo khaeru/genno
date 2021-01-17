@@ -31,7 +31,7 @@ from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
 from types import ModuleType
-from typing import Callable, Dict, Optional, Sequence, Union
+from typing import Callable, Dict, Optional, Sequence, Union, cast
 
 import dask
 import pint
@@ -712,7 +712,8 @@ class Computer:
             # Prepare the computation
             comp = [
                 partial(
-                    self._get_comp("as_pyam"),
+                    # If pyam is not available, _require_compat() above will fail
+                    cast(Callable, self._get_comp("as_pyam")),
                     year_time_dim=year_time_dim,
                     drop=drop,
                     collapse=collapse,
