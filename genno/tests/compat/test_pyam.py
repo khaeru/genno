@@ -25,10 +25,6 @@ def scenario():
 @pytest.fixture(scope="session")
 def dantzig_computer(test_data_path, scenario, ureg):
     """Computer with minimal contents for below tests."""
-    # Add units
-    ureg.define("USD = [USD]")
-    ureg.define("case = [case]")
-
     c = Computer()
 
     # Load files and add to graph
