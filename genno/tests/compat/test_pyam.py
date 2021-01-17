@@ -203,6 +203,17 @@ def test_concat(dantzig_computer):
     """pyam.computations.concat() passes through to base concat()."""
     c = dantzig_computer
 
+    # Uses pyam.concat() for suitable types
+    input = pd.DataFrame([["foo"] * len(pyam.IAMC_IDX)], columns=pyam.IAMC_IDX).assign(
+        year=2021, value=42.0, unit="kg"
+    )
+
+    result = computations.concat(
+        pyam.IamDataFrame(input), pyam.IamDataFrame(input.assign(year=2022))
+    )
+    assert isinstance(result, pyam.IamDataFrame)
+
+    # Other types pass through to base concat()
     key = c.add(
         "test", computations.concat, "fom:nl-t-ya", "vom:nl-t-ya", "tom:nl-t-ya"
     )
