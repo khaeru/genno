@@ -128,6 +128,8 @@ def test_broadcast_map(ureg, map_values, kwarg):
         # Map a dimension name from the file to a different one in the quantity; ignore
         # dimension "foo"
         ("input1.csv", dict(dims=dict(i="i", j_dim="j"))),
+        # Dimensions as a container, without mapping
+        ("input0.csv", dict(dims=["i", "j"], units="km")),
         pytest.param(
             "load_file-invalid.csv",
             dict(),

@@ -234,8 +234,8 @@ class Computer:
                 # Add a single computation (without converting to Key)
                 return self.add_single(key, *computation, **kwargs)
         else:
-            # Some other kind of import
-            raise ValueError(data)
+            # Some other kind of input
+            raise TypeError(data)
 
     def add_queue(self, queue, max_tries=1, fail="raise"):
         """Add tasks from a list or `queue`.
@@ -243,13 +243,13 @@ class Computer:
         Parameters
         ----------
         queue : list of 2-tuple
-            The members of each tuple are the arguments (i.e. a list or tuple)
-            and keyword arguments (i.e. a dict) to :meth:`add`.
+            The members of each tuple are the arguments (i.e. a list or tuple) and
+            keyword arguments (i.e. a dict) to :meth:`add`.
         max_tries : int, optional
             Retry adding elements up to this many times.
         fail : 'raise' or log level, optional
-            Action to take when a computation from `queue` cannot be added
-            after `max_tries`.
+            Action to take when a computation from `queue` cannot be added after
+            `max_tries`.
         """
         # Elements to retry: list of (tries, args, kwargs)
         retry = []
@@ -280,12 +280,16 @@ class Computer:
                     # retry silently
                     retry.append((count + 1, (args, kwargs)))
                 else:
-                    # More than *max_tries* failures; something
+                    # More than *max_tries* failures; something has gone wrong
                     if fail == "raise":
                         _log(logging.ERROR)
                         raise
                     else:
-                        _log(getattr(logging, fail.upper()))
+                        _log(
+                            getattr(logging, fail.upper())
+                            if isinstance(fail, str)
+                            else fail
+                        )
 
         return added
 
@@ -534,7 +538,7 @@ class Computer:
         return self.add(key, comp, strict=True, index=True, sums=sums)
 
     def disaggregate(self, qty, new_dim, method="shares", args=[]):
-        """Add a computation that disaggregates *qty* using *method*.
+        """Add a computation that disaggregates `qty` using `method`.
 
         Parameters
         ----------
@@ -543,12 +547,12 @@ class Computer:
         new_dim: str
             Name of the new dimension of the disaggregated variable.
         method: callable or str
-            Disaggregation method. If a callable, then it is applied to *var*
-            with any extra *args*. If then a method named
-            'disaggregate_{method}' is used.
+            Disaggregation method. If a callable, then it is applied to `var` with any
+            extra `args`. If a string, then a method named 'disaggregate_{method}' is
+            used.
         args: list, optional
-            Additional arguments to the *method*. The first element should be
-            the key for a quantity giving shares for disaggregation.
+            Additional arguments to the `method`. The first element should be the key
+            for a quantity giving shares for disaggregation.
 
         Returns
         -------
@@ -567,7 +571,7 @@ class Computer:
                     "No disaggregation method 'disaggregate_{}'".format(method)
                 )
         if not callable(method):
-            raise ValueError(method)
+            raise TypeError(method)
 
         return self.add(key, tuple([method, qty] + args), strict=True)
 

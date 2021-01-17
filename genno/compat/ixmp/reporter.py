@@ -107,8 +107,9 @@ class Reporter(Computer):
                 # Convert Series to list; protect list so that dask schedulers
                 # do not try to interpret its contents as further tasks
                 elements = dask.core.quote(elements.tolist())
-            except AttributeError:
+            except AttributeError:  # pragma: no cover
                 # pd.DataFrame for a multidimensional set; store as-is
+                # TODO write tests for this downstream (in ixmp)
                 pass
 
             rep.add(RENAME_DIMS.get(name, name), elements)

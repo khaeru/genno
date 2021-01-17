@@ -160,8 +160,8 @@ class AttrSeries(pd.Series):
                     continue
                 else:
                     raise ValueError(
-                        "cannot select a dimension to squeeze out which has "
-                        "length greater than one"
+                        "cannot select a dimension to squeeze out which has length "
+                        "greater than one"
                     )
 
             to_drop.append(name)

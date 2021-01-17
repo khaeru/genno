@@ -1,4 +1,6 @@
 """Tests for genno.quantity."""
+import re
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -8,6 +10,7 @@ from xarray.testing import assert_equal as assert_xr_equal
 
 from genno import Quantity, Reporter, computations
 from genno.core.attrseries import AttrSeries
+from genno.core.quantity import assert_quantity
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import assert_qty_allclose, assert_qty_equal
 
@@ -65,12 +68,25 @@ class TestQuantity:
 
         yield scen
 
+    @pytest.mark.filterwarnings(
+        "ignore:.*default dtype for empty Series.*:DeprecationWarning"
+    )
+    def test_init(self):
+        """Instantiated from a scalar object."""
+        Quantity(object())
+
     def test_assert(self, a):
         """Test assertions about Quantity.
 
         These are tests without `attr` property, in which case direct pd.Series
         and xr.DataArray comparisons are possible.
         """
+        with pytest.raises(
+            TypeError,
+            match=re.escape("arg #2 ('foo') is not Quantity; likely an incorrect key"),
+        ):
+            assert_quantity(a, "foo")
+
         # Convert to pd.Series
         b = a.to_series()
 
@@ -109,6 +125,10 @@ class TestQuantity:
         # attrs are different
         a.attrs = {"bar": "foo"}
         assert_qty_equal(a, b, check_attrs=False)
+
+    def test_to_dataframe(self, a):
+        """Test Quantity.to_dataframe()."""
+        assert isinstance(a.to_dataframe(), pd.DataFrame)
 
     def test_size(self, scen_with_big_data):
         """Stress-test reporting of large, sparse quantities."""
@@ -157,6 +177,12 @@ class TestAttrSeries:
     def test_squeeze(self, foo):
         assert foo.sel(a="a1").squeeze().dims == ("b",)
         assert foo.sel(a="a2", b="b1").squeeze().values == 2
+
+        with pytest.raises(
+            ValueError,
+            match="dimension to squeeze out which has length greater than one",
+        ):
+            foo.squeeze(dim="b")
 
     def test_sum(self, foo, bar):
         # AttrSeries can be summed across all dimensions

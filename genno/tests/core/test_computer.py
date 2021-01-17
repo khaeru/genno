@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 import pint
 import pytest
@@ -15,11 +17,44 @@ from genno import (
 from genno.testing import assert_qty_equal
 
 
+def test_get():
+    """Computer.get() using a default key."""
+    c = Computer()
+
+    # No default key is set
+    with pytest.raises(ValueError, match="no default reporting key set"):
+        c.get()
+
+    c.configure(default="foo")
+    c.add("foo", 42)
+
+    # Default key is used
+    assert c.get() == 42
+
+
+def test_get_comp():
+    # Invalid name for a function returns None
+    assert Computer()._get_comp(42) is None
+
+
+def test_require_compat():
+    c = Computer()
+    with pytest.raises(
+        ModuleNotFoundError,
+        match="No module named '_test', required by genno.compat._test",
+    ):
+        c._require_compat("_test")
+
+
 def test_add():
     """Adding computations that refer to missing keys raises KeyError."""
     r = Computer()
     r.add("a", 3)
     r.add("d", 4)
+
+    # Invalid: value before key
+    with pytest.raises(TypeError):
+        r.add(42, "a")
 
     # Adding an existing key with strict=True
     with pytest.raises(KeyExistsError, match=r"key 'a' already exists"):
@@ -72,7 +107,7 @@ def test_add():
         r.add("select", "bar", "a", bad_kwarg="foo", index=True)
 
 
-def test_add_queue():
+def test_add_queue(caplog):
     r = Computer()
     r.add("foo-0", (lambda x: x, 42))
 
@@ -97,6 +132,11 @@ def test_add_queue():
     # But foo-2 was successfully added on the second pass, and gives the
     # correct result
     assert r.get("foo-2") == 42 * 10 * 10
+
+    # Failures without raising an exception
+    r.add(queue, max_tries=3, fail=logging.INFO)
+    assert "Failed 3 times to add:" in caplog.messages
+    assert "    with KeyExistsError('foo-2')" in caplog.messages
 
 
 def test_apply():
@@ -145,6 +185,9 @@ def test_apply():
 
     r.apply(useless)
 
+    # Also call via add()
+    r.add("apply", useless)
+
     # Nothing added to the reporter
     assert len(r.keys()) == N
 
@@ -180,6 +223,9 @@ def test_disaggregate():
     # Invalid method
     with pytest.raises(ValueError):
         r.disaggregate(foo, "d", method="baz")
+
+    with pytest.raises(TypeError):
+        r.disaggregate(foo, "d", method=None)
 
 
 def test_file_io(tmp_path):
@@ -275,22 +321,24 @@ def test_full_key():
 
 def test_units(ureg):
     """Test handling of units within computations."""
-    r = Computer()
+    c = Computer()
+
+    assert isinstance(c.unit_registry, pint.UnitRegistry)
 
     # Create some dummy data
     dims = dict(coords=["a b c".split()], dims=["x"])
-    r.add("energy:x", Quantity(xr.DataArray([1.0, 3, 8], **dims), units="MJ"))
-    r.add("time", Quantity(xr.DataArray([5.0, 6, 8], **dims), units="hour"))
-    r.add("efficiency", Quantity(xr.DataArray([0.9, 0.8, 0.95], **dims)))
+    c.add("energy:x", Quantity(xr.DataArray([1.0, 3, 8], **dims), units="MJ"))
+    c.add("time", Quantity(xr.DataArray([5.0, 6, 8], **dims), units="hour"))
+    c.add("efficiency", Quantity(xr.DataArray([0.9, 0.8, 0.95], **dims)))
 
     # Aggregation preserves units
-    r.add("energy", (computations.sum, "energy:x", None, ["x"]))
-    assert r.get("energy").attrs["_unit"] == ureg.parse_units("MJ")
+    c.add("energy", (computations.sum, "energy:x", None, ["x"]))
+    assert c.get("energy").attrs["_unit"] == ureg.parse_units("MJ")
 
     # Units are derived for a ratio of two quantities
-    r.add("power", (computations.ratio, "energy:x", "time"))
-    assert r.get("power").attrs["_unit"] == ureg.parse_units("MJ/hour")
+    c.add("power", (computations.ratio, "energy:x", "time"))
+    assert c.get("power").attrs["_unit"] == ureg.parse_units("MJ/hour")
 
     # Product of dimensioned and dimensionless quantities keeps the former
-    r.add("energy2", (computations.product, "energy:x", "efficiency"))
-    assert r.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
+    c.add("energy2", (computations.product, "energy:x", "efficiency"))
+    assert c.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
