@@ -1,4 +1,5 @@
 import logging
+import re
 from collections import namedtuple
 from functools import partial
 
@@ -220,6 +221,14 @@ def test_concat(dantzig_computer):
     c.get(key)
 
 
+def test_clean_units():
+    input = pd.DataFrame([["kg"], ["km"]], columns=["unit"])
+    with pytest.raises(
+        ValueError, match=re.escape("cannot convert non-unique units ['kg', 'km']")
+    ):
+        util.clean_units(input, unit="tonne")
+
+
 def test_collapse():
     data = []
     columns = ["value"] + list("abcdef")
@@ -250,3 +259,8 @@ def test_collapse():
     df3 = util.collapse(input, columns=columns)
     assert df3.loc[0, "scenario"] == "foo|c0|bar"
     assert df3.loc[9, "scenario"] == "foo|c9|bar"
+
+
+def test_drop():
+    with pytest.raises(ValueError, match="foo"):
+        util.drop(pd.DataFrame, "foo")

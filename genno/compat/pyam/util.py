@@ -26,7 +26,7 @@ def clean_units(df: pd.DataFrame, unit=None) -> pd.DataFrame:
     if unit:
         from_unit = df["unit"].unique()
         if len(from_unit) > 1:
-            raise ValueError(f"cannot convert non-unique units {repr(from_unit)}")
+            raise ValueError(f"cannot convert non-unique units {list(from_unit)}")
         q = pint.Quantity(df["value"].values, from_unit[0]).to(unit)
         df["value"] = q.magnitude
         df["unit"] = unit

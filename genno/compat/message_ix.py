@@ -1,7 +1,7 @@
-from functools import partial
-from typing import Callable
+from functools import partial  # pragma: no cover
+from typing import Callable  # pragma: no cover
 
-from genno.compat.pyam import util
+from genno.compat.pyam import util  # pragma: no cover
 
 
 def collapse_message_cols(
