@@ -51,7 +51,10 @@ def as_pyam(
     )
 
     if len(replace) and not isinstance(next(iter(replace.values())), dict):
-        warn("Outdated replace_vars argument", DeprecationWarning)
+        warn(
+            "replace must be nested dict(), e.g. dict(variable={repr(replace)})",
+            DeprecationWarning,
+        )
         replace = dict(variable=replace)
 
     # - Convert to pd.DataFrame

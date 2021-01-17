@@ -6,7 +6,7 @@ dist
 
 # pytest, pytest-benchmark, pytest-cov
 .benchmarks
-.coverage
+.coverage*
 .pytest_cache
 htmlcov
 

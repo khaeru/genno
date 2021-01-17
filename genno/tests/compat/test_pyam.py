@@ -175,7 +175,8 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     key3 = c.convert_pyam(
         ACT, "ya", replace_vars="activity variables", collapse=add_tm
     ).pop()
-    df3 = c.get(key3).as_pandas()
+    with pytest.deprecated_call():
+        df3 = c.get(key3).as_pandas()
 
     # Values are the same; different names
     exp = df2[df2.variable == "Activity|canning_plant|production"][
