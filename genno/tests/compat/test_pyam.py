@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal, assert_series_equal
 
-from genno import Computer, Key
+from genno import Computer, Key, Quantity
 from genno.compat.pyam import computations
 from genno.computations import add, load_file
 
@@ -66,9 +66,15 @@ def test_as_pyam(dantzig_computer, scenario):
     p = computations.as_pyam(scenario, qty[0:0], year_time_dim="ya")
     assert isinstance(p, pyam.IamDataFrame)
 
-    # TODO test duplicate index
-    # TODO test non-unique units
-    raise NotImplementedError
+    input = Quantity(
+        pd.DataFrame(
+            [["f1", "b1", 2021, 42], ["f1", "b1", 2021, 42]],
+            columns=["foo", "bar", "year", "value"],
+        ).set_index(["foo", "bar", "year"])
+    )
+
+    with pytest.raises(ValueError, match="Duplicate IAMC indices cannot be converted"):
+        computations.as_pyam(scenario, input, year_time_dim="year")
 
 
 def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
