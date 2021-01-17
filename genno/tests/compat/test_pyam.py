@@ -75,20 +75,19 @@ def test_as_pyam(dantzig_computer, scenario):
     raise NotImplementedError
 
 
-def test_convert_pyam(dantzig_computer, caplog, tmp_path, test_data_path):
+def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
+    caplog.set_level(logging.INFO)
     c = dantzig_computer
 
     # Key for 'ACT' variable at full resolution
     ACT = c.full_key("ACT")
 
     # Add a computation that converts ACT to a pyam.IamDataFrame
+    # NB drop={} is provided to mimic the test in message_ix and allow the log assertion
+    #    below to work
     c.add(
         "ACT IAMC",
-        (
-            partial(computations.as_pyam, drop=["yv"], year_time_dim="ya"),
-            "scenario",
-            ACT,
-        ),
+        (partial(computations.as_pyam, year_time_dim="ya", drop={}), "scenario", ACT),
     )
 
     # Result is an IamDataFrame
@@ -102,10 +101,11 @@ def test_convert_pyam(dantzig_computer, caplog, tmp_path, test_data_path):
     assert idf1["variable"].unique() == "ACT"
 
     # Warning was logged because of extra columns
+    # NB level is INFO here vs. WARNING in message_ix
     assert (
-        "genno.compat.pyam.computations",
-        logging.WARNING,
-        "Extra columns ['h', 'm', 't'] when converting 'ACT' to IAMC format",
+        "genno.compat.pyam.util",
+        logging.INFO,
+        "Extra columns ['h', 'm', 't', 'yv'] when converting to IAMC format",
     ) in caplog.record_tuples
 
     # Repeat, using the convert_pyam() convenience function
@@ -167,7 +167,8 @@ def test_convert_pyam(dantzig_computer, caplog, tmp_path, test_data_path):
     c.write(ACT, tmp_path / "ACT.csv")
 
     # Use a name map to replace variable names
-    c.add("activity variables", {"Activity|canning_plant|production": "Foo"})
+    # NB r"" is used here because regex=True is always used, unlike in message_ix
+    c.add("activity variables", {r"Activity\|canning_plant\|production": "Foo"})
     key3 = c.convert_pyam(
         ACT, "ya", replace_vars="activity variables", collapse=add_tm
     ).pop()
