@@ -116,7 +116,7 @@ class AttrSeries(pd.Series):
 
     def sum(self, *args, **kwargs):
         """Like :meth:`xarray.DataArray.sum`."""
-        obj = super(AttrSeries, self)
+        obj = super()
         attrs = None
 
         try:
@@ -125,20 +125,19 @@ class AttrSeries(pd.Series):
             dim = list(args)
             args = tuple()
 
-        if len(dim) == len(self.index.names):
+        if len(dim) in (0, len(self.index.names)):
             bad_dims = set(dim) - set(self.index.names)
             if bad_dims:
                 raise ValueError(
-                    f"{bad_dims} not found in array dimensions " f"{self.index.names}"
+                    f"{bad_dims} not found in array dimensions {self.index.names}"
                 )
             # Simple sum
             kwargs = {}
         else:
-            # pivot and sum across columns
+            # Pivot and sum across columns
             obj = self.unstack(dim)
             kwargs["axis"] = 1
-            # Result will be DataFrame; re-attach attrs when converted to
-            # AttrSeries
+            # Result will be DataFrame; re-attach attrs when converted to AttrSeries
             attrs = self.attrs
 
         return AttrSeries(obj.sum(*args, **kwargs), attrs=attrs)
