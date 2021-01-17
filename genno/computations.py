@@ -307,8 +307,8 @@ def load_file(path, dims={}, units=None, name=None):
     name : str
         Name for the loaded Quantity.
     """
-    # TODO optionally cache: if the same Reporter is used repeatedly, then the
-    #      file will be read each time; instead cache the contents in memory.
+    # TODO optionally cache: if the same Reporter is used repeatedly, then the file will
+    #      be read each time; instead cache the contents in memory.
     if path.suffix == ".csv":
         data = pd.read_csv(path, comment="#")
 

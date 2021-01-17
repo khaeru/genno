@@ -98,10 +98,28 @@ def test_broadcast_map():
     raise NotImplementedError
 
 
-def test_load_file():
-    # TODO test non-unique units
-    # TODO test dimension names mapping
-    raise NotImplementedError
+@pytest.mark.parametrize(
+    "name, kwargs",
+    [
+        ("input0.csv", dict(units="km")),
+        # Map a dimension name from the file to a different one in the quantity; ignore
+        # dimension "foo"
+        ("input1.csv", dict(dims=dict(i="i", j_dim="j"))),
+        pytest.param(
+            "load_file-invalid.csv",
+            dict(),
+            marks=pytest.mark.xfail(
+                raises=ValueError, match="with non-unique units array(['cm'], ['km'],"
+            ),
+        ),
+    ],
+)
+def test_load_file(test_data_path, ureg, name, kwargs):
+    # TODO test name= parameter
+    qty = computations.load_file(test_data_path / name, **kwargs)
+
+    assert ("i", "j") == qty.dims
+    assert ureg.kilometre == qty.attrs["_unit"]
 
 
 @pytest.mark.xfail(reason="Outer join of non-intersecting dimensions (AttrSeries only)")
