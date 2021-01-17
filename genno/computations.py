@@ -16,6 +16,7 @@ from .util import collect_units, filter_concat_args
 __all__ = [
     "aggregate",
     "apply_units",
+    "broadcast_map",
     "concat",
     "disaggregate_shares",
     "load_file",
@@ -151,6 +152,31 @@ def aggregate(quantity, groups, keep):
     return quantity
 
 
+def broadcast_map(quantity, map, rename={}, strict=False):
+    """Broadcast `quantity` using a `map`.
+
+    The `map` must be a 2-dimensional Quantity with dimensions (``d1``, ``d2``), such as
+    returned by :func:`map_as_qty`. `quantity` must also have a dimension ``d1``.
+    Typically ``len(d2) > len(d1)``.
+
+    `quantity` is 'broadcast' by multiplying it with `map`, and then summing on the
+    common dimension ``d1``. The result has the dimensions of `quantity`, but with
+    ``d2`` in place of ``d1``.
+
+    Parameters
+    ----------
+    rename : dict (str -> str), optional
+        Dimensions to rename on the result.
+    strict : bool, optional
+        Require that each element of ``d2`` is mapped from exactly 1 element of ``d1``.
+    """
+    # NB int() is for AttrSeries
+    if strict and int(map.sum()) != len(map.coords[map.dims[1]]):
+        raise ValueError("invalid map")
+
+    return product(quantity, map).sum(map.dims[0]).rename(rename)
+
+
 def concat(*objs, **kwargs):
     """Concatenate Quantity *objs*.
 
@@ -265,7 +291,7 @@ def sum(quantity, weights=None, dimensions=None):
 
 
 # Input and output
-def load_file(path, dims={}, units=None):
+def load_file(path, dims={}, units=None, name=None):
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
 
     Some file formats are automatically converted into objects for direct use
@@ -286,9 +312,11 @@ def load_file(path, dims={}, units=None):
         the values are the target dimension names.
     units : str or pint.Unit
         Units to apply to the loaded Quantity.
+    name : str
+        Name for the loaded Quantity.
     """
-    # TODO optionally cache: if the same Reporter is used repeatedly, then the
-    #      file will be read each time; instead cache the contents in memory.
+    # TODO optionally cache: if the same Reporter is used repeatedly, then the file will
+    #      be read each time; instead cache the contents in memory.
     if path.suffix == ".csv":
         data = pd.read_csv(path, comment="#")
 
@@ -327,7 +355,7 @@ def load_file(path, dims={}, units=None):
             )
             index_columns = list(dims.values())
 
-        return Quantity(data.set_index(index_columns)["value"], units=units)
+        return Quantity(data.set_index(index_columns)["value"], units=units, name=name)
     elif path.suffix in (".xls", ".xlsx"):
         # TODO define expected Excel data input format
         raise NotImplementedError  # pragma: no cover

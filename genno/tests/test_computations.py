@@ -94,6 +94,57 @@ def test_apply_units(data, caplog):
     assert_series_equal(result.to_series(), x.to_series())
 
 
+@pytest.mark.parametrize(
+    "map_values, kwarg",
+    (
+        ([[1, 1, 0], [0, 0, 1]], dict()),
+        pytest.param(
+            [[1, 1, 0], [0, 1, 1]],
+            dict(strict=True),
+            marks=pytest.mark.xfail(raises=ValueError, match="invalid map"),
+        ),
+    ),
+)
+def test_broadcast_map(ureg, map_values, kwarg):
+    x = ["x1"]
+    y = ["y1", "y2"]
+    z = ["z1", "z2", "z3"]
+    q = Quantity(xr.DataArray([[42, 43]], coords=[x, y], dims=["x", "y"]))
+    m = Quantity(xr.DataArray(map_values, coords=[y, z], dims=["y", "z"]))
+
+    result = computations.broadcast_map(q, m, **kwarg)
+    exp = Quantity(
+        xr.DataArray([[42, 42, 43]], coords=[x, z], dims=["x", "z"]),
+        units=ureg.dimensionless,
+    )
+
+    assert_qty_equal(exp, result)
+
+
+@pytest.mark.parametrize(
+    "name, kwargs",
+    [
+        ("input0.csv", dict(units="km")),
+        # Map a dimension name from the file to a different one in the quantity; ignore
+        # dimension "foo"
+        ("input1.csv", dict(dims=dict(i="i", j_dim="j"))),
+        pytest.param(
+            "load_file-invalid.csv",
+            dict(),
+            marks=pytest.mark.xfail(
+                raises=ValueError, match="with non-unique units array(['cm'], ['km'],"
+            ),
+        ),
+    ],
+)
+def test_load_file(test_data_path, ureg, name, kwargs):
+    # TODO test name= parameter
+    qty = computations.load_file(test_data_path / name, **kwargs)
+
+    assert ("i", "j") == qty.dims
+    assert ureg.kilometre == qty.attrs["_unit"]
+
+
 @pytest.mark.xfail(reason="Outer join of non-intersecting dimensions (AttrSeries only)")
 def test_product0():
     A = Quantity(xr.DataArray([1, 2], coords=[["a0", "a1"]], dims=["a"]))

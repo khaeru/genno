@@ -26,11 +26,12 @@
 
 import logging
 from functools import partial
+from importlib import import_module
 from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
 from types import ModuleType
-from typing import Callable, Dict, Optional, Sequence, Union
+from typing import Callable, Dict, Optional, Sequence, Union, cast
 
 import dask
 import pint
@@ -71,7 +72,7 @@ class Computer:
 
     #: List of modules containing pre-defined computations. By default, this includes
     #: the :mod:`genno` built-in computations in :mod:`genno.computations`.
-    _computations: Sequence[ModuleType] = [computations]
+    modules: Sequence[ModuleType] = [computations]
 
     def __init__(self, **kwargs):
         self.graph = {"config": {}}
@@ -131,10 +132,9 @@ class Computer:
 
         return self  # to allow chaining
 
-    @classmethod
-    def _get_comp(cls, name) -> Optional[Callable]:
+    def _get_comp(self, name) -> Optional[Callable]:
         """Return a computation with the given `name`, or :obj:`None`."""
-        for module in reversed(cls._computations):
+        for module in reversed(self.modules):
             try:
                 return getattr(module, name)
             except AttributeError:
@@ -142,6 +142,14 @@ class Computer:
             except TypeError:
                 return None  # `name` is not a string; can't be the name of a function
         return None
+
+    def _require_compat(self, pkg: str):
+        name = f"genno.compat.{pkg}"
+        if not getattr(import_module(name), f"HAS_{pkg.upper()}"):
+            raise ModuleNotFoundError(
+                f"No module named '{pkg}', required by genno.compat.{pkg}"
+            )
+        self.modules = list(self.modules) + [import_module(f"{name}.computations")]
 
     def add(self, data, *args, **kwargs):
         """General-purpose method to add computations.
@@ -597,7 +605,7 @@ class Computer:
         path = Path(path)
         key = key if key else "file:{}".format(path.name)
         return self.add(
-            key, (partial(computations.load_file, path, **kwargs),), strict=True
+            key, (partial(self._get_comp("load_file"), path, **kwargs),), strict=True
         )
 
     # Use add_file as a helper for computations.load_file
@@ -635,9 +643,93 @@ class Computer:
         """Write the report *key* to the file *path*."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
-        computations.write_report(self.get(key), path)
+        self._get_comp("write_report")(self.get(key), path)
 
     @property
     def unit_registry(self):
         """The :meth:`pint.UnitRegistry` used by the Computer."""
         return pint.get_application_registry()
+
+    # For .compat.pyam
+
+    def convert_pyam(
+        self,
+        quantities,
+        year_time_dim,
+        tag="iamc",
+        drop: Union[set, str] = "auto",
+        collapse=None,
+        unit=None,
+        replace_vars=None,
+    ):
+        """Add conversion of one or more **quantities** to IAMC format.
+
+        Parameters
+        ----------
+        quantities : str or Key or list of (str, Key)
+            Quantities to transform to :mod:`pyam`/IAMC format.
+        year_time_dim : str
+            Label of the dimension use for the ‘Year’ or ‘Time’ column of the resulting
+            :class:`pyam.IamDataFrame`. The column is labelled ‘Time’ if
+            ``year_time_dim=='h'``, otherwise ‘Year’.
+        tag : str, optional
+            Tag to append to new Keys.
+        drop : iterable of str, optional
+            Label of additional dimensions to drop from the resulting data frame.
+            Dimensions ``h``, ``y``, ``ya``, ``yr``, and ``yv``— except for the one
+            named by `year_time_dim`—are automatically dropped.
+        collapse : callable, optional
+            Callback to handle additional dimensions of the quantity. A
+            :class:`~pandas.DataFrame` is passed as the sole argument to `collapse`,
+            which must return a modified dataframe.
+        unit : str or pint.Unit, optional
+            Convert values to these units.
+        replace_vars : str or Key
+            Other reporting key containing a :class:`dict` mapping variable names to
+            replace.
+
+        Returns
+        -------
+        list of Key
+            Each key converts a :class:`.Quantity` into a :class:`pyam.IamDataFrame`.
+
+        See also
+        --------
+        compat.pyam.computations.as_pyam
+        """
+        self._require_compat("pyam")
+
+        if isinstance(quantities, (str, Key)):
+            quantities = [quantities]
+        quantities = self.check_keys(*quantities)
+
+        keys = []
+        for qty in quantities:
+            # Key for the new quantity
+            qty = Key.from_str_or_key(qty)
+            new_key = ":".join([qty.name, tag])
+
+            # Prepare the computation
+            comp = [
+                partial(
+                    # If pyam is not available, _require_compat() above will fail
+                    cast(Callable, self._get_comp("as_pyam")),
+                    year_time_dim=year_time_dim,
+                    drop=drop,
+                    collapse=collapse,
+                    unit=unit,
+                ),
+                "scenario",
+                qty,
+            ]
+            if replace_vars:
+                comp.append(replace_vars)
+
+            # Add and store
+            self.add(new_key, tuple(comp))
+            keys.append(new_key)
+
+        return keys
+
+    # Use convert_pyam as a helper for computations.as_pyam
+    add_as_pyam = convert_pyam

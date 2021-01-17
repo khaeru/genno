@@ -142,7 +142,7 @@ def test_reporter_from_dantzig(test_mp, ureg):
     b_jp = rep.get("b:j-p")
 
     # Units pass through disaggregation
-    assert b_jp.attrs["_unit"] == "cases"
+    assert b_jp.attrs["_unit"] == ureg.case
 
     # Set elements are available
     assert rep.get("j") == ["new-york", "chicago", "topeka"]

@@ -131,7 +131,7 @@ def assert_qty_equal(a, b, check_type=True, check_attrs=True, **kwargs):
 
         xarray.testing.assert_equal(a, b, **kwargs)
 
-    # check attributes are equal
+    # Check attributes are equal
     if check_attrs:
         assert a.attrs == b.attrs
 

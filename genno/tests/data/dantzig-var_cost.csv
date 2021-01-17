@@ -1,0 +1,7 @@
+nl,t,yv,ya,m,h,value
+seattle,transport_from_seattle,1963,1963,to_new-york,year,0.225
+seattle,transport_from_seattle,1963,1963,to_chicago,year,0.153
+seattle,transport_from_seattle,1963,1963,to_topeka,year,0.162
+san-diego,transport_from_san-diego,1963,1963,to_new-york,year,0.225
+san-diego,transport_from_san-diego,1963,1963,to_chicago,year,0.162
+san-diego,transport_from_san-diego,1963,1963,to_topeka,year,0.126

@@ -42,7 +42,7 @@ log = logging.getLogger(__name__)
 class Reporter(Computer):
     """Class for describing and executing computations."""
 
-    _computations = list(Computer._computations) + [ixmp_computations]
+    modules = list(Computer.modules) + [ixmp_computations]
 
     @classmethod
     def from_scenario(cls, scenario, **kwargs):

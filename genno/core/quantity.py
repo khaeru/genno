@@ -41,7 +41,9 @@ class _QuantityFactory:
         elif self.CLASS == "SparseDataArray":
             from .sparsedataarray import SparseDataArray as cls
 
-        if isinstance(data, pd.Series):
+        if isinstance(data, pd.DataFrame) and len(data.columns) == 1:
+            result = cls.from_series(data.iloc[:, 0])
+        elif isinstance(data, pd.Series):
             result = cls.from_series(data)
         elif self.CLASS == "AttrSeries":
             result = cls(data, *args, **kwargs)
