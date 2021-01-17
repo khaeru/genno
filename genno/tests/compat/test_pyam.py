@@ -7,7 +7,7 @@ import pytest
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from genno import Computer, Key, Quantity
-from genno.compat.pyam import computations
+from genno.compat.pyam import computations, util
 from genno.computations import add, load_file
 
 # Skip this entire file if pyam is not installed
@@ -207,3 +207,35 @@ def test_concat(dantzig_computer):
         "test", computations.concat, "fom:nl-t-ya", "vom:nl-t-ya", "tom:nl-t-ya"
     )
     c.get(key)
+
+
+def test_collapse():
+    data = []
+    columns = ["value"] + list("abcdef")
+    for row in range(10):
+        data.append([row])
+        for col in columns[1:]:
+            data[-1].append(f"{col}{row}")
+    input = pd.DataFrame(data, columns=columns)
+
+    # No arguments = pass through
+    assert_frame_equal(input, util.collapse(input))
+
+    with pytest.raises(ValueError, match="non-IAMC column 'foo'"):
+        util.collapse(input, columns=dict(foo=["a", "b"]))
+
+    # Collapse multiple columns
+    columns = dict(variable=["f", "a", "d"])
+    df1 = util.collapse(input, columns=columns)
+    assert df1.loc[0, "variable"] == "f0|a0|d0"
+
+    # Two targets
+    columns["region"] = ["e", "b"]
+    df2 = util.collapse(input, columns=columns)
+    assert df2.loc[9, "region"] == "e9|b9"
+
+    # String entries
+    columns["scenario"] = ["foo", "c", "bar"]
+    df3 = util.collapse(input, columns=columns)
+    assert df3.loc[0, "scenario"] == "foo|c0|bar"
+    assert df3.loc[9, "scenario"] == "foo|c9|bar"

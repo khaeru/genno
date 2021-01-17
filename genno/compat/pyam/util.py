@@ -55,6 +55,11 @@ def collapse(
                 to_drop.add(v)
             else:
                 entries.append(pd.Series(str(v), index=df.index))
+
+        if target_col not in df:
+            # Initialize with first entry
+            df[target_col] = entries.pop(0)
+
         df[target_col] = df[target_col].str.cat(entries, sep=sep)
 
     return df.drop(to_drop, axis=1)
