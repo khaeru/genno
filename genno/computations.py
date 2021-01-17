@@ -152,22 +152,26 @@ def aggregate(quantity, groups, keep):
     return quantity
 
 
-def broadcast_map(quantity, map, rename={}):
-    """Broadcast *quantity* using a *map*.
+def broadcast_map(quantity, map, rename={}, strict=False):
+    """Broadcast `quantity` using a `map`.
 
-    The *map* must be a 2-dimensional quantity, such as returned by :func:`map_as_qty`.
+    The `map` must be a 2-dimensional Quantity with dimensions (``d1``, ``d2``), such as
+    returned by :func:`map_as_qty`. `quantity` must also have a dimension ``d1``.
+    Typically ``len(d2) > len(d1)``.
 
-    *quantity* is 'broadcast' by multiplying it with the 2-dimensional *map*, and then
-    dropping the common dimension. The result has the second dimension of *map* instead
-    of the first.
+    `quantity` is 'broadcast' by multiplying it with `map`, and then summing on the
+    common dimension ``d1``. The result has the dimensions of `quantity`, but with
+    ``d2`` in place of ``d1``.
 
     Parameters
     ----------
     rename : dict (str -> str), optional
         Dimensions to rename on the result.
+    strict : bool, optional
+        Require that each element of ``d2`` is mapped from exactly 1 element of ``d1``.
     """
     # NB int() is for AttrSeries
-    if int(map.sum()) != len(map.coords[map.dims[1]]):
+    if strict and int(map.sum()) != len(map.coords[map.dims[1]]):
         raise ValueError("invalid map")
 
     return product(quantity, map).sum(map.dims[0]).rename(rename)
