@@ -14,7 +14,7 @@ from genno import (
     Quantity,
     computations,
 )
-from genno.testing import assert_qty_equal
+from genno.testing import add_test_data2, assert_qty_allclose, assert_qty_equal
 
 
 def test_get():
@@ -202,6 +202,53 @@ def test_apply():
 
     # Keys work
     assert r.get("foo9") == 42 * 9
+
+
+def test_aggregate():
+    c = Computer()
+
+    t, t_foo, t_bar, x = add_test_data2(c)
+
+    # Define some groups
+    t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
+
+    # Use the computation directly
+    agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
+
+    # Expected set of keys along the aggregated dimension
+    assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
+
+    # Sums are as expected
+    assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
+    assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
+    assert_qty_allclose(
+        agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
+    )
+
+    # Use Computer convenience method
+    key2 = c.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
+
+    # Group has expected key and contents
+    assert key2 == "x:t-y:agg2"
+
+    # Aggregate is computed without error
+    agg2 = c.get(key2)
+
+    assert_qty_equal(agg1, agg2)
+
+    # Add aggregates, without keeping originals
+    key3 = c.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
+
+    # Distinct keys
+    assert key3 != key2
+
+    # Only the aggregated and no original keys along the aggregated dimension
+    agg3 = c.get(key3)
+    assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
+    with pytest.raises(NotImplementedError):
+        # Not yet supported; requires two separate operations
+        c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
 
 
 def test_disaggregate():

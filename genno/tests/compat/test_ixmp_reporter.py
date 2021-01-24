@@ -8,21 +8,8 @@ import pytest
 import xarray as xr
 from ixmp.testing import make_dantzig
 
-from genno import (
-    RENAME_DIMS,
-    ComputationError,
-    Key,
-    Quantity,
-    Reporter,
-    computations,
-    configure,
-)
-from genno.testing import (
-    add_test_data,
-    assert_logs,
-    assert_qty_allclose,
-    assert_qty_equal,
-)
+from genno import RENAME_DIMS, ComputationError, Key, Quantity, Reporter, configure
+from genno.testing import add_test_data, assert_logs, assert_qty_equal
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
@@ -338,55 +325,6 @@ seattle    chicago     1.7
 Name: value, dtype: float64
 """
     )
-
-
-def test_aggregate(test_mp):
-    scen = ixmp.Scenario(test_mp, "Group reporting", "group reporting", "new")
-    t, t_foo, t_bar, x = add_test_data(scen)
-
-    # Reporter
-    rep = Reporter.from_scenario(scen)
-
-    # Define some groups
-    t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
-
-    # Use the computation directly
-    agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
-
-    # Expected set of keys along the aggregated dimension
-    assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
-
-    # Sums are as expected
-    assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
-    assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
-    assert_qty_allclose(
-        agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
-    )
-
-    # Use Reporter convenience method
-    key2 = rep.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
-
-    # Group has expected key and contents
-    assert key2 == "x:t-y:agg2"
-
-    # Aggregate is computed without error
-    agg2 = rep.get(key2)
-
-    assert_qty_equal(agg1, agg2)
-
-    # Add aggregates, without keeping originals
-    key3 = rep.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
-
-    # Distinct keys
-    assert key3 != key2
-
-    # Only the aggregated and no original keys along the aggregated dimension
-    agg3 = rep.get(key3)
-    assert set(agg3.coords["t"].values) == set(t_groups.keys())
-
-    with pytest.raises(NotImplementedError):
-        # Not yet supported; requires two separate operations
-        rep.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
 
 
 def test_filters(test_mp, tmp_path, caplog):
