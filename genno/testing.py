@@ -2,13 +2,14 @@ import contextlib
 from itertools import chain
 from typing import Dict
 
+from dask.core import quote
 import numpy as np
 import pint
 import pytest
 import xarray as xr
 from pandas.testing import assert_series_equal
 
-from .core.quantity import Quantity
+from genno import Computer, Key, Quantity
 
 
 def add_test_data(scen):
@@ -42,6 +43,38 @@ def add_test_data(scen):
     scen.add_par("x", x_df)
 
     return t, t_foo, t_bar, x
+
+
+def add_test_data2(c: Computer):
+    """:func:`add_test_data` operating on a Computer, not an ixmp.Scenario."""
+    # New sets
+    t_foo = ["foo{}".format(i) for i in (1, 2, 3)]
+    t_bar = ["bar{}".format(i) for i in (4, 5, 6)]
+    t = t_foo + t_bar
+    y = list(map(str, range(2000, 2051, 10)))
+
+    # Add to scenario
+    c.add("t", quote(t))
+    c.add("y", quote(y))
+
+    # Data
+    ureg = pint.get_application_registry()
+    x = xr.DataArray(
+        np.random.rand(len(t), len(y)),
+        coords=[t, y],
+        dims=["t", "y"],
+        attrs={"_unit": ureg.Unit("kg")},
+    )
+    x = Quantity(x)
+
+    c.add(Key("x", ("t", "y")), Quantity(x))
+
+    return t, t_foo, t_bar, x
+
+
+def add_dantzig(rep):
+    """Add contents analogous to the ixmp Dantzig scenario."""
+    raise NotImplementedError
 
 
 @contextlib.contextmanager
