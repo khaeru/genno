@@ -1,24 +1,22 @@
 import logging
 
-import ixmp
 import numpy as np
 import pint
 import pytest
 import xarray as xr
 from pandas.testing import assert_series_equal
 
-from genno import Quantity, Reporter, computations
-from genno.testing import add_test_data, assert_logs, assert_qty_equal, random_qty
+from genno import Computer, Quantity, computations
+from genno.testing import add_test_data2, assert_logs, assert_qty_equal, random_qty
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
 
 @pytest.fixture(scope="function")
-def data(test_mp, request):
-    scen = ixmp.Scenario(test_mp, request.node.name, request.node.name, "new")
-    data_objs = list(add_test_data(scen))
-    rep = Reporter.from_scenario(scen)
-    yield [scen, rep] + data_objs
+def data():
+    """Yields a computer, then the values of :func:`.add_test_data2`."""
+    c = Computer()
+    yield [c] + list(add_test_data2(c))
 
 
 @pytest.mark.parametrize(
@@ -32,10 +30,11 @@ def data(test_mp, request):
     ],
 )
 def test_add(data, operands, size):
-    scen, rep, t, t_foo, t_bar, x = data
+    # Unpack
+    c, t, t_foo, t_bar, x = data
 
-    y = scen.set("y").tolist()
-    x = rep.get("x:t-y")
+    y = c.get("y")
+    x = c.get("x:t-y")
     a = Quantity(
         xr.DataArray(
             np.random.rand(len(t_foo), len(y)), coords=[t_foo, y], dims=["t", "y"]
@@ -49,14 +48,14 @@ def test_add(data, operands, size):
         units=x.attrs["_unit"],
     )
 
-    rep.add("a:t-y", a)
-    rep.add("b:t-y", b)
+    c.add("a:t-y", a)
+    c.add("b:t-y", b)
 
-    key = rep.add(
+    key = c.add(
         "result", tuple([computations.add] + [f"{name}:t-y" for name in operands])
     )
 
-    result = rep.get(key)
+    result = c.get(key)
     assert size == result.size, result.to_series()
 
 
