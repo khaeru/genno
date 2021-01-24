@@ -3,7 +3,6 @@ import os
 
 import ixmp
 import numpy as np
-import pandas as pd
 import pint
 import pytest
 import xarray as xr
@@ -29,18 +28,11 @@ pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
 test_args = ("Douglas Adams", "Hitchhiker")
 
-TS_DF = {"year": [2010, 2020], "value": [23.7, 23.8]}
-TS_DF = pd.DataFrame.from_dict(TS_DF)
-TS_DF["region"] = "World"
-TS_DF["variable"] = "Testing"
-TS_DF["unit"] = "???"
-
 
 @pytest.fixture
 def scenario(test_mp):
     # from test_feature_timeseries.test_new_timeseries_as_year_value
     scen = ixmp.Scenario(test_mp, *test_args, version="new", annotation="foo")
-    scen.add_timeseries(TS_DF)
     scen.commit("importing a testing timeseries")
     return scen
 
