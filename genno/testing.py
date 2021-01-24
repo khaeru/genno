@@ -72,7 +72,7 @@ def add_test_data2(c: Computer):
     return t, t_foo, t_bar, x
 
 
-def add_dantzig(rep):
+def add_dantzig(c: Computer):
     """Add contents analogous to the ixmp Dantzig scenario."""
     raise NotImplementedError
 
@@ -194,7 +194,7 @@ def assert_qty_allclose(a, b, check_type=True, check_attrs=True, **kwargs):
 
 @pytest.fixture(params=["AttrSeries", "SparseDataArray"])
 def parametrize_quantity_class(request):
-    """Fixture to run tests twice, for both reporting Quantity classes."""
+    """Fixture to run tests twice, for both Quantity implementations."""
     pre = Quantity.CLASS
 
     Quantity.CLASS = request.param

@@ -192,8 +192,8 @@ def test_apply():
     assert len(c.keys()) == N
 
     # Adding with a generator that takes Computer as the first argument
-    def add_many(rep: Computer, max=5):
-        [rep.add(f"foo{x}", _product, "foo", x) for x in range(max)]
+    def add_many(c_: Computer, max=5):
+        [c_.add(f"foo{x}", _product, "foo", x) for x in range(max)]
 
     c.apply(add_many, max=10)
 
@@ -312,7 +312,7 @@ def test_file_io(tmp_path):
     # The file's contents can be read through the Computer
     assert c.get("file:foo.txt") == "Hello, world!"
 
-    # Write the report to file
+    # Write the resulting quantity to a different file
     p2 = tmp_path / "bar.txt"
     c.write("file:foo.txt", p2)
 

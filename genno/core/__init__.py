@@ -10,7 +10,7 @@ log = logging.getLogger(__name__)
 
 
 def configure(path=None, **config):
-    """Configure reporting globally.
+    """Configure :mod:`genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
     computations, namely :obj:`.RENAME_DIMS` and :obj:`.REPLACE_UNITS`.

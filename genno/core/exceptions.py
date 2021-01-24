@@ -70,8 +70,8 @@ def process_dask_tb(exc):
 
     Returns a tuple with 3 elements:
 
-    - The key of the reporting computation.
-    - The info key of the reporting computation.
+    - The key of the computation.
+    - The info key of the computation.
     - A list of traceback.FrameSummary objects, without locals, for *only*
       frames that are not internal to dask.
     """

@@ -1,4 +1,4 @@
-"""Elementary computations for reporting."""
+"""Elementary computations for genno."""
 # Notes:
 # - To avoid ambiguity, computations should not have default arguments. Define
 #   default values for the corresponding methods on the Computer class.
@@ -295,7 +295,7 @@ def load_file(path, dims={}, units=None, name=None):
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
 
     Some file formats are automatically converted into objects for direct use
-    in reporting code:
+    in genno computations:
 
     :file:`.csv`:
        Converted to :class:`.Quantity`. CSV files must have a 'value' column;
