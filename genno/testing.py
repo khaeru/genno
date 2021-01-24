@@ -2,11 +2,11 @@ import contextlib
 from itertools import chain
 from typing import Dict
 
-from dask.core import quote
 import numpy as np
 import pint
 import pytest
 import xarray as xr
+from dask.core import quote
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Key, Quantity
@@ -61,7 +61,7 @@ def add_test_data2(c: Computer):
     ureg = pint.get_application_registry()
     x = xr.DataArray(
         np.random.rand(len(t), len(y)),
-        coords=[t, y],
+        coords=[tuple(t), tuple(y)],
         dims=["t", "y"],
         attrs={"_unit": ureg.Unit("kg")},
     )

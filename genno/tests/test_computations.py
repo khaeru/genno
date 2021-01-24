@@ -100,7 +100,7 @@ def test_apply_units(data, caplog):
         pytest.param(
             [[1, 1, 0], [0, 1, 1]],
             dict(strict=True),
-            marks=pytest.mark.xfail(raises=ValueError, match="invalid map"),
+            marks=pytest.mark.xfail(raises=ValueError, reason="invalid map"),
         ),
     ),
 )
@@ -133,7 +133,7 @@ def test_broadcast_map(ureg, map_values, kwarg):
             "load_file-invalid.csv",
             dict(),
             marks=pytest.mark.xfail(
-                raises=ValueError, match="with non-unique units array(['cm'], ['km'],"
+                raises=ValueError, reason="with non-unique units array(['cm'], ['km'],"
             ),
         ),
     ],
