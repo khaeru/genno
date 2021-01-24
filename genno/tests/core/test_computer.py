@@ -136,7 +136,7 @@ def test_add_queue(caplog):
     # Failures without raising an exception
     r.add(queue, max_tries=3, fail=logging.INFO)
     assert "Failed 3 times to add:" in caplog.messages
-    assert "    with KeyExistsError('foo-2')" in caplog.messages
+    assert "    with MissingKeyError('foo-3')" in caplog.messages
 
 
 def test_apply():

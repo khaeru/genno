@@ -8,7 +8,8 @@ import pytest
 import xarray as xr
 from ixmp.testing import make_dantzig
 
-from genno import RENAME_DIMS, ComputationError, Key, Quantity, Reporter, configure
+from genno import RENAME_DIMS, ComputationError, Key, Quantity, configure
+from genno.compat.ixmp import Reporter
 from genno.testing import add_test_data, assert_logs, assert_qty_equal
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")

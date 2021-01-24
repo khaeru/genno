@@ -1,4 +1,3 @@
-from .compat.ixmp.reporter import Reporter
 from .core import configure
 from .core.computer import Computer
 from .core.exceptions import ComputationError, KeyExistsError, MissingKeyError
@@ -14,6 +13,5 @@ __all__ = [
     "KeyExistsError",
     "MissingKeyError",
     "Quantity",
-    "Reporter",
     "configure",
 ]

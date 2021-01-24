@@ -5,10 +5,11 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-from ixmp import Scenario
+from ixmp import Scenario  # FIXME avoid using this here
 from xarray.testing import assert_equal as assert_xr_equal
 
-from genno import Quantity, Reporter, computations
+from genno import Quantity, computations
+from genno.compat.ixmp import Reporter  # FIXME avoid using this here
 from genno.core.attrseries import AttrSeries
 from genno.core.quantity import assert_quantity
 from genno.core.sparsedataarray import SparseDataArray
