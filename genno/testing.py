@@ -27,13 +27,10 @@ def add_test_data(scen):
 
     # Data
     ureg = pint.get_application_registry()
-    x = xr.DataArray(
-        np.random.rand(len(t), len(y)),
-        coords=[t, y],
-        dims=["t", "y"],
-        attrs={"_unit": ureg.Unit("kg")},
+    x = Quantity(
+        xr.DataArray(np.random.rand(len(t), len(y)), coords=[("t", t), ("y", y)]),
+        units=ureg.kg,
     )
-    x = Quantity(x)
 
     # As a pd.DataFrame with units
     x_df = x.to_series().rename("value").reset_index()
@@ -53,20 +50,18 @@ def add_test_data2(c: Computer):
     t = t_foo + t_bar
     y = list(map(str, range(2000, 2051, 10)))
 
-    # Add to scenario
+    # Add to Computer
     c.add("t", quote(t))
     c.add("y", quote(y))
 
     # Data
     ureg = pint.get_application_registry()
-    x = xr.DataArray(
-        np.random.rand(len(t), len(y)),
-        coords=[tuple(t), tuple(y)],
-        dims=["t", "y"],
-        attrs={"_unit": ureg.Unit("kg")},
+    x = Quantity(
+        xr.DataArray(np.random.rand(len(t), len(y)), coords=[("t", t), ("y", y)]),
+        units=ureg.kg,
     )
-    x = Quantity(x)
 
+    # Add, including sums and to index
     c.add(Key("x", ("t", "y")), Quantity(x), index=True, sums=True)
 
     return t, t_foo, t_bar, x
