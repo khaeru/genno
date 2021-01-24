@@ -67,7 +67,7 @@ def add_test_data2(c: Computer):
     )
     x = Quantity(x)
 
-    c.add(Key("x", ("t", "y")), Quantity(x))
+    c.add(Key("x", ("t", "y")), Quantity(x), index=True, sums=True)
 
     return t, t_foo, t_bar, x
 

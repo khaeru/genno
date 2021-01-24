@@ -44,26 +44,6 @@ def test_configure(test_mp, test_data_path):
     RENAME_DIMS.pop("i")
 
 
-def test_reporter_add_product(test_mp, ureg):
-    scen = ixmp.Scenario(test_mp, "reporter_add_product", "reporter_add_product", "new")
-    *_, x = add_test_data(scen)
-    rep = Reporter.from_scenario(scen)
-
-    # add_product() works
-    key = rep.add_product("x squared", "x", "x", sums=True)
-
-    # Product has the expected dimensions
-    assert key == "x squared:t-y"
-
-    # Product has the expected value
-    exp = Quantity(x * x, name="x")
-    exp.attrs["_unit"] = ureg("kilogram ** 2").units
-    assert_qty_equal(exp, rep.get(key))
-
-    # add('product', ...) works
-    key = rep.add("product", "x_squared", "x", "x", sums=True)
-
-
 def test_reporter_from_scenario(scenario):
     r = Reporter.from_scenario(scenario)
 

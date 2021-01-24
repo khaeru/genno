@@ -204,6 +204,24 @@ def test_apply():
     assert r.get("foo9") == 42 * 9
 
 
+def test_add_product(ureg):
+    c = Computer()
+
+    *_, x = add_test_data2(c)
+
+    # add_product() works
+    key = c.add_product("x squared", "x", "x", sums=True)
+
+    # Product has the expected dimensions
+    assert key == "x squared:t-y"
+
+    # Product has the expected value
+    assert_qty_equal(Quantity(x * x, units=ureg.kilogram ** 2), c.get(key))
+
+    # add('product', ...) works
+    key = c.add("product", "x_squared", "x", "x", sums=True)
+
+
 def test_aggregate():
     c = Computer()
 
