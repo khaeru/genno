@@ -1,7 +1,7 @@
 """Elementary computations for reporting."""
 # Notes:
 # - To avoid ambiguity, computations should not have default arguments. Define
-#   default values for the corresponding methods on the Reporter class.
+#   default values for the corresponding methods on the Computer class.
 import logging
 from collections.abc import Mapping
 from pathlib import Path
@@ -182,7 +182,7 @@ def concat(*objs, **kwargs):
 
     Any strings included amongst *args* are discarded, with a logged warning;
     these usually indicate that a quantity is referenced which is not in the
-    Reporter.
+    Computer.
     """
     objs = filter_concat_args(objs)
     if Quantity.CLASS == "AttrSeries":
@@ -315,7 +315,7 @@ def load_file(path, dims={}, units=None, name=None):
     name : str
         Name for the loaded Quantity.
     """
-    # TODO optionally cache: if the same Reporter is used repeatedly, then the file will
+    # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
     if path.suffix == ".csv":
         data = pd.read_csv(path, comment="#")

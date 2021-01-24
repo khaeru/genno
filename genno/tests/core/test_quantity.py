@@ -135,7 +135,7 @@ class TestQuantity:
         """Stress-test reporting of large, sparse quantities."""
         scen = scen_with_big_data
 
-        # Create the reporter
+        # Create the Reporter
         rep = Reporter.from_scenario(scen)
 
         # Add a task to compute the product, i.e. requires all the q_*

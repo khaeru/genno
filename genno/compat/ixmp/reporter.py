@@ -57,7 +57,7 @@ class Reporter(Computer):
 
         Returns
         -------
-        :class:`Reporter <genno.Reporter>`
+        :class:`Reporter <genno.compat.ixmp.Reporter>`
             A Reporter instance containing:
 
             - A 'scenario' key referring to the *scenario* object.
