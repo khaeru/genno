@@ -6,13 +6,10 @@ import pandas as pd
 import pytest
 import xarray as xr
 from ixmp import Scenario  # FIXME avoid using this here
-from xarray.testing import assert_equal as assert_xr_equal
 
 from genno import Quantity, computations
 from genno.compat.ixmp import Reporter  # FIXME avoid using this here
-from genno.core.attrseries import AttrSeries
 from genno.core.quantity import assert_quantity
-from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import assert_qty_allclose, assert_qty_equal
 
 
@@ -150,97 +147,3 @@ class TestQuantity:
 
         # Result can be converted to pd.Series
         result.to_series()
-
-
-class TestAttrSeries:
-    """Tests of AttrSeries in particular."""
-
-    @pytest.fixture
-    def foo(self):
-        idx = pd.MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]], names=["a", "b"])
-        yield AttrSeries([0, 1, 2, 3], index=idx)
-
-    @pytest.fixture
-    def bar(self):
-        yield AttrSeries([0, 1], index=pd.Index(["a1", "a2"], name="a"))
-
-    def test_rename(self, foo):
-        assert foo.rename({"a": "c", "b": "d"}).dims == ("c", "d")
-
-    def test_sel(self, bar):
-        # Selecting 1 element from 1-D parameter still returns AttrSeries
-        result = bar.sel(a="a2")
-        assert isinstance(result, AttrSeries)
-        assert result.size == 1
-        assert result.dims == ("a",)
-        assert result.iloc[0] == 1
-
-    def test_squeeze(self, foo):
-        assert foo.sel(a="a1").squeeze().dims == ("b",)
-        assert foo.sel(a="a2", b="b1").squeeze().values == 2
-
-        with pytest.raises(
-            ValueError,
-            match="dimension to squeeze out which has length greater than one",
-        ):
-            foo.squeeze(dim="b")
-
-    def test_sum(self, foo, bar):
-        # AttrSeries can be summed across all dimensions
-        result = foo.sum(dim=["a", "b"])
-        assert isinstance(result, AttrSeries)  # returns an AttrSeries
-        assert result.size == 1  # with one element
-        assert result.item() == 6  # that has the correct value
-
-        # Sum with wrong dim raises ValueError
-        with pytest.raises(ValueError):
-            bar.sum("b")
-
-    def test_others(self, foo, bar):
-        # Exercise other compatibility functions
-        assert type(foo.to_frame()) is pd.DataFrame
-        assert foo.drop("a").dims == ("b",)
-        assert bar.dims == ("a",)
-
-        with pytest.raises(NotImplementedError):
-            bar.item("a2")
-        with pytest.raises(ValueError):
-            bar.item()
-
-
-def test_sda_accessor():
-    """Test conversion to sparse.COO-backed xr.DataArray."""
-    x_series = pd.Series(
-        data=[1.0, 2, 3, 4],
-        index=pd.MultiIndex.from_product(
-            [["a", "b"], ["c", "d"]], names=["foo", "bar"]
-        ),
-    )
-    y_series = pd.Series(data=[5.0, 6], index=pd.Index(["e", "f"], name="baz"))
-
-    x = SparseDataArray.from_series(x_series)
-    y = SparseDataArray.from_series(y_series)
-
-    x_dense = x._sda.dense_super
-    y_dense = y._sda.dense_super
-    assert not x_dense._sda.COO_data or x_dense._sda.nan_fill
-    assert not y_dense._sda.COO_data or y_dense._sda.nan_fill
-
-    # As of sparse 0.10, sparse `y` is automatically broadcast to `x_dense`
-    # Previously, this raised ValueError.
-    x_dense * y
-
-    z1 = x_dense._sda.convert() * y
-
-    z2 = x * y_dense._sda.convert()
-    assert z1.dims == ("foo", "bar", "baz") == z2.dims
-    assert_xr_equal(z1, z2)
-
-    z3 = x._sda.convert() * y._sda.convert()
-    assert_xr_equal(z1, z3)
-
-    z4 = x._sda.convert() * y
-    assert_xr_equal(z1, z4)
-
-    z5 = SparseDataArray.from_series(x_series) * y
-    assert_xr_equal(z1, z5)
