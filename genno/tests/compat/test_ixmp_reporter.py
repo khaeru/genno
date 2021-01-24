@@ -21,7 +21,7 @@ def scenario(test_mp):
     # from test_feature_timeseries.test_new_timeseries_as_year_value
     scen = ixmp.Scenario(test_mp, *test_args, version="new", annotation="foo")
     scen.commit("importing a testing timeseries")
-    return scen
+    yield scen
 
 
 def test_configure(test_mp, test_data_path):
@@ -117,17 +117,6 @@ def test_reporter_from_dantzig(test_mp, ureg):
 
     # Shorthand for retrieving a full key name
     assert rep.full_key("d") == "d:i-j" and isinstance(rep.full_key("d"), Key)
-
-
-def test_reporter_read_config(test_mp, test_data_path):
-    scen = make_dantzig(test_mp)
-    rep = Reporter.from_scenario(scen)
-
-    # Configuration can be read from file
-    rep.configure(test_data_path / "config-0.yaml")
-
-    # Data from configured file is available
-    assert rep.get("d_check").loc["seattle", "chicago"] == 1.7
 
 
 def test_platform_units(test_mp, caplog, ureg):
@@ -252,15 +241,6 @@ def test_reporter_describe(test_mp, test_data_path, capsys):
     # Since quiet=False, description is also printed to stdout
     out2, _ = capsys.readouterr()
     assert desc2 == out2
-
-
-def test_reporter_visualize(test_mp, tmp_path):
-    scen = make_dantzig(test_mp)
-    r = Reporter.from_scenario(scen)
-
-    r.visualize(str(tmp_path / "visualize.png"))
-
-    # TODO compare to a specimen
 
 
 def test_cli(ixmp_cli, test_mp, test_data_path):

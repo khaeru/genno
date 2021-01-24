@@ -407,3 +407,27 @@ def test_units(ureg):
     # Product of dimensioned and dimensionless quantities keeps the former
     c.add("energy2", (computations.product, "energy:x", "efficiency"))
     assert c.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
+
+
+def test_read_config(test_data_path):
+    c = Computer()
+
+    # Configuration can be read from file
+    c.configure(test_data_path / "config-0.yaml")
+
+    # Data from configured file is available
+    assert c.get("d_check").loc["seattle", "chicago"] == 1.7
+
+
+def test_visualize(tmp_path):
+    c = Computer()
+    add_test_data2(c)
+
+    target = tmp_path / "visualize.png"
+
+    # visualize() works
+    c.visualize(str(target))
+
+    assert target.exists()
+
+    # TODO compare to a specimen
