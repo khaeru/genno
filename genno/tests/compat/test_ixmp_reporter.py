@@ -2,15 +2,13 @@ import logging
 import os
 
 import ixmp
-import numpy as np
 import pint
 import pytest
-import xarray as xr
 from ixmp.testing import make_dantzig
 
-from genno import RENAME_DIMS, ComputationError, Key, Quantity, configure
+from genno import RENAME_DIMS, ComputationError, configure
 from genno.compat.ixmp import Reporter
-from genno.testing import add_test_data, assert_logs, assert_qty_equal
+from genno.testing import add_test_data, assert_logs
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
@@ -26,8 +24,6 @@ def scenario(test_mp):
 
 
 def test_configure(test_mp, test_data_path):
-    # TODO test: configuration keys 'units', 'replace_units'
-
     # Configure globally; reads 'rename_dims' section
     configure(rename_dims={"i": "i_renamed"})
 
@@ -51,73 +47,6 @@ def test_reporter_from_scenario(scenario):
     r.finalize(scenario)
 
     assert "scenario" in r.graph
-
-
-def test_reporter_from_dantzig(test_mp, ureg):
-    scen = make_dantzig(test_mp, solve=True)
-
-    # Reporter.from_scenario can handle the Dantzig problem
-    rep = Reporter.from_scenario(scen)
-
-    # Partial sums are available automatically (d is defined over i and j)
-    d_i = rep.get("d:i")
-
-    # Units pass through summation
-    assert d_i.attrs["_unit"] == ureg.parse_units("km")
-
-    # Summation across all dimensions results a 1-element Quantity
-    d = rep.get("d:")
-    assert d.shape == ((1,) if Quantity.CLASS == "AttrSeries" else tuple())
-    assert d.size == 1
-    assert np.isclose(d.values, 11.7)
-
-    # Weighted sum
-    weights = Quantity(
-        xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
-    )
-    new_key = rep.aggregate("d:i-j", "weighted", "j", weights)
-
-    # ...produces the expected new key with the summed dimension removed and
-    # tag added
-    assert new_key == "d:i:weighted"
-
-    # ...produces the expected new value
-    obs = rep.get(new_key)
-    d_ij = rep.get("d:i-j")
-    exp = Quantity(
-        (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]),
-        attrs=d_ij.attrs,
-    )
-
-    assert_qty_equal(exp, obs)
-
-    # Disaggregation with explicit data
-    # (cases of canned food 'p'acked in oil or water)
-    shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-    new_key = rep.disaggregate("b:j", "p", args=[Quantity(shares)])
-
-    # ...produces the expected key with new dimension added
-    assert new_key == "b:j-p"
-
-    b_jp = rep.get("b:j-p")
-
-    # Units pass through disaggregation
-    assert b_jp.attrs["_unit"] == ureg.case
-
-    # Set elements are available
-    assert rep.get("j") == ["new-york", "chicago", "topeka"]
-
-    # 'all' key retrieves all quantities
-    obs = {da.name for da in rep.get("all")}
-    exp = set(
-        (
-            "a b d f x z cost cost-margin demand demand-margin supply " "supply-margin"
-        ).split()
-    )
-    assert obs == exp
-
-    # Shorthand for retrieving a full key name
-    assert rep.full_key("d") == "d:i-j" and isinstance(rep.full_key("d"), Key)
 
 
 def test_platform_units(test_mp, caplog, ureg):

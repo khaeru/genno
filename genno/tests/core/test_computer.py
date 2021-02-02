@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 import pandas as pd
 import pint
 import pytest
@@ -14,7 +15,12 @@ from genno import (
     Quantity,
     computations,
 )
-from genno.testing import add_test_data2, assert_qty_allclose, assert_qty_equal
+from genno.testing import (
+    add_dantzig,
+    add_test_data2,
+    assert_qty_allclose,
+    assert_qty_equal,
+)
 
 
 def test_get():
@@ -267,6 +273,68 @@ def test_aggregate():
     with pytest.raises(NotImplementedError):
         # Not yet supported; requires two separate operations
         c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
+
+
+def test_dantzig(ureg):
+    c = Computer()
+    add_dantzig(c)
+
+    # Partial sums are available automatically (d is defined over i and j)
+    d_i = c.get("d:i")
+
+    # Units pass through summation
+    assert d_i.attrs["_unit"] == ureg.kilometre
+
+    # Summation across all dimensions results a 1-element Quantity
+    d = c.get("d:")
+    assert d.shape == ((1,) if Quantity.CLASS == "AttrSeries" else tuple())
+    assert d.size == 1
+    assert np.isclose(d.values, 11.7)
+
+    # Weighted sum
+    weights = Quantity(
+        xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
+    )
+    new_key = c.aggregate("d:i-j", "weighted", "j", weights)
+
+    # ...produces the expected new key with the summed dimension removed and
+    # tag added
+    assert new_key == "d:i:weighted"
+
+    # ...produces the expected new value
+    obs = c.get(new_key)
+    d_ij = c.get("d:i-j")
+    exp = Quantity(
+        (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]),
+        attrs=d_ij.attrs,
+    )
+
+    assert_qty_equal(exp, obs)
+
+    # Disaggregation with explicit data
+    # (cases of canned food 'p'acked in oil or water)
+    shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
+    new_key = c.disaggregate("b:j", "p", args=[Quantity(shares)])
+
+    # ...produces the expected key with new dimension added
+    assert new_key == "b:j-p"
+
+    b_jp = c.get("b:j-p")
+
+    # Units pass through disaggregation
+    assert b_jp.attrs["_unit"] == ureg.case
+
+    # Set elements are available
+    assert c.get("j") == ["new-york", "chicago", "topeka"]
+
+    # 'all' key retrieves all quantities
+    exp = set(
+        "a b d f x z cost cost-margin demand demand-margin supply supply-margin".split()
+    )
+    assert all(qty.name in exp for qty in c.get("all"))
+
+    # Shorthand for retrieving a full key name
+    assert c.full_key("d") == "d:i-j" and isinstance(c.full_key("d"), Key)
 
 
 def test_disaggregate():
