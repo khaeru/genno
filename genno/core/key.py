@@ -37,7 +37,7 @@ class Key:
             # Parse a string
             name, *dims = value.split(":")
             _tag = dims[1] if len(dims) == 2 else None
-            dims = dims[0].split("-") if len(dims) else []
+            dims = dims[0].split("-") if len(dims) and dims != [""] else []
             base = cls(name, dims, _tag)
 
         # Drop and append dimensions; add tag
