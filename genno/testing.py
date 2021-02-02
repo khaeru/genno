@@ -1,4 +1,5 @@
 import contextlib
+from functools import partial
 from itertools import chain
 from typing import Dict
 
@@ -44,6 +45,7 @@ def add_test_data(scen):
 
 def add_test_data2(c: Computer):
     """:func:`add_test_data` operating on a Computer, not an ixmp.Scenario."""
+    # TODO combine with add_dantzig(), below
     # New sets
     t_foo = ["foo{}".format(i) for i in (1, 2, 3)]
     t_bar = ["bar{}".format(i) for i in (4, 5, 6)]
@@ -67,49 +69,55 @@ def add_test_data2(c: Computer):
     return t, t_foo, t_bar, x
 
 
-def add_dantzig(c: Computer):
-    """Add contents analogous to the ixmp Dantzig scenario."""
-
-    i = ["seattle", "san-diego"]
-    j = ["new-york", "chicago", "topeka"]
-    c.add("i", quote(i))
-    c.add("j", quote(j))
-    _all = list()
-    for key, value, unit in (
-        (
-            "a:i",
-            xr.DataArray([350, 600], coords=[i], dims=["i"]),
-            "cases",
-        ),
-        ("b:j", xr.DataArray([325, 300, 275], coords=[j], dims=["j"]), "cases"),
-        (
-            "d:i-j",
+_i = ["seattle", "san-diego"]
+_j = ["new-york", "chicago", "topeka"]
+_TEST_DATA = {
+    Key.from_str_or_key(k): data
+    for k, data in {
+        "a:i": (xr.DataArray([350, 600], coords=[_i], dims=["i"]), "cases"),
+        "b:j": (xr.DataArray([325, 300, 275], coords=[_j], dims=["j"]), "cases"),
+        "d:i-j": (
             xr.DataArray(
-                [[2.5, 1.7, 1.8], [2.5, 1.8, 1.4]], coords=[i, j], dims=["i", "j"]
+                [[2.5, 1.7, 1.8], [2.5, 1.8, 1.4]], coords=[_i, _j], dims=["i", "j"]
             ),
             "km",
         ),
-        ("f:", 90.0, "USD/km"),
+        "f:": (90.0, "USD/km"),
         # TODO complete the following
         # Decision variables and equations
-        (
-            "x:i-j",
-            xr.DataArray([[0, 0, 0], [0, 0, 0]], coords=[i, j], dims=["i", "j"]),
+        "x:i-j": (
+            xr.DataArray([[0, 0, 0], [0, 0, 0]], coords=[_i, _j], dims=["i", "j"]),
             "cases",
         ),
-        ("z:", 0, "cases"),
-        ("cost:", 0, "USD"),
-        ("cost-margin:", 0, "USD"),
-        ("demand:j", xr.DataArray([0, 0, 0], coords=[j], dims=["j"]), "cases"),
-        ("demand-margin:j", xr.DataArray([0, 0, 0], coords=[j], dims=["j"]), "cases"),
-        ("supply:i", xr.DataArray([0, 0], coords=[i], dims=["i"]), "cases"),
-        ("supply-margin:i", xr.DataArray([0, 0], coords=[i], dims=["i"]), "cases"),
-    ):
-        key = Key.from_str_or_key(key)
-        c.add(key, Quantity(value, name=key.name, units=unit), index=True, sums=True)
+        "z:": (0, "cases"),
+        "cost:": (0, "USD"),
+        "cost-margin:": (0, "USD"),
+        "demand:j": (xr.DataArray([0, 0, 0], coords=[_j], dims=["j"]), "cases"),
+        "demand-margin:j": (xr.DataArray([0, 0, 0], coords=[_j], dims=["j"]), "cases"),
+        "supply:i": (xr.DataArray([0, 0], coords=[_i], dims=["i"]), "cases"),
+        "supply-margin:i": (xr.DataArray([0, 0], coords=[_i], dims=["i"]), "cases"),
+    }.items()
+}
+
+
+def get_test_quantity(key):
+    """Computation that returns test data."""
+    value, unit = _TEST_DATA[key]
+    return Quantity(value, name=key.name, units=unit)
+
+
+def add_dantzig(c: Computer):
+    """Add contents analogous to the ixmp Dantzig scenario."""
+
+    c.add("i", quote(_i))
+    c.add("j", quote(_j))
+
+    _all = list()
+    for key in _TEST_DATA.keys():
+        c.add(key, (partial(get_test_quantity, key),), index=True, sums=True)
         _all.append(key)
 
-    c.add("all", _all)
+    c.add("all", sorted(_all))
 
 
 @contextlib.contextmanager
