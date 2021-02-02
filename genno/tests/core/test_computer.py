@@ -337,6 +337,35 @@ def test_dantzig(ureg):
     assert c.full_key("d") == "d:i-j" and isinstance(c.full_key("d"), Key)
 
 
+def test_describe(test_data_path, capsys, ureg):
+    c = Computer()
+    add_dantzig(c)
+
+    # Describe one key
+    desc1 = """'d:i':
+- sum(dimensions=['j'], weights=None, ...)
+- 'd:i-j':
+  - get_test_quantity(<d:i-j>, ...)"""
+    assert desc1 == c.describe("d:i")
+
+    # With quiet=True (default), nothing is printed to stdout
+    out1, _ = capsys.readouterr()
+    assert "" == out1
+
+    # With quiet=False, description is also printed to stdout
+    assert desc1 == c.describe("d:i", quiet=False)
+    out1, _ = capsys.readouterr()
+    assert desc1 + "\n" == out1
+
+    # Description of all keys is as expected
+    desc2 = (test_data_path / "describe.txt").read_text()
+    assert desc2 == c.describe(quiet=False) + "\n"
+
+    # Since quiet=False, description is also printed to stdout
+    out2, _ = capsys.readouterr()
+    assert desc2 == out2
+
+
 def test_disaggregate():
     c = Computer()
     foo = Key("foo", ["a", "b", "c"])

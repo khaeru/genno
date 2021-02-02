@@ -131,48 +131,6 @@ def test_platform_units(test_mp, caplog, ureg):
     assert unit.dimensionality == {"[USD]": 1, "[pkm]": -1}
 
 
-def test_reporter_describe(test_mp, test_data_path, capsys):
-    scen = make_dantzig(test_mp)
-    r = Reporter.from_scenario(scen)
-
-    # hexadecimal ID of *scen*
-    id_ = (
-        hex(id(scen))
-        if os.name != "nt"
-        else "{:#018X}".format(id(scen)).replace("X", "x")
-    )
-
-    # Describe one key
-    desc1 = """'d:i':
-- sum(dimensions=['j'], weights=None, ...)
-- 'd:i-j':
-  - data_for_quantity('par', 'd', 'value', ...)
-  - 'scenario':
-    - <ixmp.core.Scenario object at {id}>
-  - 'config':
-    - {{'filters': {{}}}}""".format(
-        id=id_
-    )
-    assert desc1 == r.describe("d:i")
-
-    # With quiet=True (default), nothing is printed to stdout
-    out1, _ = capsys.readouterr()
-    assert "" == out1
-
-    # With quiet=False, description is also printed to stdout
-    assert desc1 == r.describe("d:i", quiet=False)
-    out1, _ = capsys.readouterr()
-    assert desc1 + "\n" == out1
-
-    # Description of all keys is as expected
-    desc2 = (test_data_path / "describe.txt").read_text().format(id=id_)
-    assert desc2 == r.describe(quiet=False) + "\n"
-
-    # Since quiet=False, description is also printed to stdout
-    out2, _ = capsys.readouterr()
-    assert desc2 == out2
-
-
 def test_cli(ixmp_cli, test_mp, test_data_path):
     # Put something in the database
     make_dantzig(test_mp)
