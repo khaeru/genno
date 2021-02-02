@@ -69,7 +69,47 @@ def add_test_data2(c: Computer):
 
 def add_dantzig(c: Computer):
     """Add contents analogous to the ixmp Dantzig scenario."""
-    raise NotImplementedError
+
+    i = ["seattle", "san-diego"]
+    j = ["new-york", "chicago", "topeka"]
+    c.add("i", quote(i))
+    c.add("j", quote(j))
+    _all = list()
+    for key, value, unit in (
+        (
+            "a:i",
+            xr.DataArray([350, 600], coords=[i], dims=["i"]),
+            "cases",
+        ),
+        ("b:j", xr.DataArray([325, 300, 275], coords=[j], dims=["j"]), "cases"),
+        (
+            "d:i-j",
+            xr.DataArray(
+                [[2.5, 1.7, 1.8], [2.5, 1.8, 1.4]], coords=[i, j], dims=["i", "j"]
+            ),
+            "km",
+        ),
+        ("f:", 90.0, "USD/km"),
+        # TODO complete the following
+        # Decision variables and equations
+        (
+            "x:i-j",
+            xr.DataArray([[0, 0, 0], [0, 0, 0]], coords=[i, j], dims=["i", "j"]),
+            "cases",
+        ),
+        ("z:", 0, "cases"),
+        ("cost:", 0, "USD"),
+        ("cost-margin:", 0, "USD"),
+        ("demand:j", xr.DataArray([0, 0, 0], coords=[j], dims=["j"]), "cases"),
+        ("demand-margin:j", xr.DataArray([0, 0, 0], coords=[j], dims=["j"]), "cases"),
+        ("supply:i", xr.DataArray([0, 0], coords=[i], dims=["i"]), "cases"),
+        ("supply-margin:i", xr.DataArray([0, 0], coords=[i], dims=["i"]), "cases"),
+    ):
+        key = Key.from_str_or_key(key)
+        c.add(key, Quantity(value, name=key.name, units=unit), index=True, sums=True)
+        _all.append(key)
+
+    c.add("all", _all)
 
 
 @contextlib.contextmanager
