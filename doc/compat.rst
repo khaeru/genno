@@ -14,6 +14,13 @@ Compatibility with other packages
 .. automodule:: genno.compat.ixmp.computations
    :members:
 
+.. automodule:: genno.compat.ixmp.reporter
+   :members:
+
+.. automodule:: genno.compat.ixmp.util
+   :members:
+
+
 
 :mod:`pyam`
 ===========
@@ -26,4 +33,7 @@ Compatibility with other packages
    :members:
 
 .. automodule:: genno.compat.pyam.computations
+   :members:
+
+.. automodule:: genno.compat.pyam.util
    :members:
