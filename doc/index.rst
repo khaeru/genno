@@ -10,7 +10,7 @@ genno is built on high-quality Python data packages including ``dask``, ``xarray
    :maxdepth: 2
    :caption: Contents
 
-   tutorial
+   usage
    api
    compat
    whatsnew
