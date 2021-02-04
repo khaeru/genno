@@ -74,11 +74,11 @@ _j = ["new-york", "chicago", "topeka"]
 _TEST_DATA = {
     Key.from_str_or_key(k): data
     for k, data in {
-        "a:i": (xr.DataArray([350, 600], coords=[_i], dims=["i"]), "cases"),
-        "b:j": (xr.DataArray([325, 300, 275], coords=[_j], dims=["j"]), "cases"),
+        "a:i": (xr.DataArray([350, 600], coords=[("i", _i)]), "cases"),
+        "b:j": (xr.DataArray([325, 300, 275], coords=[("i", _j)]), "cases"),
         "d:i-j": (
             xr.DataArray(
-                [[2.5, 1.7, 1.8], [2.5, 1.8, 1.4]], coords=[_i, _j], dims=["i", "j"]
+                [[2.5, 1.7, 1.8], [2.5, 1.8, 1.4]], coords=[("i", _i), ("j", _j)]
             ),
             "km",
         ),
@@ -86,16 +86,16 @@ _TEST_DATA = {
         # TODO complete the following
         # Decision variables and equations
         "x:i-j": (
-            xr.DataArray([[0, 0, 0], [0, 0, 0]], coords=[_i, _j], dims=["i", "j"]),
+            xr.DataArray([[0, 0, 0], [0, 0, 0]], coords=[("i", _i), ("j", _j)]),
             "cases",
         ),
         "z:": (0, "cases"),
         "cost:": (0, "USD"),
         "cost-margin:": (0, "USD"),
-        "demand:j": (xr.DataArray([0, 0, 0], coords=[_j], dims=["j"]), "cases"),
-        "demand-margin:j": (xr.DataArray([0, 0, 0], coords=[_j], dims=["j"]), "cases"),
-        "supply:i": (xr.DataArray([0, 0], coords=[_i], dims=["i"]), "cases"),
-        "supply-margin:i": (xr.DataArray([0, 0], coords=[_i], dims=["i"]), "cases"),
+        "demand:j": (xr.DataArray([0, 0, 0], coords=[("j", _j)]), "cases"),
+        "demand-margin:j": (xr.DataArray([0, 0, 0], coords=[("j", _j)]), "cases"),
+        "supply:i": (xr.DataArray([0, 0], coords=[("i", _i)]), "cases"),
+        "supply-margin:i": (xr.DataArray([0, 0], coords=[("i", _i)]), "cases"),
     }.items()
 }
 
