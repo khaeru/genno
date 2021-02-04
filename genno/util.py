@@ -1,7 +1,6 @@
 import logging
-from functools import lru_cache, partial
+from functools import partial
 from inspect import Parameter, signature
-from typing import Dict
 
 import pandas as pd
 import pint
@@ -16,10 +15,6 @@ log = logging.getLogger(__name__)
 REPLACE_UNITS = {
     "%": "percent",
 }
-
-#: Dimensions to rename when extracting raw data from Scenario objects.
-#: Mapping from Scenario dimension name -> preferred dimension name.
-RENAME_DIMS: Dict[str, str] = {}
 
 
 def clean_units(input_string):
@@ -54,31 +49,6 @@ def collect_units(*args):
     return [arg.attrs["_unit"] for arg in args]
 
 
-def dims_for_qty(data):
-    """Return the list of dimensions for *data*.
-
-    If *data* is a :class:`pandas.DataFrame`, its columns are processed;
-    otherwise it must be a list.
-
-    genno.RENAME_DIMS is used to rename dimensions.
-    """
-    if isinstance(data, pd.DataFrame):
-        # List of the dimensions
-        dims = data.columns.tolist()
-    else:
-        dims = list(data)
-
-    # Remove columns containing values or units; dimensions are the remainder
-    for col in "value", "lvl", "mrg", "unit":
-        try:
-            dims.remove(col)
-        except ValueError:
-            continue
-
-    # Rename dimensions
-    return [RENAME_DIMS.get(d, d) for d in dims]
-
-
 def filter_concat_args(args):
     """Filter out str and Key from *args*.
 
@@ -89,11 +59,6 @@ def filter_concat_args(args):
             log.warning(f"concat() argument {repr(arg)} missing; will be omitted")
             continue
         yield arg
-
-
-@lru_cache(1)
-def get_reversed_rename_dims():
-    return {v: k for k, v in RENAME_DIMS.items()}
 
 
 def parse_units(units_series):

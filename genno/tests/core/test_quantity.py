@@ -8,7 +8,7 @@ import xarray as xr
 from ixmp import Scenario  # FIXME avoid using this here
 
 from genno import Quantity, computations
-from genno.compat.ixmp import Reporter  # FIXME avoid using this here
+from genno.compat.ixmp.reporter import Reporter  # FIXME avoid using this here
 from genno.core.quantity import assert_quantity
 from genno.testing import assert_qty_allclose, assert_qty_equal
 

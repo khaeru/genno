@@ -3,8 +3,9 @@ import logging
 import pandas as pd
 import pint
 
+from genno.compat.ixmp.util import RENAME_DIMS, dims_for_qty, get_reversed_rename_dims
 from genno.core.quantity import Quantity
-from genno.util import RENAME_DIMS, dims_for_qty, get_reversed_rename_dims, parse_units
+from genno.util import parse_units
 
 log = logging.getLogger(__name__)
 

@@ -4,7 +4,8 @@ from pathlib import Path
 import pint
 import yaml
 
-from genno.util import RENAME_DIMS, REPLACE_UNITS
+from genno.compat.ixmp.util import RENAME_DIMS
+from genno.util import REPLACE_UNITS
 
 log = logging.getLogger(__name__)
 

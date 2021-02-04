@@ -32,9 +32,9 @@ import dask
 
 from genno.core.computer import Computer
 from genno.core.key import Key
-from genno.util import RENAME_DIMS, dims_for_qty
 
 from . import computations as ixmp_computations
+from .util import RENAME_DIMS, dims_for_qty
 
 log = logging.getLogger(__name__)
 
