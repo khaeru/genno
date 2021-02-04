@@ -59,6 +59,14 @@ def test_add(data, operands, size):
     assert size == result.size, result.to_series()
 
 
+@pytest.mark.parametrize("keep", (True, False))
+def test_aggregate(data, keep):
+    *_, t_foo, t_bar, x = data
+
+    computations.aggregate(x, dict(t=dict(foo=t_foo, bar=t_bar)), keep)
+    # TODO expand with assertions
+
+
 def test_apply_units(data, caplog):
     # Unpack
     *_, x = data

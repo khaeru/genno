@@ -136,7 +136,7 @@ def aggregate(quantity, groups, keep):
                 quantity.sel({dim: members}).sum(dim=dim).assign_coords(**{dim: group})
             )
             if Quantity.CLASS == "AttrSeries":
-                # .transpose() is necesary for AttrSeries
+                # .transpose() is necessary for AttrSeries
                 agg = agg.transpose(*quantity.dims)
             else:
                 # Restore fill_value=NaN for compatibility
