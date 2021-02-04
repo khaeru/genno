@@ -120,6 +120,17 @@ def test_broadcast_map(ureg, map_values, kwarg):
     assert_qty_equal(exp, result)
 
 
+def test_concat(data):
+    *_, t_foo, t_bar, x = data
+
+    # Split x into two concatenateable quantities
+    computations.concat(
+        computations.select(x, dict(t=t_foo)),
+        computations.select(x, dict(t=t_bar)),
+        dim="t",
+    )
+
+
 @pytest.mark.parametrize(
     "name, kwargs",
     [
