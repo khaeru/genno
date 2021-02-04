@@ -60,7 +60,7 @@ def data_for_quantity(ix_type, name, column, scenario, config):
     data = getattr(scenario, ix_type)(name, filters)
 
     # ixmp/GAMS scalar is not returned as pd.DataFrame
-    if isinstance(data, dict):
+    if isinstance(data, dict):  # pragma: no cover
         data = pd.DataFrame.from_records([data])
 
     # Warn if no values are returned.
@@ -87,7 +87,7 @@ def data_for_quantity(ix_type, name, column, scenario, config):
     # Remove the unit from the DataFrame
     try:
         attrs = {"_unit": parse_units(data.pop("unit"))}
-    except KeyError:
+    except KeyError:  # pragma: no cover
         # 'equ' are returned without units
         attrs = {}
     except ValueError as e:
