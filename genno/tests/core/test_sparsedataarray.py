@@ -1,7 +1,9 @@
 import pandas as pd
 from xarray.testing import assert_equal as assert_xr_equal
 
+from genno import Computer
 from genno.core.sparsedataarray import SparseDataArray
+from genno.testing import add_test_data2
 
 
 def test_sda_accessor():
@@ -40,3 +42,15 @@ def test_sda_accessor():
 
     z5 = SparseDataArray.from_series(x_series) * y
     assert_xr_equal(z1, z5)
+
+
+def test_loc():
+    """SparseDataArray.loc[] accessor works.
+
+    For some version prior to sparse 0.11.2, a specific workaround was required, but no
+    longer. Retain the test to catch any regression.
+    """
+    *_, x = add_test_data2(Computer())
+
+    # .loc accessor works
+    assert isinstance(x.loc["foo1", "2040"], float)

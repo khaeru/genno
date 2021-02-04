@@ -89,16 +89,6 @@ class SparseDataArray(xr.DataArray):
         # Necessary for :meth:`xarray.testing.assert_equal` to work.
         return self.variable.equals(other.variable, equiv=np.equal)
 
-    @property
-    def loc(self):
-        """Attribute for location based indexing like pandas.
-
-        .. note:: This version does not allow assignment, since the underlying
-           sparse array is read-only. To modify the contents, create a copy or
-           perform an operation that returns a new array.
-        """
-        return self._sda.dense_super.loc
-
     def sel(
         self, indexers=None, method=None, tolerance=None, drop=False, **indexers_kwargs
     ) -> "SparseDataArray":
