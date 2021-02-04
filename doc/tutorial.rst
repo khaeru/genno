@@ -1,6 +1,8 @@
 Tutorial
 ********
 
+.. note:: This content is adapted from the :file:`westeros_reporting.ipynb` tutorial from MESSAGEix.
+
 ‘Reporting’ is the term used in the MESSAGEix ecosystem to refer to any calculations performed *after* the MESSAGE mathematical optimization problem has been solved.
 
 This tutorial introduces the reporting features provided by the ``ixmp`` and ``message_ix`` packages.
@@ -90,15 +92,15 @@ We use the Computer to describe this equation (step 1):
     from genno import Computer
 
     # Create a new Computer object
-    c = Computer()
+    rep = Computer()
 
     # Add two nodes
     # These have no outputs; they only return a literal value.
-    c.add('A', 1)
-    c.add('B', 2)
+    rep.add('A', 1)
+    rep.add('B', 2)
 
     # Add one node and two edges
-    c.add('C', (lambda *inputs: sum(inputs), 'A', 'B'))
+    rep.add('C', (lambda *inputs: sum(inputs), 'A', 'B'))
 
 
 Here is a detailed explanation of what we just did:
@@ -120,4 +122,516 @@ Next, let's trigger the calculation of ‘C’ (step 1), which gives the expecte
 
 .. ipython:: python
 
-    c.get('C')
+    rep.get('C')
+
+We can use ``Reporter.describe()`` to see steps used in this calculation.
+The graph is printed out as a hierarchical list:
+
+.. ipython:: python
+
+    print(rep.describe('C'))
+
+
+This description shows how the Reporter traverses the graph in order to calculate the quantity we asked for:
+
+1. The desired value is from node ‘C’, which computes a function of some arguments.
+2. The first argument is ‘A’.
+3. ‘A’ is the name of another node.
+4. Node ‘A’ gives a literal value `int(1)`, which is stored.
+5. The Reporter returns to ‘C’ and moves on to the next argument, ‘B’.
+6. Steps 3 and 4 are repeated for ‘B’, giving `int(2)`.
+7. All of the arguments to ‘C’ have been processed.
+8. The computation function for ‘C’ is called.
+
+   As arguments, instead of the (string) keys 'A' and 'B', this function receives the computed `int` values from steps 4 and 6 respectively.
+9. The result is returned.
+
+In this example, 'A' and 'B' are, at most, 1 step away from the node we requested, and are each used once.
+
+In more realistic examples, the graph can have:
+
+- Long chains of calculations, each depending on the output of its ancestors, and/or
+- Multiple connection, so that 'A' is used by more than one child calculations.
+
+However, the Reporter still follows the same procedure to traverse the graph and calculate the results.
+
+.. ipython:: python
+
+    # Store *rep* for the solutions
+    rep1 = rep
+
+Exercise 1
+----------
+
+Add a node ‘X’ to the graph that returns the literal value 42.
+
+After adding ‘X’, what do you think will be the result when you run:
+
+.. ipython:: python
+
+    print(rep.describe('C'))
+
+Why?
+Write down your answer before trying the code.
+
+
+Exercise 2
+----------
+
+Extend the `Reporter` to describe the following equation:
+
+.. math:: E = A + D \times \frac{A}{A + B} = A + D \times \frac{A}{C}; \qquad D = 12
+
+.. ipython:: python
+
+    # Some helper functions you can use
+    def sum_calc(*inputs):
+      return sum(inputs)
+
+    def product(a, b):
+      return a * b
+
+    def ratio(a, b):
+      return a / b
+
+    # Replace 'C' with a reference to sum_calc (instead of an anonymous function)
+    rep.add('C', (sum_calc, 'A', 'B'))
+
+Concepts: Quantities, Keys, and data formats
+============================================
+
+In the last section, $A$, $B$, and so on were *scalar* variables with a single value.
+In energy systems modeling, including with MESSAGE*ix*, we usually deal with scientific **quantities** that are sparse, multi-dimensional arrays with associated units.
+
+That is, they have:
+
+- 1 or more **dimensions**, with *labels* along those dimensions (e.g. specific years; the names of specific technologies);
+- *sparse* coverage or “missingness,” i.e. there is not necessarily a value for each combination of labels; and
+- associated *units*.
+
+Mathematically, we can say the following:
+
+.. math::
+
+    \begin{align}
+    A^{ij} & = \left[a_{i,j} \right] \\
+    i & \in I \\
+    j & \in J \\
+    a_{i,j} & \in \left\{ \mathbb{R}, \text{NaN} \right\} \\
+    a_{i,j} & [=]\, \text{units of X}
+    \end{align}
+
+…where ‘NaN’ means “not a number,” i.e. a missing value.
+
+(Note: The ``westeros_baseline.ipynb`` distinguishes fixed *parameters*, also called “input data”, from the decision *variables* that the optimization algorithm changes to find the model solution, or “output data”.
+While reporting the solution is finished and this distinction is not important; so we refer to everything as a *quantity*.)
+
+Dimensionality of quantities
+----------------------------
+
+Some of the quantities in the MESSAGE mathematical formulation have many dimensions.
+For some calculations, we may not care about some of these dimensions.
+
+For instance, $\text{output}$ has ten dimensions: $\text{output}^{n^Lty^Vymnclh^Ah}$.
+But we may be interested in the total output in a given year ($y$), but not concerned about different vintages of a technology ($y^V$).
+In this case, we don't really want the 10-dimensional quantity—but its **partial sum** over all values of $y^V$.
+
+**Notation.**
+Consider a quantity with three dimensions, $A^{ijk}$, and another with two, $B^{kl}$, and a scalar $C$.
+We define partial sums over every possible combination of dimensions:
+
+.. math::
+
+    \begin{array}
+    AA^{ij} = \left[ a_{i,j} \right],
+      & a_{i,j} = \sum_{k}{a_{i,j,k}} \ \forall \ i, j
+      & \text{similarly } A^{ik}, A^{jk} \\
+    A^{i} = \left[ a_i \right],
+      & a_i = \sum_j\sum_{k}{a_{i,j,k}} \ \forall\  i
+      & \text{similarly } A^j, A^k \\
+    & \qquad A = \sum_i\sum_j\sum_k{a_{i,j,k}}
+      & \text{(a scalar)}
+    \end{array}
+
+
+Note that $A$ and $B$ share one dimension, $k$, but the other dimensions are distinct.
+We specify that simple arithmetic operations result in a quantity whose dimensions are the union of the dimensions of the operands. In other words:
+
+.. math::
+
+    \begin{array}
+    CC + A^{i} = X^{i} = \left[ x_{i} \right],
+      & x_{i} = C + a_{i} \ \forall \ i \\
+    A^{jk} \times B^{kl} = Y^{jkl} = \left[ y_{j,k,l} \right],
+      & y_{j,k,l} = a_{j,k} \times b_{k,l} \ \forall \ j, k, l \\
+    A^{j} - B^{j} = Z^{j} = \left[ z_{j} \right],
+      & z_{j} = a_{j} - b_{j} \ \forall \ j \\
+    \end{array}
+
+As a result of this rule:
+
+- The difference $Z^j$ has the same dimensionality as *both* of its operands.
+- The sum $X^i$ has the same dimensionality as *one* of its operands.
+- The product $Y^{jkl}$ has a different dimensonality from each of its operands.
+
+These operations are called **broadcasting** and **alignment**: The scalar value $C$ is *broadcast* across all labels on the dimension $i$ that it lacks, in order to calculate $x_i$.
+$A^{jk}$ and $B^{kl}$ are *aligned* on matching values of $k$, but *broadcast* over dimensions $j$ and $l$, respectively.
+
+Keys
+----
+
+In the first code example, `'C'` was the node label or key that we used to refer to the output of a certain calculation—even before it was been computed.
+Likewise, the Python string `'A'` is a key.
+When computed, node ‘A’ returns a Python `int(1)`—an object representing its actual *value*.
+
+In step 1 of the reporting workflow, computations are described using *only* keys.
+No *values* are created until step 2—and *only* the values needed to provide the result of `get()`.
+
+For multi-dimensional calculations, we need keys that distinguish $A^i$—the partial sum of $A^{ijk}$ used in the calculation of $X^i$—from $A^{jk}$—a *different* partial sum used in the calculation of $Y^{jkl}$.
+It is not sufficient to refer to both as `'A'`, since this is ambiguous about what calculation we want to perform.
+
+For this purpose, message_ix (or ixmp) provides the `Key` class.
+
+A Key has a name, zero or more dimensions, and an optional tag:
+
+.. ipython:: python
+
+    from genno import Key
+
+    # Quantity named 'a' at two different dimensionalities
+    k1 = Key('a', ['i'])
+    k2 = Key('a', ['j', 'k'])
+
+    (k1, k2)
+
+Quantity values
+---------------
+
+To represent the **values** of quantities from a model or produced by reporting calculations, ixmp and message_ix use the `Quantity` class.
+Quantity is derived from [`xarray.DataArray`](http://xarray.pydata.org/en/stable/data-structures.html#dataarray)—a labeled, multi-dimensional array, with attributes.
+
+The combination of Key and Quantity lets the Reporter (and you!) handle multi-dimensional data, while automatically handling alignment and broadcasting.
+
+Automated reporting
+===================
+
+A `message_ix.Reporter` for a specific `Scenario` is created using the `.from_scenario()` method.
+This method automatically adds many nodes to the graph based on (a) the contents of the Scenario and (b) the known mathematical formulation of MESSAGE.
+
+Demonstration
+-------------
+
+.. ipython:: python
+
+    from ixmp import Platform
+    from ixmp.reporting import configure
+    from message_ix.testing import make_westeros
+    from message_ix.reporting import Reporter
+
+    mp = Platform()
+    scen = make_westeros(mp, emissions=True, solve=True)
+
+    # Create a reporter from the existing Scenario
+    rep = Reporter.from_scenario(scen)
+
+    # Reporter uses the Python pint to handle units. '-', used in the Westeros
+    # tutorial, is not a defined SI unit. We tell the Reporter to replace it with
+    # '' (unitless) everywhere it appears.
+    configure(units={'replace': {'-': ''}})
+
+What is in ``rep``?
+
+.. ipython:: python
+
+    len(rep.graph)
+
+Almost 8000 nodes!
+
+Remember: `rep` simply *describes* these operations; none of them is executed until or unless you `get()` them.
+
+Let's look at some of the automatically populated content of the graph:
+
+.. ipython:: python
+
+    # Return the full-dimensionality Key for the MESSAGE parameter 'output'
+    output = rep.full_key('output')
+    output
+
+    # Return the full-dimensionality Key for the MESSAGE variable 'ACT'
+    ACT = rep.full_key('ACT')
+    ACT
+
+What would happen if we were to `get()` this key?
+
+.. ipython:: python
+
+    print(rep.describe(ACT))
+
+We can see:
+
+- The Reporter will call a function named `data_for_quantity()`.
+
+  This (and all built-in computations) are [described in the MESSAGEix documentation](https://docs.messageix.org/en/stable/reporting.html#ixmp.reporting.utils.data_for_quantity).
+- The function gets some direct arguments: `'var', 'ACT', 'lvl'`.
+
+  From the documentation, we can see this indicates the level (rather than marginal) of an ixmp `'var'`iable (rather than parameter) named `'ACT'`.
+- The next argument is ‘scenario’, another node in the graph.
+- This node returns the same Scenario object we passed to `Reporter.from_scenario()`.
+
+In short, if we run this cell, the Reporter will extract a 6-dimensional quantity from the Scenario object and return it.
+The other >12,000 nodes will not be computed.
+
+Let's try:
+
+.. ipython:: python
+
+    rep.get(ACT)
+
+More automated contents
+-----------------------
+
+As mentioned, because `Reporter.from_scenario()` knows that `scen` follows the MESSAGE mathematical formulation, it can automatically populate the graph with useful derived quantities.
+
+For example: the $\text{ACT}$ for various technologies $t$ is a dimensionless quantity.
+The specific commodities produced by $t$, with units, are given by the product $\text{ACT} \times \text{output}$.
+This product is given the name ‘out’ (the documentation contains [the names for all automatic quantities](https://docs.messageix.org/en/latest/reporting.html#message_ix.reporting.Reporter.from_scenario)):
+
+
+.. ipython:: python
+
+    out = rep.full_key('out')
+    out
+
+    # Show what would be done
+    print(rep.describe(out))
+
+    rep.get(out)
+
+In this case, the mode ($m$), time ($h$) and time_dest ($h^D$) dimensions don't contain useful information.
+We also have a single-region model, so we don't need node_loc ($n^L$) or node_dest ($n^L$) either.
+We can instead ask for a partial sum.
+
+**Exercise:** review the notation above and satisfy yourself that for $A^{ijk}$, where $i \in I$ and $\|I\| = 1$—that is, when there is only one label along the dimension $I$—then $a_{j,k} = a_{i,j,k} \,\forall\, j, k$. That is, a partial sum over dimension $i$ is the same as ‘dropping’ the dimension $i$.
+
+`Key.drop()` lets us derive its key from the one we already have.
+This doesn't perform any calculation; simply returns a new Key with fewer dimensions:
+
+.. ipython:: python
+
+    out2 = out.drop('h', 'hd', 'm', 'nd', 'nl')
+    out2
+
+This partial sum is already described in the Reporter:
+
+.. ipython:: python
+
+    print(rep.describe(out2))
+    rep.get(out2)
+
+File output
+-----------
+
+As noted above, the labeled, multi-dimensional Quantity is used so that values passing between reporting calculations are in a consistent, easy-to-manipulate format.
+
+For research purposes, we often want to transform data into other, particular formats or write it to file, in order to feed it into other tools such as existing analysis or plotting codes; both our own, and collaborators'. Reporter provides multiple ways to do this.
+
+For instance, we can `get()` a Quantity and write it directly to a file in a single step:
+
+.. ipython:: python
+
+    rep.write(out2, 'output.csv')
+
+The file appears in the same directory where we started the Jupyter notebook.
+
+**Exercise:** Try using an .xlsx file name in the above.
+
+We can also define a conversion to a different data format.
+This is described in the next section.
+
+Describing additional computations
+==================================
+
+The previous section showed how to find and retrieve the results of computations for keys automatically added by `Reporter.from_scenario()`.
+Reporter also provides many helper methods to describe additional computations in step 1 of the workflow.
+
+After using these methods, we can continue to describe further calculations using them as input (step 1); or we can `get()` them (step 2).
+
+Converting to pyam representation
+---------------------------------
+
+Here, we'll use the [`Reporter.convert_pyam()`](https://docs.messageix.org/en/latest/reporting.html#message_ix.reporting.Reporter.convert_pyam) method.
+
+This adds a node that converts data from a Quantity object to the `IamDataFrame` class from the [`pyam`](https://pyam-iamc.readthedocs.io) package.
+`pyam` is built around the [data file format](https://data.ene.iiasa.ac.at/database/) used by the [Integrated Assessment Modeling Consortium](http://www.globalchange.umd.edu/iamc/) (IAMC), and offers plotting and further calculation features.
+
+.. ipython:: python
+
+    # The IAMC format does not have 'level', 'technology', or 'commodity'
+    # columns; only a catch-all 'Variable' column.
+    def format_variable(df):
+        """Callback function to fill the IAMC 'variable' column."""
+        df['variable'] = df['l'] + ' energy|' + df['t'] + '|' + df['c']
+        return df.drop(['c', 'l', 't'], axis=1)
+
+    # Add node(s) that convert data to pyam.IamDataFrame objects
+    new_key = rep.convert_pyam(
+        # Quantity or quantities to convert
+        quantities=out.drop('h', 'hd', 'm', 'nd', 'yv'),
+        # Dimension to use for the 'Year' IAMC column
+        year_time_dim='ya',
+        # Use this function to collapse the 'l', 't', and 'c' dimensions
+        # into the 'Variable' IAMC column
+        collapse=format_variable
+    )
+
+    new_key
+
+Note that nothing was computed. (We're still in step 1 of the reporting workflow!)
+However, the method did return a new key for the node added to the graph (in fact, a list with 1 new key; we could have applied `convert_pyam` to multiple nodes at once).
+This key has the **tag** `':iamc'` added at the end.
+
+We describe the added computation, then execute it to get a `pyam.IamDataFrame`:
+
+.. ipython:: python
+
+    new_key = new_key[0]  # Unwrap the single item in the list
+
+    print(rep.describe(new_key))
+
+    df = rep.get(new_key)
+    df
+
+(Note that, unlike a pandas.DataFrame, the contents of a pyam.IamDataFrame are not displayed by default.)
+
+After we have retrieved the `pyam` object, we can use its built-in methods to filter and plot the data:
+
+.. ipython:: python
+
+    (
+        df.filter(
+            model='Westeros Electrified',
+            scenario='baseline',
+            region='Westeros'
+        )
+        .plot()
+    )
+
+Custom computations
+-------------------
+
+Thus far we've described reporting calculations using simple, atomic computations, including those automatically added by `Reporter.from_scenario()`.
+
+However—just as in the first, introductory example—computations are merely Python functions.
+This means they can be *any* function, no matter how complex.
+Thus, it is easy to insert any existing analysis codes into the graph.
+
+To demonstrate this, we add several nodes, each using a custom function.
+
+- `as_tidy_data()` operates on the internal Quantity value to coerce it into a `pandas.DataFrame` in a specific format.
+- `my_plot()` uses a different Python plotting package named [`plotnine`](https://plotnine.readthedocs.io) that implements a “grammar of graphics,” similar to R's `ggplot` package. It returns a plot object without drawing it.
+- `save_plot()` saves the plot to file.
+- `draw_plot()` outputs the drawn plot directly.
+
+Finally, we define a computation `'do both'` that simply computes two different nodes and returns their outputs in a list.
+
+.. ipython::
+
+    In [1]: import plotnine as p9
+
+    In [2]: def as_tidy_data(qty):
+       ...:     """Convert *qty* to a tidy data frame, as expected by plotnine."""
+       ...:     return qty.to_series().rename('value').reset_index()
+
+    In [3]: def my_plot(data):
+       ...:     """Computation that returns a plotnine plot object."""
+       ...:     aes = p9.aes(x='ya', y='value', color="t + ' ' + c", shape='l')
+       ...:     plot = (
+       ...:         p9.ggplot(data, aes)
+       ...:         + p9.geom_line()
+       ...:         + p9.geom_point()
+       ...:         + p9.labs(
+       ...:             x='Year',
+       ...:             y='Energy output',
+       ...:             color='Tech & commodity',
+       ...:             shape='Level',
+       ...:         )
+       ...:     )
+       ...:     print('Only computed once.')
+       ...:     return plot
+
+.. ipython:: python
+
+    def save_plot(obj):
+        obj.save('westeros_report.pdf', verbose=False)
+        return 'Saved to westeros_report.pdf'
+
+    def draw_plot(obj):
+        obj.draw()
+        return 'Drawn in notebook'
+
+    # Add nodes to the graph
+    rep.add('tidy', (as_tidy_data, out2.drop('yv')))
+    rep.add('plot', (my_plot, 'tidy'))
+    rep.add('save', (save_plot, 'plot'))
+    rep.add('draw', (draw_plot, 'plot'))
+    rep.add('do both', ['save', 'draw'])
+
+    print(rep.describe('do both'))
+
+Note that Reporter avoids calling `my_plot()` repeatedly.
+Instead, it stores the resulting object just once.
+When the ‘save’ and ‘draw’ nodes are requested, the same object is passed to each of `save_plot()` and `draw_plot()` in turn.
+
+.. ipython:: python
+
+    rep.get('do both')
+
+In a real-world reporting workflow, a key like `'do both'` could refer to many plots.
+The Reporter would compute all the data necessary for these plots, generate, and save them, in a single step.
+
+Wrapping up
+===========
+
+The message_ix reporting code offers other features not covered by this tutorial.
+See the [documentation](https://docs.messageix.org/en/stable/reporting.html) to learn how to:
+
+- Add exogenous (non-model) data to be used in other calculations, with `Reporter.add_file()`.
+- Use a function to add many nodes at once, with `Reporter.apply()`.
+- Generate a visual representation of the graph, with `Reporter.visualize()`.
+
+We would greatly appreciate:
+
+- Reports of your experience using the reporting features in your work, and
+- Pull requests to extend the feature set.
+
+Solutions to exercises
+======================
+
+Exercise 1
+----------
+
+The result does not change, because ‘X’ is not needed to calculate ‘C’.
+
+Exercise 2
+----------
+
+One solution involves adding some intermediate nodes—call them ‘foo1’ and ‘foo2’:
+
+.. ipython:: python
+
+    # Restore the saved value rep1
+    rep = rep1
+
+    rep.add('D', 12)
+    rep.add('foo1', (ratio, 'A', 'C'))
+    rep.add('foo2', (product, 'D', 'foo1'))
+    rep.add('E', (sum_calc, 'A', 'foo2'))
+    rep.get('E')
+
+Another solution is to define a new anonymous function that computes E in a single step:
+
+.. ipython:: python
+
+    rep.add('D', 12)
+    rep.add('E', (lambda a, c, d: a + d * (a / c), 'A', 'C', 'D'))
+    rep.get('E')
