@@ -22,7 +22,7 @@ class SparseAccessor:
         """Return a :class:`SparseDataArray` instance."""
         if not self.da._sda.COO_data:
             # Dense (numpy.ndarray) data; convert to sparse
-            data = sparse.COO.from_numpy(self.da.data, fill_value=None)
+            data = sparse.COO.from_numpy(self.da.data, fill_value=np.nan)
         elif not np.isnan(self.da.data.fill_value):
             # sparse.COO with non-NaN fill value; copy and change
             data = self.da.data.copy(deep=False)
@@ -88,16 +88,6 @@ class SparseDataArray(xr.DataArray):
         """
         # Necessary for :meth:`xarray.testing.assert_equal` to work.
         return self.variable.equals(other.variable, equiv=np.equal)
-
-    @property
-    def loc(self):
-        """Attribute for location based indexing like pandas.
-
-        .. note:: This version does not allow assignment, since the underlying
-           sparse array is read-only. To modify the contents, create a copy or
-           perform an operation that returns a new array.
-        """
-        return self._sda.dense_super.loc
 
     def sel(
         self, indexers=None, method=None, tolerance=None, drop=False, **indexers_kwargs

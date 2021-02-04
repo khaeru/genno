@@ -1,7 +1,7 @@
-"""Elementary computations for reporting."""
+"""Elementary computations for genno."""
 # Notes:
 # - To avoid ambiguity, computations should not have default arguments. Define
-#   default values for the corresponding methods on the Reporter class.
+#   default values for the corresponding methods on the Computer class.
 import logging
 from collections.abc import Mapping
 from pathlib import Path
@@ -136,7 +136,7 @@ def aggregate(quantity, groups, keep):
                 quantity.sel({dim: members}).sum(dim=dim).assign_coords(**{dim: group})
             )
             if Quantity.CLASS == "AttrSeries":
-                # .transpose() is necesary for AttrSeries
+                # .transpose() is necessary for AttrSeries
                 agg = agg.transpose(*quantity.dims)
             else:
                 # Restore fill_value=NaN for compatibility
@@ -182,7 +182,7 @@ def concat(*objs, **kwargs):
 
     Any strings included amongst *args* are discarded, with a logged warning;
     these usually indicate that a quantity is referenced which is not in the
-    Reporter.
+    Computer.
     """
     objs = filter_concat_args(objs)
     if Quantity.CLASS == "AttrSeries":
@@ -295,7 +295,7 @@ def load_file(path, dims={}, units=None, name=None):
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
 
     Some file formats are automatically converted into objects for direct use
-    in reporting code:
+    in genno computations:
 
     :file:`.csv`:
        Converted to :class:`.Quantity`. CSV files must have a 'value' column;
@@ -315,7 +315,7 @@ def load_file(path, dims={}, units=None, name=None):
     name : str
         Name for the loaded Quantity.
     """
-    # TODO optionally cache: if the same Reporter is used repeatedly, then the file will
+    # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
     if path.suffix == ".csv":
         data = pd.read_csv(path, comment="#")

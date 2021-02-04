@@ -1,53 +1,30 @@
 import logging
-import os
 
 import ixmp
-import numpy as np
-import pandas as pd
 import pint
 import pytest
-import xarray as xr
 from ixmp.testing import make_dantzig
 
-from genno import (
-    RENAME_DIMS,
-    ComputationError,
-    Key,
-    Quantity,
-    Reporter,
-    computations,
-    configure,
-)
-from genno.testing import (
-    add_test_data,
-    assert_logs,
-    assert_qty_allclose,
-    assert_qty_equal,
-)
+from genno import ComputationError
+from genno.compat.ixmp import configure
+from genno.compat.ixmp.reporter import Reporter
+from genno.compat.ixmp.util import RENAME_DIMS
+from genno.testing import add_test_data, assert_logs
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
 test_args = ("Douglas Adams", "Hitchhiker")
-
-TS_DF = {"year": [2010, 2020], "value": [23.7, 23.8]}
-TS_DF = pd.DataFrame.from_dict(TS_DF)
-TS_DF["region"] = "World"
-TS_DF["variable"] = "Testing"
-TS_DF["unit"] = "???"
 
 
 @pytest.fixture
 def scenario(test_mp):
     # from test_feature_timeseries.test_new_timeseries_as_year_value
     scen = ixmp.Scenario(test_mp, *test_args, version="new", annotation="foo")
-    scen.add_timeseries(TS_DF)
     scen.commit("importing a testing timeseries")
-    return scen
+    yield scen
 
 
 def test_configure(test_mp, test_data_path):
-    # TODO test: configuration keys 'units', 'replace_units'
-
     # Configure globally; reads 'rename_dims' section
     configure(rename_dims={"i": "i_renamed"})
 
@@ -65,110 +42,12 @@ def test_configure(test_mp, test_data_path):
     RENAME_DIMS.pop("i")
 
 
-def test_reporter_add_product(test_mp, ureg):
-    scen = ixmp.Scenario(test_mp, "reporter_add_product", "reporter_add_product", "new")
-    *_, x = add_test_data(scen)
-    rep = Reporter.from_scenario(scen)
-
-    # add_product() works
-    key = rep.add_product("x squared", "x", "x", sums=True)
-
-    # Product has the expected dimensions
-    assert key == "x squared:t-y"
-
-    # Product has the expected value
-    exp = Quantity(x * x, name="x")
-    exp.attrs["_unit"] = ureg("kilogram ** 2").units
-    assert_qty_equal(exp, rep.get(key))
-
-    # add('product', ...) works
-    key = rep.add("product", "x_squared", "x", "x", sums=True)
-
-
 def test_reporter_from_scenario(scenario):
     r = Reporter.from_scenario(scenario)
 
     r.finalize(scenario)
 
     assert "scenario" in r.graph
-
-
-def test_reporter_from_dantzig(test_mp, ureg):
-    scen = make_dantzig(test_mp, solve=True)
-
-    # Reporter.from_scenario can handle the Dantzig problem
-    rep = Reporter.from_scenario(scen)
-
-    # Partial sums are available automatically (d is defined over i and j)
-    d_i = rep.get("d:i")
-
-    # Units pass through summation
-    assert d_i.attrs["_unit"] == ureg.parse_units("km")
-
-    # Summation across all dimensions results a 1-element Quantity
-    d = rep.get("d:")
-    assert d.shape == ((1,) if Quantity.CLASS == "AttrSeries" else tuple())
-    assert d.size == 1
-    assert np.isclose(d.values, 11.7)
-
-    # Weighted sum
-    weights = Quantity(
-        xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
-    )
-    new_key = rep.aggregate("d:i-j", "weighted", "j", weights)
-
-    # ...produces the expected new key with the summed dimension removed and
-    # tag added
-    assert new_key == "d:i:weighted"
-
-    # ...produces the expected new value
-    obs = rep.get(new_key)
-    d_ij = rep.get("d:i-j")
-    exp = Quantity(
-        (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]),
-        attrs=d_ij.attrs,
-    )
-
-    assert_qty_equal(exp, obs)
-
-    # Disaggregation with explicit data
-    # (cases of canned food 'p'acked in oil or water)
-    shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-    new_key = rep.disaggregate("b:j", "p", args=[Quantity(shares)])
-
-    # ...produces the expected key with new dimension added
-    assert new_key == "b:j-p"
-
-    b_jp = rep.get("b:j-p")
-
-    # Units pass through disaggregation
-    assert b_jp.attrs["_unit"] == ureg.case
-
-    # Set elements are available
-    assert rep.get("j") == ["new-york", "chicago", "topeka"]
-
-    # 'all' key retrieves all quantities
-    obs = {da.name for da in rep.get("all")}
-    exp = set(
-        (
-            "a b d f x z cost cost-margin demand demand-margin supply " "supply-margin"
-        ).split()
-    )
-    assert obs == exp
-
-    # Shorthand for retrieving a full key name
-    assert rep.full_key("d") == "d:i-j" and isinstance(rep.full_key("d"), Key)
-
-
-def test_reporter_read_config(test_mp, test_data_path):
-    scen = make_dantzig(test_mp)
-    rep = Reporter.from_scenario(scen)
-
-    # Configuration can be read from file
-    rep.configure(test_data_path / "config-0.yaml")
-
-    # Data from configured file is available
-    assert rep.get("d_check").loc["seattle", "chicago"] == 1.7
 
 
 def test_platform_units(test_mp, caplog, ureg):
@@ -253,57 +132,6 @@ def test_platform_units(test_mp, caplog, ureg):
     assert unit.dimensionality == {"[USD]": 1, "[pkm]": -1}
 
 
-def test_reporter_describe(test_mp, test_data_path, capsys):
-    scen = make_dantzig(test_mp)
-    r = Reporter.from_scenario(scen)
-
-    # hexadecimal ID of *scen*
-    id_ = (
-        hex(id(scen))
-        if os.name != "nt"
-        else "{:#018X}".format(id(scen)).replace("X", "x")
-    )
-
-    # Describe one key
-    desc1 = """'d:i':
-- sum(dimensions=['j'], weights=None, ...)
-- 'd:i-j':
-  - data_for_quantity('par', 'd', 'value', ...)
-  - 'scenario':
-    - <ixmp.core.Scenario object at {id}>
-  - 'config':
-    - {{'filters': {{}}}}""".format(
-        id=id_
-    )
-    assert desc1 == r.describe("d:i")
-
-    # With quiet=True (default), nothing is printed to stdout
-    out1, _ = capsys.readouterr()
-    assert "" == out1
-
-    # With quiet=False, description is also printed to stdout
-    assert desc1 == r.describe("d:i", quiet=False)
-    out1, _ = capsys.readouterr()
-    assert desc1 + "\n" == out1
-
-    # Description of all keys is as expected
-    desc2 = (test_data_path / "describe.txt").read_text().format(id=id_)
-    assert desc2 == r.describe(quiet=False) + "\n"
-
-    # Since quiet=False, description is also printed to stdout
-    out2, _ = capsys.readouterr()
-    assert desc2 == out2
-
-
-def test_reporter_visualize(test_mp, tmp_path):
-    scen = make_dantzig(test_mp)
-    r = Reporter.from_scenario(scen)
-
-    r.visualize(str(tmp_path / "visualize.png"))
-
-    # TODO compare to a specimen
-
-
 def test_cli(ixmp_cli, test_mp, test_data_path):
     # Put something in the database
     make_dantzig(test_mp)
@@ -346,55 +174,6 @@ seattle    chicago     1.7
 Name: value, dtype: float64
 """
     )
-
-
-def test_aggregate(test_mp):
-    scen = ixmp.Scenario(test_mp, "Group reporting", "group reporting", "new")
-    t, t_foo, t_bar, x = add_test_data(scen)
-
-    # Reporter
-    rep = Reporter.from_scenario(scen)
-
-    # Define some groups
-    t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
-
-    # Use the computation directly
-    agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
-
-    # Expected set of keys along the aggregated dimension
-    assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
-
-    # Sums are as expected
-    assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
-    assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
-    assert_qty_allclose(
-        agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
-    )
-
-    # Use Reporter convenience method
-    key2 = rep.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
-
-    # Group has expected key and contents
-    assert key2 == "x:t-y:agg2"
-
-    # Aggregate is computed without error
-    agg2 = rep.get(key2)
-
-    assert_qty_equal(agg1, agg2)
-
-    # Add aggregates, without keeping originals
-    key3 = rep.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
-
-    # Distinct keys
-    assert key3 != key2
-
-    # Only the aggregated and no original keys along the aggregated dimension
-    agg3 = rep.get(key3)
-    assert set(agg3.coords["t"].values) == set(t_groups.keys())
-
-    with pytest.raises(NotImplementedError):
-        # Not yet supported; requires two separate operations
-        rep.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
 
 
 def test_filters(test_mp, tmp_path, caplog):

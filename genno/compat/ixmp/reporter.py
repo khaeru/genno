@@ -32,9 +32,9 @@ import dask
 
 from genno.core.computer import Computer
 from genno.core.key import Key
-from genno.util import RENAME_DIMS, dims_for_qty
 
 from . import computations as ixmp_computations
+from .util import RENAME_DIMS, dims_for_qty
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class Reporter(Computer):
 
         Returns
         -------
-        :class:`Reporter <genno.Reporter>`
+        :class:`Reporter <genno.compat.ixmp.Reporter>`
             A Reporter instance containing:
 
             - A 'scenario' key referring to the *scenario* object.

@@ -6,11 +6,11 @@ log = logging.getLogger(__name__)
 
 
 class ComputationError(Exception):
-    """Wrapper to print intelligible exception information for Reporter.get().
+    """Wrapper to print intelligible exception information for Computer.get().
 
     In order to aid in debugging, this helper:
     - Omits the parts of the stack trace that are internal to dask, and
-    - Gives the key in the Reporter.graph and the computation task that
+    - Gives the key in the Computer.graph and the computation task that
       caused the exception.
     """
 
@@ -21,7 +21,7 @@ class ComputationError(Exception):
         """String representation.
 
         Most exception handling (Python, IPython, Jupyter) will print the
-        traceback that led to *self* (i.e. the call to :meth:`.Reporter.get`),
+        traceback that led to *self* (i.e. the call to :meth:`.Computer.get`),
         followed by the string returned by this method.
         """
         try:
@@ -40,11 +40,11 @@ class ComputationError(Exception):
         # Assemble the exception printout
         return "".join(
             chain(
-                # Reporter information for debugging
+                # Computer information for debugging
                 [
                     f"computing {key} using:\n\n" if key else "",
                     f"{task}\n\n" if task else "",
-                    "Use Reporter.describe(...) to trace the computation.\n\n",
+                    "Use Computer.describe(...) to trace the computation.\n\n",
                     "Computation traceback:\n",
                 ],
                 # Traceback; omitting a few dask internal calls below execute_task
@@ -66,12 +66,12 @@ class MissingKeyError(KeyError):
 
 
 def process_dask_tb(exc):
-    """Process *exc* arising from :meth:`.Reporter.get`.
+    """Process *exc* arising from :meth:`.Computer.get`.
 
     Returns a tuple with 3 elements:
 
-    - The key of the reporting computation.
-    - The info key of the reporting computation.
+    - The key of the computation.
+    - The info key of the computation.
     - A list of traceback.FrameSummary objects, without locals, for *only*
       frames that are not internal to dask.
     """

@@ -64,7 +64,7 @@ class Computer:
     #: A dask-format :doc:`graph <graphs>`.
     graph: Dict[str, Union[str, dict]] = {"config": {}}
 
-    #: The default reporting key.
+    #: The default key to compute for :meth:`.get` with no argument.
     default_key = None
 
     # An index of key names -> full keys
@@ -87,7 +87,7 @@ class Computer:
 
         Valid configuration keys include:
 
-        - *default*: the default reporting key; sets :attr:`default_key`.
+        - *default*: the default key; sets :attr:`default_key`.
         - *filters*: a :class:`dict`, passed to :meth:`set_filters`.
         - *files*: a :class:`list` where every element is a :class:`dict`
           of keyword arguments to :meth:`add_file`.
@@ -109,7 +109,7 @@ class Computer:
 
         # Read sections
 
-        # Default report
+        # Default key
         try:
             self.default_key = config["default"]
         except KeyError:
@@ -424,8 +424,8 @@ class Computer:
         An quantity 'foo' with dimensions (a, c, n, q, x) is available in the Computer
         as ``'foo:a-c-n-q-x'``. This :class:`.Key` can be retrieved with::
 
-            rep.full_key("foo")
-            rep.full_key("foo:c")
+            c.full_key("foo")
+            c.full_key("foo:c")
             # etc.
         """
         name = str(Key.from_str_or_key(name_or_key, drop=True)).rstrip(":")
@@ -578,7 +578,7 @@ class Computer:
     def add_file(self, path, key=None, **kwargs):
         """Add exogenous quantities from *path*.
 
-        Reporting the `key` or using it in other computations causes `path` to
+        Computing the `key` or using it in other computations causes `path` to
         be loaded and converted to :class:`.Quantity`.
 
         Parameters
@@ -636,7 +636,7 @@ class Computer:
         return result
 
     def visualize(self, filename, **kwargs):
-        """Generate an image describing the reporting structure.
+        """Generate an image describing the Computer structure.
 
         This is a shorthand for :meth:`dask.visualize`. Requires
         `graphviz <https://pypi.org/project/graphviz/>`__.
@@ -644,7 +644,7 @@ class Computer:
         return dask.visualize(self.graph, filename=filename, **kwargs)
 
     def write(self, key, path):
-        """Write the report *key* to the file *path*."""
+        """Write the result of `key` to the file `path`."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
         self._get_comp("write_report")(self.get(key), path)

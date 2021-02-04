@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 import pandas as pd
 import pint
 import pytest
@@ -14,7 +15,12 @@ from genno import (
     Quantity,
     computations,
 )
-from genno.testing import assert_qty_equal
+from genno.testing import (
+    add_dantzig,
+    add_test_data2,
+    assert_qty_allclose,
+    assert_qty_equal,
+)
 
 
 def test_get():
@@ -48,17 +54,17 @@ def test_require_compat():
 
 def test_add():
     """Adding computations that refer to missing keys raises KeyError."""
-    r = Computer()
-    r.add("a", 3)
-    r.add("d", 4)
+    c = Computer()
+    c.add("a", 3)
+    c.add("d", 4)
 
     # Invalid: value before key
     with pytest.raises(TypeError):
-        r.add(42, "a")
+        c.add(42, "a")
 
     # Adding an existing key with strict=True
     with pytest.raises(KeyExistsError, match=r"key 'a' already exists"):
-        r.add("a", 5, strict=True)
+        c.add("a", 5, strict=True)
 
     def gen(other):  # pragma: no cover
         """A generator for apply()."""
@@ -72,44 +78,44 @@ def test_add():
 
     # One missing key
     with pytest.raises(MissingKeyError, match=msg("b")):
-        r.add_product("ab", "a", "b")
+        c.add_product("ab", "a", "b")
 
     # Two missing keys
     with pytest.raises(MissingKeyError, match=msg("c", "b")):
-        r.add_product("abc", "c", "a", "b")
+        c.add_product("abc", "c", "a", "b")
 
     # Using apply() targeted at non-existent keys also raises an Exception
     with pytest.raises(MissingKeyError, match=msg("e", "f")):
-        r.apply(gen, "d", "e", "f")
+        c.apply(gen, "d", "e", "f")
 
     # add(..., strict=True) checks str or Key arguments
     g = Key("g", "hi")
     with pytest.raises(MissingKeyError, match=msg("b", g)):
-        r.add("foo", (computations.product, "a", "b", g), strict=True)
+        c.add("foo", (computations.product, "a", "b", g), strict=True)
 
     # aggregate() and disaggregate() call add(), which raises the exception
     with pytest.raises(MissingKeyError, match=msg(g)):
-        r.aggregate(g, "tag", "i")
+        c.aggregate(g, "tag", "i")
     with pytest.raises(MissingKeyError, match=msg(g)):
-        r.disaggregate(g, "j")
+        c.disaggregate(g, "j")
 
     # add(..., sums=True) also adds partial sums
-    r.add("foo:a-b-c", [], sums=True)
-    assert "foo:b" in r
+    c.add("foo:a-b-c", [], sums=True)
+    assert "foo:b" in c
 
     # add(name, ...) where name is the name of a computation
-    r.add("select", "bar", "a", indexers={"dim": ["d0", "d1", "d2"]})
+    c.add("select", "bar", "a", indexers={"dim": ["d0", "d1", "d2"]})
 
     # add(name, ...) with keyword arguments not recognized by the computation
     # raises an exception
     msg = "unexpected keyword argument 'bad_kwarg'"
     with pytest.raises(TypeError, match=msg):
-        r.add("select", "bar", "a", bad_kwarg="foo", index=True)
+        c.add("select", "bar", "a", bad_kwarg="foo", index=True)
 
 
 def test_add_queue(caplog):
-    r = Computer()
-    r.add("foo-0", (lambda x: x, 42))
+    c = Computer()
+    c.add("foo-0", (lambda x: x, 42))
 
     # A computation
     def _product(a, b):
@@ -127,25 +133,25 @@ def test_add_queue(caplog):
 
     # Maximum 3 attempts → foo-4 fails on the start of the 3rd pass
     with pytest.raises(MissingKeyError, match="foo-3"):
-        r.add(queue, max_tries=3, fail="raise")
+        c.add(queue, max_tries=3, fail="raise")
 
     # But foo-2 was successfully added on the second pass, and gives the
     # correct result
-    assert r.get("foo-2") == 42 * 10 * 10
+    assert c.get("foo-2") == 42 * 10 * 10
 
     # Failures without raising an exception
-    r.add(queue, max_tries=3, fail=logging.INFO)
+    c.add(queue, max_tries=3, fail=logging.INFO)
     assert "Failed 3 times to add:" in caplog.messages
-    assert "    with KeyExistsError('foo-2')" in caplog.messages
+    assert "    with MissingKeyError('foo-3')" in caplog.messages
 
 
 def test_apply():
-    # Reporter with two scalar values
-    r = Computer()
-    r.add("foo", (lambda x: x, 42))
-    r.add("bar", (lambda x: x, 11))
+    # Computer with two scalar values
+    c = Computer()
+    c.add("foo", (lambda x: x, 42))
+    c.add("bar", (lambda x: x, 11))
 
-    N = len(r.keys())
+    N = len(c.keys())
 
     # A computation
     def _product(a, b):
@@ -157,64 +163,220 @@ def test_apply():
         yield key + ":qux", (_product, key, 1.1)
 
     # Apply the generator to two targets
-    r.apply(baz_qux, "foo")
-    r.apply(baz_qux, "bar")
+    c.apply(baz_qux, "foo")
+    c.apply(baz_qux, "bar")
 
-    # Four computations were added to the reporter
+    # Four computations were added
     N += 4
-    assert len(r.keys()) == N
-    assert r.get("foo:baz") == 42 * 0.5
-    assert r.get("foo:qux") == 42 * 1.1
-    assert r.get("bar:baz") == 11 * 0.5
-    assert r.get("bar:qux") == 11 * 1.1
+    assert len(c.keys()) == N
+    assert c.get("foo:baz") == 42 * 0.5
+    assert c.get("foo:qux") == 42 * 1.1
+    assert c.get("bar:baz") == 11 * 0.5
+    assert c.get("bar:qux") == 11 * 1.1
 
     # A generator that takes two arguments
     def twoarg(key1, key2):
         yield key1 + "__" + key2, (_product, key1, key2)
 
-    r.apply(twoarg, "foo:baz", "bar:qux")
+    c.apply(twoarg, "foo:baz", "bar:qux")
 
-    # One computation added to the reporter
+    # One computation added
     N += 1
-    assert len(r.keys()) == N
-    assert r.get("foo:baz__bar:qux") == 42 * 0.5 * 11 * 1.1
+    assert len(c.keys()) == N
+    assert c.get("foo:baz__bar:qux") == 42 * 0.5 * 11 * 1.1
 
     # A useless generator that does nothing
     def useless():
         return
 
-    r.apply(useless)
+    c.apply(useless)
 
     # Also call via add()
-    r.add("apply", useless)
+    c.add("apply", useless)
 
-    # Nothing added to the reporter
-    assert len(r.keys()) == N
+    # Nothing new added
+    assert len(c.keys()) == N
 
-    # Adding with a generator that takes Reporter as the first argument
-    def add_many(rep: Computer, max=5):
-        [rep.add(f"foo{x}", _product, "foo", x) for x in range(max)]
+    # Adding with a generator that takes Computer as the first argument
+    def add_many(c_: Computer, max=5):
+        [c_.add(f"foo{x}", _product, "foo", x) for x in range(max)]
 
-    r.apply(add_many, max=10)
+    c.apply(add_many, max=10)
 
     # Function was called, adding keys
-    assert len(r.keys()) == N + 10
+    assert len(c.keys()) == N + 10
 
     # Keys work
-    assert r.get("foo9") == 42 * 9
+    assert c.get("foo9") == 42 * 9
+
+
+def test_add_product(ureg):
+    c = Computer()
+
+    *_, x = add_test_data2(c)
+
+    # add_product() works
+    key = c.add_product("x squared", "x", "x", sums=True)
+
+    # Product has the expected dimensions
+    assert key == "x squared:t-y"
+
+    # Product has the expected value
+    assert_qty_equal(Quantity(x * x, units=ureg.kilogram ** 2), c.get(key))
+
+    # add('product', ...) works
+    key = c.add("product", "x_squared", "x", "x", sums=True)
+
+
+def test_aggregate():
+    c = Computer()
+
+    t, t_foo, t_bar, x = add_test_data2(c)
+
+    # Define some groups
+    t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
+
+    # Use the computation directly
+    agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
+
+    # Expected set of keys along the aggregated dimension
+    assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
+
+    # Sums are as expected
+    assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
+    assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
+    assert_qty_allclose(
+        agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
+    )
+
+    # Use Computer convenience method
+    key2 = c.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
+
+    # Group has expected key and contents
+    assert key2 == "x:t-y:agg2"
+
+    # Aggregate is computed without error
+    agg2 = c.get(key2)
+
+    assert_qty_equal(agg1, agg2)
+
+    # Add aggregates, without keeping originals
+    key3 = c.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
+
+    # Distinct keys
+    assert key3 != key2
+
+    # Only the aggregated and no original keys along the aggregated dimension
+    agg3 = c.get(key3)
+    assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
+    with pytest.raises(NotImplementedError):
+        # Not yet supported; requires two separate operations
+        c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
+
+
+def test_dantzig(ureg):
+    c = Computer()
+    add_dantzig(c)
+
+    # Partial sums are available automatically (d is defined over i and j)
+    d_i = c.get("d:i")
+
+    # Units pass through summation
+    assert d_i.attrs["_unit"] == ureg.kilometre
+
+    # Summation across all dimensions results a 1-element Quantity
+    d = c.get("d:")
+    assert d.shape == ((1,) if Quantity.CLASS == "AttrSeries" else tuple())
+    assert d.size == 1
+    assert np.isclose(d.values, 11.7)
+
+    # Weighted sum
+    weights = Quantity(
+        xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
+    )
+    new_key = c.aggregate("d:i-j", "weighted", "j", weights)
+
+    # ...produces the expected new key with the summed dimension removed and
+    # tag added
+    assert new_key == "d:i:weighted"
+
+    # ...produces the expected new value
+    obs = c.get(new_key)
+    d_ij = c.get("d:i-j")
+    exp = Quantity(
+        (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]),
+        attrs=d_ij.attrs,
+    )
+
+    assert_qty_equal(exp, obs)
+
+    # Disaggregation with explicit data
+    # (cases of canned food 'p'acked in oil or water)
+    shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
+    new_key = c.disaggregate("b:j", "p", args=[Quantity(shares)])
+
+    # ...produces the expected key with new dimension added
+    assert new_key == "b:j-p"
+
+    b_jp = c.get("b:j-p")
+
+    # Units pass through disaggregation
+    assert b_jp.attrs["_unit"] == ureg.case
+
+    # Set elements are available
+    assert c.get("j") == ["new-york", "chicago", "topeka"]
+
+    # 'all' key retrieves all quantities
+    exp = set(
+        "a b d f x z cost cost-margin demand demand-margin supply supply-margin".split()
+    )
+    assert all(qty.name in exp for qty in c.get("all"))
+
+    # Shorthand for retrieving a full key name
+    assert c.full_key("d") == "d:i-j" and isinstance(c.full_key("d"), Key)
+
+
+def test_describe(test_data_path, capsys, ureg):
+    c = Computer()
+    add_dantzig(c)
+
+    # Describe one key
+    desc1 = """'d:i':
+- sum(dimensions=['j'], weights=None, ...)
+- 'd:i-j':
+  - get_test_quantity(<d:i-j>, ...)"""
+    assert desc1 == c.describe("d:i")
+
+    # With quiet=True (default), nothing is printed to stdout
+    out1, _ = capsys.readouterr()
+    assert "" == out1
+
+    # With quiet=False, description is also printed to stdout
+    assert desc1 == c.describe("d:i", quiet=False)
+    out1, _ = capsys.readouterr()
+    assert desc1 + "\n" == out1
+
+    # Description of all keys is as expected
+    desc2 = (test_data_path / "describe.txt").read_text()
+    assert desc2 == c.describe(quiet=False) + "\n"
+
+    # Since quiet=False, description is also printed to stdout
+    out2, _ = capsys.readouterr()
+    assert desc2 == out2
 
 
 def test_disaggregate():
-    r = Computer()
+    c = Computer()
     foo = Key("foo", ["a", "b", "c"])
-    r.add(foo, "<foo data>")
-    r.add("d_shares", "<share data>")
+    c.add(foo, "<foo data>")
+    c.add("d_shares", "<share data>")
 
     # Disaggregation works
-    r.disaggregate(foo, "d", args=["d_shares"])
+    c.disaggregate(foo, "d", args=["d_shares"])
 
-    assert "foo:a-b-c-d" in r.graph
-    assert r.graph["foo:a-b-c-d"] == (
+    assert "foo:a-b-c-d" in c.graph
+    assert c.graph["foo:a-b-c-d"] == (
         computations.disaggregate_shares,
         "foo:a-b-c",
         "d_shares",
@@ -222,21 +384,21 @@ def test_disaggregate():
 
     # Invalid method
     with pytest.raises(ValueError):
-        r.disaggregate(foo, "d", method="baz")
+        c.disaggregate(foo, "d", method="baz")
 
     with pytest.raises(TypeError):
-        r.disaggregate(foo, "d", method=None)
+        c.disaggregate(foo, "d", method=None)
 
 
 def test_file_io(tmp_path):
-    r = Computer()
+    c = Computer()
 
     # Path to a temporary file
     p = tmp_path / "foo.txt"
 
-    # File can be added to the Reporter before it is created, because the file
+    # File can be added to the Computer before it is created, because the file
     # is not read until/unless required
-    k1 = r.add_file(p)
+    k1 = c.add_file(p)
 
     # File has the expected key
     assert k1 == "file:foo.txt"
@@ -244,22 +406,22 @@ def test_file_io(tmp_path):
     # Add some contents to the file
     p.write_text("Hello, world!")
 
-    # The file's contents can be read through the Reporter
-    assert r.get("file:foo.txt") == "Hello, world!"
+    # The file's contents can be read through the Computer
+    assert c.get("file:foo.txt") == "Hello, world!"
 
-    # Write the report to file
+    # Write the resulting quantity to a different file
     p2 = tmp_path / "bar.txt"
-    r.write("file:foo.txt", p2)
+    c.write("file:foo.txt", p2)
 
     # Write using a string path
-    r.write("file:foo.txt", str(p2))
+    c.write("file:foo.txt", str(p2))
 
-    # The Reporter produces the expected output file
+    # The Computer produces the expected output file
     assert p2.read_text() == "Hello, world!"
 
 
 def test_file_formats(test_data_path, tmp_path):
-    r = Computer()
+    c = Computer()
 
     expected = Quantity(
         pd.read_csv(test_data_path / "input0.csv", index_col=["i", "j"])["value"],
@@ -268,55 +430,55 @@ def test_file_formats(test_data_path, tmp_path):
 
     # CSV file is automatically parsed to xr.DataArray
     p1 = test_data_path / "input0.csv"
-    k = r.add_file(p1, units=pint.Unit("km"))
-    assert_qty_equal(r.get(k), expected)
+    k = c.add_file(p1, units=pint.Unit("km"))
+    assert_qty_equal(c.get(k), expected)
 
     # Dimensions can be specified
     p2 = test_data_path / "input1.csv"
-    k2 = r.add_file(p2, dims=dict(i="i", j_dim="j"))
-    assert_qty_equal(r.get(k), r.get(k2))
+    k2 = c.add_file(p2, dims=dict(i="i", j_dim="j"))
+    assert_qty_equal(c.get(k), c.get(k2))
 
     # Units are loaded from a column
-    assert r.get(k2).attrs["_unit"] == pint.Unit("km")
+    assert c.get(k2).attrs["_unit"] == pint.Unit("km")
 
     # Specifying units that do not match file contents → ComputationError
-    r.add_file(p2, key="bad", dims=dict(i="i", j_dim="j"), units="kg")
+    c.add_file(p2, key="bad", dims=dict(i="i", j_dim="j"), units="kg")
     with pytest.raises(ComputationError):
-        r.get("bad")
+        c.get("bad")
 
     # Write to CSV
     p3 = tmp_path / "output.csv"
-    r.write(k, p3)
+    c.write(k, p3)
 
     # Output is identical to input file, except for order
     assert sorted(p1.read_text().split("\n")) == sorted(p3.read_text().split("\n"))
 
     # Write to Excel
     p4 = tmp_path / "output.xlsx"
-    r.write(k, p4)
+    c.write(k, p4)
     # TODO check the contents of the Excel file
 
 
 def test_full_key():
-    r = Computer()
+    c = Computer()
 
     # Without index, the full key cannot be retrieved
-    r.add("a:i-j-k", [])
+    c.add("a:i-j-k", [])
     with pytest.raises(KeyError, match="a"):
-        r.full_key("a")
+        c.full_key("a")
 
     # Using index=True adds the full key to the index
-    r.add("a:i-j-k", [], index=True)
-    assert r.full_key("a") == "a:i-j-k"
+    c.add("a:i-j-k", [], index=True)
+    assert c.full_key("a") == "a:i-j-k"
 
     # The full key can be retrieved by giving only some of the indices
-    assert r.full_key("a:j") == "a:i-j-k"
+    assert c.full_key("a:j") == "a:i-j-k"
 
     # Same with a tag
-    r.add("a:i-j-k:foo", [], index=True)
+    c.add("a:i-j-k:foo", [], index=True)
     # Original and tagged key can both be retrieved
-    assert r.full_key("a") == "a:i-j-k"
-    assert r.full_key("a::foo") == "a:i-j-k:foo"
+    assert c.full_key("a") == "a:i-j-k"
+    assert c.full_key("a::foo") == "a:i-j-k:foo"
 
 
 def test_units(ureg):
@@ -342,3 +504,27 @@ def test_units(ureg):
     # Product of dimensioned and dimensionless quantities keeps the former
     c.add("energy2", (computations.product, "energy:x", "efficiency"))
     assert c.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
+
+
+def test_read_config(test_data_path):
+    c = Computer()
+
+    # Configuration can be read from file
+    c.configure(test_data_path / "config-0.yaml")
+
+    # Data from configured file is available
+    assert c.get("d_check").loc["seattle", "chicago"] == 1.7
+
+
+def test_visualize(tmp_path):
+    c = Computer()
+    add_test_data2(c)
+
+    target = tmp_path / "visualize.png"
+
+    # visualize() works
+    c.visualize(str(target))
+
+    assert target.exists()
+
+    # TODO compare to a specimen

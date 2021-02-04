@@ -1,24 +1,22 @@
 import logging
 
-import ixmp
 import numpy as np
 import pint
 import pytest
 import xarray as xr
 from pandas.testing import assert_series_equal
 
-from genno import Quantity, Reporter, computations
-from genno.testing import add_test_data, assert_logs, assert_qty_equal, random_qty
+from genno import Computer, Quantity, computations
+from genno.testing import add_test_data2, assert_logs, assert_qty_equal, random_qty
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
 
 @pytest.fixture(scope="function")
-def data(test_mp, request):
-    scen = ixmp.Scenario(test_mp, request.node.name, request.node.name, "new")
-    data_objs = list(add_test_data(scen))
-    rep = Reporter.from_scenario(scen)
-    yield [scen, rep] + data_objs
+def data():
+    """Yields a computer, then the values of :func:`.add_test_data2`."""
+    c = Computer()
+    yield [c] + list(add_test_data2(c))
 
 
 @pytest.mark.parametrize(
@@ -32,10 +30,11 @@ def data(test_mp, request):
     ],
 )
 def test_add(data, operands, size):
-    scen, rep, t, t_foo, t_bar, x = data
+    # Unpack
+    c, t, t_foo, t_bar, x = data
 
-    y = scen.set("y").tolist()
-    x = rep.get("x:t-y")
+    y = c.get("y")
+    x = c.get("x:t-y")
     a = Quantity(
         xr.DataArray(
             np.random.rand(len(t_foo), len(y)), coords=[t_foo, y], dims=["t", "y"]
@@ -49,15 +48,23 @@ def test_add(data, operands, size):
         units=x.attrs["_unit"],
     )
 
-    rep.add("a:t-y", a)
-    rep.add("b:t-y", b)
+    c.add("a:t-y", a)
+    c.add("b:t-y", b)
 
-    key = rep.add(
+    key = c.add(
         "result", tuple([computations.add] + [f"{name}:t-y" for name in operands])
     )
 
-    result = rep.get(key)
+    result = c.get(key)
     assert size == result.size, result.to_series()
+
+
+@pytest.mark.parametrize("keep", (True, False))
+def test_aggregate(data, keep):
+    *_, t_foo, t_bar, x = data
+
+    computations.aggregate(x, dict(t=dict(foo=t_foo, bar=t_bar)), keep)
+    # TODO expand with assertions
 
 
 def test_apply_units(data, caplog):
@@ -97,11 +104,11 @@ def test_apply_units(data, caplog):
 @pytest.mark.parametrize(
     "map_values, kwarg",
     (
-        ([[1, 1, 0], [0, 0, 1]], dict()),
+        ([[1.0, 1, 0], [0, 0, 1]], dict()),
         pytest.param(
-            [[1, 1, 0], [0, 1, 1]],
+            [[1.0, 1, 0], [0, 1, 1]],
             dict(strict=True),
-            marks=pytest.mark.xfail(raises=ValueError, match="invalid map"),
+            marks=pytest.mark.xfail(raises=ValueError, reason="invalid map"),
         ),
     ),
 )
@@ -109,16 +116,27 @@ def test_broadcast_map(ureg, map_values, kwarg):
     x = ["x1"]
     y = ["y1", "y2"]
     z = ["z1", "z2", "z3"]
-    q = Quantity(xr.DataArray([[42, 43]], coords=[x, y], dims=["x", "y"]))
-    m = Quantity(xr.DataArray(map_values, coords=[y, z], dims=["y", "z"]))
+    q = Quantity(xr.DataArray([[42.0, 43]], coords=[("x", x), ("y", y)]))
+    m = Quantity(xr.DataArray(map_values, coords=[("y", y), ("z", z)]))
 
     result = computations.broadcast_map(q, m, **kwarg)
     exp = Quantity(
-        xr.DataArray([[42, 42, 43]], coords=[x, z], dims=["x", "z"]),
+        xr.DataArray([[42.0, 42, 43]], coords=[("x", x), ("z", z)]),
         units=ureg.dimensionless,
     )
 
     assert_qty_equal(exp, result)
+
+
+def test_concat(data):
+    *_, t_foo, t_bar, x = data
+
+    # Split x into two concatenateable quantities
+    computations.concat(
+        computations.select(x, dict(t=t_foo)),
+        computations.select(x, dict(t=t_bar)),
+        dim="t",
+    )
 
 
 @pytest.mark.parametrize(
@@ -134,7 +152,7 @@ def test_broadcast_map(ureg, map_values, kwarg):
             "load_file-invalid.csv",
             dict(),
             marks=pytest.mark.xfail(
-                raises=ValueError, match="with non-unique units array(['cm'], ['km'],"
+                raises=ValueError, reason="with non-unique units array(['cm'], ['km'],"
             ),
         ),
     ],
@@ -149,13 +167,12 @@ def test_load_file(test_data_path, ureg, name, kwargs):
 
 @pytest.mark.xfail(reason="Outer join of non-intersecting dimensions (AttrSeries only)")
 def test_product0():
-    A = Quantity(xr.DataArray([1, 2], coords=[["a0", "a1"]], dims=["a"]))
-    B = Quantity(xr.DataArray([3, 4], coords=[["b0", "b1"]], dims=["b"]))
+    A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
+    B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))
     exp = Quantity(
         xr.DataArray(
-            [[3, 4], [6, 8]],
-            coords=[["a0", "a1"], ["b0", "b1"]],
-            dims=["a", "b"],
+            [[3.0, 4], [6, 8]],
+            coords=[("a", ["a0", "a1"]), ("b", ["b0", "b1"])],
         ),
         units="1",
     )

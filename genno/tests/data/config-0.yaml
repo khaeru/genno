@@ -1,6 +1,6 @@
-# Reporting configuration file for Dantzig's transport problem
+# Configuration file for Dantzig's transport problem
 
-# Default report
+# Default key
 default: all
 
 # Exogenous data from files

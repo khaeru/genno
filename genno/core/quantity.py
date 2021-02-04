@@ -26,7 +26,7 @@ class _QuantityFactory:
         Dictionary of attributes; similar to :attr:`~xarray.DataArray.attrs`.
     """
 
-    # The current internal class used to represent reporting quantities.
+    # The current internal class used to represent quantities.
     # :meth:`as_quantity` always converts to this type.
     CLASS = "AttrSeries"
     # CLASS = 'SparseDataArray'

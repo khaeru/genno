@@ -26,7 +26,7 @@ EXPECTED = re.compile(
 
 \(<function fail at \w+>,\)
 
-Use Reporter.describe\(...\) to trace the computation.
+Use Computer.describe\(...\) to trace the computation.
 
 Computation traceback:
   File "<ipython-input-\d*-\w+>", line 4, in fail
