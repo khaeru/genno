@@ -104,9 +104,9 @@ def test_apply_units(data, caplog):
 @pytest.mark.parametrize(
     "map_values, kwarg",
     (
-        ([[1, 1, 0], [0, 0, 1]], dict()),
+        ([[1.0, 1, 0], [0, 0, 1]], dict()),
         pytest.param(
-            [[1, 1, 0], [0, 1, 1]],
+            [[1.0, 1, 0], [0, 1, 1]],
             dict(strict=True),
             marks=pytest.mark.xfail(raises=ValueError, reason="invalid map"),
         ),
@@ -116,12 +116,12 @@ def test_broadcast_map(ureg, map_values, kwarg):
     x = ["x1"]
     y = ["y1", "y2"]
     z = ["z1", "z2", "z3"]
-    q = Quantity(xr.DataArray([[42, 43]], coords=[x, y], dims=["x", "y"]))
-    m = Quantity(xr.DataArray(map_values, coords=[y, z], dims=["y", "z"]))
+    q = Quantity(xr.DataArray([[42.0, 43]], coords=[("x", x), ("y", y)]))
+    m = Quantity(xr.DataArray(map_values, coords=[("y", y), ("z", z)]))
 
     result = computations.broadcast_map(q, m, **kwarg)
     exp = Quantity(
-        xr.DataArray([[42, 42, 43]], coords=[x, z], dims=["x", "z"]),
+        xr.DataArray([[42.0, 42, 43]], coords=[("x", x), ("z", z)]),
         units=ureg.dimensionless,
     )
 
