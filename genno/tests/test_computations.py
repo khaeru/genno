@@ -167,13 +167,12 @@ def test_load_file(test_data_path, ureg, name, kwargs):
 
 @pytest.mark.xfail(reason="Outer join of non-intersecting dimensions (AttrSeries only)")
 def test_product0():
-    A = Quantity(xr.DataArray([1, 2], coords=[["a0", "a1"]], dims=["a"]))
-    B = Quantity(xr.DataArray([3, 4], coords=[["b0", "b1"]], dims=["b"]))
+    A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
+    B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))
     exp = Quantity(
         xr.DataArray(
-            [[3, 4], [6, 8]],
-            coords=[["a0", "a1"], ["b0", "b1"]],
-            dims=["a", "b"],
+            [[3.0, 4], [6, 8]],
+            coords=[("a", ["a0", "a1"]), ("b", ["b0", "b1"])],
         ),
         units="1",
     )
