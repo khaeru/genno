@@ -5,7 +5,8 @@ import pint
 import pytest
 from ixmp.testing import make_dantzig
 
-from genno import ComputationError, configure
+from genno import ComputationError
+from genno.compat.ixmp import configure
 from genno.compat.ixmp.reporter import Reporter
 from genno.compat.ixmp.util import RENAME_DIMS
 from genno.testing import add_test_data, assert_logs

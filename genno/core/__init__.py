@@ -4,7 +4,6 @@ from pathlib import Path
 import pint
 import yaml
 
-from genno.compat.ixmp.util import RENAME_DIMS
 from genno.util import REPLACE_UNITS
 
 log = logging.getLogger(__name__)
@@ -14,7 +13,7 @@ def configure(path=None, **config):
     """Configure :mod:`genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
-    computations, namely :obj:`.RENAME_DIMS` and :obj:`.REPLACE_UNITS`.
+    computations, namely :obj:`.REPLACE_UNITS`.
 
     Valid configuration keys—passed as *config* keyword arguments—include:
 
@@ -28,9 +27,6 @@ def configure(path=None, **config):
         - **define** (:class:`str`): block of unit definitions, added to the
           :mod:`pint` application registry so that units are recognized. See
           the pint :ref:`documentation on defining units <pint:defining>`.
-
-    rename_dims : mapping of str -> str
-        Update :obj:`.RENAME_DIMS`.
 
     Warns
     -----
@@ -54,9 +50,6 @@ def configure(path=None, **config):
     # Add replacements
     for old, new in units.get("replace", {}).items():
         REPLACE_UNITS[old] = new
-
-    # Dimensions to be renamed
-    RENAME_DIMS.update(config.get("rename_dims", {}))
 
 
 def _config_args(path=None, keys={}):
