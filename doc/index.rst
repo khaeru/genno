@@ -3,8 +3,9 @@ Welcome to genno's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
 
+   tutorial
    api
    compat
    whatsnew
