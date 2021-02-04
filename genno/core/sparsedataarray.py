@@ -22,7 +22,7 @@ class SparseAccessor:
         """Return a :class:`SparseDataArray` instance."""
         if not self.da._sda.COO_data:
             # Dense (numpy.ndarray) data; convert to sparse
-            data = sparse.COO.from_numpy(self.da.data, fill_value=None)
+            data = sparse.COO.from_numpy(self.da.data, fill_value=np.nan)
         elif not np.isnan(self.da.data.fill_value):
             # sparse.COO with non-NaN fill value; copy and change
             data = self.da.data.copy(deep=False)
