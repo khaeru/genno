@@ -1,9 +1,11 @@
 import contextlib
+import logging
 from functools import partial
-from itertools import chain
+from itertools import chain, zip_longest
 from typing import Dict
 
 import numpy as np
+import pandas as pd
 import pint
 import pytest
 import xarray as xr
@@ -11,6 +13,61 @@ from dask.core import quote
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Key, Quantity
+
+log = logging.getLogger(__name__)
+
+
+def add_large_data(c: Computer, num_params, N_dims=6):
+    """Add nodes to `c` that return large-ish data.
+
+    The result is a matrix wherein the Cartesian product of all the keys is very large—
+    about 2e17 elements for N_dim = 6—but the contents are very sparse. This can be
+    handled by :class:`.SparseDataArray`, but not by :class:`xarray.DataArray` backed
+    by :class:`np.array`.
+    """
+    # Dimensions and their lengths (Fibonacci numbers)
+    dims = "abcdefg"[:N_dims]
+    sizes = [233, 377, 610, 987, 1597, 2584, 4181][:N_dims]
+
+    # commented; for debugging
+    # # Output something like "True: 2584 values / 2.182437e+17 = 1.184e-12% full"
+    # from math import prod
+    #
+    # total = prod(sizes)
+    # log.info(
+    #     # See https://github.com/pydata/sparse/issues/429; total elements must be
+    #     # less than the maximum value of np.intp
+    #     repr(total < np.iinfo(np.intp).max)
+    #     + f": {max(sizes)} values / {total:3e} = {100 * max(sizes) / total:.3e}% full"
+    # )
+
+    # Names like f_0000 ... f_1596 along each dimension
+    coords = []
+    for d, N in zip(dims, sizes):
+        coords.append([f"{d}_{i:04d}" for i in range(N)])
+        # Add to Computer
+        c.add(d, quote(coords[-1]))
+
+    def get_large_quantity(name):
+        """Make a DataFrame containing each label in *coords* ≥ 1 time."""
+        values = list(zip_longest(*coords, np.random.rand(max(sizes))))
+        log.info(f"{len(values)} values")
+        return Quantity(
+            pd.DataFrame(values, columns=list(dims) + ["value"])
+            .ffill()
+            .set_index(list(dims)),
+            units=pint.get_application_registry().kilogram,
+            name=name,
+        )
+
+    # Fill the Scenario with quantities named q_01 ... q_09
+    keys = []
+    for i in range(num_params):
+        key = Key(f"q_{i:02d}", dims)
+        c.add(key, (partial(get_large_quantity, key),))
+        keys.append(key)
+
+    return keys
 
 
 def add_test_data(scen):
