@@ -459,6 +459,33 @@ class Computer:
 
         return result
 
+    def infer_keys(self, key_or_keys, dims=[]):
+        """Infer complete `key_or_keys`.
+
+        Parameters
+        ----------
+        dims : list of str, optional
+            Drop all but these dimensions from the returned key(s).
+        """
+        single = isinstance(key_or_keys, (str, Key))
+
+        result = []
+
+        for k in [key_or_keys] if single else key_or_keys:
+            # Has some dimensions or tag
+            key = Key.from_str_or_key(k) if ":" in k else k
+
+            if "::" in k or key not in self:
+                key = self.full_key(key)
+
+            if dims:
+                # Drop all but *dims*
+                key = key.drop(*[d for d in key.dims if d not in dims])
+
+            result.append(key)
+
+        return result[0] if single else tuple(result)
+
     def __contains__(self, name):
         return name in self.graph
 
