@@ -1,13 +1,14 @@
 import pytest
 
 from genno import Computer, Key
-from genno.config import HANDLERS
 from genno.compat.ixmp import HAS_IXMP
+from genno.compat.pyam import HAS_PYAM
+from genno.config import HANDLERS
 
 
 def test_handlers():
     # Expected config handlers are available
-    assert len(HANDLERS) == 9 + HAS_IXMP
+    assert len(HANDLERS) == 8 + (1 * HAS_IXMP) + (1 * HAS_PYAM)
     for key, func in HANDLERS.items():
         assert isinstance(key, str) and callable(func)
 

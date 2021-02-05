@@ -13,11 +13,18 @@ except ModuleNotFoundError:  # pragma: no cover
 else:
     HAS_IXMP = True
 
+import logging
+
 from genno import Computer, config
+
+log = logging.getLogger(__name__)
 
 
 @config.handles("rename_dims", type_=dict, apply=False)
 def rename_dims(c: Computer, info):
+    if not HAS_IXMP:
+        log.warning("Missing ixmp; configuration section 'rename_dims:' ignored")
+
     from .util import RENAME_DIMS
 
     RENAME_DIMS.update(info)
