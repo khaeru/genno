@@ -177,6 +177,58 @@ def broadcast_map(quantity, map, rename={}, strict=False):
     return product(quantity, map).sum(map.dims[0]).rename(rename)
 
 
+def combine(*quantities, select=None, weights=None):  # noqa: F811
+    """Sum distinct *quantities* by *weights*.
+
+    Parameters
+    ----------
+    *quantities : Quantity
+        The quantities to be added.
+    select : list of dict
+        Elements to be selected from each quantity. Must have the same number
+        of elements as `quantities`.
+    weights : list of float
+        Weight applied to each quantity. Must have the same number of elements
+        as `quantities`.
+
+    Raises
+    ------
+    ValueError
+        If the *quantities* have mismatched units.
+    """
+    # Handle arguments
+    select = select or len(quantities) * [{}]
+    weights = weights or len(quantities) * [1.0]
+
+    # Check units
+    units = collect_units(*quantities)
+    for u in units:
+        # TODO relax this condition: modify the weights with conversion factors
+        #      if the units are compatible, but not the same
+        if u != units[0]:
+            raise ValueError(f"Cannot combine() units {units[0]} and {u}")
+    units = units[0]
+
+    args = []
+
+    for quantity, indexers, weight in zip(quantities, select, weights):
+        # Select data
+        temp = select(quantity, indexers)
+
+        # Dimensions along which multiple values are selected
+        multi = [dim for dim, values in indexers.items() if isinstance(values, list)]
+        if len(multi):
+            # Sum along these dimensions
+            temp = temp.sum(dim=multi)
+
+        args.append(weight * temp)
+
+    result = add(*args)
+    result.attrs["_unit"] = units
+
+    return result
+
+
 def concat(*objs, **kwargs):
     """Concatenate Quantity *objs*.
 
@@ -199,6 +251,16 @@ def disaggregate_shares(quantity, shares):
     result = quantity * shares
     result.attrs["_unit"] = collect_units(quantity)[0]
     return result
+
+
+def group_sum(qty, group, sum):
+    """Group by dimension *group*, then sum across dimension *sum*.
+
+    The result drops the latter dimension.
+    """
+    return concat(
+        [values.sum(dim=[sum]) for _, values in qty.groupby(group)], dim=group
+    )
 
 
 def product(*quantities):
