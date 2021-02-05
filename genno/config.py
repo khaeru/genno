@@ -2,6 +2,7 @@ import logging
 from copy import copy
 from functools import partial
 from pathlib import Path
+from typing import Callable, List, Tuple
 
 import pint
 import yaml
@@ -15,7 +16,7 @@ log = logging.getLogger(__name__)
 
 HANDLERS = {}
 
-CALLBACKS = []
+CALLBACKS: List[Callable] = []
 
 
 def configure(path=None, **config):
@@ -62,7 +63,7 @@ def handles(section_name, type_=list, keep=False, apply=True):
 
 def parse_config(c: Computer, data: dict):
     # Assemble a queue of (args, kwargs) to Reporter.add()
-    queue = []
+    queue: List[Tuple] = []
 
     try:
         path = data.pop("path")
@@ -246,11 +247,11 @@ def combine(c: Computer, info):
     assert len(quantities) == len(select) == len(weights)
 
     # Computation
-    c = tuple(
+    task = tuple(
         [partial(computations.combine, select=select, weights=weights)] + quantities
     )
 
-    added = c.add(key, c, strict=True, index=True, sums=True)
+    added = c.add(key, task, strict=True, index=True, sums=True)
 
     log.info(f"Add {repr(key)} + {len(added)-1} partial sums")
     log.debug("    as combination of")
@@ -305,6 +306,9 @@ def general(c: Computer, info):
 
         # Retrieve the function for the computation
         f = c._get_comp(info["comp"])
+
+        if f is None:
+            raise ValueError(info["comp"])
 
         log.info(f"Add {repr(key)} using {f.__name__}(...)")
 

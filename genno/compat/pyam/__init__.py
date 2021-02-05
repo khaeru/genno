@@ -8,7 +8,7 @@ else:
 import logging
 from functools import partial
 
-from genno import Computer, Key, config
+from genno import Computer, Key, computations, config
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ def iamc(c: Computer, info):
         pass
     else:
         key = keys[-1].add_tag("agg")
-        task = (partial(c._get_comp("group_sum"), group=gs[0], sum=gs[1]), keys[-1])
+        task = (partial(computations.group_sum, group=gs[0], sum=gs[1]), keys[-1])
         c.add(key, task, strict=True)
         keys.append(key)
 

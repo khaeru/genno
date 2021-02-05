@@ -31,7 +31,7 @@ from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
 from types import ModuleType
-from typing import Callable, Dict, Optional, Sequence, Union, cast
+from typing import Any, Callable, Dict, Optional, Sequence, Union, cast
 
 import dask
 import pint
@@ -61,7 +61,7 @@ class Computer:
     # A3iii. Interpolation.
 
     #: A dask-format :doc:`graph <graphs>`.
-    graph: Dict[str, Union[str, dict]] = {"config": {}}
+    graph: Dict[str, Any] = {"config": {}}
 
     #: The default key to compute for :meth:`.get` with no argument.
     default_key = None
