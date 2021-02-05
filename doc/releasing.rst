@@ -8,7 +8,8 @@ Before releasing, check:
 
 Address any failures before releasing.
 
-1. Edit :file:`doc/whatsnew.rst` to replace "Next release" with the version number and date.
+1. Edit :file:`doc/whatsnew.rst`.
+   Comment the heading "Next release", then insert another heading below it, at the same level, with the version number and date.
    Make a commit with a message like "Mark vX.Y.Z in whatsnew.rst".
 
 2. Tag the version, e.g.::
@@ -40,10 +41,7 @@ Address any failures before releasing.
 
     $ twine upload dist/*
 
-7. Edit :file:`doc/whatsnew.rst` to add a new heading for the next release.
-   Make a commit with a message like "Reset whatsnew.rst to development state".
-
-8. Push the commits and tag to GitHub::
+7. Push the commits and tag to GitHub::
 
     $ git push --tags
 
