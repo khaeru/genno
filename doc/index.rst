@@ -8,12 +8,24 @@ genno is built on high-quality Python data packages including ``dask``, ``xarray
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents
+   :caption: User guide
 
    usage
    api
-   compat
    whatsnew
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Interoperability
+
+   compat-ixmp
+   compat-plotnine
+   compat-pyam
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Development
+
    releasing
 
 License

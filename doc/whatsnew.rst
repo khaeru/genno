@@ -9,6 +9,8 @@ What's new
 Next release
 ============
 
+- Add :doc:`compat-plotnine` compatibility (:pull:`15`).
+- Add a :doc:`usage` overview to the documentation (:pull:`13`).
 
 v0.2.0 (2021-01-18)
 ===================
