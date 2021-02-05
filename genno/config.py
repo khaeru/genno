@@ -149,30 +149,6 @@ def units(c: Computer, info):
         REPLACE_UNITS[old] = new
 
 
-@handles("default", apply=False)
-def default(c: Computer, info):
-    c.default_key = info
-
-
-@handles("files")
-def file(c: Computer, info):
-    # Files with exogenous data
-    path = Path(info["path"])
-    if not path.is_absolute():
-        # Resolve relative paths relative to the directory containing the configuration
-        # file
-        path = c.graph["config"].get("config_dir", Path.cwd()) / path
-
-    info["path"] = path
-
-    c.add_file(**info)
-
-
-@handles("alias", dict)
-def alias(c: Computer, info):
-    c.add(info[0], info[1])
-
-
 @handles("aggregate")
 def aggregate(c: Computer, info):
     """Add one entry from the 'aggregate:' section of a config file.
@@ -222,8 +198,13 @@ def aggregate(c: Computer, info):
         log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
 
 
+@handles("alias", dict)
+def alias(c: Computer, info):
+    c.add(info[0], info[1])
+
+
 @handles("combine")
-def combination(c: Computer, info):
+def combine(c: Computer, info):
     r"""Add one entry from the 'combine:' section of a config file.
 
     Each entry uses the :func:`~.combine` operation to compute a weighted sum
@@ -295,6 +276,25 @@ def combination(c: Computer, info):
     log.info(f"Add {repr(key)} + {len(added)-1} partial sums")
     log.debug("    as combination of")
     log.debug(f"    {repr(quantities)}")
+
+
+@handles("default", apply=False)
+def default(c: Computer, info):
+    c.default_key = info
+
+
+@handles("files")
+def file(c: Computer, info):
+    # Files with exogenous data
+    path = Path(info["path"])
+    if not path.is_absolute():
+        # Resolve relative paths relative to the directory containing the configuration
+        # file
+        path = c.graph["config"].get("config_dir", Path.cwd()) / path
+
+    info["path"] = path
+
+    c.add_file(**info)
 
 
 @handles("iamc")
@@ -395,15 +395,6 @@ def iamc_table(c: Computer, info):
     log.debug(f"    {len(keys)} keys total")
 
 
-@handles("report")
-def report(c: Computer, info):
-    """Add items from the 'report' tree in the config file."""
-    log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
-
-    # Concatenate pyam data structures
-    c.add(info["key"], tuple([c._get_comp("concat")] + info["members"]), strict=True)
-
-
 @handles("general")
 def general(c: Computer, info):
     """Add one entry from the 'general:' tree in the config file.
@@ -443,3 +434,12 @@ def general(c: Computer, info):
 
         if isinstance(added, list):
             log.info(f"    + {len(added)-1} partial sums")
+
+
+@handles("report")
+def report(c: Computer, info):
+    """Add items from the 'report' tree in the config file."""
+    log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
+
+    # Concatenate pyam data structures
+    c.add(info["key"], tuple([c._get_comp("concat")] + info["members"]), strict=True)
