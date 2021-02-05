@@ -506,11 +506,12 @@ def test_units(ureg):
     assert c.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
 
 
-def test_read_config(test_data_path):
+@pytest.mark.parametrize("suffix", [".json", ".yaml"])
+def test_read_config(test_data_path, suffix):
     c = Computer()
 
     # Configuration can be read from file
-    c.configure(test_data_path / "config-0.yaml")
+    c.configure(test_data_path.joinpath("config-0").with_suffix(suffix))
 
     # Data from configured file is available
     assert c.get("d_check").loc["seattle", "chicago"] == 1.7

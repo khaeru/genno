@@ -41,7 +41,6 @@ from dask.optimization import cull
 from genno import computations
 from genno.util import partial_split
 
-from . import _config_args, configure
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .key import Key
@@ -98,39 +97,13 @@ class Computer:
         UserWarning
             If *config* contains unrecognized keys.
         """
+        from genno.config import parse_config
+
         # Maybe load from a path
-        config = _config_args(path, config)
+        if path:
+            config["path"] = path
 
-        # Pass to global configuration
-        configure(None, **config)
-
-        # Store all configuration in the graph itself
-        self.graph["config"] = config.copy()
-
-        # Read sections
-
-        # Default key
-        try:
-            self.default_key = config["default"]
-        except KeyError:
-            pass
-
-        # Files with exogenous data
-        for item in config.get("files", []):
-            path = Path(item["path"])
-            if not path.is_absolute():
-                # Resolve relative paths relative to the directory containing
-                # the configuration file
-                path = config.get("config_dir", Path.cwd()) / path
-            item["path"] = path
-
-            self.add_file(**item)
-
-        # Aliases
-        for alias, original in config.get("alias", {}).items():
-            self.add(alias, original)
-
-        return self  # to allow chaining
+        parse_config(self, config)
 
     def _get_comp(self, name) -> Optional[Callable]:
         """Return a computation with the given `name`, or :obj:`None`."""
