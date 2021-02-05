@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v0.3.0 (2021-02-05)
+===================
 
 - Add :doc:`compat-plotnine` compatibility (:pull:`15`).
 - Add a :doc:`usage` overview to the documentation (:pull:`13`).
