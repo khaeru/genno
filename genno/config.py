@@ -105,7 +105,7 @@ def parse_config(c: Computer, data: dict):
             queue.extend(
                 (("apply", handler), dict(info=entry)) for entry in data.items()
             )
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(handler.expected_type)
 
     for key in to_pop:
@@ -126,27 +126,6 @@ def parse_config(c: Computer, data: dict):
             raise RuntimeError(
                 "Cannot apply non-global configuration without a Computer"
             )
-
-
-@handles("units", apply=False)
-def units(c: Computer, info):
-
-    # Define units
-    registry = pint.get_application_registry()
-    try:
-        defs = info["define"].strip()
-        registry.define(defs)
-    except KeyError:
-        pass
-    except pint.DefinitionSyntaxError as e:
-        log.warning(e)
-    else:
-        log.info(f"Apply global unit definitions {defs}")
-
-    # Add replacements
-    for old, new in info.get("replace", {}).items():
-        log.info(f"Replace unit {repr(old)} with {repr(new)}")
-        REPLACE_UNITS[old] = new
 
 
 @handles("aggregate")
@@ -428,7 +407,7 @@ def general(c: Computer, info):
         log.info(f"Add {repr(key)} using {f.__name__}(...)")
 
         kwargs = info.get("args", {})
-        task = tuple([partial(f, **kwargs)] + inputs)
+        task = tuple([partial(f, **kwargs)] + list(inputs))
 
         added = c.add(key, task, strict=True, index=True, sums=info.get("sums", False))
 
@@ -443,3 +422,24 @@ def report(c: Computer, info):
 
     # Concatenate pyam data structures
     c.add(info["key"], tuple([c._get_comp("concat")] + info["members"]), strict=True)
+
+
+@handles("units", apply=False)
+def units(c: Computer, info):
+
+    # Define units
+    registry = pint.get_application_registry()
+    try:
+        defs = info["define"].strip()
+        registry.define(defs)
+    except KeyError:
+        pass
+    except pint.DefinitionSyntaxError as e:
+        log.warning(e)
+    else:
+        log.info(f"Apply global unit definitions {defs}")
+
+    # Add replacements
+    for old, new in info.get("replace", {}).items():
+        log.info(f"Replace unit {repr(old)} with {repr(new)}")
+        REPLACE_UNITS[old] = new

@@ -1,0 +1,3 @@
+report:
+- key: foo
+  members: [X, Y]
