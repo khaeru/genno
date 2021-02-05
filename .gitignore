@@ -13,6 +13,7 @@ htmlcov
 # mypy
 .mypy_cache
 
-# sphinx
+# Sphinx and related generated files
+doc/*.svg
 doc/.ipynb_checkpoints
 doc/_build

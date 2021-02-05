@@ -8,18 +8,7 @@ log = logging.getLogger(__name__)
 
 
 class Plot(ABC):
-    """Class for plotting using :mod:`plotnine`.
-
-    To use this class:
-
-    1. Create a subclass that overrides :attr:`name`, :attr:`inputs`, and
-       :meth:`generate`.
-
-    2. Call :meth:`make_task` to get a tuple (callable, followed by key names) suitable
-       for adding to a Computer::
-
-         c.add("foo", P.make_task())
-    """
+    """Class for plotting using :mod:`plotnine`."""
 
     #: Filename base for saving the plot.
     basename = ""
@@ -53,7 +42,21 @@ class Plot(ABC):
 
     @classmethod
     def make_task(cls, *inputs):
-        """Return a task :class:`tuple` to add to a Computer."""
+        """Return a task :class:`tuple` to add to a Computer.
+
+        Parameters
+        ----------
+        inputs : sequence of :class:`.Key`, :class:`str`, or other hashable, optional
+            If provided, overrides the :attr:`inputs` property of the class.
+
+        Returns
+        -------
+        tuple
+            - The first, callable element of the task is :meth:`save`.
+            - The second element is ``"config"``, to access the configuration of the
+              Computer.
+            - The third and following elements are the `inputs`.
+        """
         return tuple([cls().save, "config"] + (list(inputs) if inputs else cls.inputs))
 
     @abstractmethod
@@ -61,4 +64,10 @@ class Plot(ABC):
         """Generate and return the plot.
 
         Must be implemented by subclasses.
+
+        Parameters
+        ----------
+        args : sequence of :class:`pandas.DataFrame`
+            Because :mod:`plotnine` operates on pandas data structures, :obj:`Quantity`
+            are automatically converted before being provided to :meth:`generate`.
         """
