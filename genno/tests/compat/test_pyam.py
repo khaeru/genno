@@ -57,6 +57,11 @@ def test_require_compat():
     assert c._get_comp("as_pyam") is not None
 
 
+def test_config():
+    """iamc: section in configuration files is parsed correctly."""
+    raise NotImplementedError
+
+
 def test_as_pyam(dantzig_computer, scenario):
     c = dantzig_computer
 

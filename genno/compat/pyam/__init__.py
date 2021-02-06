@@ -11,7 +11,6 @@ from functools import partial
 from genno import Computer, Key, config
 from genno.computations import group_sum
 
-
 log = logging.getLogger(__name__)
 
 

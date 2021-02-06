@@ -128,6 +128,20 @@ def test_broadcast_map(ureg, map_values, kwarg):
     assert_qty_equal(exp, result)
 
 
+def test_combine(data):
+    *_, t_bar, x = data
+
+    result = computations.combine(
+        x, x, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1)
+    )
+
+    assert ("y",) == result.dims
+    assert all(0 == result.to_series().values)
+
+    # TODO test with incompatible units
+    raise NotImplementedError
+
+
 def test_concat(data):
     *_, t_foo, t_bar, x = data
 
@@ -137,6 +151,12 @@ def test_concat(data):
         computations.select(x, dict(t=t_bar)),
         dim="t",
     )
+
+
+def test_group_sum(data):
+    *_, x = data
+
+    raise NotImplementedError
 
 
 @pytest.mark.parametrize(

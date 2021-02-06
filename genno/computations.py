@@ -213,7 +213,7 @@ def combine(*quantities, select=None, weights=None):  # noqa: F811
 
     for quantity, indexers, weight in zip(quantities, select, weights):
         # Select data
-        temp = select(quantity, indexers)
+        temp = globals()["select"](quantity, indexers)
 
         # Dimensions along which multiple values are selected
         multi = [dim for dim, values in indexers.items() if isinstance(values, list)]
