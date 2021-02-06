@@ -17,7 +17,7 @@ def test_handlers():
     "name",
     [
         "config-aggregate.yaml",
-        # "config-combine.yaml",
+        "config-combine.yaml",
         "config-general.yaml",
         "config-report.yaml",
         "config-units.yaml",
