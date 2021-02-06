@@ -22,8 +22,9 @@ log = logging.getLogger(__name__)
 
 @config.handles("rename_dims", type_=dict, apply=False)
 def rename_dims(c: Computer, info):
-    if not HAS_IXMP:
+    if not HAS_IXMP:  # pragma: no cover
         log.warning("Missing ixmp; configuration section 'rename_dims:' ignored")
+        return
 
     from .util import RENAME_DIMS
 

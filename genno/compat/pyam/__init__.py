@@ -50,8 +50,9 @@ def iamc(c: Computer, info):
     The variable name replacements from the 'iamc variable names:' section of
     the config file are applied to all variables.
     """
-    if not HAS_PYAM:
+    if not HAS_PYAM:  # pragma: no cover
         log.warning("Missing pyam; configuration section 'iamc:' ignored")
+        return
 
     from .util import collapse
 
