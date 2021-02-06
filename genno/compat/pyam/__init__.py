@@ -67,21 +67,15 @@ def iamc(c: Computer, info):
     keys.append(c.add(Key(name, base.dims, base.tag), base))
 
     # Optionally select a subset of data from the base quantity
-    try:
-        sel = info.pop("select")
-    except KeyError:
-        pass
-    else:
+    sel = info.get("select")
+    if sel:
         key = keys[-1].add_tag("sel")
         c.add(key, (c._get_comp("select"), keys[-1], sel), strict=True)
         keys.append(key)
 
     # Optionally aggregate data by groups
-    try:
-        gs = info.pop("group_sum")
-    except KeyError:
-        pass
-    else:
+    gs = info.get("group_sum")
+    if gs:
         key = keys[-1].add_tag("agg")
         task = (partial(group_sum, group=gs[0], sum=gs[1]), keys[-1])
         c.add(key, task, strict=True)
@@ -97,10 +91,7 @@ def iamc(c: Computer, info):
     )
 
     # Optionally convert units
-    try:
-        args["unit"] = info.pop("unit")
-    except KeyError:
-        pass
+    args["unit"] = info.get("unit")
 
     # Remaining arguments are for the collapse() callback
     args["collapse"] = partial(collapse, var_name=name, **info)

@@ -1,0 +1,10 @@
+iamc:
+- variable: Example variable string
+  base: X:a-b-c-d-y
+  select:
+    a: [a1, a3]
+    c: [c1, c3]
+  year_time_dim: y
+  drop: [d]
+  group_sum: [e, f]
+  unit: tonne
