@@ -39,7 +39,7 @@ jobs:
     - name: Lint with flake8 & isort
       run: |
         pip install flake8 isort
-        flake8 --count --max-complexity=26 --show-source --statistics
+        flake8 --count --max-complexity=15 --show-source --statistics
         isort --check-only .
 
     - name: Check typing with mypy
