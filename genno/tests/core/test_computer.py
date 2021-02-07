@@ -26,60 +26,72 @@ from genno.testing import (
 log = logging.getLogger(__name__)
 
 
-def test_cache(caplog, tmp_path, ureg):
+def test_cache(caplog, tmp_path, test_data_path, ureg):
     caplog.set_level(logging.INFO)
 
+    # Set the cache path
     c = Computer(cache_path=tmp_path)
 
-    args = ("foo",)
+    # Arguments and keyword arguments for the computation. These are hashed to make the
+    # cache key
+    args = (test_data_path / "input0.csv", "foo")
     kwargs = dict(bar="baz")
 
-    exp = Quantity(
-        xr.DataArray([42.0, 43], coords=[("x", ["x1", "x2"])]), units=ureg.kg
-    )
+    # Expected value
+    exp = computations.load_file(test_data_path / "input0.csv")
     exp.attrs["args"] = repr(args)
     exp.attrs["kwargs"] = repr(kwargs)
 
     def myfunc1(*args, **kwargs):
+        # Send something to the log for caplog to pick up when the function runs
         log.info("myfunc executing")
-        result = Quantity(
-            xr.DataArray([42.0, 43], coords=[("x", ["x1", "x2"])]), units=ureg.kg
-        )
+        result = computations.load_file(args[0])
         result.attrs["args"] = repr(args)
         result.attrs["kwargs"] = repr(kwargs)
         return result
 
+    # Add to the Computer
     c.add("test 1", (partial(myfunc1, *args, **kwargs),))
 
+    # Returns the expected result
     assert_qty_equal(exp, c.get("test 1"))
 
+    # Function was executed
     assert "myfunc executing" in caplog.messages
     caplog.clear()
 
+    # Same function, but cached
     @c.cache
     def myfunc2(*args, **kwargs):
         return myfunc1(*args, **kwargs)
 
+    # Add to the computer
     c.add("test 2", (partial(myfunc2, *args, **kwargs),))
 
+    # First time computed, returns the expected result
     assert_qty_equal(exp, c.get("test 2"))
 
-    # First time computed
-    assert "Cache miss for myfunc2(<09732d81…>)" in caplog.messages
+    # Function was executed
     assert "myfunc executing" in caplog.messages
 
+    # 1 cache file was created in the cache_path
+    files = list(tmp_path.glob("*.pkl"))
+    assert 1 == len(files)
+
+    # File name includes the full hash; retrieve it
+    hash = files[0].stem.split("-")[-1]
+
+    # Cache miss was logged
+    assert f"Cache miss for myfunc2(<{hash[:8]}…>)" in caplog.messages
     caplog.clear()
 
-    # cache file exists
-    assert tmp_path.joinpath(
-        "myfunc2-09732d818ad41a855364f48c8fbb1097c0b3932f.pkl"
-    ).exists()
-
-    # Second time loaded from cache
+    # Second time computed, returns the expected result
     assert_qty_equal(exp, c.get("test 2"))
 
-    assert "Cache hit for myfunc2(<09732d81…>)" in caplog.messages
-    assert "myfunc executing" not in caplog.messages
+    # Value was loaded from the cache file
+    assert f"Cache hit for myfunc2(<{hash[:8]}…>)" in caplog.messages
+    # The function was NOT executed
+    assert not ("myfunc executing" in caplog.messages)
 
 
 def test_get():
