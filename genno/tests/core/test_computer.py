@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,64 @@ from genno.testing import (
     assert_qty_allclose,
     assert_qty_equal,
 )
+
+log = logging.getLogger(__name__)
+
+
+def test_cache(caplog, tmp_path, ureg):
+    caplog.set_level(logging.INFO)
+
+    c = Computer(cache_path=tmp_path)
+
+    args = ("foo",)
+    kwargs = dict(bar="baz")
+
+    exp = Quantity(
+        xr.DataArray([42.0, 43], coords=[("x", ["x1", "x2"])]), units=ureg.kg
+    )
+    exp.attrs["args"] = repr(args)
+    exp.attrs["kwargs"] = repr(kwargs)
+
+    def myfunc1(*args, **kwargs):
+        log.info("myfunc executing")
+        result = Quantity(
+            xr.DataArray([42.0, 43], coords=[("x", ["x1", "x2"])]), units=ureg.kg
+        )
+        result.attrs["args"] = repr(args)
+        result.attrs["kwargs"] = repr(kwargs)
+        return result
+
+    c.add("test 1", (partial(myfunc1, *args, **kwargs),))
+
+    assert_qty_equal(exp, c.get("test 1"))
+
+    assert "myfunc executing" in caplog.messages
+    caplog.clear()
+
+    @c.cache
+    def myfunc2(*args, **kwargs):
+        return myfunc1(*args, **kwargs)
+
+    c.add("test 2", (partial(myfunc2, *args, **kwargs),))
+
+    assert_qty_equal(exp, c.get("test 2"))
+
+    # First time computed
+    assert "Cache miss for myfunc2(<09732d81…>)" in caplog.messages
+    assert "myfunc executing" in caplog.messages
+
+    caplog.clear()
+
+    # cache file exists
+    assert tmp_path.joinpath(
+        "myfunc2-09732d818ad41a855364f48c8fbb1097c0b3932f.pkl"
+    ).exists()
+
+    # Second time loaded from cache
+    assert_qty_equal(exp, c.get("test 2"))
+
+    assert "Cache hit for myfunc2(<09732d81…>)" in caplog.messages
+    assert "myfunc executing" not in caplog.messages
 
 
 def test_get():

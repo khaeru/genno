@@ -39,6 +39,7 @@ from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfaul
 from dask.optimization import cull
 
 from genno import computations
+from genno.caching import make_cache_decorator
 from genno.util import partial_split
 
 from .describe import describe_recursive
@@ -209,6 +210,16 @@ class Computer:
         else:
             # Some other kind of input
             raise TypeError(data)
+
+    def cache(self, load_func):
+        """Return a decorator to cache data.
+
+        On a first call, the data requested is returned, but also cached in data/cache/.
+        On subsequent calls, if the cache exists, it is used instead of calling the
+        (possibly slow) method; *unless* the *skip_cache* configuration option is
+        given, in which case it is loaded again.
+        """
+        return make_cache_decorator(self, load_func)
 
     def add_queue(self, queue, max_tries=1, fail="raise"):
         """Add tasks from a list or `queue`.
