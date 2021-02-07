@@ -82,16 +82,10 @@ class Computer:
     def configure(self, path=None, **config):
         """Configure the Computer.
 
-        Accepts a *path* to a configuration file and/or keyword arguments.
-        Configuration keys loaded from file are replaced by keyword arguments.
+        Accepts a `path` to a configuration file and/or keyword arguments.
+        Configuration keys loaded from file are superseded by keyword arguments.
 
-        Valid configuration keys include:
-
-        - *default*: the default key; sets :attr:`default_key`.
-        - *filters*: a :class:`dict`, passed to :meth:`set_filters`.
-        - *files*: a :class:`list` where every element is a :class:`dict`
-          of keyword arguments to :meth:`add_file`.
-        - *alias*: a :class:`dict` mapping aliases to original keys.
+        See :doc:`config` for a list of all configuration sections and keys.
 
         Warns
         -----
