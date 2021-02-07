@@ -12,37 +12,27 @@ Address any failures before releasing.
    Comment the heading "Next release", then insert another heading below it, at the same level, with the version number and date.
    Make a commit with a message like "Mark vX.Y.Z in whatsnew.rst".
 
-2. Tag the version, e.g.::
+2. Tag the release candidate version, i.e. with a ``rcN`` suffix, and push::
 
-    $ git tag v1.2.3b4
-
-3. Test-build and check the source and binary packages::
-
-    $ rm -rf build dist
-    $ python setup.py bdist_wheel sdist
-    $ twine check dist/*
-
-   Address any warnings or errors that appear.
-   If needed, make a new commit and go back to step (2).
-
-4. Upload the packages to the TEST instance of PyPI::
-
-    $ twine upload -r testpypi dist/*
-
-5. Check at https://test.pypi.org/project/genno/ that:
-
-   - The package can be downloaded, installed and run.
-   - The README is rendered correctly.
-   - Links to the documentation go to the correct version.
-
-   If not, modify the code and go back to step (2).
-
-6. Upload to PyPI::
-
-    $ twine upload dist/*
-
-7. Push the commits and tag to GitHub::
-
+    $ git tag v1.2.3rc1
     $ git push --tags
 
-   Visit https://github.com/khaeru/genno/releases and mark the new release using the pushed tag.
+3. Check:
+
+   - at https://github.com/khaeru/genno/actions?query=workflow:publish that the workflow completes: the package builds successfully and is published to TestPyPI.
+   - at https://test.pypi.org/project/genno/ that:
+
+      - The package can be downloaded, installed and run.
+      - The README is rendered correctly.
+
+   Address any warnings or errors that appear.
+   If needed, make a new commit and go back to step (2), incrementing the rc number.
+
+4. Tag the release itself and push::
+
+    $ git tag v1.2.3
+    $ git push --tags
+
+5. Visit https://github.com/khaeru/genno/releases and mark the new release using the pushed tag.
+
+6. Check at https://github.com/khaeru/genno/actions?query=workflow:publish and https://pypi.org/project/genno/ that the distributions are published.
