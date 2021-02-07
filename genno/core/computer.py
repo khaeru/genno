@@ -214,7 +214,26 @@ class Computer:
     def cache(self, load_func):
         """Return a decorator to cache data.
 
-        On a first call, the data requested is returned, but also cached in data/cache/.
+        Use this function to decorate another function to be added as the computation/
+        callable in a task:
+
+        .. code-block:: python
+
+           c = Computer(cache_path=Path("/some/directory"))
+
+           @c.cache
+           def myfunction(*args, **kwargs):
+               # Expensive operations, e.g. loading large files
+               return data
+
+           c.add("myvar", (myfunction,))
+
+           # Data is cached in /some/directory/myfunction-*.pkl
+
+        On the first call of :meth:`get` that invokes the decorated function (directly
+        or indirectly), the data requested is returned, but also cached in the cache
+        directory (see :ref:`Configuration → Caching <config-cache>`).
+
         On subsequent calls, if the cache exists, it is used instead of calling the
         (possibly slow) method; *unless* the *skip_cache* configuration option is
         given, in which case it is loaded again.

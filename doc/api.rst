@@ -1,5 +1,5 @@
-API
-***
+API reference
+*************
 
 .. currentmodule:: genno
 
@@ -262,4 +262,7 @@ Utilities
 =========
 
 .. automodule:: genno.util
+   :members:
+
+.. automodule:: genno.caching
    :members:

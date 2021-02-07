@@ -8,7 +8,10 @@ log = logging.getLogger(__name__)
 
 
 class PathEncoder(json.JSONEncoder):
-    """JSON Encoder that handles pathlib.Path; used by :func:`.arg_hash`."""
+    """JSON encoder that handles :class:`pathlib.Path`.
+
+    Used by :func:`.arg_hash`.
+    """
 
     def default(self, o):
         if isinstance(o, Path):
@@ -18,7 +21,10 @@ class PathEncoder(json.JSONEncoder):
 
 
 def arg_hash(*args, **kwargs):
-    """Return a unique hash for *args, **kwargs; used by :func:`.cache`."""
+    """Return a unique hash for `args` and `kwargs`.
+
+    Used by :func:`.make_cache_decorator`.
+    """
     if len(args) + len(kwargs) == 0:
         unique = ""
     else:
@@ -31,6 +37,7 @@ def arg_hash(*args, **kwargs):
 
 
 def make_cache_decorator(computer, load_func):
+    """Helper for :meth:`.Computer.cache`."""
     log.debug(f"Wrapping {load_func.__name__} in cached()")
 
     # Wrap the call to load_func

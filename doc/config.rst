@@ -174,6 +174,18 @@ This section simply makes the output of one task available under another key.
       "foo:x-y": "bar:x-y"
       "baz:x-y": "bar:x-y"
 
+
+.. _config-cache:
+
+Caching
+-------
+
+Computer-specific configuration that controls the behaviour of functions decorated with :meth:`.Computer.cache`.
+
+- **cache_path** (:class:`pathlib.Path`, optional): base path for cache files. If not provided, defaults to the current working directory.
+- **cache_skip** (:class:`bool`, optional): If :obj:`True`, existing cache files are never used; files with the same cache key are overwritten.
+
+
 ``combine:``
 ------------
 
