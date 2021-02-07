@@ -1,4 +1,5 @@
 import logging
+import re
 
 import numpy as np
 import pint
@@ -128,6 +129,26 @@ def test_broadcast_map(ureg, map_values, kwarg):
     assert_qty_equal(exp, result)
 
 
+def test_combine(ureg, data):
+    *_, t_bar, x = data
+
+    result = computations.combine(
+        x, x, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1)
+    )
+
+    assert ("y",) == result.dims
+    assert all(0 == result.to_series().values)
+
+    # Incompatible units raises ValueError
+    x2 = Quantity(x, units=ureg.metre)
+    with pytest.raises(
+        ValueError, match=re.escape("Cannot combine() units kilogram and meter")
+    ):
+        computations.combine(
+            x, x2, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1)
+        )
+
+
 def test_concat(data):
     *_, t_foo, t_bar, x = data
 
@@ -137,6 +158,19 @@ def test_concat(data):
         computations.select(x, dict(t=t_bar)),
         dim="t",
     )
+
+
+def test_group_sum(ureg):
+    a = "a1 a2".split()
+    b = "b1 b2 b3".split()
+    X = Quantity(
+        xr.DataArray(np.random.rand(2, 3), coords=[("a", a), ("b", b)]),
+        units=ureg.kg,
+    )
+
+    result = computations.group_sum(X, "a", "b")
+    assert ("a",) == result.dims
+    assert 2 == len(result)
 
 
 @pytest.mark.parametrize(

@@ -1,0 +1,8 @@
+combine:
+- key: "Z:c"
+  inputs:
+  - quantity: "X:c"
+    weight: 0.1
+  - quantity: "Y:c"
+    weight: 1.1
+    select: {c: [c1, c2, c3]}

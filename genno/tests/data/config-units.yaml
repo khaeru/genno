@@ -1,0 +1,3 @@
+units:
+  define: |-
+    EUR = [EUR]

@@ -1,4 +1,4 @@
-from .core import configure
+from .config import configure
 from .core.computer import Computer
 from .core.exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .core.key import Key

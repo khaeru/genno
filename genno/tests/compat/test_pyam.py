@@ -57,6 +57,17 @@ def test_require_compat():
     assert c._get_comp("as_pyam") is not None
 
 
+def test_config(test_data_path):
+    """iamc: section in configuration files is parsed correctly."""
+    """Test handling configuration file syntax using test data files."""
+    c = Computer()
+
+    c.add(Key("X", list("abcdefy")), None, index=True, sums=True)
+    c.add("message:default", tuple())
+
+    c.configure(path=test_data_path / "config-pyam.yaml")
+
+
 def test_as_pyam(dantzig_computer, scenario):
     c = dantzig_computer
 

@@ -163,6 +163,7 @@ These labels can be :class:`.Key` (if the task produces a Quantity), :py:class:`
 A node's computation may depend on certain inputs.
 These are represented by the **edges** of the graph.
 
+.. _describe-tasks:
 
 Describe tasks
 ==============

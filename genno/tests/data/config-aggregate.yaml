@@ -1,0 +1,7 @@
+aggregate:
+- _quantities: ["X::"]
+  _tag: agg
+  _dim: a
+
+  baz123: [baz1, baz2, baz3]
+  baz13: [baz1, baz3]

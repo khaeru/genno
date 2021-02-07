@@ -1,0 +1,13 @@
+general:
+- comp: apply_units
+  key: Z:a-b-c
+  inputs: ["X::"]
+  args:
+    units: kg
+    quiet: true
+  sums: true
+
+- comp: product
+  key: W:a-b-c-d
+  inputs: ["X::", "Y:d"]
+  sums: true

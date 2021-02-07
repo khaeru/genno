@@ -1,0 +1,9 @@
+{
+  "default": "all",
+  "files": [
+    {"path": "./input0.csv", "key": "d_check"},
+    {"path": "./input1.csv", "key": "input1-0", "dims": ["i", "j_dim"]}, {"path": "./input1.csv", "key": "input1-1", "dims": {"i": "i", "j_dim": "j"}}
+  ],
+  "alias": {"bar": "d"},
+  "notarealsection": [0, 1]
+}

@@ -31,7 +31,7 @@ from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
 from types import ModuleType
-from typing import Callable, Dict, Optional, Sequence, Union, cast
+from typing import Any, Callable, Dict, Optional, Sequence, Union, cast
 
 import dask
 import pint
@@ -41,7 +41,6 @@ from dask.optimization import cull
 from genno import computations
 from genno.util import partial_split
 
-from . import _config_args, configure
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .key import Key
@@ -62,7 +61,7 @@ class Computer:
     # A3iii. Interpolation.
 
     #: A dask-format :doc:`graph <graphs>`.
-    graph: Dict[str, Union[str, dict]] = {"config": {}}
+    graph: Dict[str, Any] = {"config": {}}
 
     #: The default key to compute for :meth:`.get` with no argument.
     default_key = None
@@ -98,39 +97,13 @@ class Computer:
         UserWarning
             If *config* contains unrecognized keys.
         """
+        from genno.config import parse_config
+
         # Maybe load from a path
-        config = _config_args(path, config)
+        if path:
+            config["path"] = path
 
-        # Pass to global configuration
-        configure(None, **config)
-
-        # Store all configuration in the graph itself
-        self.graph["config"] = config.copy()
-
-        # Read sections
-
-        # Default key
-        try:
-            self.default_key = config["default"]
-        except KeyError:
-            pass
-
-        # Files with exogenous data
-        for item in config.get("files", []):
-            path = Path(item["path"])
-            if not path.is_absolute():
-                # Resolve relative paths relative to the directory containing
-                # the configuration file
-                path = config.get("config_dir", Path.cwd()) / path
-            item["path"] = path
-
-            self.add_file(**item)
-
-        # Aliases
-        for alias, original in config.get("alias", {}).items():
-            self.add(alias, original)
-
-        return self  # to allow chaining
+        parse_config(self, config)
 
     def _get_comp(self, name) -> Optional[Callable]:
         """Return a computation with the given `name`, or :obj:`None`."""
@@ -458,6 +431,33 @@ class Computer:
             raise MissingKeyError(*missing)
 
         return result
+
+    def infer_keys(self, key_or_keys, dims=[]):
+        """Infer complete `key_or_keys`.
+
+        Parameters
+        ----------
+        dims : list of str, optional
+            Drop all but these dimensions from the returned key(s).
+        """
+        single = isinstance(key_or_keys, (str, Key))
+
+        result = []
+
+        for k in [key_or_keys] if single else key_or_keys:
+            # Has some dimensions or tag
+            key = Key.from_str_or_key(k) if ":" in k else k
+
+            if "::" in k or key not in self:
+                key = self.full_key(key)
+
+            if dims:
+                # Drop all but *dims*
+                key = key.drop(*[d for d in key.dims if d not in dims])
+
+            result.append(key)
+
+        return result[0] if single else tuple(result)
 
     def __contains__(self, name):
         return name in self.graph
