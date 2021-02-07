@@ -259,7 +259,8 @@ def group_sum(qty, group, sum):
     The result drops the latter dimension.
     """
     return concat(
-        [values.sum(dim=[sum]) for _, values in qty.groupby(group)], dim=group
+        *[values.sum(dim=[sum]) for _, values in qty.groupby(group)],
+        dim=group,
     )
 
 

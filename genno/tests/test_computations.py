@@ -153,10 +153,17 @@ def test_concat(data):
     )
 
 
-def test_group_sum(data):
-    *_, x = data
+def test_group_sum(ureg):
+    a = "a1 a2".split()
+    b = "b1 b2 b3".split()
+    X = Quantity(
+        xr.DataArray(np.random.rand(2, 3), coords=[("a", a), ("b", b)]),
+        units=ureg.kg,
+    )
 
-    raise NotImplementedError
+    result = computations.group_sum(X, "a", "b")
+    assert ("a",) == result.dims
+    assert 2 == len(result)
 
 
 @pytest.mark.parametrize(
