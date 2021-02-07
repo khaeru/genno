@@ -36,14 +36,14 @@ def arg_hash(*args, **kwargs):
     return sha1(unique.encode()).hexdigest()
 
 
-def make_cache_decorator(computer, load_func):
+def make_cache_decorator(computer, func):
     """Helper for :meth:`.Computer.cache`."""
-    log.debug(f"Wrapping {load_func.__name__} in cached()")
+    log.debug(f"Wrapping {func.__name__} in Computer.cache()")
 
     # Wrap the call to load_func
     def cached_load(*args, **kwargs):
         # Path to the cache file
-        name_parts = [load_func.__name__, arg_hash(*args, **kwargs)]
+        name_parts = [func.__name__, arg_hash(*args, **kwargs)]
 
         cache_path = computer.graph["config"].get("cache_path")
 
@@ -65,7 +65,7 @@ def make_cache_decorator(computer, load_func):
                 return pickle.load(f)
         else:
             log.info(f"Cache miss for {short_name}")
-            data = load_func(*args, **kwargs)
+            data = func(*args, **kwargs)
 
             with open(cache_path, "wb") as f:
                 pickle.dump(data, f)

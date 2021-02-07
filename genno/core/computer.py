@@ -205,7 +205,7 @@ class Computer:
             # Some other kind of input
             raise TypeError(data)
 
-    def cache(self, load_func):
+    def cache(self, func):
         """Return a decorator to cache data.
 
         Use this function to decorate another function to be added as the computation/
@@ -232,7 +232,7 @@ class Computer:
         (possibly slow) method; *unless* the *skip_cache* configuration option is
         given, in which case it is loaded again.
         """
-        return make_cache_decorator(self, load_func)
+        return make_cache_decorator(self, func)
 
     def add_queue(self, queue, max_tries=1, fail="raise"):
         """Add tasks from a list or `queue`.
