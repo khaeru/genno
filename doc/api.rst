@@ -19,6 +19,7 @@ Others:
    :depth: 3
 
 .. autofunction:: configure
+   :noindex:
 
 .. autoclass:: genno.Computer
    :members:

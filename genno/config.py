@@ -23,20 +23,7 @@ def configure(path=None, **config):
     """Configure :mod:`genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
-    computations, namely :obj:`.REPLACE_UNITS`.
-
-    Valid configuration keys—passed as *config* keyword arguments—include:
-
-    Other Parameters
-    ----------------
-    units : mapping
-        Configuration for handling of units. Valid sub-keys include:
-
-        - **replace** (mapping of str -> str): replace units before they are
-          parsed by :doc:`pint <pint:index>`. Added to :obj:`.REPLACE_UNITS`.
-        - **define** (:class:`str`): block of unit definitions, added to the
-          :mod:`pint` application registry so that units are recognized. See
-          the pint :ref:`documentation on defining units <pint:defining>`.
+    computations.
 
     Warns
     -----
@@ -131,40 +118,7 @@ def parse_config(c: Computer, data: dict):
 
 @handles("aggregate")
 def aggregate(c: Computer, info):
-    """Add one entry from the 'aggregate:' section of a config file.
-
-    Each entry uses :meth:`~..Computer.aggregate` to compute sums across
-    labels within one dimension of a quantity.
-
-    The entry *info* must contain:
-
-    - **_quantities**: list of 0 or more keys for quantities to aggregate. The
-      full dimensionality of the key(s) is inferred.
-    - **_tag** (:class:`str`): new tag to append to the keys for the aggregated
-      quantities.
-    - **_dim** (:class:`str`): dimensions
-
-    All other keys are treated as group names; the corresponding values are
-    lists of labels along the dimension to sum.
-
-    **Example:**
-
-    .. code-block:: yaml
-
-       aggregate:
-       - _quantities: [foo, bar]
-         _tag: aggregated
-         _dim: a
-
-         baz123: [baz1, baz2, baz3]
-         baz12: [baz1, baz2]
-
-    If the full dimensionality of the input quantities are ``foo:a-b`` and
-    ``bar:a-b-c``, then :meth:`add_aggregate` creates the new quantities
-    ``foo:a-b:aggregated`` and ``bar:a-b-c:aggregated``. These new quantities
-    have the new labels ``baz123`` and ``baz12`` along their ``a`` dimension,
-    with sums of the indicated values.
-    """
+    """Handle one entry from the ``aggregate:`` config section."""
     # Copy for destructive .pop()
     info = copy(info)
 
@@ -180,52 +134,13 @@ def aggregate(c: Computer, info):
 
 @handles("alias", dict)
 def alias(c: Computer, info):
+    """Handle one entry from the ``alias:`` config section."""
     c.add(info[0], info[1])
 
 
 @handles("combine")
 def combine(c: Computer, info):
-    r"""Add one entry from the 'combine:' section of a config file.
-
-    Each entry uses the :func:`~.combine` operation to compute a weighted sum
-    of different quantities.
-
-    The entry *info* must contain:
-
-    - **key**: key for the new quantity, including dimensionality.
-    - **inputs**: a list of dicts specifying inputs to the weighted sum. Each
-      dict contains:
-
-      - **quantity** (required): key for the input quantity.
-        :meth:`add_combination` infers the proper dimensionality from the
-        dimensions of `key` plus dimension to `select` on.
-      - **select** (:class:`dict`, optional): selectors to be applied to the
-        input quantity. Keys are dimensions; values are either single labels,
-        or lists of labels. In the latter case, the sum is taken across these
-        values, so that the result has the same dimensionality as `key`.
-      - **weight** (:class:`int`, optional): weight for the input quantity;
-        default 1.
-
-    **Example.** For the following YAML:
-
-    .. code-block:: yaml
-
-       combine:
-       - key: foo:a-b-c
-         inputs:
-         - quantity: bar
-           weight: -1
-         - quantity: baz::tag
-           select: {d: [d1, d2, d3]}
-
-    …:meth:`add_combination` infers:
-
-    .. math::
-
-       \text{foo}_{abc} = -1 \times \text{bar}_{abc}
-       + 1 \times \sum_{d \in \{ d1, d2, d3 \}}{\text{baz}_{abcd}^\text{(tag)}}
-       \quad \forall \quad a, b, c
-    """
+    """Handle one entry from the ``combine:`` config section."""
     # Split inputs into three lists
     quantities, select, weights = [], [], []
 
@@ -260,11 +175,13 @@ def combine(c: Computer, info):
 
 @handles("default", apply=False)
 def default(c: Computer, info):
+    """Handle the ``default:`` config section."""
     c.default_key = info
 
 
 @handles("files")
-def file(c: Computer, info):
+def files(c: Computer, info):
+    """Handle one entry from the ``files:`` config section."""
     # Files with exogenous data
     path = Path(info["path"])
     if not path.is_absolute():
@@ -279,23 +196,7 @@ def file(c: Computer, info):
 
 @handles("general")
 def general(c: Computer, info):
-    """Add one entry from the 'general:' tree in the config file.
-
-    This is, as the name implies, the most generalized section of the config
-    file. Entry *info* must contain:
-
-    - **comp**: this refers to the name of a computation that is available in the
-      namespace of :mod:`message_data.reporting.computations` (be aware that it also
-      imports all the computations from :doc:`ixmp <ixmp:reporting>` and
-      doc:`message_ix <message_ix:reporting>`). E.g. if 'product', then
-      :meth:`.Computer.add_product` is called, which also automatically
-      infers the correct dimensions for each input.
-    - **key**: the key for the computed quantity.
-    - **inputs**: a list of keys to which the computation is applied.
-    - **args** (:class:`dict`, optional): keyword arguments to the computation.
-    - **add args** (:class:`dict`, optional): keyword arguments to
-      :meth:`.Computer.add` itself.
-    """
+    """Handle one entry from the ``general:`` config section."""
     inputs = c.infer_keys(info.get("inputs", []))
 
     if info["comp"] == "product":
@@ -323,7 +224,7 @@ def general(c: Computer, info):
 
 @handles("report")
 def report(c: Computer, info):
-    """Add items from the 'report' tree in the config file."""
+    """Handle one entry from the ``report:`` config section."""
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
     # Concatenate pyam data structures
@@ -332,6 +233,7 @@ def report(c: Computer, info):
 
 @handles("units", apply=False)
 def units(c: Computer, info):
+    """Handle the ``units:`` config section."""
 
     # Define units
     registry = pint.get_application_registry()

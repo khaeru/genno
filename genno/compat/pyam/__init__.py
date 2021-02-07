@@ -16,40 +16,7 @@ log = logging.getLogger(__name__)
 
 @config.handles("iamc")
 def iamc(c: Computer, info):
-    """Add one entry from the 'iamc:' section of a config file.
-
-    Each entry uses :meth:`message_ix.reporting.Reporter.convert_pyam`
-    (plus extra computations) to reformat data from the internal
-    :class:`ixmp.reporting.Quantity` data structure into a
-    :class:`pyam.IamDataFrame`.
-
-    The entry *info* must contain:
-
-    - **variable** (:class:`str`): variable name. This is used two ways: it
-      is placed in 'Variable' column of the resulting IamDataFrame; and the
-      reporting key to :meth:`~.Computer.get` the data frame is
-      ``<variable>:iamc``.
-    - **base** (:class:`str`): key for the quantity to convert.
-    - **select** (:class:`dict`, optional): keyword arguments to
-      :meth:`ixmp.reporting.Quantity.sel`.
-    - **group_sum** (2-:class:`tuple`, optional): `group` and `sum` arguments
-      to :func:`.group_sum`.
-    - **year_time_dim** (:class:`str`, optional): Dimension to use for the IAMC
-      'Year' or 'Time' column. Default 'ya'. (Passed to
-      :meth:`~message_ix.reporting.Reporter.convert_pyam`.)
-    - **drop** (:class:`list` of :class:`str`, optional): Dimensions to drop
-      (→ convert_pyam).
-    - **unit** (:class:`str`, optional): Force output in these units (→
-      convert_pyam).
-
-    Additional entries are passed as keyword arguments to :func:`.collapse`,
-    which is then given as the `collapse` callback for
-    :meth:`~message_ix.reporting.Reporter.convert_pyam`.
-
-    :func:`.collapse` formats the 'Variable' column of the IamDataFrame.
-    The variable name replacements from the 'iamc variable names:' section of
-    the config file are applied to all variables.
-    """
+    """Handle one entry from the ``iamc:`` config section."""
     if not HAS_PYAM:  # pragma: no cover
         log.warning("Missing pyam; configuration section 'iamc:' ignored")
         return

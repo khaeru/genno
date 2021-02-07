@@ -11,6 +11,7 @@ genno is built on high-quality Python data packages including ``dask``, ``xarray
    :caption: User guide
 
    usage
+   config
    api
    whatsnew
 
