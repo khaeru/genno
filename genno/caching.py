@@ -1,8 +1,8 @@
 import json
 import logging
-import pathlib
 import pickle
 from hashlib import sha1
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class PathEncoder(json.JSONEncoder):
     """JSON Encoder that handles pathlib.Path; used by :func:`.arg_hash`."""
 
     def default(self, o):
-        if isinstance(o, pathlib.Path):
+        if isinstance(o, Path):
             return str(o)
         # Let the base class default method raise the TypeError
         return json.JSONEncoder.default(self, o)
@@ -37,11 +37,14 @@ def make_cache_decorator(computer, load_func):
     def cached_load(*args, **kwargs):
         # Path to the cache file
         name_parts = [load_func.__name__, arg_hash(*args, **kwargs)]
-        cache_path = (
-            computer.graph["config"]["cache_path"]
-            .joinpath("-".join(name_parts))
-            .with_suffix(".pkl")
-        )
+
+        cache_path = computer.graph["config"].get("cache_path")
+
+        if not cache_path:
+            cache_path = Path.cwd()
+            log.warning(f"'cache_path' configuration not set; using {cache_path}")
+
+        cache_path = cache_path.joinpath("-".join(name_parts)).with_suffix(".pkl")
 
         # Shorter name for logging
         short_name = f"{name_parts[0]}(<{name_parts[1][:8]}…>)"

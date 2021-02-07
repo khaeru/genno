@@ -58,7 +58,6 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
 
     # Function was executed
     assert "myfunc executing" in caplog.messages
-    caplog.clear()
 
     # Same function, but cached
     @c.cache
@@ -69,6 +68,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     c.add("test 2", (partial(myfunc2, *args, **kwargs),))
 
     # First time computed, returns the expected result
+    caplog.clear()
     assert_qty_equal(exp, c.get("test 2"))
 
     # Function was executed
@@ -83,15 +83,30 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
 
     # Cache miss was logged
     assert f"Cache miss for myfunc2(<{hash[:8]}…>)" in caplog.messages
-    caplog.clear()
 
     # Second time computed, returns the expected result
+    caplog.clear()
     assert_qty_equal(exp, c.get("test 2"))
 
     # Value was loaded from the cache file
     assert f"Cache hit for myfunc2(<{hash[:8]}…>)" in caplog.messages
     # The function was NOT executed
     assert not ("myfunc executing" in caplog.messages)
+
+    # With cache_skip
+    caplog.clear()
+    c.configure(cache_skip=True)
+    c.get("test 2")
+
+    # Function is executed
+    assert "myfunc executing" in caplog.messages
+
+    # With no cache_path set
+    c.graph["config"].pop("cache_path")
+
+    caplog.clear()
+    c.get("test 2")
+    assert "'cache_path' configuration not set; using " in caplog.messages[0]
 
 
 def test_get():
