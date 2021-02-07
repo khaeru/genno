@@ -39,6 +39,7 @@ from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfaul
 from dask.optimization import cull
 
 from genno import computations
+from genno.caching import make_cache_decorator
 from genno.util import partial_split
 
 from .describe import describe_recursive
@@ -81,16 +82,10 @@ class Computer:
     def configure(self, path=None, **config):
         """Configure the Computer.
 
-        Accepts a *path* to a configuration file and/or keyword arguments.
-        Configuration keys loaded from file are replaced by keyword arguments.
+        Accepts a `path` to a configuration file and/or keyword arguments.
+        Configuration keys loaded from file are superseded by keyword arguments.
 
-        Valid configuration keys include:
-
-        - *default*: the default key; sets :attr:`default_key`.
-        - *filters*: a :class:`dict`, passed to :meth:`set_filters`.
-        - *files*: a :class:`list` where every element is a :class:`dict`
-          of keyword arguments to :meth:`add_file`.
-        - *alias*: a :class:`dict` mapping aliases to original keys.
+        See :doc:`config` for a list of all configuration sections and keys.
 
         Warns
         -----
@@ -209,6 +204,35 @@ class Computer:
         else:
             # Some other kind of input
             raise TypeError(data)
+
+    def cache(self, func):
+        """Return a decorator to cache data.
+
+        Use this function to decorate another function to be added as the computation/
+        callable in a task:
+
+        .. code-block:: python
+
+           c = Computer(cache_path=Path("/some/directory"))
+
+           @c.cache
+           def myfunction(*args, **kwargs):
+               # Expensive operations, e.g. loading large files
+               return data
+
+           c.add("myvar", (myfunction,))
+
+           # Data is cached in /some/directory/myfunction-*.pkl
+
+        On the first call of :meth:`get` that invokes the decorated function (directly
+        or indirectly), the data requested is returned, but also cached in the cache
+        directory (see :ref:`Configuration → Caching <config-cache>`).
+
+        On subsequent calls, if the cache exists, it is used instead of calling the
+        (possibly slow) method; *unless* the *skip_cache* configuration option is
+        given, in which case it is loaded again.
+        """
+        return make_cache_decorator(self, func)
 
     def add_queue(self, queue, max_tries=1, fail="raise"):
         """Add tasks from a list or `queue`.

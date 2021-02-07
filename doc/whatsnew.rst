@@ -6,8 +6,10 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Add file-based caching via :meth:`.Computer.cache` and :mod:`genno.caching` (:issue:`20`, :pull:`24`).
 
 v0.4.0 (2021-02-07)
 ===================

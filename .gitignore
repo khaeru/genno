@@ -9,6 +9,7 @@ dist
 .coverage*
 .pytest_cache
 htmlcov
+myfunc2-*.pkl
 
 # mypy
 .mypy_cache

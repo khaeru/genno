@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 
 import numpy as np
 import pandas as pd
@@ -21,6 +22,91 @@ from genno.testing import (
     assert_qty_allclose,
     assert_qty_equal,
 )
+
+log = logging.getLogger(__name__)
+
+
+def test_cache(caplog, tmp_path, test_data_path, ureg):
+    caplog.set_level(logging.INFO)
+
+    # Set the cache path
+    c = Computer(cache_path=tmp_path)
+
+    # Arguments and keyword arguments for the computation. These are hashed to make the
+    # cache key
+    args = (test_data_path / "input0.csv", "foo")
+    kwargs = dict(bar="baz")
+
+    # Expected value
+    exp = computations.load_file(test_data_path / "input0.csv")
+    exp.attrs["args"] = repr(args)
+    exp.attrs["kwargs"] = repr(kwargs)
+
+    def myfunc1(*args, **kwargs):
+        # Send something to the log for caplog to pick up when the function runs
+        log.info("myfunc executing")
+        result = computations.load_file(args[0])
+        result.attrs["args"] = repr(args)
+        result.attrs["kwargs"] = repr(kwargs)
+        return result
+
+    # Add to the Computer
+    c.add("test 1", (partial(myfunc1, *args, **kwargs),))
+
+    # Returns the expected result
+    assert_qty_equal(exp, c.get("test 1"))
+
+    # Function was executed
+    assert "myfunc executing" in caplog.messages
+
+    # Same function, but cached
+    @c.cache
+    def myfunc2(*args, **kwargs):
+        return myfunc1(*args, **kwargs)
+
+    # Add to the computer
+    c.add("test 2", (partial(myfunc2, *args, **kwargs),))
+
+    # First time computed, returns the expected result
+    caplog.clear()
+    assert_qty_equal(exp, c.get("test 2"))
+
+    # Function was executed
+    assert "myfunc executing" in caplog.messages
+
+    # 1 cache file was created in the cache_path
+    files = list(tmp_path.glob("*.pkl"))
+    assert 1 == len(files)
+
+    # File name includes the full hash; retrieve it
+    hash = files[0].stem.split("-")[-1]
+
+    # Cache miss was logged
+    assert f"Cache miss for myfunc2(<{hash[:8]}…>)" in caplog.messages
+
+    # Second time computed, returns the expected result
+    caplog.clear()
+    assert_qty_equal(exp, c.get("test 2"))
+
+    # Value was loaded from the cache file
+    assert f"Cache hit for myfunc2(<{hash[:8]}…>)" in caplog.messages
+    # The function was NOT executed
+    assert not ("myfunc executing" in caplog.messages)
+
+    # With cache_skip
+    caplog.clear()
+    c.configure(cache_skip=True)
+    c.get("test 2")
+
+    # Function is executed
+    assert "myfunc executing" in caplog.messages
+
+    # With no cache_path set
+    c.graph["config"].pop("cache_path")
+
+    caplog.clear()
+    c.get("test 2")
+    assert "'cache_path' configuration not set; using " in caplog.messages[0]
 
 
 def test_get():

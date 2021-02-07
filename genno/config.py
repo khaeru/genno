@@ -16,6 +16,9 @@ log = logging.getLogger(__name__)
 
 HANDLERS = {}
 
+# Keys to be stored with no action.
+STORE = set(["cache_path", "cache_skip"])
+
 CALLBACKS: List[Callable] = []
 
 
@@ -75,9 +78,11 @@ def parse_config(c: Computer, data: dict):
         try:
             handler = HANDLERS[section_name]
         except KeyError:
-            log.warning(
-                f"No handler for configuration section named {section_name}; ignored"
-            )
+            if section_name not in STORE:
+                log.warning(
+                    f"No handler for configuration section {repr(section_name)}; "
+                    "ignored"
+                )
             continue
 
         if not handler.keep_data:
@@ -108,7 +113,7 @@ def parse_config(c: Computer, data: dict):
         c.add_queue(queue, max_tries=2, fail="raise")
 
         # Store configuration in the graph itself
-        c.graph["config"] = data
+        c.graph["config"].update(data)
     else:
         if len(queue):
             raise RuntimeError(
