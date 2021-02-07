@@ -1,0 +1,6 @@
+# This triggers an exception
+general:
+- comp: not-a-computation-name
+  key: W:a-b-c-d
+  inputs: ["X::", "Y:d"]
+  sums: true

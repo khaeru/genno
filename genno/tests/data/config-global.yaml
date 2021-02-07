@@ -1,0 +1,12 @@
+# This file raises an error when passed to the global genno.configure() method,
+# because the "general:" section only makes sense within a specific Computer.
+# See test_config.test_global().
+units:
+  define: |-
+    USD = [USD]
+
+general:
+- comp: product
+  key: W:a-b-c-d
+  inputs: ["X::", "Y:d"]
+  sums: true
