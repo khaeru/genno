@@ -10,7 +10,7 @@ Address any failures before releasing.
 
 1. Edit :file:`doc/whatsnew.rst`.
    Comment the heading "Next release", then insert another heading below it, at the same level, with the version number and date.
-   Make a commit with a message like "Mark vX.Y.Z in whatsnew.rst".
+   Make a commit with a message like "Mark vX.Y.Z in doc/whatsnew".
 
 2. Tag the release candidate version, i.e. with a ``rcN`` suffix, and push::
 

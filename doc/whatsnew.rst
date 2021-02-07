@@ -9,6 +9,11 @@ What's new
 .. Next release
 .. ============
 
+v0.4.0 (2021-02-07)
+===================
+
+- Add file-based configuration in :mod:`genno.config` and :doc:`associated documentation <config>` (:issue:`8`, :pull:`16`).
+
 v0.3.0 (2021-02-05)
 ===================
 
