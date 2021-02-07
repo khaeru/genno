@@ -28,11 +28,13 @@ Address any failures before releasing.
    Address any warnings or errors that appear.
    If needed, make a new commit and go back to step (2), incrementing the rc number.
 
-4. Tag the release itself and push::
+4. (optional) Tag the release itself and push::
 
     $ git tag v1.2.3
     $ git push --tags
 
-5. Visit https://github.com/khaeru/genno/releases and mark the new release using the pushed tag.
+   This step (but *not* step (2)) can also be performed directly on GitHub; see (5), next.
+
+5. Visit https://github.com/khaeru/genno/releases and mark the new release: either using the pushed tag from (4), or by creating the tag and release simultaneously.
 
 6. Check at https://github.com/khaeru/genno/actions?query=workflow:publish and https://pypi.org/project/genno/ that the distributions are published.
