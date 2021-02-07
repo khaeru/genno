@@ -1,4 +1,5 @@
 import logging
+import re
 
 import numpy as np
 import pint
@@ -128,7 +129,7 @@ def test_broadcast_map(ureg, map_values, kwarg):
     assert_qty_equal(exp, result)
 
 
-def test_combine(data):
+def test_combine(ureg, data):
     *_, t_bar, x = data
 
     result = computations.combine(
@@ -138,8 +139,14 @@ def test_combine(data):
     assert ("y",) == result.dims
     assert all(0 == result.to_series().values)
 
-    # TODO test with incompatible units
-    raise NotImplementedError
+    # Incompatible units raises ValueError
+    x2 = Quantity(x, units=ureg.metre)
+    with pytest.raises(
+        ValueError, match=re.escape("Cannot combine() units kilogram and meter")
+    ):
+        computations.combine(
+            x, x2, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1)
+        )
 
 
 def test_concat(data):
