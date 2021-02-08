@@ -35,19 +35,18 @@ def clean_units(input_string):
 
 
 def collect_units(*args):
-    """Return an list of '_unit' attributes for *args*."""
+    """Return the "_unit" attributes of the *args*."""
     registry = pint.get_application_registry()
 
     for arg in args:
-        if "_unit" in arg.attrs:
-            # Convert units if necessary
-            if isinstance(arg.attrs["_unit"], str):
-                arg.attrs["_unit"] = registry.parse_units(arg.attrs["_unit"])
-        else:
-            log.debug(f"Assume {str(arg)} is unitless")
-            arg.attrs["_unit"] = registry.dimensionless
+        unit = arg.attrs.get("_unit")
+        if not unit:
+            log.debug(f"{arg} lacks units; assume dimensionless")
+            unit = registry.dimensionless
 
-    return [arg.attrs["_unit"] for arg in args]
+        arg.attrs["_unit"] = registry.Unit(unit)
+
+    return tuple(arg.attrs["_unit"] for arg in args)
 
 
 def filter_concat_args(args):
