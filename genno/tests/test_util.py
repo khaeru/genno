@@ -1,8 +1,10 @@
 import pandas as pd
+import pytest
+from dask.core import quote
 
 from genno import Key, Quantity
 from genno.testing import assert_logs
-from genno.util import collect_units, filter_concat_args
+from genno.util import collect_units, filter_concat_args, unquote
 
 
 def test_collect_units(ureg):
@@ -29,3 +31,17 @@ def test_filter_concat_args(caplog):
         )
 
     assert len(result) == 1
+
+
+@pytest.mark.parametrize(
+    "value, exp",
+    (
+        # Quotable values are unwrapped
+        (quote(dict(foo="bar")), dict(foo="bar")),
+        (quote(["hello", "world"]), ["hello", "world"]),
+        # No effect on others
+        (42.0, 42.0),
+    ),
+)
+def test_unquote(value, exp):
+    assert exp == unquote(value)
