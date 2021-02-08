@@ -11,7 +11,7 @@ def test_collect_units(ureg):
     q1.attrs["_unit"] = "kg"
 
     # Units are converted to pint.Unit
-    assert collect_units(q1) == [ureg.kg]
+    assert (ureg.kg,) == collect_units(q1)
 
 
 def test_filter_concat_args(caplog):
