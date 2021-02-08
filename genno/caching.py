@@ -4,6 +4,8 @@ import pickle
 from hashlib import sha1
 from pathlib import Path
 
+from .util import unquote
+
 log = logging.getLogger(__name__)
 
 
@@ -42,24 +44,23 @@ def make_cache_decorator(computer, func):
 
     # Wrap the call to load_func
     def cached_load(*args, **kwargs):
-        # Path to the cache file
-        name_parts = [func.__name__, arg_hash(*args, **kwargs)]
-
-        cache_path = computer.graph["config"].get("cache_path")
+        # Retrieve cache settings from the Computer
+        config = unquote(computer.graph["config"])
+        cache_path = config.get("cache_path")
+        cache_skip = config.get("cache_skip", False)
 
         if not cache_path:
             cache_path = Path.cwd()
             log.warning(f"'cache_path' configuration not set; using {cache_path}")
 
+        # Path to the cache file
+        name_parts = [func.__name__, arg_hash(*args, **kwargs)]
         cache_path = cache_path.joinpath("-".join(name_parts)).with_suffix(".pkl")
 
         # Shorter name for logging
         short_name = f"{name_parts[0]}(<{name_parts[1][:8]}…>)"
 
-        if (
-            not computer.graph["config"].get("cache_skip", False)
-            and cache_path.exists()
-        ):
+        if not cache_skip and cache_path.exists():
             log.info(f"Cache hit for {short_name}")
             with open(cache_path, "rb") as f:
                 return pickle.load(f)

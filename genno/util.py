@@ -4,6 +4,7 @@ from inspect import Parameter, signature
 
 import pandas as pd
 import pint
+from dask.core import literal
 
 from .core.key import Key
 
@@ -139,3 +140,11 @@ def partial_split(func, kwargs):
             extra[name] = value
 
     return partial(func, **func_args), extra
+
+
+def unquote(value):
+    """Reverse :func:`dask.core.quote`."""
+    if isinstance(value, tuple) and len(value) == 1 and isinstance(value[0], literal):
+        return value[0].data
+    else:
+        return value

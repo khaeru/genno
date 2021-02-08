@@ -394,22 +394,23 @@ class Computer:
             else:
                 raise ValueError("no default reporting key set")
 
+        # Protect 'config' dict, so that dask schedulers do not try to interpret its
+        # contents as further tasks. Workaround for
+        # https://github.com/dask/dask/issues/3523
+        self.graph["config"] = dask.core.quote(self.graph.get("config", dict()))
+
         # Cull the graph, leaving only those needed to compute *key*
         dsk, deps = cull(self.graph, key)
-        log.debug("Cull {} -> {} keys".format(len(self.graph), len(dsk)))
+        log.debug(f"Cull {len(self.graph)} -> {len(dsk)} keys")
 
         try:
-            # Protect 'config' dict, so that dask schedulers do not try to
-            # interpret its contents as further tasks. Workaround for
-            # https://github.com/dask/dask/issues/3523
-            dsk["config"] = dask.core.quote(dsk["config"])
-        except KeyError:
-            pass
-
-        try:
-            return dask_get(dsk, key)
+            result = dask_get(dsk, key)
         except Exception as exc:
             raise ComputationError(exc) from None
+        else:
+            return result
+        finally:
+            self.graph["config"] = self.graph["config"][0].data
 
     def keys(self):
         """Return the keys of :attr:`graph`."""
