@@ -1,5 +1,5 @@
 import logging
-from typing import Collection, Dict, Union
+from typing import Collection, Mapping, Sequence, Union
 
 import pandas as pd
 import pint
@@ -39,7 +39,7 @@ def clean_units(df: pd.DataFrame, unit=None) -> pd.DataFrame:
 
 
 def collapse(
-    df: pd.DataFrame, columns: Dict[str, str] = dict(), sep="|"
+    df: pd.DataFrame, columns: Mapping[str, Sequence[str]] = dict(), sep="|"
 ) -> pd.DataFrame:
     """Collapse `columns` into the IAMC columns of `df`."""
     to_drop = set()
