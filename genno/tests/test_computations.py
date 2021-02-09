@@ -149,6 +149,39 @@ def test_combine(ureg, data):
         )
 
 
+@pytest.mark.skip(reason="TODO incorporate from message_data")
+def test_combine2():
+    from functools import partial
+
+    import pandas as pd
+
+    from genno.computations import combine
+
+    c = Computer()
+
+    # Add data to the Reporter
+    foo = ["foo1", "foo2"]
+    bar = ["bar1", "bar2"]
+
+    a = pd.Series(
+        [1, 2, 3, 4],
+        index=pd.MultiIndex.from_product([foo, bar], names=["foo", "bar"]),
+    )
+    b = pd.Series(
+        [10, 20, 30, 40],
+        index=pd.MultiIndex.from_product([bar, foo], names=["bar", "foo"]),
+    )
+    c = pd.Series([100, 200], index=pd.Index(foo, name="foo"))
+
+    c.add("a", Quantity(a))
+    c.add("b", Quantity(b))
+    c.add("c", Quantity(c))
+
+    c.add("d", (partial(combine, weights=[0.5, 1, 2]), "a", "b", "c"))
+
+    assert c.get("d").loc[("foo2", "bar1")] == 3 * 0.5 + 20 * 1 + 200 * 2
+
+
 def test_concat(data):
     *_, t_foo, t_bar, x = data
 
