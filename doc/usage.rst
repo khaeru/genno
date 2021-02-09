@@ -126,7 +126,7 @@ A Key object can also be produced by parsing a string representation:
     Z_j = Key.from_str_or_key("Z:j")
     Z_j
 
-    # Keys compare equal to their str() representation
+    # Keys compare and hash() identically to their str() representation
     Z_j == "Z:j"
 
     Z_j == "Y:i-j-k"
@@ -138,7 +138,7 @@ Computer
 :class:`.Computer` provides the main interface of :mod:`genno`.
 Usage of a Computer involves two steps:
 
-1. Use :meth:`.Computer.add` and other helper methods to describe all the *tasks* the Computer *might* perform.
+1. Use :meth:`.Computer.add` and other helper methods to describe all the tasks the Computer *might* perform.
 2. Use :meth:`.Computer.get` to trigger the execution of one or more tasks.
 
 This two-step process allows the :mod:`genno` to deliver good performance by skipping irrelevant tasks and avoiding re-computing intermediate results that are used in multiple places.
@@ -152,12 +152,16 @@ This means:
 - Every edge has a direction; *from* one node *to* another.
 - There are no recursive loops in the graph; i.e. no node is its own ancestor.
 
-In the reporting graph, every *node* represents a task, which could be:
+In the reporting graph, every node represents a **task**, usually a :class:`tuple` wherein the first element is a :class:`callable` like a function.
+This callable can be:
 
 - a numerical *calculation* operating on one or more Quantities;
-- more generally, a **computation**, including other actions like transforming data formats, reading and writing files, writing plots, etc..
+- more generally, a *computation*, including other actions like transforming data formats, reading and writing files, writing plots, etc.
 
-Every node has a unique label, describing the results of its task.
+Other elements in the task
+For a complete description of tasks, see :doc:`dask:spec`.
+
+Every node has a unique *label*, describing the results of its task.
 These labels can be :class:`.Key` (if the task produces a Quantity), :py:class:`str` (most other cases) or generally any other hashable object.
 
 A node's computation may depend on certain inputs.
@@ -214,6 +218,9 @@ To unpack this code:
     2. The label ``"A"`` is a reference to another node. This indicates that there is a graph edge from node ``"A"`` into node ``"C"``.
     3. Same as (2)
 
+All the keys in a Computer can be listed with :meth:`.keys`.
+
+
 Execute tasks
 =============
 
@@ -255,7 +262,12 @@ However, the Computer still follows the same procedure to traverse the graph and
 Computations
 ============
 
-A computation is any Python function that operates on Quantities or other data.
+A computation is any Python function or callable that operates on Quantities or other data.
 :mod:`genno.computations` includes many common computations; see the API documentation for descriptions of each.
 
-The power of :mod:`genno` is the ability to link *any* code, no matter how complex, into the graph.
+The power of :mod:`genno` is the ability to link *any* code, no matter how complex, into the graph, and have it operate on the results of other code.
+Tasks can perform complex tasks such as:
+
+- Read in exogenous data, including over a network connection,
+- Trigger output to files(s) or a database, or
+- Execute user-defined methods.

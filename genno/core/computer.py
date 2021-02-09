@@ -1,29 +1,3 @@
-# Scenario reporting.
-#
-# Implementation notes:
-#
-# The core design pattern uses dask graphs; see
-# http://docs.dask.org/en/latest/spec.html
-# - Computer.graph is a dictionary where:
-#   - keys are strings or genno.key.Key objects (which compare/hash
-#     equal to their str() representation), and
-#   - values are 'computations' (the Computer.add() docstring repeats the
-#     definition of computations from the above URL).
-# - The results of 'internal' computations are genno.utils.Quantity
-#   objects.
-#   - These resemble xarray.DataArray, but currently are genno.utils.
-#     AttrSeries, which duck-types DataArray. This is because many ixmp/
-#     message_ix quantities are large and sparse, and creating sparse
-#     DataArrays is non-trivial; see https://stackoverflow.com/q/56396122/
-#   - Internal computations have .attr['_unit'] describing the units of the
-#     quantity, to carry these through calculations.
-#
-# - Always call pint.get_application_registry() from *within* functions
-#   (instead of in global scope); this allows downstream code to change which
-#   registry is used.
-#   - The top-level methods pint.Quantity() and pint.Unit() can also be used;
-#     these use the application registry.
-
 import logging
 from functools import partial
 from importlib import import_module

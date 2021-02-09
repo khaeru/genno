@@ -14,6 +14,8 @@ genno is built on high-quality Python data packages including ``dask``, ``xarray
    config
    api
 
+.. _compat:
+
 Compatibility
 =============
 

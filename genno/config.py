@@ -32,6 +32,10 @@ def configure(path=None, **config):
     -----
     UserWarning
         If *config* contains unrecognized keys.
+
+    See also
+    --------
+    :doc:`config`
     """
     if path:
         config["path"] = path

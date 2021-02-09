@@ -3,7 +3,12 @@ API reference
 
 .. currentmodule:: genno
 
-Top-level methods and classes:
+.. contents::
+   :local:
+   :depth: 3
+
+Top-level classes and functions
+===============================
 
 .. autosummary::
 
@@ -12,44 +17,16 @@ Top-level methods and classes:
    Key
    Quantity
 
-Others:
-
-.. contents::
-   :local:
-   :depth: 3
-
 .. autofunction:: configure
    :noindex:
 
 .. autoclass:: genno.Computer
    :members:
-   :exclude-members: graph, add, add_load_file, apply
+   :exclude-members: add, add_load_file, apply, graph
 
-   A Computer is used to postprocess data from from one or more
-   :class:`ixmp.Scenario` objects. The :meth:`get` method can be used to:
+   A Computer is used to describe (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **tasks** stored in a :attr:`graph`.
 
-   - Retrieve individual **quantities**. A quantity has zero or more
-     dimensions and optional units. Quantities include the ‘parameters’,
-     ‘variables’, ‘equations’, and ‘scalars’ available in an
-     :class:`ixmp.Scenario`.
-
-   - Generate an entire **report** composed of multiple quantities. A report
-     may:
-
-       - Read in non-model or exogenous data,
-       - Trigger output to files(s) or a database, or
-       - Execute user-defined methods.
-
-   Every report and quantity (including the results of intermediate steps) is
-   identified by a :class:`.Key`; all the keys in a Computer can be listed with
-   :meth:`keys`.
-
-   Computer uses a :doc:`graph <graphs>` data structure to keep track of
-   **computations**, the atomic steps in postprocessing: for example, a single
-   calculation that multiplies two quantities to create a third. The graph
-   allows :meth:`get` to perform *only* the requested computations. Advanced
-   users may manipulate the graph directly; but common reporting tasks can be
-   handled by using Computer methods:
+   Advanced users may manipulate the graph directly; but common reporting tasks can be handled by using Computer methods:
 
    .. autosummary::
       add
@@ -66,6 +43,7 @@ Others:
       disaggregate
       full_key
       get
+      infer_keys
       keys
       visualize
       write
@@ -129,18 +107,50 @@ Others:
 
          rep.apply(my_gen, units='kg')
 
+   .. automethod:: convert_pyam
+
+      The :pyam:doc:`IAMC data format <data>` includes columns named 'Model', 'Scenario', 'Region', 'Variable', 'Unit'; one of 'Year' or 'Time'; and 'value'.
+
+      Using :meth:`convert_pyam`:
+
+      - 'Model' and 'Scenario' are populated from the attributes of the object returned by the Reporter key ``scenario``;
+      - 'Variable' contains the name(s) of the `quantities`;
+      - 'Unit' contains the units associated with the `quantities`; and
+      - 'Year' or 'Time' is created according to `year_time_dim`.
+
+      A callback function (`collapse`) can be supplied that modifies the data before it is converted to an :class:`~pyam.IamDataFrame`; for instance, to concatenate extra dimensions into the 'Variable' column.
+      Other dimensions can simply be dropped (with `drop`).
+      Dimensions that are not collapsed or dropped will appear as additional columns in the resulting :class:`~pyam.IamDataFrame`; this is valid, but non-standard IAMC data.
+
+      For example, here the values for the MESSAGEix ``technology`` and ``mode`` dimensions are appended to the 'Variable' column:
+
+      .. code-block:: python
+
+          def m_t(df):
+              """Callback for collapsing ACT columns."""
+              # .pop() removes the named column from the returned row
+              df['variable'] = 'Activity|' + df['t'] + '|' + df['m']
+              return df
+
+          ACT = rep.full_key('ACT')
+          keys = rep.convert_pyam(ACT, 'ya', collapse=m_t, drop=['t', 'm'])
+
+
+
+
 .. autoclass:: genno.Key
    :members:
 
-   Quantities in a :class:`Scenario` can be indexed by one or more dimensions.
+   Quantities are indexed by 0 or more dimensions.
    A Key refers to a quantity using three components:
 
    1. a string :attr:`name`,
    2. zero or more ordered :attr:`dims`, and
    3. an optional :attr:`tag`.
 
-   For example, an ixmp parameter with three dimensions can be initialized
-   with:
+   For example, quantity with three dimensions:
+
+   # FIXME
 
    >>> scenario.init_par('foo', ['a', 'b', 'c'], ['apple', 'bird', 'car'])
 
@@ -149,13 +159,10 @@ Others:
    - in its full resolution, i.e. indexed by a, b, and c:
 
      >>> k1 = Key('foo', ['a', 'b', 'c'])
-     >>> k1 == 'foo:a-b-c'
-     True
+     >>> k1
+     <foo:a-b-c>
 
-     Notice that a Key has the same hash, and compares equal (`==`) to its ``str()``.
-
-   - in a partial sum over one dimension, e.g. summed along c with dimensions
-     a and b:
+   - in a partial sum over one dimension, e.g. summed across dimension c, with  remaining dimensions a and b:
 
      >>> k2 = k1.drop('c')
      >>> k2 == 'foo:a-b'
@@ -166,22 +173,36 @@ Others:
      >>> k1.drop('a', 'c') == k2.drop('a') == 'foo:b'
      True
 
-   .. note::
-        Some remarks:
+   - after it has been manipulated by other computations, e.g.
 
-        - ``repr(key)`` prints the Key in angle brackets ('<>') to signify it is a Key object.
+     >>> k3 = k1.add_tag('normalized')
+     >>> k3
+     <foo:a-b-c:normalized>
+     >>> k4 = k3.add_tag('rescaled')
+     >>> k4
+     <foo:a-b-c:normalized+rescaled>
 
-          >>> repr(k1)
-          <foo:a-b-c>
+   **Notes:**
 
-        - Keys are *immutable*: the properties :attr:`name`, :attr:`dims`, and :attr:`tag` are read-only, and the methods :meth:`append`, :meth:`drop`, and :meth:`add_tag` return *new* Key objects.
+   A Key has the same hash, and compares equal to its :class:`str` representation.
+   ``repr(key)`` prints the Key in angle brackets ('<>') to signify that it is a Key object.
 
-        - Keys may be generated concisely by defining a convenience method:
+   >>> str(k1)
+   'foo:a-b-c'
+   >>> repr(k1)
+   '<foo:a-b-c>'
+   >>> hash(k1) == hash('foo:a-b-c')
+   True
 
-          >>> def foo(dims):
-          >>>     return Key('foo', dims.split())
-          >>> foo('a b c')
-          foo:a-b-c
+   Keys are **immutable**: the properties :attr:`name`, :attr:`dims`, and :attr:`tag` are *read-only*, and the methods :meth:`append`, :meth:`drop`, and :meth:`add_tag` return *new* Key objects.
+
+   Keys may be generated concisely by defining a convenience method:
+
+   >>> def foo(dims):
+   >>>     return Key('foo', dims.split())
+   >>> foo('a b c')
+   <foo:a-b-c>
+
 
 .. autodata:: genno.Quantity(data, *args, **kwargs)
    :annotation:
@@ -202,7 +223,7 @@ Common :mod:`genno` usage, e.g. in :mod:`message_ix`, creates large, sparse data
 - Currently, Quantity is :class:`.AttrSeries`, a wrapped :class:`pandas.Series` that behaves like a :class:`~xarray.DataArray`.
 - In the future, :mod:`genno` will use :class:`.SparseDataArray`, and eventually :class:`~xarray.DataArray` backed by sparse data, directly.
 
-The goal is that reporting code, including built-in and user computations, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
+The goal is that all :mod:`genno`-based code, including built-in and user computations, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
 
 
 Computations
@@ -215,13 +236,18 @@ Computations
    :class:`Quantity <genno.utils.Quantity>` objects for data
    arguments/return values.
 
+   Genno's :ref:`compatibility modules <compat>` each provide additional computations.
+
    Calculations:
 
    .. autosummary::
       add
       aggregate
       apply_units
+      broadcast_map
+      combine
       disaggregate_shares
+      group_sum
       product
       ratio
       select
