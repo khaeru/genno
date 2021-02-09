@@ -1,5 +1,5 @@
-:mod:`pyam`
-***********
+Pyam (:mod:`.compat.pyam`)
+**************************
 
 :doc:`Package documentation <pyam:index>`
 

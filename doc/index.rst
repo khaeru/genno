@@ -13,20 +13,33 @@ genno is built on high-quality Python data packages including ``dask``, ``xarray
    usage
    config
    api
-   whatsnew
+
+Compatibility
+=============
+
+:mod:`genno` provides built-in support for interaction with:
+
+- :doc:`Plotnine <compat-plotnine>` (:mod:`plotnine`), via :mod:`.compat.plotnine`.
+- :doc:`Pyam <compat-pyam>` (:mod:`pyam`), via :mod:`.compat.pyam`.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Interoperability
+   :caption: Compatibility
+   :hidden:
 
-   compat-ixmp
    compat-plotnine
    compat-pyam
+
+Packages that extend :mod:`genno` include:
+
+- :mod:`ixmp.reporting`
+- :mod:`message_ix.reporting`
 
 .. toctree::
    :maxdepth: 2
    :caption: Development
 
+   whatsnew
    releasing
 
 License

@@ -1,5 +1,5 @@
-:mod:`plotnine`
-***************
+Plotnine (:mod:`.compat.plotnine`)
+**********************************
 
 :doc:`Package documentation <plotnine:index>`
 
