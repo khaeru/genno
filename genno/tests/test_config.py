@@ -7,9 +7,11 @@ from genno.config import HANDLERS
 
 def test_handlers():
     # Expected config handlers are available
-    # NB +1 is because ixmp.testing is imported by test_exceptions.py, which in turn
-    #   causes ixmp to register its own handler.
-    assert len(HANDLERS) == 8 + (1 * HAS_PYAM) + 1
+    # NB "+ 1" is because ixmp.testing is imported by test_exceptions.py, which in turn
+    #    causes ixmp to register its own handler. This should be *commented* when using
+    #    code from https://github.com/iiasa/ixmp/pull/397; or *uncommented* otherwise/
+    #    after that PR is merged
+    assert len(HANDLERS) == 8 + (1 * HAS_PYAM)  # + 1
     for key, func in HANDLERS.items():
         assert isinstance(key, str) and callable(func)
 
