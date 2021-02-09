@@ -23,7 +23,7 @@ jobs:
         - ubuntu-latest
         - windows-latest
         python-version:
-        - "3.7"  # Earliest version supported by genno; matches xarray
+        - "3.6"  # Earliest version supported by genno; matches xarray
         - "3.8"  # Latest version testable on GitHub Actions
 
         # For development versions of Python, compiled binary wheels are not
@@ -37,7 +37,7 @@ jobs:
         # This job triggers error when importing ixmp.testing: no module named
         # ixmp.backend. Not critical, since it's upstream.
         - os: windows-latest
-          python-version: "3.7"
+          python-version: "3.6"
 
       fail-fast: false
 
