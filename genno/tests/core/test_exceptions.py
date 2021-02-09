@@ -36,11 +36,11 @@ TypeError: .*str.*float.*
 )
 
 
-def test_computationerror_ipython(test_data_path, tmp_path, tmp_env):
+def test_computationerror_ipython(test_data_path, tmp_path):
     # NB this requires nbformat >= 5.0, because the output kind "evalue" was
     #    different pre-5.0
     fname = test_data_path / "exceptions.ipynb"
-    nb, _ = run_notebook(fname, tmp_path, tmp_env, allow_errors=True)
+    nb, _ = run_notebook(fname, tmp_path, allow_errors=True)
 
     observed = get_cell_output(nb, 0, kind="evalue")
     assert EXPECTED.match(observed), observed
