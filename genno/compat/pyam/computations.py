@@ -16,7 +16,7 @@ __all__ = ["as_pyam", "concat", "write_report"]
 def as_pyam(
     scenario,
     quantity,
-    /,
+    # /,  # Requires Python 3.8; uncomment if/when support for Python 3.7 is dropped
     replace=dict(),
     rename=dict(),
     collapse: Optional[Callable] = None,

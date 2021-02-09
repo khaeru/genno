@@ -693,7 +693,9 @@ class Computer:
 
     # For .compat.pyam
 
-    def convert_pyam(self, quantities, tag="iamc", /, **kwargs):
+    # "/, " requires Python 3.8; change only if/when support for Python 3.7 is dropped
+    # def convert_pyam(self, quantities, tag="iamc", /, **kwargs):
+    def convert_pyam(self, quantities, tag="iamc", **kwargs):
         """Add conversion of one or more **quantities** to IAMC format.
 
         Parameters
