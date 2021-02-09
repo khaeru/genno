@@ -124,9 +124,9 @@ def test_get():
     assert c.get() == 42
 
 
-def test_get_comp():
+def testget_comp():
     # Invalid name for a function returns None
-    assert Computer()._get_comp(42) is None
+    assert Computer().get_comp(42) is None
 
 
 def test_infer_keys():

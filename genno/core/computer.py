@@ -101,7 +101,7 @@ class Computer:
 
         parse_config(self, config)
 
-    def _get_comp(self, name) -> Optional[Callable]:
+    def get_comp(self, name) -> Optional[Callable]:
         """Return a computation with the given `name`, or :obj:`None`."""
         for module in reversed(self.modules):
             try:
@@ -160,7 +160,7 @@ class Computer:
             # A list. Use add_queue to add
             return self.add_queue(data, *args, **kwargs)
 
-        elif isinstance(data, str) and self._get_comp(data):
+        elif isinstance(data, str) and self.get_comp(data):
             # *data* is the name of a pre-defined computation
             name = data
 
@@ -171,7 +171,7 @@ class Computer:
                 return getattr(self, f"add_{name}")(*args, **kwargs)
             else:
                 # Get the function directly
-                func = self._get_comp(name)
+                func = self.get_comp(name)
                 # Rearrange arguments: key, computation function, args, …
                 func, kwargs = partial_split(func, kwargs)
                 return self.add(args[0], func, *args[1:], **kwargs)
@@ -635,7 +635,7 @@ class Computer:
         path = Path(path)
         key = key if key else "file:{}".format(path.name)
         return self.add(
-            key, (partial(self._get_comp("load_file"), path, **kwargs),), strict=True
+            key, (partial(self.get_comp("load_file"), path, **kwargs),), strict=True
         )
 
     # Use add_file as a helper for computations.load_file
@@ -673,7 +673,7 @@ class Computer:
         """Write the result of `key` to the file `path`."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
-        self._get_comp("write_report")(self.get(key), path)
+        self.get_comp("write_report")(self.get(key), path)
 
     @property
     def unit_registry(self):
@@ -727,7 +727,7 @@ class Computer:
 
         # The callable for the task. If pyam is not available, _require_compat() above
         # will fail; so this will never be None
-        comp = partial(cast(Callable, self._get_comp("as_pyam")), **kwargs)
+        comp = partial(cast(Callable, self.get_comp("as_pyam")), **kwargs)
 
         keys = []
         for qty in quantities:

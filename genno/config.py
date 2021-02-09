@@ -211,7 +211,7 @@ def general(c: Computer, info):
         key = Key.from_str_or_key(info["key"])
 
         # Retrieve the function for the computation
-        f = c._get_comp(info["comp"])
+        f = c.get_comp(info["comp"])
 
         if f is None:
             raise ValueError(info["comp"])
@@ -233,7 +233,7 @@ def report(c: Computer, info):
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
     # Concatenate pyam data structures
-    c.add(info["key"], tuple([c._get_comp("concat")] + info["members"]), strict=True)
+    c.add(info["key"], tuple([c.get_comp("concat")] + info["members"]), strict=True)
 
 
 @handles("units", apply=False)

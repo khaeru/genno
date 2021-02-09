@@ -37,7 +37,7 @@ def iamc(c: Computer, info):
     sel = info.get("select")
     if sel:
         key = keys[-1].add_tag("sel")
-        c.add(key, (c._get_comp("select"), keys[-1], sel), strict=True)
+        c.add(key, (c.get_comp("select"), keys[-1], sel), strict=True)
         keys.append(key)
 
     # Optionally aggregate data by groups
