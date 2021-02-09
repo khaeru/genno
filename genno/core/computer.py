@@ -31,7 +31,7 @@ from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable, Collection, Dict, Optional, Sequence, Union, cast
+from typing import Any, Callable, Dict, Optional, Sequence, cast
 from warnings import warn
 
 import dask
@@ -112,7 +112,18 @@ class Computer:
                 return None  # `name` is not a string; can't be the name of a function
         return None
 
-    def _require_compat(self, pkg: str):
+    def require_compat(self, pkg: str):
+        """Load computations from ``genno.compat.{pkg}`` for use with :func:`.get_comp`.
+
+        Raises
+        ------
+        ModuleNotFoundError
+            If the required packages are missing.
+
+        See also
+        --------
+        .get_comp
+        """
         name = f"genno.compat.{pkg}"
         if not getattr(import_module(name), f"HAS_{pkg.upper()}"):
             raise ModuleNotFoundError(
@@ -706,7 +717,7 @@ class Computer:
         --------
         .as_pyam
         """
-        self._require_compat("pyam")
+        self.require_compat("pyam")
 
         # Handle single vs. iterable of inputs
         multi_arg = not isinstance(quantities, (str, Key))
@@ -725,7 +736,7 @@ class Computer:
         # Check keys
         quantities = self.check_keys(*quantities)
 
-        # The callable for the task. If pyam is not available, _require_compat() above
+        # The callable for the task. If pyam is not available, require_compat() above
         # will fail; so this will never be None
         comp = partial(cast(Callable, self.get_comp("as_pyam")), **kwargs)
 

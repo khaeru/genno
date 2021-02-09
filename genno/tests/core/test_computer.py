@@ -160,7 +160,7 @@ def test_require_compat():
         ModuleNotFoundError,
         match="No module named '_test', required by genno.compat._test",
     ):
-        c._require_compat("_test")
+        c.require_compat("_test")
 
 
 def test_add():

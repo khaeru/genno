@@ -52,8 +52,8 @@ def test_require_compat():
     c = Computer()
     assert c.get_comp("as_pyam") is None
 
-    # _require_compat() loads it
-    c._require_compat("pyam")
+    # require_compat() loads it
+    c.require_compat("pyam")
     assert c.get_comp("as_pyam") is not None
 
 
