@@ -70,37 +70,7 @@ def add_large_data(c: Computer, num_params, N_dims=6):
     return keys
 
 
-def add_test_data(scen):
-    # New sets
-    t_foo = ["foo{}".format(i) for i in (1, 2, 3)]
-    t_bar = ["bar{}".format(i) for i in (4, 5, 6)]
-    t = t_foo + t_bar
-    y = list(map(str, range(2000, 2051, 10)))
-
-    # Add to scenario
-    scen.init_set("t")
-    scen.add_set("t", t)
-    scen.init_set("y")
-    scen.add_set("y", y)
-
-    # Data
-    ureg = pint.get_application_registry()
-    x = Quantity(
-        xr.DataArray(np.random.rand(len(t), len(y)), coords=[("t", t), ("y", y)]),
-        units=ureg.kg,
-    )
-
-    # As a pd.DataFrame with units
-    x_df = x.to_series().rename("value").reset_index()
-    x_df["unit"] = "kg"
-
-    scen.init_par("x", ["t", "y"])
-    scen.add_par("x", x_df)
-
-    return t, t_foo, t_bar, x
-
-
-def add_test_data2(c: Computer):
+def add_test_data(c: Computer):
     """:func:`add_test_data` operating on a Computer, not an ixmp.Scenario."""
     # TODO combine with add_dantzig(), below
     # New sets

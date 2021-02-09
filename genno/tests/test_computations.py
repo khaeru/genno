@@ -8,16 +8,16 @@ import xarray as xr
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
-from genno.testing import add_test_data2, assert_logs, assert_qty_equal, random_qty
+from genno.testing import add_test_data, assert_logs, assert_qty_equal, random_qty
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
 
 @pytest.fixture(scope="function")
 def data():
-    """Yields a computer, then the values of :func:`.add_test_data2`."""
+    """Yields a computer, then the values of :func:`.add_test_data`."""
     c = Computer()
-    yield [c] + list(add_test_data2(c))
+    yield [c] + list(add_test_data(c))
 
 
 @pytest.mark.parametrize(

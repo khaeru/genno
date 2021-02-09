@@ -18,7 +18,7 @@ from genno import (
 )
 from genno.testing import (
     add_dantzig,
-    add_test_data2,
+    add_test_data,
     assert_qty_allclose,
     assert_qty_equal,
 )
@@ -324,7 +324,7 @@ def test_apply():
 def test_add_product(ureg):
     c = Computer()
 
-    *_, x = add_test_data2(c)
+    *_, x = add_test_data(c)
 
     # add_product() works
     key = c.add_product("x squared", "x", "x", sums=True)
@@ -342,7 +342,7 @@ def test_add_product(ureg):
 def test_aggregate():
     c = Computer()
 
-    t, t_foo, t_bar, x = add_test_data2(c)
+    t, t_foo, t_bar, x = add_test_data(c)
 
     # Define some groups
     t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
@@ -630,7 +630,7 @@ def test_read_config(test_data_path, suffix):
 
 def test_visualize(tmp_path):
     c = Computer()
-    add_test_data2(c)
+    add_test_data(c)
 
     target = tmp_path / "visualize.png"
 
