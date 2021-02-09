@@ -1,6 +1,5 @@
 import logging
 from typing import Callable, Collection, Optional, Union
-from warnings import warn
 
 import pyam
 
@@ -17,17 +16,23 @@ __all__ = ["as_pyam", "concat", "write_report"]
 def as_pyam(
     scenario,
     quantity,
+    /,
     replace=dict(),
-    year_time_dim=None,
     rename=dict(),
     collapse: Optional[Callable] = None,
     drop: Union[Collection[str], str] = "auto",
     unit=None,
 ):
-    """Return a :class:`pyam.IamDataFrame` containing *quantity*.
+    """Return a :class:`pyam.IamDataFrame` containing `quantity`.
 
     Warnings are logged if the arguments result in additional, unhandled columns in the
     resulting data frame that are not part of the IAMC spec.
+
+    Parameters
+    ----------
+    scenario :
+        Any objects with :attr:`model` and :attr:`scenario` attributes of type
+        :class:`str`, e.g. :class:`ixmp.Scenario`.
 
     Raises
     ------
@@ -39,24 +44,6 @@ def as_pyam(
     --------
     .Computer.convert_pyam
     """
-    rename.update(
-        {
-            # TODO remove
-            # Renamed automatically for MESSAGEix
-            "n": "region",
-            "nl": "region",
-            # Column to set as year or time dimension
-            year_time_dim: "year" if year_time_dim.lower().startswith("y") else "time",
-        }
-    )
-
-    if len(replace) and not isinstance(next(iter(replace.values())), dict):
-        warn(
-            "replace must be nested dict(), e.g. dict(variable={repr(replace)})",
-            DeprecationWarning,
-        )
-        replace = dict(variable=replace)
-
     # - Convert to pd.DataFrame
     # - Rename one dimension to 'year' or 'time'
     # - Fill variable, unit, model, and scenario columns
