@@ -33,20 +33,21 @@ class Computer:
         Passed to :meth:`configure`.
     """
 
-    # TODO meet the requirements:
-    # A3iii. Interpolation.
-
-    #: A dask-format :doc:`graph <graphs>`.
+    #: A dask-format graph (see :doc:`1 <dask:graphs>`, :doc:`2 <dask:spec>`).
     graph: Dict[str, Any] = {"config": {}}
 
-    #: The default key to compute for :meth:`.get` with no argument.
+    #: The default key to :meth:`.get` with no argument.
     default_key = None
 
-    # An index of key names -> full keys
+    # An index of key names -> full keys.
     _index: Dict[str, Key] = {}
 
-    #: List of modules containing pre-defined computations. By default, this includes
-    #: the :mod:`genno` built-in computations in :mod:`genno.computations`.
+    #: List of modules containing pre-defined computations.
+    #:
+    #: By default, this includes the :mod:`genno` built-in computations in
+    #: :mod:`genno.computations`. :meth:`require_compat` appends additional modules,
+    #: e.g. #: :mod:`.compat.pyam.computations`, to this list. User code may also add
+    #: modules to this list.
     modules: Sequence[ModuleType] = [computations]
 
     def __init__(self, **kwargs):
@@ -76,7 +77,18 @@ class Computer:
         parse_config(self, config)
 
     def get_comp(self, name) -> Optional[Callable]:
-        """Return a computation with the given `name`, or :obj:`None`."""
+        """Return a computation function.
+
+        :meth:`get_comp` checks each of the :attr:`modules` for a function or callable
+        with the given `name`. Modules at the end of the list take precedence over those
+        earlier in the lists.
+
+        Returns
+        -------
+        .callable
+        None
+            If there is no computation with the given `name` in any of :attr:`modules`.
+        """
         for module in reversed(self.modules):
             try:
                 return getattr(module, name)
@@ -88,6 +100,8 @@ class Computer:
 
     def require_compat(self, pkg: str):
         """Load computations from ``genno.compat.{pkg}`` for use with :func:`.get_comp`.
+
+        The specified module is appended to :attr:`modules`.
 
         Raises
         ------
@@ -108,32 +122,14 @@ class Computer:
     def add(self, data, *args, **kwargs):
         """General-purpose method to add computations.
 
-        :meth:`add` can be called in several ways; its behaviour depends on
-        `data`; see below. It chains to methods such as :meth:`add_single`,
-        :meth:`add_queue`, and :meth:`apply`, which can also be called
-        directly.
-
-        Parameters
-        ----------
-        data, args : various
-
-        Other parameters
-        ----------------
-        sums : bool, optional
-            If :obj:`True`, all partial sums of the key `data` are also added
-            to the Computer.
+        :meth:`add` can be called in several ways; its behaviour depends on `data`; see
+        below. It chains to methods such as :meth:`add_single`, :meth:`add_queue`,
+        and/or :meth:`apply`; each can also be called directly.
 
         Returns
         -------
         list of Key-like
             Some or all of the keys added to the Computer.
-
-        Raises
-        ------
-        KeyError
-            If a target key is already in the Computer; any key referred to by
-            a computation does not exist; or ``sums=True`` and the key for one
-            of the partial sums of `key` is already in the Computer.
 
         See also
         ---------
@@ -192,32 +188,7 @@ class Computer:
             raise TypeError(data)
 
     def cache(self, func):
-        """Return a decorator to cache data.
-
-        Use this function to decorate another function to be added as the computation/
-        callable in a task:
-
-        .. code-block:: python
-
-           c = Computer(cache_path=Path("/some/directory"))
-
-           @c.cache
-           def myfunction(*args, **kwargs):
-               # Expensive operations, e.g. loading large files
-               return data
-
-           c.add("myvar", (myfunction,))
-
-           # Data is cached in /some/directory/myfunction-*.pkl
-
-        On the first call of :meth:`get` that invokes the decorated function (directly
-        or indirectly), the data requested is returned, but also cached in the cache
-        directory (see :ref:`Configuration → Caching <config-cache>`).
-
-        On subsequent calls, if the cache exists, it is used instead of calling the
-        (possibly slow) method; *unless* the *skip_cache* configuration option is
-        given, in which case it is loaded again.
-        """
+        """Return a decorator to cache data."""
         return make_cache_decorator(self, func)
 
     def add_queue(self, queue, max_tries=1, fail="raise"):
@@ -278,27 +249,30 @@ class Computer:
 
     # Generic graph manipulations
     def add_single(self, key, *computation, strict=False, index=False):
-        """Add a single *computation* at *key*.
+        """Add a single `computation` at `key`.
 
         Parameters
         ----------
         key : str or Key or hashable
-            A string, Key, or other value identifying the output of *task*.
+            A string, Key, or other value identifying the output of `computation`.
         computation : object
-            Any dask computation, i.e. one of:
-
-            1. any existing key in the Computer.
-            2. any other literal value or constant.
-            3. a task, i.e. a tuple with a callable followed by one or more
-               computations.
-            4. A list containing one or more of #1, #2, and/or #3.
-
+            Any computation. See :attr:`graph`.
         strict : bool, optional
-            If True, *key* must not already exist in the Computer, and any keys
-            referred to by *computation* must exist.
+            If True, `key` must not already exist in the Computer, and any keys
+            referred to by `computation` must exist.
         index : bool, optional
-            If True, *key* is added to the index as a full-resolution key, so it can be
+            If True, `key` is added to the index as a full-resolution key, so it can be
             later retrieved with :meth:`full_key`.
+
+        Raises
+        ------
+        KeyExistsError
+            If `strict` is :obj:`True` and either (a) `key` already exists; or (b)
+            `sums` is :obj:`True` and the key for one of the partial sums of `key`
+            already exists.
+        MissingKeyError
+            If `strict` is :obj:`True` and any key referred to by `computation` does
+            not exist.
         """
         if len(computation) == 1:
             # Unpack a length-1 tuple

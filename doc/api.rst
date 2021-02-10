@@ -22,44 +22,101 @@ Top-level classes and functions
 
 .. autoclass:: genno.Computer
    :members:
-   :exclude-members: add, add_load_file, apply, graph
+   :exclude-members: add, add_as_pyam, add_load_file, apply, cache, convert_pyam, graph
 
    A Computer is used to describe (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **tasks** stored in a :attr:`graph`.
+   Advanced users may manipulate the graph directly; but common reporting tasks can be handled by using Computer methods.
 
-   Advanced users may manipulate the graph directly; but common reporting tasks can be handled by using Computer methods:
+   Instance attributes:
+
+   .. autosummary::
+      default_key
+      graph
+      keys
+      modules
+      unit_registry
+
+   General-purpose methods for describing tasks and preparing computations:
 
    .. autosummary::
       add
-      add_file
-      add_product
       add_queue
       add_single
-      aggregate
       apply
+      cache
+      describe
+      visualize
+
+   Helper methods to simplify adding specific computations:
+
+   .. autosummary::
+      add_file
+      add_product
+      aggregate
+      convert_pyam
+      disaggregate
+
+   Exectuing tasks:
+
+   .. autosummary::
+      get
+      write
+
+   Utility and configuration methods:
+
+   .. autosummary::
       check_keys
       configure
-      convert_pyam
-      describe
-      disaggregate
       full_key
-      get
+      get_comp
       infer_keys
-      keys
-      visualize
-      write
+      require_compat
 
    .. autoattribute:: graph
 
+      Dictionary keys are either :class:`.Key`, :class:`str`, or any other hashable value.
+
+      Dictionary values are *computations*, one of:
+
+      1. Any other, existing key in the Computer. This functions as an alias.
+      2. Any other literal value or constant, to be returned directly.
+      3. A *task* :class:`tuple`: a callable (e.g. function), followed by zero
+         or more computations, e.g. keys for other tasks.
+      4. A :class:`list` containing zero or more of (1), (2), and/or (3).
+
+      :mod:`genno` reserves some keys for special usage:
+
+      ``"config"``
+         A :class:`dict` storing configuration settings.
+         See :doc:`config`.
+         Because this information is stored *in* the :attr:`graph`, it can be
+         used as one input to other computations.
+
+      Some inputs to tasks may be confused for (1) or (4), above.
+      The recommended way to protect these is:
+
+      - Literal :class:`str` inputs to tasks: use :func:`functools.partial` on the function that is the first element of the task tuple.
+
+      - :class:`list` of :class:`str`: use :func:`dask.core.quote` to wrap the list.
+
    .. automethod:: add
 
-      :meth:`add` may be called with:
+      The `data` argument may be:
 
-      - :class:`list` : `data` is a list of computations like ``[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]`` that are added one-by-one.
-      - the name of a function in :mod:`.computations` (e.g. 'select'): A computation is added with key ``args[0]``, applying the named function to ``args[1:]`` and `kwargs`.
-      - :class:`str`, the name of a :class:`Computer` method (e.g. 'apply'): the corresponding method (e.g. :meth:`apply`) is called with the `args` and `kwargs`.
-      - Any other :class:`str` or :class:`.Key`: the arguments are passed to :meth:`add_single`.
+      :class:`list`
+         A list of computations, like ``[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]`` → passed to :meth:`add_queue`.
 
-      :meth:`add` may also be used to:
+      :class:`str` naming a computation
+         e.g. "select", retrievable with :meth:`get_comp`.
+         :meth:`add_single` is called with ``(key=args[0], data, *args[1], **kwargs``, i.e. applying the named computation. to the other parameters.
+
+      :class:`str` naming another Computer method
+         e.g. :meth:`add_file` → the named method is called with the `args` and `kwargs`.
+
+      :class:`.Key` or other :class:`str`:
+         Passed to :meth:`add_single`.
+
+      :meth:`add` may be used to:
 
       - Provide an alias from one *key* to another:
 
@@ -78,34 +135,52 @@ Top-level classes and functions
         >>> rep.get('my report')
         foo
 
-      .. note::
-         Use care when adding literal ``str()`` values as a *computation*
-         argument for :meth:`add`; these may conflict with keys that
-         identify the results of other computations.
-
    .. automethod:: apply
 
       The `generator` may have a type annotation for Computer on its first positional argument.
-      In this case, a reference to the Computer is supplied, and `generator` may use the Computer methods to add computations:
+      In this case, a reference to the Computer is supplied, and `generator` can use the Computer methods to add many keys and computations:
 
       .. code-block:: python
 
-         def gen0(r: ixmp.Computer, **kwargs):
-             r.load_file('file0.txt', **kwargs)
-             r.load_file('file1.txt', **kwargs)
+         def my_gen0(c: genno.Computer, **kwargs):
+             c.load_file("file0.txt", **kwargs)
+             c.load_file("file1.txt", **kwargs)
 
          # Use the generator to add several computations
-         rep.apply(my_gen, units='kg')
+         rep.apply(my_gen0, units="kg")
 
       Or, `generator` may ``yield`` a sequence (0 or more) of (`key`, `computation`), which are added to the :attr:`graph`:
 
       .. code-block:: python
 
-         def gen1(**kwargs):
+         def my_gen1(**kwargs):
              op = partial(computations.load_file, **kwargs)
-             yield from (f'file:{i}', op, 'file{i}.txt') for i in range(2)
+             yield from (f"file:{i}", (op, "file{i}.txt")) for i in range(2)
 
-         rep.apply(my_gen, units='kg')
+         rep.apply(my_gen1, units="kg")
+
+   .. automethod:: cache
+
+      Use this function to decorate another function to be added as the computation/callable in a task:
+
+      .. code-block:: python
+
+         c = Computer(cache_path=Path("/some/directory"))
+
+         @c.cache
+         def myfunction(*args, **kwargs):
+             # Expensive operations, e.g. loading large files
+             return data
+
+         c.add("myvar", (myfunction,))
+
+         # Data is cached in /some/directory/myfunction-*.pkl
+
+      On the first call of :meth:`get` that invokes `func`, the data requested is returned, but also cached in the cache directory (see :ref:`Configuration → Caching <config-cache>`).
+
+      On subsequent calls, if the cache exists, it is used instead of calling the (possibly slow) `func`.
+
+      If the ``"cache_skip"`` configuration option is :obj:`True`, `func` is always called.
 
    .. automethod:: convert_pyam
 
