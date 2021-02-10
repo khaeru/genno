@@ -4,7 +4,18 @@ from dask.core import quote
 
 from genno import Key, Quantity
 from genno.testing import assert_logs
-from genno.util import collect_units, filter_concat_args, unquote
+from genno.util import (
+    clean_units,
+    collect_units,
+    filter_concat_args,
+    parse_units,
+    unquote,
+)
+
+
+@pytest.mark.parametrize("input, exp", (("[kg]", "kg"), ("%", "percent")))
+def test_clean_units(input, exp):
+    assert exp == clean_units(input)
 
 
 def test_collect_units(ureg):

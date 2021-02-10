@@ -11,8 +11,15 @@ from .core.key import Key
 log = logging.getLogger(__name__)
 
 
-#: Replacements to apply to quantity units before parsing by
+#: Replacements to apply to Quantity units before parsing by
 #: :doc:`pint <pint:index>`. Mapping from original unit -> preferred unit.
+#:
+#: The default values include:
+#:
+#: - The '%' symbol cannot be supported by pint, because it is a Python operator; it is
+#:   replaced with “percent”.
+#:
+#: Additional values can be added with :meth:`configure`; see :ref:`config-units`.
 REPLACE_UNITS = {
     "%": "percent",
 }
@@ -21,12 +28,8 @@ REPLACE_UNITS = {
 def clean_units(input_string):
     """Tolerate messy strings for units.
 
-    Handles two specific cases found in MESSAGEix test cases:
-
-    - Dimensions enclosed in '[]' have these characters stripped.
-    - The '%' symbol cannot be supported by pint, because it is a Python
-      operator; it is translated to 'percent'.
-
+    - Dimensions enclosed in “[]” have these characters stripped.
+    - Replacements from :data:`.REPLACE_UNITS` are applied.
     """
     input_string = input_string.strip("[]")
     for old, new in REPLACE_UNITS.items():
