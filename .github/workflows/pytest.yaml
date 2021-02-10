@@ -118,7 +118,7 @@ jobs:
 
     - name: Install Python package and dependencies
       working-directory: genno
-      run: pip install .[docs,tests]
+      run: pip install --editable .[docs,tests]
 
     - name: Run test suite using pytest
       working-directory: genno
