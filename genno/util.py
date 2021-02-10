@@ -1,6 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
+from typing import Iterable
 
 import pandas as pd
 import pint
@@ -64,64 +65,80 @@ def filter_concat_args(args):
         yield arg
 
 
-def parse_units(units_series):
-    """Return a :class:`pint.Unit` for a :class:`pd.Series` of strings."""
-    unit = pd.unique(units_series)
+def parse_units(data: Iterable, registry=None) -> pint.Unit:
+    """Return a :class:`pint.Unit` for an iterable of strings.
+
+    Valid unit expressions not already present in the `registry` are defined, e.g.:
+
+    .. code-block:: python
+
+       u = parse_units(["foo/bar", "foo/bar"], reg)
+
+    …results in the addition of unit definitions equivalent to:
+
+    .. code-block:: python
+
+       reg.define("foo = [foo]")
+       reg.define("bar = [bar]")
+       u = reg.foo / reg.bar
+
+    Raises
+    ------
+    ValueError
+        if `data` contains more than 1 unit expression, or the unit expression contains
+        characters not parseable by :mod:`pint`, e.g. ``-?$``.
+    """
+    registry = registry or pint.get_application_registry()
+
+    unit = pd.unique(data)
 
     if len(unit) > 1:
         raise ValueError(f"mixed units {list(unit)}")
 
-    registry = pint.get_application_registry()
+    try:
+        unit = clean_units(unit[0])
+    except IndexError:
+        # `units_series` is length 0 → no data → dimensionless
+        unit = registry.dimensionless
 
     # Helper method to return an intelligible exception
     def invalid(unit):
         chars = "".join(c for c in "-?$" if c in unit)
-        msg = (
-            f"unit {repr(unit)} cannot be parsed; contains invalid "
-            f"character(s) {repr(chars)}"
+        return ValueError(
+            f"unit {repr(unit)} cannot be parsed; contains invalid character(s) "
+            f"{repr(chars)}"
         )
-        return ValueError(msg)
-
-    # Helper method to add unit definitions
-    def define_unit_parts(expr):
-        # Split possible compound units
-        for part in expr.split("/"):
-            try:
-                registry.parse_units(part)
-            except pint.UndefinedUnitError:
-                # Part was unparseable; define it
-                definition = f"{part} = [{part}]"
-                log.info(f"Add unit definition: {definition}")
-
-                # This line will fail silently for parts like 'G$' containing
-                # characters like '$' that are discarded by pint
-                registry.define(definition)
 
     # Parse units
     try:
-        unit = clean_units(unit[0])
-        unit = registry.parse_units(unit)
-    except IndexError:
-        # Quantity has no unit
-        unit = registry.parse_units("")
+        return registry.Unit(unit)
     except pint.UndefinedUnitError:
         try:
             # Unit(s) do not exist; define them in the UnitRegistry
-            define_unit_parts(unit)
+            # TODO add global configuration to disable this feature.
+            # Split possible compound units
+            for part in unit.split("/"):
+                try:
+                    registry.Unit(part)
+                except pint.UndefinedUnitError:
+                    # Part was unparseable; define it
+                    definition = f"{part} = [{part}]"
+                    log.info(f"Add unit definition: {definition}")
+
+                    # This line will fail silently for parts like 'G$' containing
+                    # characters like '$' that are discarded by pint
+                    registry.define(definition)
 
             # Try to parse again
-            unit = registry.parse_units(unit)
+            return registry.Unit(unit)
         except (pint.UndefinedUnitError, pint.RedefinitionError):
-            # Handle the silent failure of define(), above; or
-            # define_unit_parts didn't work
+            # define() failed
             raise invalid(unit)
-    except AttributeError:
+    except (AttributeError, TypeError):
         # Unit contains a character like '-' that throws off pint
-        # NB this 'except' clause must be *after* UndefinedUnitError, since
-        #    that is a subclass of AttributeError.
+        # NB this 'except' clause must be *after* UndefinedUnitError, since that is a
+        #    subclass of AttributeError.
         raise invalid(unit)
-
-    return unit
 
 
 def partial_split(func, kwargs):
