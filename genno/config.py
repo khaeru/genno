@@ -2,7 +2,7 @@ import logging
 from copy import copy
 from functools import partial
 from pathlib import Path
-from typing import Callable, List, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Tuple
 
 import pint
 import yaml
@@ -15,7 +15,7 @@ from genno.util import REPLACE_UNITS
 log = logging.getLogger(__name__)
 
 #: Registry of configuration section handlers.
-HANDLERS = {}
+HANDLERS: Dict[str, Any] = {}
 
 #: Configuration sections/keys to be stored with no action.
 STORE = set(["cache_path", "cache_skip"])
@@ -52,7 +52,7 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
         called. If :obj:`False`, the data is retained and stored on the Computer.
     """
 
-    def wrapper(f):
+    def wrapper(f: Callable):
         if section_name in HANDLERS:
             log.debug(
                 f"Override handler {repr(HANDLERS[section_name])} for "
@@ -105,7 +105,7 @@ def parse_config(c: Computer, data: dict):
 
         if handler._iterate:
             if isinstance(section_data, dict):
-                iterator = section_data.items()
+                iterator: Iterable = section_data.items()
             elif isinstance(section_data, list):
                 iterator = section_data
             else:  # pragma: no cover
