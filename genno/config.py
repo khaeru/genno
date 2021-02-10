@@ -14,9 +14,10 @@ from genno.util import REPLACE_UNITS
 
 log = logging.getLogger(__name__)
 
+#: Registry of configuration section handlers.
 HANDLERS = {}
 
-# Keys to be stored with no action.
+#: Configuration sections/keys to be stored with no action.
 STORE = set(["cache_path", "cache_skip"])
 
 CALLBACKS: List[Callable] = []
@@ -28,28 +29,38 @@ def configure(path=None, **config):
     Modifies global variables that affect the behaviour of *all* Computers and
     computations.
 
-    Warns
-    -----
-    UserWarning
-        If *config* contains unrecognized keys.
+    Messages are logged at level :obj:`logging.WARNING` if `config` contains unhandled
+    sections.
 
-    See also
-    --------
-    :doc:`config`
     """
     if path:
         config["path"] = path
     parse_config(None, config)
 
 
-def handles(section_name, type_=list, keep=False, apply=True):
-    """Decorator for a configuration section handler."""
+def handles(section_name: str, iterate: bool = True, discard: bool = True):
+    """Decorator to register a configuration section handler in :data:`HANDLERS`.
+
+    Parameters
+    ----------
+    iterate : bool, optional
+        If :obj:`True`, the handler is called once for each item (either list item, or
+        (key, value) tuple) in the section. If :obj:`False`, the entire section
+        contents, of whatever type, are passed to tha handler.
+    discard : bool, optional
+        If :obj:`True`, configuration section data is discarded after the handler is
+        called. If :obj:`False`, the data is retained and stored on the Computer.
+    """
 
     def wrapper(f):
+        if section_name in HANDLERS:
+            log.debug(
+                f"Override handler {repr(HANDLERS[section_name])} for "
+                f" '{section_name}:'"
+            )
         HANDLERS[section_name] = f
-        setattr(f, "expected_type", type_)
-        setattr(f, "keep_data", keep)
-        setattr(f, "apply", apply)
+        setattr(f, "_iterate", iterate)
+        setattr(f, "_discard", discard)
         return f
 
     return wrapper
@@ -76,12 +87,12 @@ def parse_config(c: Computer, data: dict):
             # Early add to the graph
             c.graph["config"]["config_dir"] = path.parent
 
-    to_pop = set()
+    # Sections to discard, e.g. with handler._store = False
+    discard = set()
 
     for section_name, section_data in data.items():
-        try:
-            handler = HANDLERS[section_name]
-        except KeyError:
+        handler = HANDLERS.get(section_name)
+        if not handler:
             if section_name not in STORE:
                 log.warning(
                     f"No handler for configuration section {repr(section_name)}; "
@@ -89,24 +100,22 @@ def parse_config(c: Computer, data: dict):
                 )
             continue
 
-        if not handler.keep_data:
-            to_pop.add(section_name)
+        if handler._discard:
+            discard.add(section_name)
 
-        if handler.apply is False:
+        if handler._iterate:
+            if isinstance(section_data, dict):
+                iterator = section_data.items()
+            elif isinstance(section_data, list):
+                iterator = section_data
+            else:  # pragma: no cover
+                raise NotImplementedError(handler.expected_type)
+            queue.extend((("apply", handler), dict(info=item)) for item in iterator)
+        else:
             handler(c, section_data)
-        elif handler.expected_type is list:
-            queue.extend(
-                (("apply", handler), dict(info=entry)) for entry in section_data
-            )
-        elif handler.expected_type is dict:
-            queue.extend(
-                (("apply", handler), dict(info=entry)) for entry in data.items()
-            )
-        else:  # pragma: no cover
-            raise NotImplementedError(handler.expected_type)
 
-    for key in to_pop:
-        data.pop(key)
+    for section_name in discard:
+        data.pop(section_name)
 
     # Also add the callbacks to the queue
     queue.extend((("apply", cb), {}) for cb in CALLBACKS)
@@ -141,7 +150,7 @@ def aggregate(c: Computer, info):
         log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
 
 
-@handles("alias", dict)
+@handles("alias")
 def alias(c: Computer, info):
     """Handle one entry from the ``alias:`` config section."""
     c.add(info[0], info[1])
@@ -182,7 +191,7 @@ def combine(c: Computer, info):
     log.debug(f"    {repr(quantities)}")
 
 
-@handles("default", apply=False)
+@handles("default", iterate=False)
 def default(c: Computer, info):
     """Handle the ``default:`` config section."""
     c.default_key = info
@@ -240,7 +249,7 @@ def report(c: Computer, info):
     c.add(info["key"], tuple([c.get_comp("concat")] + info["members"]), strict=True)
 
 
-@handles("units", apply=False)
+@handles("units", iterate=False)
 def units(c: Computer, info):
     """Handle the ``units:`` config section."""
 
