@@ -1,7 +1,6 @@
 import re
 
 import pandas as pd
-import pint
 import pytest
 from dask.core import quote
 

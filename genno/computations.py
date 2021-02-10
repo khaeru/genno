@@ -188,11 +188,11 @@ def combine(*quantities, select=None, weights=None):  # noqa: F811
     *quantities : Quantity
         The quantities to be added.
     select : list of dict
-        Elements to be selected from each quantity. Must have the same number
-        of elements as `quantities`.
+        Elements to be selected from each quantity. Must have the same number of
+        elements as `quantities`.
     weights : list of float
-        Weight applied to each quantity. Must have the same number of elements
-        as `quantities`.
+        Weight applied to each quantity. Must have the same number of elements as
+        `quantities`.
 
     Raises
     ------

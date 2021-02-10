@@ -132,12 +132,21 @@ def test_broadcast_map(ureg, map_values, kwarg):
 def test_combine(ureg, data):
     *_, t_bar, x = data
 
+    # Without select, preserves the "t" dimension
+    result = computations.combine(x, x, x, weights=(-1, 0.2, 0.8))
+
+    assert ("t", "y") == result.dims
+    assert 36 == result.size
+    assert all(1e-15 > result.to_series().values)
+
+    # With select, the selected values are summed along the "t" dimension
     result = computations.combine(
         x, x, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1)
     )
 
     assert ("y",) == result.dims
-    assert all(0 == result.to_series().values)
+    assert 6 == result.size
+    assert all(1e-15 > result.to_series().values)
 
     # Incompatible units raises ValueError
     x2 = Quantity(x, units=ureg.metre)
@@ -147,39 +156,6 @@ def test_combine(ureg, data):
         computations.combine(
             x, x2, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1)
         )
-
-
-@pytest.mark.skip(reason="TODO incorporate from message_data")
-def test_combine2():
-    from functools import partial
-
-    import pandas as pd
-
-    from genno.computations import combine
-
-    c = Computer()
-
-    # Add data to the Reporter
-    foo = ["foo1", "foo2"]
-    bar = ["bar1", "bar2"]
-
-    a = pd.Series(
-        [1, 2, 3, 4],
-        index=pd.MultiIndex.from_product([foo, bar], names=["foo", "bar"]),
-    )
-    b = pd.Series(
-        [10, 20, 30, 40],
-        index=pd.MultiIndex.from_product([bar, foo], names=["bar", "foo"]),
-    )
-    c = pd.Series([100, 200], index=pd.Index(foo, name="foo"))
-
-    c.add("a", Quantity(a))
-    c.add("b", Quantity(b))
-    c.add("c", Quantity(c))
-
-    c.add("d", (partial(combine, weights=[0.5, 1, 2]), "a", "b", "c"))
-
-    assert c.get("d").loc[("foo2", "bar1")] == 3 * 0.5 + 20 * 1 + 200 * 2
 
 
 def test_concat(data):
