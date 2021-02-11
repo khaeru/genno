@@ -674,7 +674,7 @@ class Computer:
         if not multi_arg:
             quantities = [quantities]
 
-        if "replace" in kwargs and not isinstance(
+        if len(kwargs.get("replace", {})) and not isinstance(
             next(iter(kwargs["replace"].values())), dict
         ):
             warn(
