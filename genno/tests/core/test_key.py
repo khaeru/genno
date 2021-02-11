@@ -25,3 +25,8 @@ def test_key():
 
     # Key with name and tag but no dimensions
     assert Key("foo", tag="baz") == "foo::baz"
+
+
+def test_gt():
+    """Test :meth:`Key.__gt__`."""
+    assert Key("foo:a-b-d") > "foo:a-b-c"
