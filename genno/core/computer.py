@@ -677,11 +677,11 @@ class Computer:
         if len(kwargs.get("replace", {})) and not isinstance(
             next(iter(kwargs["replace"].values())), dict
         ):
+            kwargs["replace"] = dict(variable=kwargs.pop("replace"))
             warn(
-                "replace must be nested dict(), e.g. dict(variable={repr(replace)})",
+                f"replace must be nested dict(), e.g. {repr(kwargs['replace'])}",
                 DeprecationWarning,
             )
-            kwargs["replace"] = dict(variable=kwargs.pop("replace"))
 
         # Check keys
         quantities = self.check_keys(*quantities)

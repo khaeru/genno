@@ -210,6 +210,20 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     assert_series_equal(df4["value"], df5["value"] / 100.0)
 
 
+def test_convert_pyam_deprecated():
+    c = Computer()
+
+    c.add("foo", None)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match=re.escape(
+            "replace must be nested dict(), e.g. {'variable': {'bar': 'baz'}}"
+        ),
+    ):
+        c.convert_pyam("foo", replace=dict(bar="baz"))
+
+
 def test_concat(dantzig_computer):
     """pyam.computations.concat() passes through to base concat()."""
     c = dantzig_computer
