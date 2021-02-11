@@ -20,8 +20,6 @@ HANDLERS: Dict[str, Any] = {}
 #: Configuration sections/keys to be stored with no action.
 STORE = set(["cache_path", "cache_skip"])
 
-CALLBACKS: List[Callable] = []
-
 
 def configure(path=None, **config):
     """Configure :mod:`genno` globally.
@@ -116,9 +114,6 @@ def parse_config(c: Computer, data: dict):
 
     for section_name in discard:
         data.pop(section_name)
-
-    # Also add the callbacks to the queue
-    queue.extend((("apply", cb), {}) for cb in CALLBACKS)
 
     if c:
         # Use Computer.add_queue() to process the entries.
