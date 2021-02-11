@@ -184,9 +184,7 @@ def test_add():
 
     def msg(*keys):
         """Return a regex for str(MissingKeyError(*keys))."""
-        return f"required keys {repr(tuple(keys))} not defined".replace(
-            "(", "\\("
-        ).replace(")", "\\)")
+        return re.escape(f"required keys {repr(tuple(keys))} not defined")
 
     # One missing key
     with pytest.raises(MissingKeyError, match=msg("b")):
