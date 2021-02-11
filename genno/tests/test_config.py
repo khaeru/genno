@@ -1,8 +1,11 @@
+import logging
+import re
+
 import pytest
 
 from genno import Computer, Key, configure
 from genno.compat.pyam import HAS_PYAM
-from genno.config import HANDLERS
+from genno.config import HANDLERS, handles
 
 
 def test_handlers():
@@ -47,3 +50,24 @@ def test_global(test_data_path):
         RuntimeError, match="Cannot apply non-global configuration without a Computer"
     ):
         configure(path=test_data_path / "config-global.yaml")
+
+
+def test_handles(caplog):
+    """:func:`handles` raises a warning when used twice."""
+    caplog.set_level(logging.DEBUG)
+
+    @handles("foo")
+    def foo1(c: Computer, info):
+        pass
+
+    assert len(caplog.messages) == 0
+
+    @handles("foo")
+    def foo2(c: Computer, info):
+        pass
+
+    assert 1 == len(caplog.messages)
+    assert re.match(
+        "Override handler <function test_handles.<locals>.foo1 [^>]*> for  'foo:'",
+        caplog.messages[0],
+    )
