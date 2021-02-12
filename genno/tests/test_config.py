@@ -58,13 +58,13 @@ def test_handles(caplog):
 
     @handles("foo")
     def foo1(c: Computer, info):
-        pass
+        """Test function; never executed."""
 
     assert len(caplog.messages) == 0
 
     @handles("foo")
     def foo2(c: Computer, info):
-        pass
+        """Test function; never executed."""
 
     assert 1 == len(caplog.messages)
     assert re.match(
