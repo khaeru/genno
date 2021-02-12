@@ -6,12 +6,13 @@ log = logging.getLogger(__name__)
 
 
 class ComputationError(Exception):
-    """Wrapper to print intelligible exception information for Computer.get().
+    """Wrapper to print intelligible exception information for :meth:`.get`.
 
     In order to aid in debugging, this helper:
-    - Omits the parts of the stack trace that are internal to dask, and
-    - Gives the key in the Computer.graph and the computation task that
-      caused the exception.
+
+    - Omits the parts of the stack trace that are internal to :mod:`dask`, and
+    - Gives the key in the :attr:`.Computer.graph` and the computation/task that caused
+      the exception.
     """
 
     def __init__(self, exc):
@@ -20,9 +21,9 @@ class ComputationError(Exception):
     def __str__(self):
         """String representation.
 
-        Most exception handling (Python, IPython, Jupyter) will print the
-        traceback that led to *self* (i.e. the call to :meth:`.Computer.get`),
-        followed by the string returned by this method.
+        Most exception handling (Python, IPython, Jupyter) will print the traceback that
+        led to `self` (i.e. the call to :meth:`.Computer.get`), followed by the string
+        returned by this method.
         """
         try:
             return self._format()
@@ -56,11 +57,15 @@ class ComputationError(Exception):
 
 
 class KeyExistsError(KeyError):
+    """Raised by :meth:`.Computer.add` when the target key exists."""
+
     def __str__(self):
         return f"key {repr(self.args[0])} already exists"
 
 
 class MissingKeyError(KeyError):
+    """Raised by :meth:`.Computer.add` when a required input key is missing."""
+
     def __str__(self):
         return f"required keys {repr(self.args)} not defined"
 
