@@ -9,6 +9,23 @@ What's new
 Next release
 ============
 
+- Adjust for usage by :mod:`ixmp.reporting` and :mod:`message_ix.reporting` (:pull:`28`):
+
+  - Reduce minimum Python version to 3.6.
+    This is lower than the minimum version for xarray (3.7), but matches ixmp, etc.
+  - Remove :mod:`compat.ixmp`; this code has been moved to :mod:`ixmp.reporting`, replacing what was there.
+    Likewise, remove :mod:`compat.message_ix`.
+  - Simplify the form & parsing of ``iamc:`` section entries in configuration files:
+
+    - Remove unused feature to add :func:`group_sum` to the chain of tasks.
+    - Keys now conform more closely to the arguments of :meth:`Computer.convert_pyam`.
+
+  - Move argument-checking from :func:`.as_pyam` to :meth:`.convert_pyam()`.
+  - Simplify semantics of :func:`genno.config.handles` decorator.
+     Remove ``CALLBACKS`` feature, for now.
+  - :meth:`Computer.get_comp` and :meth:`.require_compat` are now public methods.
+  - Expand tests.
+
 - Protect :class:`.Computer` configuration from :func:`dask.optimization.cull`; this prevents infinite recursion if the configuration contains strings matching keys in the graph. Add :func:`.unquote` (:issue:`25`, :pull:`26`).
 - Simplify :func:`.collect_units` and improve unit handling in :func:`.ratio`  (:issue:`25`, :pull:`26`).
 - Add file-based caching via :meth:`.Computer.cache` and :mod:`genno.caching` (:issue:`20`, :pull:`24`).
