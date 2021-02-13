@@ -8,16 +8,16 @@ import xarray as xr
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
-from genno.testing import add_test_data2, assert_logs, assert_qty_equal, random_qty
+from genno.testing import add_test_data, assert_logs, assert_qty_equal, random_qty
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
 
 @pytest.fixture(scope="function")
 def data():
-    """Yields a computer, then the values of :func:`.add_test_data2`."""
+    """Yields a computer, then the values of :func:`.add_test_data`."""
     c = Computer()
-    yield [c] + list(add_test_data2(c))
+    yield [c] + list(add_test_data(c))
 
 
 @pytest.mark.parametrize(
@@ -132,12 +132,21 @@ def test_broadcast_map(ureg, map_values, kwarg):
 def test_combine(ureg, data):
     *_, t_bar, x = data
 
+    # Without select, preserves the "t" dimension
+    result = computations.combine(x, x, x, weights=(-1, 0.2, 0.8))
+
+    assert ("t", "y") == result.dims
+    assert 36 == result.size
+    assert all(1e-15 > result.to_series().values)
+
+    # With select, the selected values are summed along the "t" dimension
     result = computations.combine(
         x, x, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1)
     )
 
     assert ("y",) == result.dims
-    assert all(0 == result.to_series().values)
+    assert 6 == result.size
+    assert all(1e-15 > result.to_series().values)
 
     # Incompatible units raises ValueError
     x2 = Quantity(x, units=ureg.metre)

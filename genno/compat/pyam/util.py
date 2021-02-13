@@ -1,5 +1,5 @@
 import logging
-from typing import Collection, Dict, Union
+from typing import Collection, Mapping, Sequence, Union
 
 import pandas as pd
 import pint
@@ -39,7 +39,7 @@ def clean_units(df: pd.DataFrame, unit=None) -> pd.DataFrame:
 
 
 def collapse(
-    df: pd.DataFrame, columns: Dict[str, str] = dict(), sep="|"
+    df: pd.DataFrame, columns: Mapping[str, Sequence[str]] = dict(), sep="|"
 ) -> pd.DataFrame:
     """Collapse `columns` into the IAMC columns of `df`."""
     to_drop = set()
@@ -56,8 +56,9 @@ def collapse(
             else:
                 entries.append(pd.Series(str(v), index=df.index))
 
-        if target_col not in df:
-            # Initialize with first entry
+        if target_col not in df or df[target_col].isna().all():
+            # df doesn't contain the column, or all entries are None, e.g. if
+            # quantity.name was not set. Initialize with first entry.
             df[target_col] = entries.pop(0)
 
         df[target_col] = df[target_col].str.cat(entries, sep=sep)
@@ -65,20 +66,22 @@ def collapse(
     return df.drop(to_drop, axis=1)
 
 
+def _extra(obj):
+    """Extra columns in `obj`."""
+    return sorted(set(obj.columns) - IAMC_IDX - {"value"})
+
+
 def drop(df: pd.DataFrame, columns: Union[Collection[str], str]) -> pd.DataFrame:
     """Drop `columns` if given, or all non-IAMC columns."""
-
-    def _extra():
-        return sorted(set(df.columns) - IAMC_IDX - {"value"})
 
     if isinstance(columns, str):
         if columns != "auto":
             raise ValueError(columns)
         # Drop all non-IAMC columns
-        return df.drop(_extra(), axis=1)
+        return df.drop(_extra(df), axis=1)
     else:
         result = df.drop(columns, axis=1)
-        extra = _extra()
+        extra = _extra(result)
         if extra:
             log.info(f"Extra columns {repr(extra)} when converting to IAMC format")
         return result

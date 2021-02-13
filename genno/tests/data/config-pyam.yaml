@@ -4,7 +4,6 @@ iamc:
   select:
     a: [a1, a3]
     c: [c1, c3]
-  year_time_dim: y
+  rename: {y: year}
   drop: [d]
-  group_sum: [e, f]
   unit: tonne

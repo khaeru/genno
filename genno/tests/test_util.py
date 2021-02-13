@@ -1,10 +1,23 @@
+import re
+
 import pandas as pd
 import pytest
 from dask.core import quote
 
 from genno import Key, Quantity
 from genno.testing import assert_logs
-from genno.util import collect_units, filter_concat_args, unquote
+from genno.util import (
+    clean_units,
+    collect_units,
+    filter_concat_args,
+    parse_units,
+    unquote,
+)
+
+
+@pytest.mark.parametrize("input, exp", (("[kg]", "kg"), ("%", "percent")))
+def test_clean_units(input, exp):
+    assert exp == clean_units(input)
 
 
 def test_collect_units(ureg):
@@ -31,6 +44,37 @@ def test_filter_concat_args(caplog):
         )
 
     assert len(result) == 1
+
+
+msg = "unit '{}' cannot be parsed; contains invalid character(s) '{}'"
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    (
+        # Mixed units
+        (["kg", "km"], (ValueError, re.escape("mixed units ['kg', 'km']"))),
+        (["kg", "kg"], "kg"),
+        # Units with / are defined
+        (["foo/bar"], "foo/bar"),
+        # Dimensionless
+        ([], "dimensionless"),
+        # Invalid characters, alone or with prefix
+        (["_?"], (ValueError, re.escape(msg.format("_?", "?")))),
+        (["E$"], (ValueError, re.escape(msg.format("E$", "$")))),
+        (["kg-km"], (ValueError, re.escape(msg.format("kg-km", "-")))),
+    ),
+    ids=lambda argvalue: repr(argvalue),
+)
+def test_parse_units(ureg, input, expected):
+    if isinstance(expected, str):
+        # Expected to work
+        result = parse_units(input, ureg)
+        assert ureg.parse_units(expected) == result
+    else:
+        # Expected to raise an exception
+        with pytest.raises(expected[0], match=expected[1]):
+            parse_units(pd.Series(input))
 
 
 @pytest.mark.parametrize(

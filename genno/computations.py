@@ -14,6 +14,7 @@ from .core.quantity import Quantity, assert_quantity
 from .util import collect_units, filter_concat_args
 
 __all__ = [
+    "add",
     "aggregate",
     "apply_units",
     "broadcast_map",
@@ -67,45 +68,6 @@ def add(*quantities, fill_value=0.0):
     return result
 
 
-def apply_units(qty, units, quiet=False):
-    """Simply apply *units* to *qty*.
-
-    Logs on level ``WARNING`` if *qty* already has existing units.
-
-    Parameters
-    ----------
-    qty : .Quantity
-    units : str or pint.Unit
-        Units to apply to *qty*
-    quiet : bool, optional
-        If :obj:`True` log on level ``DEBUG``.
-    """
-    registry = pint.get_application_registry()
-
-    existing = qty.attrs.get("_unit", None)
-    existing_dims = getattr(existing, "dimensionality", {})
-    new_units = registry.parse_units(units)
-
-    if len(existing_dims):
-        # Some existing dimensions: log a message either way
-        if existing_dims == new_units.dimensionality:
-            log.debug(f"Convert '{existing}' to '{new_units}'")
-            # NB use a factor because pint.Quantity cannot wrap AttrSeries
-            factor = registry.Quantity(1.0, existing).to(new_units).magnitude
-            result = qty * factor
-        else:
-            msg = f"Replace '{existing}' with incompatible '{new_units}'"
-            log.warning(msg)
-            result = qty.copy()
-    else:
-        # No units, or dimensionless
-        result = qty.copy()
-
-    result.attrs["_unit"] = new_units
-
-    return result
-
-
 def aggregate(quantity, groups, keep):
     """Aggregate *quantity* by *groups*.
 
@@ -154,6 +116,45 @@ def aggregate(quantity, groups, keep):
     return quantity
 
 
+def apply_units(qty, units, quiet=False):
+    """Simply apply *units* to *qty*.
+
+    Logs on level ``WARNING`` if *qty* already has existing units.
+
+    Parameters
+    ----------
+    qty : .Quantity
+    units : str or pint.Unit
+        Units to apply to *qty*
+    quiet : bool, optional
+        If :obj:`True` log on level ``DEBUG``.
+    """
+    registry = pint.get_application_registry()
+
+    existing = qty.attrs.get("_unit", None)
+    existing_dims = getattr(existing, "dimensionality", {})
+    new_units = registry.parse_units(units)
+
+    if len(existing_dims):
+        # Some existing dimensions: log a message either way
+        if existing_dims == new_units.dimensionality:
+            log.debug(f"Convert '{existing}' to '{new_units}'")
+            # NB use a factor because pint.Quantity cannot wrap AttrSeries
+            factor = registry.Quantity(1.0, existing).to(new_units).magnitude
+            result = qty * factor
+        else:
+            msg = f"Replace '{existing}' with incompatible '{new_units}'"
+            log.warning(msg)
+            result = qty.copy()
+    else:
+        # No units, or dimensionless
+        result = qty.copy()
+
+    result.attrs["_unit"] = new_units
+
+    return result
+
+
 def broadcast_map(quantity, map, rename={}, strict=False):
     """Broadcast `quantity` using a `map`.
 
@@ -187,11 +188,11 @@ def combine(*quantities, select=None, weights=None):  # noqa: F811
     *quantities : Quantity
         The quantities to be added.
     select : list of dict
-        Elements to be selected from each quantity. Must have the same number
-        of elements as `quantities`.
+        Elements to be selected from each quantity. Must have the same number of
+        elements as `quantities`.
     weights : list of float
-        Weight applied to each quantity. Must have the same number of elements
-        as `quantities`.
+        Weight applied to each quantity. Must have the same number of elements as
+        `quantities`.
 
     Raises
     ------
@@ -264,6 +265,82 @@ def group_sum(qty, group, sum):
         *[values.sum(dim=[sum]) for _, values in qty.groupby(group)],
         dim=group,
     )
+
+
+def load_file(path, dims={}, units=None, name=None):
+    """Read the file at *path* and return its contents as a :class:`.Quantity`.
+
+    Some file formats are automatically converted into objects for direct use
+    in genno computations:
+
+    :file:`.csv`:
+       Converted to :class:`.Quantity`. CSV files must have a 'value' column;
+       all others are treated as indices, except as given by `dims`. Lines
+       beginning with '#' are ignored.
+
+    Parameters
+    ----------
+    path : pathlib.Path
+        Path to the file to read.
+    dims : collections.abc.Collection or collections.abc.Mapping, optional
+        If a collection of names, other columns besides these and 'value' are
+        discarded. If a mapping, the keys are the column labels in `path`, and
+        the values are the target dimension names.
+    units : str or pint.Unit
+        Units to apply to the loaded Quantity.
+    name : str
+        Name for the loaded Quantity.
+    """
+    # TODO optionally cache: if the same Computer is used repeatedly, then the file will
+    #      be read each time; instead cache the contents in memory.
+    if path.suffix == ".csv":
+        data = pd.read_csv(path, comment="#")
+
+        # Index columns
+        index_columns = data.columns.tolist()
+        index_columns.remove("value")
+
+        try:
+            # Retrieve the unit column from the file
+            units_col = data.pop("unit").unique()
+            index_columns.remove("unit")
+        except KeyError:
+            pass  # No such column; use None or argument value
+        else:
+            # Use a unique value for units of the quantity
+            if len(units_col) > 1:
+                raise ValueError(
+                    f"Cannot load {path} with non-unique units " + repr(units_col)
+                )
+            elif units and units not in units_col:
+                raise ValueError(
+                    f"Explicit units {units} do not match " f"{units_col[0]} in {path}"
+                )
+            units = units_col[0]
+
+        if len(dims):
+            # Use specified dimensions
+            if not isinstance(dims, Mapping):
+                # Convert a list, set, etc. to a dict
+                dims = {d: d for d in dims}
+
+            # - Drop columns not mentioned in *dims*
+            # - Rename columns according to *dims*
+            data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
+                columns=dims
+            )
+            index_columns = list(dims.values())
+
+        return Quantity(data.set_index(index_columns)["value"], units=units, name=name)
+    elif path.suffix in (".xls", ".xlsx"):
+        # TODO define expected Excel data input format
+        raise NotImplementedError  # pragma: no cover
+    elif path.suffix == ".yaml":
+        # TODO define expected YAML data input format
+        raise NotImplementedError  # pragma: no cover
+    else:
+        # Default
+        return open(path).read()
 
 
 def product(*quantities):
@@ -358,83 +435,6 @@ def sum(quantity, weights=None, dimensions=None):
     result.attrs["_unit"] = collect_units(quantity)[0]
 
     return result
-
-
-# Input and output
-def load_file(path, dims={}, units=None, name=None):
-    """Read the file at *path* and return its contents as a :class:`.Quantity`.
-
-    Some file formats are automatically converted into objects for direct use
-    in genno computations:
-
-    :file:`.csv`:
-       Converted to :class:`.Quantity`. CSV files must have a 'value' column;
-       all others are treated as indices, except as given by `dims`. Lines
-       beginning with '#' are ignored.
-
-    Parameters
-    ----------
-    path : pathlib.Path
-        Path to the file to read.
-    dims : collections.abc.Collection or collections.abc.Mapping, optional
-        If a collection of names, other columns besides these and 'value' are
-        discarded. If a mapping, the keys are the column labels in `path`, and
-        the values are the target dimension names.
-    units : str or pint.Unit
-        Units to apply to the loaded Quantity.
-    name : str
-        Name for the loaded Quantity.
-    """
-    # TODO optionally cache: if the same Computer is used repeatedly, then the file will
-    #      be read each time; instead cache the contents in memory.
-    if path.suffix == ".csv":
-        data = pd.read_csv(path, comment="#")
-
-        # Index columns
-        index_columns = data.columns.tolist()
-        index_columns.remove("value")
-
-        try:
-            # Retrieve the unit column from the file
-            units_col = data.pop("unit").unique()
-            index_columns.remove("unit")
-        except KeyError:
-            pass  # No such column; use None or argument value
-        else:
-            # Use a unique value for units of the quantity
-            if len(units_col) > 1:
-                raise ValueError(
-                    f"Cannot load {path} with non-unique units " + repr(units_col)
-                )
-            elif units and units not in units_col:
-                raise ValueError(
-                    f"Explicit units {units} do not match " f"{units_col[0]} in {path}"
-                )
-            units = units_col[0]
-
-        if len(dims):
-            # Use specified dimensions
-            if not isinstance(dims, Mapping):
-                # Convert a list, set, etc. to a dict
-                dims = {d: d for d in dims}
-
-            # - Drop columns not mentioned in *dims*
-            # - Rename columns according to *dims*
-            data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
-                columns=dims
-            )
-            index_columns = list(dims.values())
-
-        return Quantity(data.set_index(index_columns)["value"], units=units, name=name)
-    elif path.suffix in (".xls", ".xlsx"):
-        # TODO define expected Excel data input format
-        raise NotImplementedError  # pragma: no cover
-    elif path.suffix == ".yaml":
-        # TODO define expected YAML data input format
-        raise NotImplementedError  # pragma: no cover
-    else:
-        # Default
-        return open(path).read()
 
 
 def write_report(quantity, path):

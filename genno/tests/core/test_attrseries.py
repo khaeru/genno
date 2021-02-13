@@ -39,6 +39,9 @@ def test_squeeze(foo):
     ):
         foo.squeeze(dim="b")
 
+    with pytest.raises(KeyError, match="c"):
+        foo.squeeze(dim="c")
+
 
 def test_sum(foo, bar):
     # AttrSeries can be summed across all dimensions

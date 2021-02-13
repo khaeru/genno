@@ -1,4 +1,5 @@
 import logging
+import re
 from functools import partial
 
 import numpy as np
@@ -18,7 +19,7 @@ from genno import (
 )
 from genno.testing import (
     add_dantzig,
-    add_test_data2,
+    add_test_data,
     assert_qty_allclose,
     assert_qty_equal,
 )
@@ -124,9 +125,9 @@ def test_get():
     assert c.get() == 42
 
 
-def test_get_comp():
+def testget_comp():
     # Invalid name for a function returns None
-    assert Computer()._get_comp(42) is None
+    assert Computer().get_comp(42) is None
 
 
 def test_infer_keys():
@@ -160,7 +161,7 @@ def test_require_compat():
         ModuleNotFoundError,
         match="No module named '_test', required by genno.compat._test",
     ):
-        c._require_compat("_test")
+        c.require_compat("_test")
 
 
 def test_add():
@@ -183,9 +184,7 @@ def test_add():
 
     def msg(*keys):
         """Return a regex for str(MissingKeyError(*keys))."""
-        return f"required keys {repr(tuple(keys))} not defined".replace(
-            "(", "\\("
-        ).replace(")", "\\)")
+        return re.escape(f"required keys {repr(tuple(keys))} not defined")
 
     # One missing key
     with pytest.raises(MissingKeyError, match=msg("b")):
@@ -253,7 +252,11 @@ def test_add_queue(caplog):
     # Failures without raising an exception
     c.add(queue, max_tries=3, fail=logging.INFO)
     assert "Failed 3 times to add:" in caplog.messages
-    assert "    with MissingKeyError('foo-3')" in caplog.messages
+
+    # NB the following works in Python >= 3.7, but not 3.6, where it ends ",)"
+    # assert "    with MissingKeyError('foo-3')" in caplog.messages
+    expr = re.compile(r"    with MissingKeyError\('foo-3',?\)")
+    assert any(expr.match(m) for m in caplog.messages)
 
 
 def test_apply():
@@ -324,7 +327,7 @@ def test_apply():
 def test_add_product(ureg):
     c = Computer()
 
-    *_, x = add_test_data2(c)
+    *_, x = add_test_data(c)
 
     # add_product() works
     key = c.add_product("x squared", "x", "x", sums=True)
@@ -342,7 +345,7 @@ def test_add_product(ureg):
 def test_aggregate():
     c = Computer()
 
-    t, t_foo, t_bar, x = add_test_data2(c)
+    t, t_foo, t_bar, x = add_test_data(c)
 
     # Define some groups
     t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
@@ -630,7 +633,7 @@ def test_read_config(test_data_path, suffix):
 
 def test_visualize(tmp_path):
     c = Computer()
-    add_test_data2(c)
+    add_test_data(c)
 
     target = tmp_path / "visualize.png"
 

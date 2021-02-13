@@ -8,6 +8,7 @@ As shown in :ref:`Concepts and usage <describe-tasks>`, a :class:`.Computer` can
 
 .. contents::
    :local:
+   :depth: 2
    :backlinks: none
 
 Overview
@@ -73,8 +74,8 @@ Global- and specific configuration
 ----------------------------------
 
 Configuration is either **global** or **specific** to a certain Computer.
-For instance, :ref:`config-units` configuration is global; it affects all Computers, and can be set using either :func:`genno.configure` or :meth:`.Computer.configure`
-On the other hand, other configuration such as :ref:`config-files` adds specific tasks to a Computer, so it can only be used with :meth:`.Computer.configure`.
+For instance, :ref:`config-units` configuration is global; it affects all Computers, and can be set using either :func:`genno.configure` or :meth:`.Computer.configure`.
+On the other hand, other configuration such as :ref:`config-files` adds tasks to a specific Computer, so it can only be set using :meth:`.Computer.configure`.
 
 .. autofunction:: genno.configure
 
@@ -84,7 +85,7 @@ Custom handlers
 The configuration file is divided into **sections**.
 Generally each section contains a list of items, and each item is itself a mapping; see the built-in sections listed below.
 :mod:`.genno.config` has one **handler** function for each section, and is extensible.
-For instance, the genno compatibility modules for :ref:`ixmp <config-ixmp>` and :ref:`pyam <config-pyam>` define handlers for sections ``rename_dims:`` and ``iamc:``, respectively.
+For instance, the genno compatibility module for :ref:`pyam <config-pyam>` defines a handler for the section ``iamc:``; or the separate package :mod:`ixmp` defines a handler for the sections ``filters:`` and ``rename_dims:``.
 
 The :func:`.handles` decorator can be used to mark a custom function that handles a custom configuration section:
 
@@ -124,6 +125,10 @@ The :func:`.handles` decorator can be used to mark a custom function that handle
 
 .. autofunction:: handles
 
+.. autodata:: HANDLERS
+
+.. autodata:: STORE
+
 Specific sections
 =================
 
@@ -137,14 +142,20 @@ Computer-specific configuration.
 Invokes :meth:`.Computer.aggregate` add tasks with :func:`.computations.aggregate` or :func:`.computations.sum`, computing sums across labels within one dimension of a quantity.
 Each entry contains:
 
-- **_quantities**: list of 0 or more keys of Quantities to be aggregated.
-  The full dimensionality of the key(s) is inferred.
-- **_tag** (:class:`str`): new tag to append to the keys for the aggregated quantities.
-- **_dim** (:class:`str`): dimensions on which to aggregate.
+``_quantities:`` list of 0 or more keys
+   Quantities to be aggregated.
+   The full dimensionality of the key(s) is inferred.
+``_tag:`` (:class:`str`)
+   New tag to append to the keys for the aggregated quantities.
+``_dim:`` (:class:`str`)
+   Dimensions on which to aggregate.
 
-All other keys are treated as group names; the corresponding values are lists of labels along the dimension to sum.
+Note the leading underscores.
+This is to distinguish these from all other keys, which are treated as group names.
+The corresponding values are lists of labels along the dimension to sum.
 
-**Example:**
+Example
+~~~~~~~
 
 .. code-block:: yaml
 
@@ -182,8 +193,11 @@ Caching
 
 Computer-specific configuration that controls the behaviour of functions decorated with :meth:`.Computer.cache`.
 
-- **cache_path** (:class:`pathlib.Path`, optional): base path for cache files. If not provided, defaults to the current working directory.
-- **cache_skip** (:class:`bool`, optional): If :obj:`True`, existing cache files are never used; files with the same cache key are overwritten.
+``cache_path:`` (:class:`pathlib.Path`, optional)
+   Base path for cache files.
+   If not provided, defaults to the current working directory.
+``cache_skip:`` (:class:`bool`, optional)
+   If :obj:`True`, existing cache files are never used; files with the same cache key are overwritten.
 
 
 ``combine:``
@@ -196,18 +210,26 @@ Computer-specific configuration.
 Invokes :meth:`.Computer.add_combination` to add tasks with :func:`computations.combine`, computing a weighted sum of multiple Quantities.
 Each item contains:
 
-- **key**: key for the new quantity, including dimensionality.
-- **inputs**: a list of dicts specifying inputs to the weighted sum.
-  Each dict contains:
+``key:``
+   Key for the new quantity, including dimensionality.
+``inputs:`` (:class:`list` of :class:`dict`)
+   Inputs to the weighted sum.
+   Each dict contains:
 
-  - **quantity** (required): key for the input quantity.
-    :meth:`.add_combination` infers the proper dimensionality from the dimensions of `key` plus dimension to `select` on.
-  - **select** (:class:`dict`, optional): selectors to be applied to the input quantity.
-    Keys are dimensions; values are either single labels, or lists of labels.
-    In the latter case, the sum is taken across these values, so that the result has the same dimensionality as `key`.
-  - **weight** (:class:`int`, optional): weight for the input quantity; default 1.
+  ``quantity:`` (required)
+     Key for the input quantity.
+     :meth:`.add_combination` infers the proper dimensionality from the dimensions of `key` plus dimension to `select` on.
+  ``select:`` (:class:`dict`, optional)
+     Selectors to be applied to the input quantity.
+     Keys are dimensions; values are either single labels, or lists of labels.
+     In the latter case, the sum is taken across these values, so that the result has the same dimensionality as `key`.
+  ``weight:`` (:class:`int`, optional)
+     Weight for the input quantity; default 1.
 
-**Example.** For the following YAML:
+Example
+~~~~~~~
+
+For the following YAML:
 
 .. code-block:: yaml
 
@@ -247,7 +269,7 @@ This sets :attr:`.Computer.default_key`, used when :meth:`.get` is called withou
 Computer-specific configuration.
 
 Invokes :meth:`.Computer.add_file` to add :func:`.computations.load_file`.
-If the **path** key is a relative path, it is resolved relative to the directory that contains the configuration file, else the current working directory.
+If the ``path:`` key is a relative path, it is resolved relative to the directory that contains the configuration file, else the current working directory.
 
 .. code-block:: yaml
 
@@ -273,12 +295,18 @@ Computer-specific configuration.
 This is, as the name implies, the most generalized section.
 Each item contains:
 
-- **comp**: this refers to the name of a computation that is available in the namespace of :mod:`genno.computations`, or custom computations registered by compatibility modules or third-party packages.
+``comp:``
+  Refers to the name of a computation that is available in the namespace of :mod:`genno.computations`, or custom computations registered by compatibility modules or third-party packages.
+  See :meth:`Computer.add` and :meth:`Computer.get_comp`.
   E.g. if "product", then :meth:`.Computer.add_product` is called, which also automatically infers the correct dimensions for each input.
-- **key**: the key for the computed quantity.
-- **inputs**: a list of keys to which the computation is applied.
-- **args** (:class:`dict`, optional): keyword arguments to the computation.
-- **add args** (:class:`dict`, optional): keyword arguments to :meth:`.Computer.add` itself.
+``key:``
+   The key for the computed quantity.
+``inputs:``
+   A list of keys to which the computation is applied.
+``args:`` (:class:`dict`, optional)
+   Keyword arguments to the computation.
+``add args:`` (:class:`dict`, optional)
+   Keyword arguments to :meth:`.Computer.add` itself.
 
 
 ``report:``
@@ -289,7 +317,9 @@ Each item contains:
 Computer-specific configuration.
 
 A ‘report’ is a concatenation of 1 or more other quantities.
-Example:
+
+Example
+~~~~~~~
 
 .. code-block:: yaml
 
@@ -309,11 +339,12 @@ Global configuration.
 
 Sub-keys:
 
-- **replace** (mapping of str -> str): replace units before they are
-  parsed by :doc:`pint <pint:index>`. Added to :obj:`.REPLACE_UNITS`.
-- **define** (:class:`str`): block of unit definitions, added to the
-  :mod:`pint` application registry so that units are recognized. See
-  the pint :ref:`documentation on defining units <pint:defining>`.
+``replace:`` (mapping of str -> str)
+  Replace units before they are parsed by :doc:`pint <pint:index>`.
+  Added to :obj:`.REPLACE_UNITS`.
+``define:`` (:class:`str`)
+  Multi-line block of unit definitions, added to the :mod:`pint` application registry so that units are recognized.
+  See the pint :ref:`documentation on defining units <pint:defining>`.
 
 .. code-block:: yaml
 

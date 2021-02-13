@@ -23,7 +23,7 @@ jobs:
         - ubuntu-latest
         - windows-latest
         python-version:
-        - "3.7"  # Earliest version supported by genno; matches xarray
+        - "3.6"  # Earliest version supported by genno; matches xarray
         - "3.8"  # Latest version testable on GitHub Actions
 
         # For development versions of Python, compiled binary wheels are not
@@ -37,7 +37,7 @@ jobs:
         # This job triggers error when importing ixmp.testing: no module named
         # ixmp.backend. Not critical, since it's upstream.
         - os: windows-latest
-          python-version: "3.7"
+          python-version: "3.6"
 
       fail-fast: false
 
@@ -118,11 +118,11 @@ jobs:
 
     - name: Install Python package and dependencies
       working-directory: genno
-      run: pip install .[docs,tests]
+      run: pip install --editable .[docs,tests]
 
     - name: Run test suite using pytest
       working-directory: genno
-      run: pytest genno --trace-config --verbose --cov-report=xml --color=yes
+      run: pytest genno --trace-config --verbose --cov-report=xml --cov-report=term --color=yes
 
     - name: Test documentation build using Sphinx
       if: ${{ startsWith(matrix.os, 'ubuntu') }}

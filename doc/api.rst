@@ -3,7 +3,12 @@ API reference
 
 .. currentmodule:: genno
 
-Top-level methods and classes:
+.. contents::
+   :local:
+   :depth: 3
+
+Top-level classes and functions
+===============================
 
 .. autosummary::
 
@@ -12,76 +17,106 @@ Top-level methods and classes:
    Key
    Quantity
 
-Others:
-
-.. contents::
-   :local:
-   :depth: 3
-
 .. autofunction:: configure
    :noindex:
 
 .. autoclass:: genno.Computer
    :members:
-   :exclude-members: graph, add, add_load_file, apply
+   :exclude-members: add, add_as_pyam, add_load_file, apply, cache, convert_pyam, graph
 
-   A Computer is used to postprocess data from from one or more
-   :class:`ixmp.Scenario` objects. The :meth:`get` method can be used to:
+   A Computer is used to describe (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **tasks** stored in a :attr:`graph`.
+   Advanced users may manipulate the graph directly; but common reporting tasks can be handled by using Computer methods.
 
-   - Retrieve individual **quantities**. A quantity has zero or more
-     dimensions and optional units. Quantities include the ‘parameters’,
-     ‘variables’, ‘equations’, and ‘scalars’ available in an
-     :class:`ixmp.Scenario`.
+   Instance attributes:
 
-   - Generate an entire **report** composed of multiple quantities. A report
-     may:
+   .. autosummary::
+      default_key
+      graph
+      keys
+      modules
+      unit_registry
 
-       - Read in non-model or exogenous data,
-       - Trigger output to files(s) or a database, or
-       - Execute user-defined methods.
-
-   Every report and quantity (including the results of intermediate steps) is
-   identified by a :class:`.Key`; all the keys in a Computer can be listed with
-   :meth:`keys`.
-
-   Computer uses a :doc:`graph <graphs>` data structure to keep track of
-   **computations**, the atomic steps in postprocessing: for example, a single
-   calculation that multiplies two quantities to create a third. The graph
-   allows :meth:`get` to perform *only* the requested computations. Advanced
-   users may manipulate the graph directly; but common reporting tasks can be
-   handled by using Computer methods:
+   General-purpose methods for describing tasks and preparing computations:
 
    .. autosummary::
       add
-      add_file
-      add_product
       add_queue
       add_single
-      aggregate
       apply
+      cache
+      describe
+      visualize
+
+   Helper methods to simplify adding specific computations:
+
+   .. autosummary::
+      add_file
+      add_product
+      aggregate
+      convert_pyam
+      disaggregate
+
+   Exectuing tasks:
+
+   .. autosummary::
+      get
+      write
+
+   Utility and configuration methods:
+
+   .. autosummary::
       check_keys
       configure
-      convert_pyam
-      describe
-      disaggregate
       full_key
-      get
-      keys
-      visualize
-      write
+      get_comp
+      infer_keys
+      require_compat
 
    .. autoattribute:: graph
 
+      Dictionary keys are either :class:`.Key`, :class:`str`, or any other hashable value.
+
+      Dictionary values are *computations*, one of:
+
+      1. Any other, existing key in the Computer. This functions as an alias.
+      2. Any other literal value or constant, to be returned directly.
+      3. A *task* :class:`tuple`: a callable (e.g. function), followed by zero
+         or more computations, e.g. keys for other tasks.
+      4. A :class:`list` containing zero or more of (1), (2), and/or (3).
+
+      :mod:`genno` reserves some keys for special usage:
+
+      ``"config"``
+         A :class:`dict` storing configuration settings.
+         See :doc:`config`.
+         Because this information is stored *in* the :attr:`graph`, it can be
+         used as one input to other computations.
+
+      Some inputs to tasks may be confused for (1) or (4), above.
+      The recommended way to protect these is:
+
+      - Literal :class:`str` inputs to tasks: use :func:`functools.partial` on the function that is the first element of the task tuple.
+
+      - :class:`list` of :class:`str`: use :func:`dask.core.quote` to wrap the list.
+
    .. automethod:: add
 
-      :meth:`add` may be called with:
+      The `data` argument may be:
 
-      - :class:`list` : `data` is a list of computations like ``[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]`` that are added one-by-one.
-      - the name of a function in :mod:`.computations` (e.g. 'select'): A computation is added with key ``args[0]``, applying the named function to ``args[1:]`` and `kwargs`.
-      - :class:`str`, the name of a :class:`Computer` method (e.g. 'apply'): the corresponding method (e.g. :meth:`apply`) is called with the `args` and `kwargs`.
-      - Any other :class:`str` or :class:`.Key`: the arguments are passed to :meth:`add_single`.
+      :class:`list`
+         A list of computations, like ``[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]`` → passed to :meth:`add_queue`.
 
-      :meth:`add` may also be used to:
+      :class:`str` naming a computation
+         e.g. "select", retrievable with :meth:`get_comp`.
+         :meth:`add_single` is called with ``(key=args[0], data, *args[1], **kwargs``, i.e. applying the named computation. to the other parameters.
+
+      :class:`str` naming another Computer method
+         e.g. :meth:`add_file` → the named method is called with the `args` and `kwargs`.
+
+      :class:`.Key` or other :class:`str`:
+         Passed to :meth:`add_single`.
+
+      :meth:`add` may be used to:
 
       - Provide an alias from one *key* to another:
 
@@ -100,47 +135,97 @@ Others:
         >>> rep.get('my report')
         foo
 
-      .. note::
-         Use care when adding literal ``str()`` values as a *computation*
-         argument for :meth:`add`; these may conflict with keys that
-         identify the results of other computations.
-
    .. automethod:: apply
 
       The `generator` may have a type annotation for Computer on its first positional argument.
-      In this case, a reference to the Computer is supplied, and `generator` may use the Computer methods to add computations:
+      In this case, a reference to the Computer is supplied, and `generator` can use the Computer methods to add many keys and computations:
 
       .. code-block:: python
 
-         def gen0(r: ixmp.Computer, **kwargs):
-             r.load_file('file0.txt', **kwargs)
-             r.load_file('file1.txt', **kwargs)
+         def my_gen0(c: genno.Computer, **kwargs):
+             c.load_file("file0.txt", **kwargs)
+             c.load_file("file1.txt", **kwargs)
 
          # Use the generator to add several computations
-         rep.apply(my_gen, units='kg')
+         rep.apply(my_gen0, units="kg")
 
       Or, `generator` may ``yield`` a sequence (0 or more) of (`key`, `computation`), which are added to the :attr:`graph`:
 
       .. code-block:: python
 
-         def gen1(**kwargs):
+         def my_gen1(**kwargs):
              op = partial(computations.load_file, **kwargs)
-             yield from (f'file:{i}', op, 'file{i}.txt') for i in range(2)
+             yield from (f"file:{i}", (op, "file{i}.txt")) for i in range(2)
 
-         rep.apply(my_gen, units='kg')
+         rep.apply(my_gen1, units="kg")
+
+   .. automethod:: cache
+
+      Use this function to decorate another function to be added as the computation/callable in a task:
+
+      .. code-block:: python
+
+         c = Computer(cache_path=Path("/some/directory"))
+
+         @c.cache
+         def myfunction(*args, **kwargs):
+             # Expensive operations, e.g. loading large files
+             return data
+
+         c.add("myvar", (myfunction,))
+
+         # Data is cached in /some/directory/myfunction-*.pkl
+
+      On the first call of :meth:`get` that invokes `func`, the data requested is returned, but also cached in the cache directory (see :ref:`Configuration → Caching <config-cache>`).
+
+      On subsequent calls, if the cache exists, it is used instead of calling the (possibly slow) `func`.
+
+      If the ``"cache_skip"`` configuration option is :obj:`True`, `func` is always called.
+
+   .. automethod:: convert_pyam
+
+      The :pyam:doc:`IAMC data format <data>` includes columns named 'Model', 'Scenario', 'Region', 'Variable', 'Unit'; one of 'Year' or 'Time'; and 'value'.
+
+      Using :meth:`convert_pyam`:
+
+      - 'Model' and 'Scenario' are populated from the attributes of the object returned by the Reporter key ``scenario``;
+      - 'Variable' contains the name(s) of the `quantities`;
+      - 'Unit' contains the units associated with the `quantities`; and
+      - 'Year' or 'Time' is created according to `year_time_dim`.
+
+      A callback function (`collapse`) can be supplied that modifies the data before it is converted to an :class:`~pyam.IamDataFrame`; for instance, to concatenate extra dimensions into the 'Variable' column.
+      Other dimensions can simply be dropped (with `drop`).
+      Dimensions that are not collapsed or dropped will appear as additional columns in the resulting :class:`~pyam.IamDataFrame`; this is valid, but non-standard IAMC data.
+
+      For example, here the values for the MESSAGEix ``technology`` and ``mode`` dimensions are appended to the 'Variable' column:
+
+      .. code-block:: python
+
+          def m_t(df):
+              """Callback for collapsing ACT columns."""
+              # .pop() removes the named column from the returned row
+              df['variable'] = 'Activity|' + df['t'] + '|' + df['m']
+              return df
+
+          ACT = rep.full_key('ACT')
+          keys = rep.convert_pyam(ACT, 'ya', collapse=m_t, drop=['t', 'm'])
+
+
+
 
 .. autoclass:: genno.Key
    :members:
 
-   Quantities in a :class:`Scenario` can be indexed by one or more dimensions.
+   Quantities are indexed by 0 or more dimensions.
    A Key refers to a quantity using three components:
 
    1. a string :attr:`name`,
    2. zero or more ordered :attr:`dims`, and
    3. an optional :attr:`tag`.
 
-   For example, an ixmp parameter with three dimensions can be initialized
-   with:
+   For example, quantity with three dimensions:
+
+   # FIXME
 
    >>> scenario.init_par('foo', ['a', 'b', 'c'], ['apple', 'bird', 'car'])
 
@@ -149,13 +234,10 @@ Others:
    - in its full resolution, i.e. indexed by a, b, and c:
 
      >>> k1 = Key('foo', ['a', 'b', 'c'])
-     >>> k1 == 'foo:a-b-c'
-     True
+     >>> k1
+     <foo:a-b-c>
 
-     Notice that a Key has the same hash, and compares equal (`==`) to its ``str()``.
-
-   - in a partial sum over one dimension, e.g. summed along c with dimensions
-     a and b:
+   - in a partial sum over one dimension, e.g. summed across dimension c, with  remaining dimensions a and b:
 
      >>> k2 = k1.drop('c')
      >>> k2 == 'foo:a-b'
@@ -166,22 +248,36 @@ Others:
      >>> k1.drop('a', 'c') == k2.drop('a') == 'foo:b'
      True
 
-   .. note::
-        Some remarks:
+   - after it has been manipulated by other computations, e.g.
 
-        - ``repr(key)`` prints the Key in angle brackets ('<>') to signify it is a Key object.
+     >>> k3 = k1.add_tag('normalized')
+     >>> k3
+     <foo:a-b-c:normalized>
+     >>> k4 = k3.add_tag('rescaled')
+     >>> k4
+     <foo:a-b-c:normalized+rescaled>
 
-          >>> repr(k1)
-          <foo:a-b-c>
+   **Notes:**
 
-        - Keys are *immutable*: the properties :attr:`name`, :attr:`dims`, and :attr:`tag` are read-only, and the methods :meth:`append`, :meth:`drop`, and :meth:`add_tag` return *new* Key objects.
+   A Key has the same hash, and compares equal to its :class:`str` representation.
+   ``repr(key)`` prints the Key in angle brackets ('<>') to signify that it is a Key object.
 
-        - Keys may be generated concisely by defining a convenience method:
+   >>> str(k1)
+   'foo:a-b-c'
+   >>> repr(k1)
+   '<foo:a-b-c>'
+   >>> hash(k1) == hash('foo:a-b-c')
+   True
 
-          >>> def foo(dims):
-          >>>     return Key('foo', dims.split())
-          >>> foo('a b c')
-          foo:a-b-c
+   Keys are **immutable**: the properties :attr:`name`, :attr:`dims`, and :attr:`tag` are *read-only*, and the methods :meth:`append`, :meth:`drop`, and :meth:`add_tag` return *new* Key objects.
+
+   Keys may be generated concisely by defining a convenience method:
+
+   >>> def foo(dims):
+   >>>     return Key('foo', dims.split())
+   >>> foo('a b c')
+   <foo:a-b-c>
+
 
 .. autodata:: genno.Quantity(data, *args, **kwargs)
    :annotation:
@@ -202,7 +298,7 @@ Common :mod:`genno` usage, e.g. in :mod:`message_ix`, creates large, sparse data
 - Currently, Quantity is :class:`.AttrSeries`, a wrapped :class:`pandas.Series` that behaves like a :class:`~xarray.DataArray`.
 - In the future, :mod:`genno` will use :class:`.SparseDataArray`, and eventually :class:`~xarray.DataArray` backed by sparse data, directly.
 
-The goal is that reporting code, including built-in and user computations, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
+The goal is that all :mod:`genno`-based code, including built-in and user computations, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
 
 
 Computations
@@ -215,13 +311,18 @@ Computations
    :class:`Quantity <genno.utils.Quantity>` objects for data
    arguments/return values.
 
+   Genno's :ref:`compatibility modules <compat>` each provide additional computations.
+
    Calculations:
 
    .. autosummary::
       add
       aggregate
       apply_units
+      broadcast_map
+      combine
       disaggregate_shares
+      group_sum
       product
       ratio
       select

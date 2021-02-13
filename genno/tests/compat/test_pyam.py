@@ -50,11 +50,11 @@ def dantzig_computer(test_data_path, scenario, ureg):
 def test_require_compat():
     # New object does not understand "as_pyam" as the name of a computation
     c = Computer()
-    assert c._get_comp("as_pyam") is None
+    assert c.get_comp("as_pyam") is None
 
-    # _require_compat() loads it
-    c._require_compat("pyam")
-    assert c._get_comp("as_pyam") is not None
+    # require_compat() loads it
+    c.require_compat("pyam")
+    assert c.get_comp("as_pyam") is not None
 
 
 def test_config(test_data_path):
@@ -75,7 +75,7 @@ def test_as_pyam(dantzig_computer, scenario):
     qty = c.get(c.full_key("ACT"))
 
     # Call as_pyam() with an empty quantity
-    p = computations.as_pyam(scenario, qty[0:0], year_time_dim="ya")
+    p = computations.as_pyam(scenario, qty[0:0], rename=dict(nl="region", ya="year"))
     assert isinstance(p, pyam.IamDataFrame)
 
     input = Quantity(
@@ -86,7 +86,7 @@ def test_as_pyam(dantzig_computer, scenario):
     )
 
     with pytest.raises(ValueError, match="Duplicate IAMC indices cannot be converted"):
-        computations.as_pyam(scenario, input, year_time_dim="year")
+        computations.as_pyam(scenario, input)
 
 
 def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
@@ -99,9 +99,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     # Add a computation that converts ACT to a pyam.IamDataFrame
     # NB drop={} is provided to mimic the test in message_ix and allow the log assertion
     #    below to work
+    rename = dict(nl="region", ya="year")
     c.add(
         "ACT IAMC",
-        (partial(computations.as_pyam, year_time_dim="ya", drop={}), "scenario", ACT),
+        (partial(computations.as_pyam, rename=rename, drop=["yv"]), "scenario", ACT),
     )
 
     # Result is an IamDataFrame
@@ -115,11 +116,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     assert idf1["variable"].unique() == "ACT"
 
     # Warning was logged because of extra columns
-    # NB level is INFO here vs. WARNING in message_ix
     assert (
         "genno.compat.pyam.util",
         logging.INFO,
-        "Extra columns ['h', 'm', 't', 'yv'] when converting to IAMC format",
+        "Extra columns ['h', 'm', 't'] when converting to IAMC format",
     ) in caplog.record_tuples
 
     # Repeat, using the convert_pyam() convenience function
@@ -129,12 +129,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
         return df.drop(["t", "m"], axis=1)
 
     # Use the convenience function to add the node
-    keys = c.convert_pyam(ACT, "ya", collapse=add_tm)
+    key2 = c.convert_pyam(ACT, rename=rename, collapse=add_tm)
 
     # Keys of added node(s) are returned
-    assert len(keys) == 1
-    key2, *_ = keys
-    assert key2 == ACT.name + ":iamc"
+    assert ACT.name + ":iamc" == key2
 
     caplog.clear()
 
@@ -181,13 +179,11 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     c.write(ACT, tmp_path / "ACT.csv")
 
     # Use a name map to replace variable names
-    # NB r"" is used here because regex=True is always used, unlike in message_ix
-    c.add("activity variables", {r"Activity\|canning_plant\|production": "Foo"})
+    replacements = {re.escape("Activity|canning_plant|production"): "Foo"}
     key3 = c.convert_pyam(
-        ACT, "ya", replace_vars="activity variables", collapse=add_tm
-    ).pop()
-    with pytest.deprecated_call():
-        df3 = c.get(key3).as_pandas()
+        ACT, rename=rename, replace=dict(variable=replacements), collapse=add_tm
+    )
+    df3 = c.get(key3).as_pandas()
 
     # Values are the same; different names
     exp = df2[df2.variable == "Activity|canning_plant|production"][
@@ -197,19 +193,35 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
 
     # Now convert variable cost
     cb = partial(add_tm, name="Variable cost")
-    key4 = c.convert_pyam("var_cost", "ya", collapse=cb).pop()
+    key4 = c.convert_pyam("var_cost", rename=rename, collapse=cb)
     df4 = c.get(key4).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
     assert all(df4["unit"] == "USD / case")
 
     # Also change units
-    key5 = c.convert_pyam("var_cost", "ya", collapse=cb, unit="centiUSD / case").pop()
+    key5 = c.convert_pyam(
+        "var_cost", rename=rename, collapse=cb, unit="centiUSD / case"
+    )
     df5 = c.get(key5).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
     assert all(df5["unit"] == "centiUSD / case")
     assert_series_equal(df4["value"], df5["value"] / 100.0)
+
+
+def test_convert_pyam_deprecated():
+    c = Computer()
+
+    c.add("foo", None)
+
+    with pytest.warns(
+        DeprecationWarning,
+        match=re.escape(
+            "replace must be nested dict(), e.g. {'variable': {'bar': 'baz'}}"
+        ),
+    ):
+        c.convert_pyam("foo", replace=dict(bar="baz"))
 
 
 def test_concat(dantzig_computer):
