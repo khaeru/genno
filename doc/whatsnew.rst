@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.0.0 (2021-02-13)
+===================
 
 - Adjust for usage by :mod:`ixmp.reporting` and :mod:`message_ix.reporting` (:pull:`28`):
 
