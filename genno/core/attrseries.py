@@ -13,13 +13,12 @@ class AttrSeries(pd.Series):
     Parameters
     ----------
     units : str or pint.Unit, optional
-        Set the units attribute. The value is converted to :class:`pint.Unit`
-        and added to `attrs`.
+        Set the units attribute. The value is converted to :class:`pint.Unit` and added
+        to `attrs`.
     attrs : :class:`~collections.abc.Mapping`, optional
-        Set the :attr:`~pandas.Series.attrs` of the AttrSeries. This attribute
-        was added in `pandas 1.0
-        <https://pandas.pydata.org/docs/whatsnew/v1.0.0.html>`_, but is not
-        currently supported by the Series constructor.
+        Set the :attr:`~pandas.Series.attrs` of the AttrSeries. This attribute was added
+        in `pandas 1.0 <https://pandas.pydata.org/docs/whatsnew/v1.0.0.html>`_, but is
+        not currently supported by the Series constructor.
     """
 
     # See https://pandas.pydata.org/docs/development/extending.html
@@ -42,12 +41,18 @@ class AttrSeries(pd.Series):
             # Extract name from existing object or use the argument
             name = ibase.maybe_extract_name(name, data, type(self))
 
-            # Pre-convert to pd.Series from xr.DataArray to preserve names and
-            # labels. For AttrSeries, this is a no-op (see below).
-            data = data.to_series()
+            try:
+                # Pre-convert to pd.Series from xr.DataArray to preserve names and
+                # labels. For AttrSeries, this is a no-op (see below).
+                data = data.to_series()
+            except ValueError:
+                if data.shape == tuple():
+                    # data is a scalar/0-dimensional xr.DataArray. Pass the 1 value
+                    data = data.data
+                else:
+                    raise
 
-        # Don't pass attrs to pd.Series constructor; it currently does not
-        # accept them
+        # Don't pass attrs to pd.Series constructor; it currently does not accept them
         super().__init__(data, *args, name=name, **kwargs)
 
         # Update the attrs after initialization
@@ -187,10 +192,42 @@ class AttrSeries(pd.Series):
     def align_levels(self, other):
         """Work around https://github.com/pandas-dev/pandas/issues/25760.
 
-        Return a copy of *obj* with common levels in the same order as *ref*.
+        Return a copy of `self` with common levels in the same order as `other`.
         """
-        if not isinstance(self.index, pd.MultiIndex):
-            return self
-        common = [n for n in other.index.names if n in self.index.names]
-        unique = [n for n in self.index.names if n not in common]
-        return self.reorder_levels(common + unique)
+        # Lists of common dimensions, and dimensions on `other` missing from `self`.
+        common, missing = [], []
+        for (i, n) in enumerate(other.index.names):
+            if n in self.index.names:
+                common.append(n)
+            else:
+                missing.append((i, n))
+
+        result = self
+        if len(common) == 0:
+            # Broadcast over missing dimensions
+            # TODO make this more efficient, e.g. using itertools.product()
+            for i, dim in missing:
+                result = pd.concat(
+                    {v: result for v in other.index.get_level_values(i)}, names=dim
+                )
+
+            if len(self) == len(self.index.names) == 1:
+                # concat() of scalars (= length-1 pd.Series) results in an innermost
+                # index level filled with int(0); discard this
+                result = result.droplevel(-1)
+
+            # Reordering starts with the dimensions of `other`
+            order = list(other.index.names)
+        else:
+            # Some common dimensions exist; no need to broadcast, only reorder
+            order = common
+
+        # Append the dimensions of `self`
+        order.extend(
+            filter(
+                lambda n: n is not None and n not in other.index.names, self.index.names
+            )
+        )
+
+        # Reorder, if that would do anything
+        return result.reorder_levels(order) if len(order) > 1 else result
