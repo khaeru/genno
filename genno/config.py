@@ -240,7 +240,7 @@ def general(c: Computer, info):
 
         added = c.add(key, task, strict=True, index=True, sums=info.get("sums", False))
 
-        if isinstance(added, list):
+        if isinstance(added, tuple):
             log.info(f"    + {len(added)-1} partial sums")
 
 
