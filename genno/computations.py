@@ -22,6 +22,7 @@ __all__ = [
     "disaggregate_shares",
     "group_sum",
     "load_file",
+    "pow",
     "product",
     "ratio",
     "select",
@@ -356,8 +357,46 @@ def load_file(path, dims={}, units=None, name=None):
         return open(path).read()
 
 
+def pow(a, b):
+    """Compute `a` raised to the power of `b`.
+
+    .. todo:: Provide units on the result in the special case where `b` is a Quantity
+       but all its values are the same :class:`int`.
+
+    Returns
+    -------
+    .Quantity
+        If `b` is :class:`int`, then the quantity has the units of `a` raised to this
+        power; e.g. "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
+        units, so the returned quantity is dimensionless.
+    """
+    if isinstance(b, int):
+        unit_exponent = b
+        b = Quantity(float(b))
+    else:
+        unit_exponent = 0
+
+    u_a, u_b = collect_units(a, b)
+
+    if not u_b.dimensionless:
+        raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
+
+    if Quantity.CLASS == "AttrSeries":
+        result = a ** b.align_levels(a)
+    else:
+        result = a ** b
+
+    result.attrs["_unit"] = (
+        a.attrs["_unit"] ** unit_exponent
+        if unit_exponent
+        else pint.get_application_registry().dimensionless
+    )
+
+    return result
+
+
 def product(*quantities):
-    """Return the product of any number of *quantities*."""
+    """Compute the product of any number of *quantities*."""
     # Iterator over (quantity, unit) tuples
     items = zip(quantities, collect_units(*quantities))
 
@@ -379,7 +418,7 @@ def product(*quantities):
 
 
 def ratio(numerator, denominator):
-    """Return the ratio *numerator* / *denominator*.
+    """Compute the ratio `numerator` / `denominator`.
 
     Parameters
     ----------

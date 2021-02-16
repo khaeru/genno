@@ -221,6 +221,42 @@ def test_load_file(test_data_path, ureg, name, kwargs):
     assert ureg.kilometre == qty.attrs["_unit"]
 
 
+def test_pow(ureg):
+    # 2D dimensionless ** int
+    A = random_qty(dict(x=3, y=3))
+    result = computations.pow(A, 2)
+
+    # Expected values
+    assert_qty_equal(A.sel(x="x1", y="y1") ** 2, result.sel(x="x1", y="y1"))
+
+    # 2D with units ** int
+    A = random_qty(dict(x=3, y=3), units="kg")
+    result = computations.pow(A, 2)
+
+    # Expected units
+    assert ureg.kg ** 2 == result.attrs["_unit"]
+
+    # 2D ** 1D
+    B = random_qty(dict(y=3))
+
+    result = computations.pow(A, B)
+
+    # Expected values
+    assert (
+        A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item()
+        == result.sel(x="x1", y="y1").item()
+    )
+    assert ureg.dimensionless == result.attrs["_unit"]
+
+    # 2D ** 1D with units
+    C = random_qty(dict(y=3), units="km")
+
+    with pytest.raises(
+        ValueError, match=re.escape("Cannot raise to a power with units (km)")
+    ):
+        computations.pow(A, C)
+
+
 def test_product0():
     A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
     B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))
