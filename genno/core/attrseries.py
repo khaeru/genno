@@ -49,7 +49,7 @@ class AttrSeries(pd.Series):
                 if data.shape == tuple():
                     # data is a scalar/0-dimensional xr.DataArray. Pass the 1 value
                     data = data.data
-                else:
+                else:  # pragma: no cover
                     raise
 
         # Don't pass attrs to pd.Series constructor; it currently does not accept them

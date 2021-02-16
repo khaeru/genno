@@ -1,14 +1,15 @@
+import re
 from pathlib import Path
 
 import plotnine as p9
 import pytest
 import xarray as xr
 
-from genno import Computer, Quantity
+from genno import Computer, MissingKeyError, Quantity
 from genno.compat.plotnine import Plot
 
 
-def test_Plot(tmp_path):
+def test_Plot(caplog, tmp_path):
     c = Computer(output_dir=tmp_path)
     t = [("t", [-1, 0, 1])]
     c.add("x:t", Quantity(xr.DataArray([1.0, 2, 3], coords=t), name="x"))
@@ -56,3 +57,17 @@ def test_Plot(tmp_path):
     # Multi-page PDFs can be saved
     c.add("plot", Plot3.make_task())
     c.get("plot")
+
+    # Plot that requires a non-existent key as input
+    class Plot4(Plot3):
+        inputs = ["x:t", "notakey"]
+
+    # Raised during add(…, strict=True)
+    with pytest.raises(MissingKeyError, match=re.escape("required keys ('notakey',)")):
+        c.add("plot4", Plot4.make_task(), strict=True)
+
+    # Logged during get()
+    c.add("plot", Plot4.make_task())
+    c.get("plot")
+
+    assert "Missing input(s) ('notakey',) to plot 'test'; no output" in caplog.messages

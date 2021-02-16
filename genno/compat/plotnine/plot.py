@@ -29,10 +29,11 @@ class Plot(ABC):
         """
         path = config["output_dir"] / f"{self.basename}{self.suffix}"
 
-        missing = list(filter(lambda arg: isinstance(arg, str), args))
+        missing = tuple(filter(lambda arg: isinstance(arg, str), args))
         if len(missing):
             log.error(
-                f"Missing input(s) to plot {repr(self.basename)}: {repr(missing)}"
+                f"Missing input(s) {repr(missing)} to plot {repr(self.basename)}; no "
+                "output"
             )
             return
         else:

@@ -237,7 +237,7 @@ class Computer:
         """
         # Elements to retry: list of (tries, args, kwargs)
         retry: List[Tuple[int, Tuple[Tuple, Mapping]]] = []
-        added = []
+        added: List[KeyLike] = []
 
         # Iterate over elements from queue, then from retry. On the first pass,
         # count == 1; on subsequent passes, it is incremented.
@@ -275,7 +275,7 @@ class Computer:
                             else fail
                         )
             else:
-                if isinstance(key_or_keys, list):
+                if isinstance(key_or_keys, tuple):
                     added.extend(key_or_keys)
                 else:
                     added.append(key_or_keys)

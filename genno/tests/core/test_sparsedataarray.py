@@ -6,7 +6,7 @@ from xarray.testing import assert_equal as assert_xr_equal
 from genno import Computer
 from genno.core.quantity import Quantity
 from genno.core.sparsedataarray import SparseDataArray
-from genno.testing import add_test_data
+from genno.testing import add_test_data, random_qty
 
 
 def test_sda_accessor():
@@ -45,6 +45,12 @@ def test_sda_accessor():
 
     z5 = SparseDataArray.from_series(x_series) * y
     assert_xr_equal(z1, z5)
+
+
+@pytest.mark.usefixtures("quantity_is_sparsedataarray")
+def test_item():
+    with pytest.raises(ValueError, match="can only convert an array of size 1"):
+        random_qty(dict(x=2)).item()
 
 
 def test_loc():
