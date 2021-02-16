@@ -368,7 +368,10 @@ def ratio(numerator, denominator):
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
-    result = numerator / denominator
+    if Quantity.CLASS == "AttrSeries":
+        result = numerator / denominator.align_levels(numerator)
+    else:
+        result = numerator / denominator
 
     # This shouldn't be necessary; would instead prefer:
     # result.attrs["_unit"] = u_num / u_denom
