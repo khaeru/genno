@@ -557,6 +557,8 @@ class Computer:
 
         return self.add(key, comp, strict=True, index=True, sums=sums)
 
+    add_aggregate = aggregate
+
     def disaggregate(self, qty, new_dim, method="shares", args=[]):
         """Add a computation that disaggregates `qty` using `method`.
 
