@@ -323,6 +323,7 @@ Computations
       combine
       disaggregate_shares
       group_sum
+      pow
       product
       ratio
       select

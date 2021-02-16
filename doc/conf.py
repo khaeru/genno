@@ -22,6 +22,7 @@ extensions = [
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
+    "sphinx.ext.todo",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -64,3 +65,7 @@ intersphinx_mapping = {
     "pyam": ("https://pyam-iamc.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
 }
+
+# -- Options for sphinx.ext.todo -------------------------------------------------------
+
+todo_include_todos = True

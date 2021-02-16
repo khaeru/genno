@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import sparse  # NB warnings from sparse are filtered in computations.py
+import sparse
 import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 
@@ -88,6 +88,12 @@ class SparseDataArray(xr.DataArray):
         """
         # Necessary for :meth:`xarray.testing.assert_equal` to work.
         return self.variable.equals(other.variable, equiv=np.equal)
+
+    def item(self):
+        """Analogous to :meth:`pandas.Series.item`."""
+        if len(self.data.shape) == 0:
+            return self.data.data[0]
+        raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def sel(
         self, indexers=None, method=None, tolerance=None, drop=False, **indexers_kwargs

@@ -2,7 +2,7 @@ import logging
 from copy import copy
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pint
 import yaml
@@ -21,19 +21,25 @@ HANDLERS: Dict[str, Any] = {}
 STORE = set(["cache_path", "cache_skip"])
 
 
-def configure(path=None, **config):
+def configure(path: Union[Path, str] = None, **config):
     """Configure :mod:`genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
-    computations.
+    computations. Configuration keys loaded from file are superseded by keyword
+    arguments. Messages are logged at level :obj:`logging.INFO` if `config` contains
+    unhandled sections.
 
-    Messages are logged at level :obj:`logging.WARNING` if `config` contains unhandled
-    sections.
-
+    Parameters
+    ----------
+    path : Path, optional
+        Path to a configuration file in JSON or YAML format.
+    **config :
+        Configuration keys/sections and values.
     """
     if path:
-        config["path"] = path
-    parse_config(None, config)
+        config["path"] = Path(path)
+    # The value of fail= doesn't matter, since no Computer is given
+    parse_config(None, data=config, fail="raise")
 
 
 def handles(section_name: str, iterate: bool = True, discard: bool = True):
@@ -64,9 +70,9 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     return wrapper
 
 
-def parse_config(c: Computer, data: dict):
-    # Assemble a queue of (args, kwargs) to Reporter.add()
-    queue: List[Tuple] = []
+def parse_config(c: Optional[Computer], data: dict, fail):
+    # Assemble a queue of (args, kwargs) for Computer.add_queue()
+    queue: List[Tuple[Tuple, Dict]] = []
 
     try:
         path = data.pop("path")
@@ -76,7 +82,11 @@ def parse_config(c: Computer, data: dict):
         # Load configuration from file
         path = Path(path)
         with open(path, "r") as f:
-            data.update(yaml.safe_load(f))
+            new_data = yaml.safe_load(f)
+
+        # Overwrite the file content with direct configuration values
+        new_data.update(data)
+        data = new_data
 
         # Also store the directory where the configuration file was located
         if c is None:
@@ -92,7 +102,7 @@ def parse_config(c: Computer, data: dict):
         handler = HANDLERS.get(section_name)
         if not handler:
             if section_name not in STORE:
-                log.warning(
+                log.info(
                     f"No handler for configuration section {repr(section_name)}; "
                     "ignored"
                 )
@@ -116,9 +126,8 @@ def parse_config(c: Computer, data: dict):
         data.pop(section_name)
 
     if c:
-        # Use Computer.add_queue() to process the entries.
-        # Retry at most once; raise an exception if adding fails after that.
-        c.add_queue(queue, max_tries=2, fail="raise")
+        # Process the entries
+        c.add_queue(queue, max_tries=2, fail=fail)
 
         # Store configuration in the graph itself
         c.graph["config"].update(data)
@@ -231,7 +240,7 @@ def general(c: Computer, info):
 
         added = c.add(key, task, strict=True, index=True, sums=info.get("sums", False))
 
-        if isinstance(added, list):
+        if isinstance(added, tuple):
             log.info(f"    + {len(added)-1} partial sums")
 
 

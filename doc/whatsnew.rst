@@ -6,8 +6,14 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- :func:`.computations.add` transforms compatible units, and raises an exception for incompatible units (:pull:`31`).
+- Improve handling of scalar quantities (:pull:`31`).
+- :class:`~.plotnine.Plot` is fault-tolerant: if any of the input quantities are missing, it becomes a no-op (:pull:`31`).
+- :meth:`.Computer.configure` accepts a `fail` argument, allowing partial handling of configuration data/files, with errors logged but not raised (:pull:`31`).
+- New :func:`.computations.pow` (:pull:`31`).
 
 v1.0.0 (2021-02-13)
 ===================

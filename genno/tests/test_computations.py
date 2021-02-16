@@ -60,6 +60,19 @@ def test_add(data, operands, size):
     assert size == result.size, result.to_series()
 
 
+def test_add_units():
+    """Units are handled correctly by :func:`.add`."""
+    A = Quantity(1.0, units="kg")
+    B = Quantity(1.0, units="tonne")
+
+    # Units of result are units of the first argument
+    assert_qty_equal(Quantity(1001.0, units="kg"), computations.add(A, B))
+    assert_qty_equal(Quantity(1.001, units="tonne"), computations.add(B, A))
+
+    with pytest.raises(ValueError, match="Units 'kg' and 'km' are incompatible"):
+        computations.add(A, Quantity(1.0, units="km"))
+
+
 @pytest.mark.parametrize("keep", (True, False))
 def test_aggregate(data, keep):
     *_, t_foo, t_bar, x = data
@@ -208,7 +221,42 @@ def test_load_file(test_data_path, ureg, name, kwargs):
     assert ureg.kilometre == qty.attrs["_unit"]
 
 
-@pytest.mark.xfail(reason="Outer join of non-intersecting dimensions (AttrSeries only)")
+def test_pow(ureg):
+    # 2D dimensionless ** int
+    A = random_qty(dict(x=3, y=3))
+    result = computations.pow(A, 2)
+
+    # Expected values
+    assert_qty_equal(A.sel(x="x1", y="y1") ** 2, result.sel(x="x1", y="y1"))
+
+    # 2D with units ** int
+    A = random_qty(dict(x=3, y=3), units="kg")
+    result = computations.pow(A, 2)
+
+    # Expected units
+    assert ureg.kg ** 2 == result.attrs["_unit"]
+
+    # 2D ** 1D
+    B = random_qty(dict(y=3))
+
+    result = computations.pow(A, B)
+
+    # Expected values
+    assert (
+        A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item()
+        == result.sel(x="x1", y="y1").item()
+    )
+    assert ureg.dimensionless == result.attrs["_unit"]
+
+    # 2D ** 1D with units
+    C = random_qty(dict(y=3), units="km")
+
+    with pytest.raises(
+        ValueError, match=re.escape("Cannot raise to a power with units (km)")
+    ):
+        computations.pow(A, C)
+
+
 def test_product0():
     A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
     B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))
@@ -224,12 +272,36 @@ def test_product0():
     computations.product(exp, B)
 
 
-def test_product1():
-    """Product of quantities with overlapping dimensions."""
-    A = random_qty(dict(a=2, b=2, c=2, d=2))
-    B = random_qty(dict(b=2, c=2, d=2, e=2, f=2))
+@pytest.mark.parametrize(
+    "dims, exp_size",
+    (
+        # Some overlapping dimensions
+        ((dict(a=2, b=2, c=2, d=2), dict(b=2, c=2, d=2, e=2, f=2)), 2 ** 6),
+        # 1D with disjoint dimensions ** 3 = 3D
+        ((dict(a=2), dict(b=2), dict(c=2)), 2 ** 3),
+        # 2D × scalar × scalar = 2D
+        ((dict(a=2, b=2), dict(), dict()), 4),
+        # scalar × 1D × scalar = 1D
+        pytest.param((dict(), dict(a=2), dict()), 2, marks=pytest.mark.xfail),
+    ),
+)
+def test_product(dims, exp_size):
+    """Product of quantities with disjoint and overlapping dimensions."""
+    quantities = [random_qty(d) for d in dims]
 
-    assert computations.product(A, B).size == 2 ** 6
+    result = computations.product(*quantities)
+
+    assert exp_size == result.size
+
+
+def test_ratio(ureg):
+    # Non-overlapping dimensions can be broadcast together
+    A = random_qty(dict(x=3, y=4), units="km")
+    B = random_qty(dict(z=2), units="hour")
+
+    result = computations.ratio(A, B)
+    assert ("x", "y", "z") == result.dims
+    assert ureg.Unit("km / hour") == result.attrs["_unit"]
 
 
 def test_select(data):

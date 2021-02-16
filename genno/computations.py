@@ -5,7 +5,6 @@
 import logging
 from collections.abc import Mapping
 from pathlib import Path
-from warnings import filterwarnings
 
 import pandas as pd
 import pint
@@ -23,6 +22,7 @@ __all__ = [
     "disaggregate_shares",
     "group_sum",
     "load_file",
+    "pow",
     "product",
     "ratio",
     "select",
@@ -30,13 +30,6 @@ __all__ = [
     "write_report",
 ]
 
-
-# sparse 0.9.1, numba 0.49.0, triggered by xarray import
-for msg in [
-    "No direct replacement for 'numba.targets' available",
-    "An import was requested from a module that has moved location.",
-]:
-    filterwarnings(action="ignore", message=msg, module="sparse._coo.numba_extension")
 
 import xarray as xr  # noqa: E402
 
@@ -47,23 +40,44 @@ xr.set_options(keep_attrs=True)
 
 
 def add(*quantities, fill_value=0.0):
-    """Sum across multiple *quantities*."""
-    # TODO check units
+    """Sum across multiple `quantities`.
+
+    Raises
+    ------
+    ValueError
+        if any of the `quantities` have incompatible units.
+
+    Returns
+    -------
+    .Quantity
+        Units are the same as the first of `quantities`.
+    """
+    # Ensure arguments are all quantities
     assert_quantity(*quantities)
 
     if Quantity.CLASS == "SparseDataArray":
+        # Use xarray's built-in broadcasting, return to Quantity class
         quantities = map(Quantity, xr.broadcast(*quantities))
+    else:
+        # map() returns an iterable
+        quantities = iter(quantities)
 
     # Initialize result values with first entry
-    items = iter(quantities)
-    result = next(items)
+    result = next(quantities)
+    ref_unit = collect_units(result)[0]
 
     # Iterate over remaining entries
-    for q in items:
+    for q in quantities:
+        u = collect_units(q)[0]
+        if not u.is_compatible_with(ref_unit):
+            raise ValueError(f"Units '{ref_unit:~}' and '{u:~}' are incompatible")
+
+        factor = u.from_(1.0, strict=False).to(ref_unit).magnitude
+
         if Quantity.CLASS == "AttrSeries":
-            result = result.add(q, fill_value=fill_value).dropna()
+            result = result.add(factor * q, fill_value=fill_value).dropna()
         else:
-            result = result + q
+            result = result + factor * q
 
     return result
 
@@ -343,8 +357,46 @@ def load_file(path, dims={}, units=None, name=None):
         return open(path).read()
 
 
+def pow(a, b):
+    """Compute `a` raised to the power of `b`.
+
+    .. todo:: Provide units on the result in the special case where `b` is a Quantity
+       but all its values are the same :class:`int`.
+
+    Returns
+    -------
+    .Quantity
+        If `b` is :class:`int`, then the quantity has the units of `a` raised to this
+        power; e.g. "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
+        units, so the returned quantity is dimensionless.
+    """
+    if isinstance(b, int):
+        unit_exponent = b
+        b = Quantity(float(b))
+    else:
+        unit_exponent = 0
+
+    u_a, u_b = collect_units(a, b)
+
+    if not u_b.dimensionless:
+        raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
+
+    if Quantity.CLASS == "AttrSeries":
+        result = a ** b.align_levels(a)
+    else:
+        result = a ** b
+
+    result.attrs["_unit"] = (
+        a.attrs["_unit"] ** unit_exponent
+        if unit_exponent
+        else pint.get_application_registry().dimensionless
+    )
+
+    return result
+
+
 def product(*quantities):
-    """Return the product of any number of *quantities*."""
+    """Compute the product of any number of *quantities*."""
     # Iterator over (quantity, unit) tuples
     items = zip(quantities, collect_units(*quantities))
 
@@ -366,7 +418,7 @@ def product(*quantities):
 
 
 def ratio(numerator, denominator):
-    """Return the ratio *numerator* / *denominator*.
+    """Compute the ratio `numerator` / `denominator`.
 
     Parameters
     ----------
@@ -376,7 +428,10 @@ def ratio(numerator, denominator):
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
-    result = numerator / denominator
+    if Quantity.CLASS == "AttrSeries":
+        result = numerator / denominator.align_levels(numerator)
+    else:
+        result = numerator / denominator
 
     # This shouldn't be necessary; would instead prefer:
     # result.attrs["_unit"] = u_num / u_denom

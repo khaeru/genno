@@ -1,9 +1,12 @@
 import pandas as pd
+import pytest
+import xarray as xr
 from xarray.testing import assert_equal as assert_xr_equal
 
 from genno import Computer
+from genno.core.quantity import Quantity
 from genno.core.sparsedataarray import SparseDataArray
-from genno.testing import add_test_data
+from genno.testing import add_test_data, random_qty
 
 
 def test_sda_accessor():
@@ -44,6 +47,12 @@ def test_sda_accessor():
     assert_xr_equal(z1, z5)
 
 
+@pytest.mark.usefixtures("quantity_is_sparsedataarray")
+def test_item():
+    with pytest.raises(ValueError, match="can only convert an array of size 1"):
+        random_qty(dict(x=2)).item()
+
+
 def test_loc():
     """SparseDataArray.loc[] accessor works.
 
@@ -54,3 +63,18 @@ def test_loc():
 
     # .loc accessor works
     assert isinstance(x.loc["foo1", "2040"], float)
+
+
+@pytest.mark.usefixtures("quantity_is_sparsedataarray")
+def test_scalar():
+    """Scalar Quantities can be created."""
+    A = Quantity(1.0, units="kg")
+    B = Quantity(2.0, units="kg")
+
+    # Fragment occurring in .computations.add()
+    list(map(Quantity, xr.broadcast(A, B)))
+
+    # FIXME int() instead of float() raises an exception
+    C = Quantity(3, units="kg")
+    with pytest.raises(ValueError, match="cannot convert float NaN to integer"):
+        list(map(Quantity, xr.broadcast(A, B, C)))

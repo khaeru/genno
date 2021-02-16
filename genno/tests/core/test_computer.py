@@ -258,6 +258,10 @@ def test_add_queue(caplog):
     expr = re.compile(r"    with MissingKeyError\('foo-3',?\)")
     assert any(expr.match(m) for m in caplog.messages)
 
+    queue = [((Key("bar", list("abcd")), 10), dict(sums=True))]
+    added = c.add_queue(queue)
+    assert 16 == len(added)
+
 
 def test_apply():
     # Computer with two scalar values
