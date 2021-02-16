@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.1.0 (2021-02-16)
+===================
 
 - :func:`.computations.add` transforms compatible units, and raises an exception for incompatible units (:pull:`31`).
 - Improve handling of scalar quantities (:pull:`31`).
