@@ -208,7 +208,6 @@ def test_load_file(test_data_path, ureg, name, kwargs):
     assert ureg.kilometre == qty.attrs["_unit"]
 
 
-@pytest.mark.xfail(reason="Outer join of non-intersecting dimensions (AttrSeries only)")
 def test_product0():
     A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
     B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))
@@ -224,12 +223,26 @@ def test_product0():
     computations.product(exp, B)
 
 
-def test_product1():
-    """Product of quantities with overlapping dimensions."""
-    A = random_qty(dict(a=2, b=2, c=2, d=2))
-    B = random_qty(dict(b=2, c=2, d=2, e=2, f=2))
+@pytest.mark.parametrize(
+    "dims, exp_size",
+    (
+        # Some overlapping dimensions
+        ((dict(a=2, b=2, c=2, d=2), dict(b=2, c=2, d=2, e=2, f=2)), 2 ** 6),
+        # 1D with disjoint dimensions ** 3 = 3D
+        ((dict(a=2), dict(b=2), dict(c=2)), 2 ** 3),
+        # 2D × scalar × scalar = 2D
+        ((dict(a=2, b=2), dict(), dict()), 4),
+        # scalar × 1D × scalar = 1D
+        pytest.param((dict(), dict(a=2), dict()), 2, marks=pytest.mark.xfail),
+    ),
+)
+def test_product(dims, exp_size):
+    """Product of quantities with disjoint and overlapping dimensions."""
+    quantities = [random_qty(d) for d in dims]
 
-    assert computations.product(A, B).size == 2 ** 6
+    result = computations.product(*quantities)
+
+    assert exp_size == result.size
 
 
 def test_select(data):
