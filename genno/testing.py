@@ -1,5 +1,6 @@
 import contextlib
 import logging
+from copy import copy
 from functools import partial
 from itertools import chain, zip_longest
 from typing import Dict
@@ -268,6 +269,16 @@ def parametrize_quantity_class(request):
     pre = Quantity.CLASS
 
     Quantity.CLASS = request.param
+    yield
+
+    Quantity.CLASS = pre
+
+
+@pytest.fixture(scope="function")
+def quantity_is_sparsedataarray(request):
+    pre = copy(Quantity.CLASS)
+
+    Quantity.CLASS = "SparseDataArray"
     yield
 
     Quantity.CLASS = pre

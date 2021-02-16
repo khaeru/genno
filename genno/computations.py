@@ -39,23 +39,44 @@ xr.set_options(keep_attrs=True)
 
 
 def add(*quantities, fill_value=0.0):
-    """Sum across multiple *quantities*."""
-    # TODO check units
+    """Sum across multiple `quantities`.
+
+    Raises
+    ------
+    ValueError
+        if any of the `quantities` have incompatible units.
+
+    Returns
+    -------
+    .Quantity
+        Units are the same as the first of `quantities`.
+    """
+    # Ensure arguments are all quantities
     assert_quantity(*quantities)
 
     if Quantity.CLASS == "SparseDataArray":
+        # Use xarray's built-in broadcasting, return to Quantity class
         quantities = map(Quantity, xr.broadcast(*quantities))
+    else:
+        # map() returns an iterable
+        quantities = iter(quantities)
 
     # Initialize result values with first entry
-    items = iter(quantities)
-    result = next(items)
+    result = next(quantities)
+    ref_unit = collect_units(result)[0]
 
     # Iterate over remaining entries
-    for q in items:
+    for q in quantities:
+        u = collect_units(q)[0]
+        if not u.is_compatible_with(ref_unit):
+            raise ValueError(f"Units '{ref_unit:~}' and '{u:~}' are incompatible")
+
+        factor = u.from_(1.0, strict=False).to(ref_unit).magnitude
+
         if Quantity.CLASS == "AttrSeries":
-            result = result.add(q, fill_value=fill_value).dropna()
+            result = result.add(factor * q, fill_value=fill_value).dropna()
         else:
-            result = result + q
+            result = result + factor * q
 
     return result
 

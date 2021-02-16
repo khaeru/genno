@@ -8,7 +8,7 @@ class _QuantityFactory:
     Parameters
     ----------
     data
-        Quantity data.
+        Quantity data. When passing scalars, use :class:`float`, not :class:`int`.
     args
         Positional arguments, passed to :class:`.AttrSeries` or
         :class:`.SparseDataArray`.

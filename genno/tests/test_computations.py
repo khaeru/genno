@@ -60,6 +60,19 @@ def test_add(data, operands, size):
     assert size == result.size, result.to_series()
 
 
+def test_add_units():
+    """Units are handled correctly by :func:`.add`."""
+    A = Quantity(1.0, units="kg")
+    B = Quantity(1.0, units="tonne")
+
+    # Units of result are units of the first argument
+    assert_qty_equal(Quantity(1001.0, units="kg"), computations.add(A, B))
+    assert_qty_equal(Quantity(1.001, units="tonne"), computations.add(B, A))
+
+    with pytest.raises(ValueError, match="Units 'kg' and 'km' are incompatible"):
+        computations.add(A, Quantity(1.0, units="km"))
+
+
 @pytest.mark.parametrize("keep", (True, False))
 def test_aggregate(data, keep):
     *_, t_foo, t_bar, x = data
