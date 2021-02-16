@@ -1,5 +1,6 @@
 from functools import lru_cache, partial
 from itertools import chain, compress
+from typing import Hashable, Union
 
 
 class Key:
@@ -142,6 +143,10 @@ class Key:
                 partial(computations.sum, dimensions=others, weights=None),
                 self,
             )
+
+
+#: Type shorthand for :class:`Key` or any other value that can be used as a key.
+KeyLike = Union[Key, Hashable]
 
 
 def combo_partition(iterable):

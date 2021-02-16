@@ -31,7 +31,7 @@ from genno.util import partial_split
 
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
-from .key import Key
+from .key import Key, KeyLike
 
 log = logging.getLogger(__name__)
 
@@ -220,7 +220,7 @@ class Computer:
         queue: Iterable[Tuple[Tuple, Mapping]],
         max_tries: int = 1,
         fail: Union[str, int] = "raise",
-    ):
+    ) -> Tuple[KeyLike, ...]:
         """Add tasks from a list or `queue`.
 
         Parameters
@@ -244,7 +244,7 @@ class Computer:
         for count, (args, kwargs) in chain(zip(repeat(1), queue), retry):
             try:
                 # Recurse
-                added.append(self.add(*args, **kwargs))
+                key_or_keys = self.add(*args, **kwargs)
             except KeyError as exc:
                 # Adding failed
 
@@ -274,8 +274,13 @@ class Computer:
                             if isinstance(fail, str)
                             else fail
                         )
+            else:
+                if isinstance(key_or_keys, list):
+                    added.extend(key_or_keys)
+                else:
+                    added.append(key_or_keys)
 
-        return added
+        return tuple(added)
 
     # Generic graph manipulations
     def add_single(self, key, *computation, strict=False, index=False):

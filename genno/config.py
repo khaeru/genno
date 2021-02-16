@@ -2,7 +2,7 @@ import logging
 from copy import copy
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import pint
 import yaml
@@ -70,7 +70,7 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     return wrapper
 
 
-def parse_config(c: Computer, data: dict, fail):
+def parse_config(c: Optional[Computer], data: dict, fail):
     # Assemble a queue of (args, kwargs) for Computer.add_queue()
     queue: List[Tuple[Tuple, Dict]] = []
 
