@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import sparse  # NB warnings from sparse are filtered in computations.py
+import sparse
 import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 

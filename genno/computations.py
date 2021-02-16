@@ -5,7 +5,6 @@
 import logging
 from collections.abc import Mapping
 from pathlib import Path
-from warnings import filterwarnings
 
 import pandas as pd
 import pint
@@ -30,13 +29,6 @@ __all__ = [
     "write_report",
 ]
 
-
-# sparse 0.9.1, numba 0.49.0, triggered by xarray import
-for msg in [
-    "No direct replacement for 'numba.targets' available",
-    "An import was requested from a module that has moved location.",
-]:
-    filterwarnings(action="ignore", message=msg, module="sparse._coo.numba_extension")
 
 import xarray as xr  # noqa: E402
 
