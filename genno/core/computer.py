@@ -5,7 +5,19 @@ from inspect import signature
 from itertools import chain, repeat
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable, Dict, Optional, Sequence, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 from warnings import warn
 
 import dask
@@ -55,26 +67,38 @@ class Computer:
         self._index = {}
         self.configure(**kwargs)
 
-    def configure(self, path=None, **config):
+    def configure(
+        self, path: Union[Path, str] = None, fail: Union[str, int] = "raise", **config
+    ):
         """Configure the Computer.
 
         Accepts a `path` to a configuration file and/or keyword arguments.
         Configuration keys loaded from file are superseded by keyword arguments.
+        Messages are logged at level :data:`logging.INFO` if `config` contains
+        unhandled sections.
 
-        See :doc:`config` for a list of all configuration sections and keys.
+        See :doc:`config` for a list of all configuration sections and keys, and details
+        of the configuration file format.
 
-        Warns
-        -----
-        UserWarning
-            If *config* contains unrecognized keys.
+        Parameters
+        ----------
+        path : .Path, optional
+            Path to a configuration file in JSON or YAML format.
+        fail : "raise" or str or :mod:`logging` level, optional
+            Passed to :meth:`.add_queue`. If not "raise", then log messages are
+            generated for config handlers that fail. The Computer may be only partially
+            configured.
+        **config :
+            Configuration keys/sections and values.
         """
+
         from genno.config import parse_config
 
         # Maybe load from a path
         if path:
-            config["path"] = path
+            config["path"] = Path(path)
 
-        parse_config(self, config)
+        parse_config(self, data=config, fail=fail)
 
     def get_comp(self, name) -> Optional[Callable]:
         """Return a computation function.
@@ -191,22 +215,28 @@ class Computer:
         """Return a decorator to cache data."""
         return make_cache_decorator(self, func)
 
-    def add_queue(self, queue, max_tries=1, fail="raise"):
+    def add_queue(
+        self,
+        queue: Iterable[Tuple[Tuple, Mapping]],
+        max_tries: int = 1,
+        fail: Union[str, int] = "raise",
+    ):
         """Add tasks from a list or `queue`.
 
         Parameters
         ----------
-        queue : list of 2-tuple
-            The members of each tuple are the arguments (i.e. a list or tuple) and
-            keyword arguments (i.e. a dict) to :meth:`add`.
+        queue : iterable of 2-:class:`tuple`
+            The members of each tuple are the arguments (e.g. :class:`list` or tuple)
+            and keyword arguments (e.g :class:`dict`) to :meth:`add`.
         max_tries : int, optional
             Retry adding elements up to this many times.
-        fail : 'raise' or log level, optional
+        fail : "raise" or str or :mod:`logging` level, optional
             Action to take when a computation from `queue` cannot be added after
-            `max_tries`.
+            `max_tries`: "raise" an exception, or log messages on the indicated level
+            and continue.
         """
         # Elements to retry: list of (tries, args, kwargs)
-        retry = []
+        retry: List[Tuple[int, Tuple[Tuple, Mapping]]] = []
         added = []
 
         # Iterate over elements from queue, then from retry. On the first pass,
