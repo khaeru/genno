@@ -294,6 +294,16 @@ def test_product(dims, exp_size):
     assert exp_size == result.size
 
 
+def test_ratio(ureg):
+    # Non-overlapping dimensions can be broadcast together
+    A = random_qty(dict(x=3, y=4), units="km")
+    B = random_qty(dict(z=2), units="hour")
+
+    result = computations.ratio(A, B)
+    assert ("x", "y", "z") == result.dims
+    assert ureg.Unit("km / hour") == result.attrs["_unit"]
+
+
 def test_select(data):
     # Unpack
     *_, t_foo, t_bar, x = data
