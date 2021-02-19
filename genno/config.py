@@ -47,6 +47,9 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
 
     Parameters
     ----------
+    section_name: str
+        The name of the configuration section to handle. Using a name already present
+        in :data:`HANDLERS` overrides that handler.
     iterate : bool, optional
         If :obj:`True`, the handler is called once for each item (either list item, or
         (key, value) tuple) in the section. If :obj:`False`, the entire section

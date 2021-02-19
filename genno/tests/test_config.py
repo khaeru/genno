@@ -8,13 +8,17 @@ from genno.compat.pyam import HAS_PYAM
 from genno.config import HANDLERS, handles
 
 
+# NB ixmp is currently used in the genno test suite: ixmp.testing.run_notebook is
+#    imported by test_exceptions.py. This in turn cases ixmp to register its own
+#    handlers: 2 new, and 1 overriding the built-in one for "units:".
+THIRD_PARTY_HANDLERS = 2
+
+
 def test_handlers():
     # Expected config handlers are available
-    # NB "+ 1" is because ixmp.testing is imported by test_exceptions.py, which in turn
-    #    causes ixmp to register its own handler. This should be *commented* when using
-    #    code from https://github.com/iiasa/ixmp/pull/397; or *uncommented* otherwise/
-    #    after that PR is merged
-    assert len(HANDLERS) == 8 + (1 * HAS_PYAM)  # + 1
+    assert 8 + (1 * HAS_PYAM) + THIRD_PARTY_HANDLERS == len(HANDLERS)
+
+    # Handlers are all callable
     for key, func in HANDLERS.items():
         assert isinstance(key, str) and callable(func)
 
