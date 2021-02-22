@@ -7,7 +7,6 @@ from genno import Computer, Key, configure
 from genno.compat.pyam import HAS_PYAM
 from genno.config import HANDLERS, handles
 
-
 # NB ixmp is currently used in the genno test suite: ixmp.testing.run_notebook is
 #    imported by test_exceptions.py. This in turn cases ixmp to register its own
 #    handlers: 2 new, and 1 overriding the built-in one for "units:".
