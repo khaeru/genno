@@ -318,9 +318,12 @@ class Computer:
                 # Key already exists in graph
                 raise KeyExistsError(key)
 
-            # Check that keys used in *comp* are in the graph
-            keylike = filter(lambda e: isinstance(e, (str, Key)), computation)
-            self.check_keys(*keylike)
+            # Check valid computations: a tuple with a callable, or a list of other
+            # keys. Don't check a single value that is iterable, e.g. pd.DataFrame
+            if isinstance(computation, (list, tuple)):
+                # Check that keys used in *comp* are in the graph
+                keylike = filter(lambda e: isinstance(e, (str, Key)), computation)
+                self.check_keys(*keylike)
 
         if index:
             # String equivalent of *key* with all dimensions dropped, but name
