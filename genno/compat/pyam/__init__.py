@@ -49,7 +49,8 @@ def iamc(c: Computer, info):
     collapse_func = collapse_info.pop("callback", util.collapse)
 
     # Use the Computer method to add the coversion step
-    keys.extend(
+    # NB convert_pyam() returns a single key when applied to a single key
+    keys.append(
         c.convert_pyam(
             keys[-1],
             rename=info.pop("rename", {}),

@@ -6,7 +6,7 @@ log = logging.getLogger(__name__)
 
 
 class ComputationError(Exception):
-    """Wrapper to print intelligible exception information for :meth:`.get`.
+    """Wrapper to print intelligible exception information for :meth:`.Computer.get`.
 
     In order to aid in debugging, this helper:
 

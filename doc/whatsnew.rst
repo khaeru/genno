@@ -6,8 +6,13 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+Bug fixes
+---------
+
+- :meth:`.Computer.add_single` incorrectly calls :meth:`.check_keys` on iterables (e.g. :class:`pandas.DataFrame`) that are not computations (:pull:`36`).
 
 v1.1.0 (2021-02-16)
 ===================
