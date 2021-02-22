@@ -15,7 +15,7 @@ Address any failures before releasing.
 2. Tag the release candidate version, i.e. with a ``rcN`` suffix, and push::
 
     $ git tag v1.2.3rc1
-    $ git push --tags
+    $ git push --tags origin master
 
 3. Check:
 
@@ -31,7 +31,7 @@ Address any failures before releasing.
 4. (optional) Tag the release itself and push::
 
     $ git tag v1.2.3
-    $ git push --tags
+    $ git push --tags origin master
 
    This step (but *not* step (2)) can also be performed directly on GitHub; see (5), next.
 
