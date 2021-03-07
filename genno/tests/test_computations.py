@@ -282,6 +282,7 @@ def test_product0():
         # 2D × scalar × scalar = 2D
         ((dict(a=2, b=2), dict(), dict()), 4),
         # scalar × 1D × scalar = 1D
+        # XFAIL for AttrSeries, not SparseDataArray
         pytest.param((dict(), dict(a=2), dict()), 2, marks=pytest.mark.xfail),
     ),
 )
