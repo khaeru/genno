@@ -310,7 +310,7 @@ def load_file(path, dims={}, units=None, name=None):
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
     if path.suffix == ".csv":
-        data = pd.read_csv(path, comment="#")
+        data = pd.read_csv(path, comment="#", skipinitialspace=True)
 
         # Index columns
         index_columns = data.columns.tolist()
@@ -326,19 +326,17 @@ def load_file(path, dims={}, units=None, name=None):
             # Use a unique value for units of the quantity
             if len(units_col) > 1:
                 raise ValueError(
-                    f"Cannot load {path} with non-unique units " + repr(units_col)
+                    f"Cannot load {path} with non-unique units {repr(units_col)}"
                 )
             elif units and units not in units_col:
                 raise ValueError(
-                    f"Explicit units {units} do not match " f"{units_col[0]} in {path}"
+                    f"Explicit units {units} do not match {units_col[0]} in {path}"
                 )
             units = units_col[0]
 
         if len(dims):
-            # Use specified dimensions
-            if not isinstance(dims, Mapping):
-                # Convert a list, set, etc. to a dict
-                dims = {d: d for d in dims}
+            # Convert a list, set, etc. to a dict
+            dims = dims if isinstance(dims, Mapping) else {d: d for d in dims}
 
             # - Drop columns not mentioned in *dims*
             # - Rename columns according to *dims*
