@@ -14,8 +14,8 @@ class AttrSeries(pd.Series, Quantity):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
-    :class:`xarray.DataArray`, so that :mod:`genno.computations`
-    methods can use xarray-like syntax.
+    :class:`xarray.DataArray`, so that :mod:`genno.computations` methods can use xarray-
+    like syntax.
 
     Parameters
     ----------
@@ -128,8 +128,10 @@ class AttrSeries(pd.Series, Quantity):
 
     def sel(self, indexers=None, drop=False, **indexers_kwargs):
         """Like :meth:`xarray.DataArray.sel`."""
-        indexers = indexers.copy() if indexers else {}
-        indexers.update(indexers_kwargs)
+        indexers = xr.core.utils.either_dict_or_kwargs(
+            indexers, indexers_kwargs, "indexers"
+        )
+
         if len(indexers) == 1:
             level, key = list(indexers.items())[0]
             if isinstance(key, str) and not drop:
@@ -141,8 +143,17 @@ class AttrSeries(pd.Series, Quantity):
                     # No MultiIndex; use .loc with a slice to avoid returning scalar
                     return self.loc[slice(key, key)]
 
-        idx = tuple(indexers.get(n, slice(None)) for n in self.index.names)
-        return AttrSeries(self.loc[idx])
+        # Iterate over dimensions
+        idx = []
+        for dim in self.dims:
+            # Get an indexer for this dimension
+            i = indexers.get(dim, slice(None))
+
+            # Maybe unpack an xarray DataArray indexers, for pandas
+            idx.append(i.data if isinstance(i, xr.DataArray) else i)
+
+        # Select and return
+        return AttrSeries(self.loc[tuple(idx)])
 
     def shift(
         self,
@@ -231,6 +242,8 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.to_series`."""
         return self
 
+    # Internal methods
+
     def align_levels(self, other):
         """Work around https://github.com/pandas-dev/pandas/issues/25760.
 
@@ -250,7 +263,7 @@ class AttrSeries(pd.Series, Quantity):
             # TODO make this more efficient, e.g. using itertools.product()
             for i, dim in missing:
                 result = pd.concat(
-                    {v: result for v in other.index.get_level_values(i)}, names=dim
+                    {v: result for v in other.index.get_level_values(i)}, names=[dim]
                 )
 
             if len(self) == len(self.index.names) == 1:
