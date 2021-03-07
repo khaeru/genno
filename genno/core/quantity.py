@@ -17,7 +17,7 @@ class Quantity:
         return object.__new__(Quantity._get_class(cls))
 
     @classmethod
-    def from_series(cls, series, sparse=False):
+    def from_series(cls, series, sparse=True):
         """Convert `series` to the Quantity class given by :data:`.CLASS`."""
         # NB signature is the same as xr.DataArray.from_series()
         assert sparse
