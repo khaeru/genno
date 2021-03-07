@@ -301,9 +301,9 @@ def load_file(path, dims={}, units=None, name=None):
     computations:
 
     :file:`.csv`:
-       Converted to :class:`.Quantity`. CSV files must have a 'value' column; all
-       others are treated as indices, except as given by `dims`. Lines beginning with
-       '#' are ignored.
+       Converted to :class:`.Quantity`. CSV files must have a 'value' column; all others
+       are treated as indices, except as given by `dims`. Lines beginning with '#' are
+       ignored.
 
     Parameters
     ----------
@@ -354,7 +354,9 @@ def load_file(path, dims={}, units=None, name=None):
             data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
                 columns=dims
             )
-            index_columns = list(dims.values())
+
+            index_columns = list(data.columns)
+            index_columns.pop(index_columns.index("value"))
 
         return Quantity(data.set_index(index_columns)["value"], units=units, name=name)
     elif path.suffix in (".xls", ".xlsx"):
