@@ -249,16 +249,27 @@ def combine(*quantities, select=None, weights=None):  # noqa: F811
 
 
 def concat(*objs, **kwargs):
-    """Concatenate Quantity *objs*.
+    """Concatenate Quantity `objs`.
 
-    Any strings included amongst *args* are discarded, with a logged warning;
-    these usually indicate that a quantity is referenced which is not in the
-    Computer.
+    Any strings included amongst `objs` are discarded, with a logged warning; these
+    usually indicate that a quantity is referenced which is not in the Computer.
     """
     objs = filter_concat_args(objs)
     if Quantity._get_class() is AttrSeries:
-        # Silently discard any "dim" keyword argument
-        kwargs.pop("dim", None)
+        try:
+            # Retrieve a "dim" keyword argument
+            dim = kwargs.pop("dim")
+        except KeyError:
+            pass
+        else:
+            if isinstance(dim, pd.Index):
+                # Convert a pd.Index argument to names and keys
+                kwargs["names"] = [dim.name]
+                kwargs["keys"] = dim.values
+            else:
+                # Something else; warn and discard
+                log.warning(f"Ignore concat(…, dim={repr(dim)})")
+
         return pd.concat(objs, **kwargs)
     else:
         # Correct fill-values
