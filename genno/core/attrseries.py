@@ -1,9 +1,16 @@
+import logging
+from typing import Any, Hashable, Mapping
+
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
 
+from genno.core.quantity import Quantity
 
-class AttrSeries(pd.Series):
+log = logging.getLogger(__name__)
+
+
+class AttrSeries(pd.Series, Quantity):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
@@ -27,17 +34,9 @@ class AttrSeries(pd.Series):
         return AttrSeries
 
     def __init__(self, data=None, *args, name=None, attrs=None, **kwargs):
-        attrs = attrs or dict()
+        attrs = Quantity._collect_attrs(data, attrs, kwargs)
 
-        if hasattr(data, "attrs"):
-            # Use attrs from an existing object
-            new_attrs = data.attrs.copy()
-
-            # Overwrite with explicit attrs argument
-            new_attrs.update(attrs)
-            attrs = new_attrs
-
-        if isinstance(data, (AttrSeries, xr.DataArray)):
+        if isinstance(data, (pd.Series, xr.DataArray)):
             # Extract name from existing object or use the argument
             name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -45,15 +44,23 @@ class AttrSeries(pd.Series):
                 # Pre-convert to pd.Series from xr.DataArray to preserve names and
                 # labels. For AttrSeries, this is a no-op (see below).
                 data = data.to_series()
+            except AttributeError:
+                # pd.Series
+                pass
             except ValueError:
+                # xr.DataArray
                 if data.shape == tuple():
                     # data is a scalar/0-dimensional xr.DataArray. Pass the 1 value
                     data = data.data
                 else:  # pragma: no cover
                     raise
+            else:
+                attrs.update()
+
+        data, name = Quantity._single_column_df(data, name)
 
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
-        super().__init__(data, *args, name=name, **kwargs)
+        pd.Series.__init__(self, data, *args, name=name, **kwargs)
 
         # Update the attrs after initialization
         self.attrs.update(attrs)
@@ -61,7 +68,7 @@ class AttrSeries(pd.Series):
     @classmethod
     def from_series(cls, series, sparse=None):
         """Like :meth:`xarray.DataArray.from_series`."""
-        return cls(series)
+        return AttrSeries(series)
 
     def assign_coords(self, **kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
