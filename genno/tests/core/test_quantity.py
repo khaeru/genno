@@ -115,6 +115,13 @@ class TestQuantity:
         """Test Quantity.to_dataframe()."""
         assert isinstance(a.to_dataframe(), pd.DataFrame)
 
+    def test_to_series(self, a):
+        """Test .to_series() on child classes, and Quantity.from_series."""
+        s = a.to_series()
+        assert isinstance(s, pd.Series)
+
+        Quantity.from_series(s)
+
     def test_size(self):
         """Stress-test reporting of large, sparse quantities."""
         # Create the Reporter
