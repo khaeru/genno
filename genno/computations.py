@@ -445,6 +445,10 @@ def ratio(numerator, denominator):
     return result
 
 
+#: TODO make this the actual method name; emit DeprecationWarning if ratio() is used
+div = ratio
+
+
 def select(qty, indexers, inverse=False):
     """Select from *qty* based on *indexers*.
 
