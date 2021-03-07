@@ -74,6 +74,12 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.assign_coords`."""
         return pd.concat([self], keys=kwargs.values(), names=kwargs.keys())
 
+    def bfill(self, dim: Hashable, limit: int = None):
+        """Like :meth:`xarray.DataArray.bfill`."""
+        return self.__class__(
+            self.unstack(dim).fillna(method="bfill", axis=1, limit=limit).stack()
+        )
+
     @property
     def coords(self):
         """Like :attr:`xarray.DataArray.coords`. Read-only."""
@@ -90,6 +96,12 @@ class AttrSeries(pd.Series, Quantity):
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
+
+    def ffill(self, dim: Hashable, limit: int = None):
+        """Like :meth:`xarray.DataArray.ffill`."""
+        return self.__class__(
+            self.unstack(dim).fillna(method="ffill", axis=1, limit=limit).stack()
+        )
 
     def item(self, *args):
         """Like :meth:`xarray.DataArray.item`."""
