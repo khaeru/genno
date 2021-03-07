@@ -226,8 +226,8 @@ def assert_qty_equal(a, b, check_type=True, check_attrs=True, **kwargs):
 
     if genno.core.quantity.CLASS == "AttrSeries":
         try:
-            a = a.sort_index()
-            b = b.sort_index()
+            a = a.sort_index().dropna()
+            b = b.sort_index().dropna()
         except TypeError:
             pass
         assert_series_equal(a, b, check_dtype=False, **kwargs)
