@@ -1,4 +1,5 @@
 """Tests for genno.quantity."""
+import logging
 import re
 
 import pandas as pd
@@ -8,6 +9,7 @@ import xarray as xr
 from numpy import nan
 
 from genno import Computer, Quantity, computations
+from genno.core.attrseries import AttrSeries
 from genno.core.quantity import assert_quantity
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import add_large_data, assert_qty_allclose, assert_qty_equal
@@ -142,13 +144,18 @@ class TestQuantity:
 
         assert pint.Unit("km") == a.attrs["_unit"]
 
-    def test_cumprod(self, tri):
+    def test_cumprod(self, caplog, tri):
         """Test Quantity.cumprod()."""
         if Quantity._get_class() is SparseDataArray:
             pytest.xfail(reason="sparse.COO.nancumprod() not implemented")
 
-        r1 = tri.cumprod("x")
+        caplog.set_level(logging.INFO)
+
+        args = dict(axis=123) if Quantity._get_class() is AttrSeries else dict()
+        r1 = tri.cumprod("x", **args)
         assert 1 * 3 * 7 == r1.loc["x2", "y2"]
+        if Quantity._get_class() is AttrSeries:
+            assert ["AttrSeries.cumprod(…, axis=…) is ignored"] == caplog.messages
 
         r2 = tri.cumprod("y")
         assert 2 * 3 == r2.loc["x1", "y2"]

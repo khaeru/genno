@@ -94,8 +94,8 @@ class AttrSeries(pd.Series, Quantity):
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
         """Like :attr:`xarray.DataArray.cumprod`."""
-        if axis or skipna:
-            log.info(f"{self.__class__}.cumprod(…, axis=, skipna=) are ignored")
+        if axis:
+            log.info(f"{self.__class__.__name__}.cumprod(…, axis=…) is ignored")
 
         return self.__class__(
             self.unstack(dim)
