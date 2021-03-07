@@ -1,75 +1,72 @@
+from typing import Tuple
+
 import pandas as pd
 import pint
 
+#: Name of the class used to implement :class:`.Quantity`.
+CLASS = "AttrSeries"
+# CLASS = "SparseDataArray"
 
-class _QuantityFactory:
-    """Convert arguments to the internal Quantity data format.
 
-    Parameters
-    ----------
-    data
-        Quantity data. When passing scalars, use :class:`float`, not :class:`int`.
-    args
-        Positional arguments, passed to :class:`.AttrSeries` or
-        :class:`.SparseDataArray`.
-    kwargs
-        Keyword arguments, passed to :class:`.AttrSeries` or
-        :class:`.SparseDataArray`.
+class Quantity:
+    # To silence a warning in xarray
+    __slots__: Tuple[str, ...] = tuple()
 
-    Other parameters
-    ----------------
-    name : str, optional
-        Quantity name.
-    units : str, optional
-        Quantity units.
-    attrs : dict, optional
-        Dictionary of attributes; similar to :attr:`~xarray.DataArray.attrs`.
-    """
+    def __new__(cls, *args, **kwargs):
+        # Use _get_class() to retrieve either AttrSeries or SparseDataArray
+        return object.__new__(Quantity._get_class(cls))
 
-    # The current internal class used to represent quantities.
-    # :meth:`as_quantity` always converts to this type.
-    CLASS = "AttrSeries"
-    # CLASS = 'SparseDataArray'
+    @classmethod
+    def from_series(cls, series, sparse=False):
+        """Convert `series` to the Quantity class given by :data:`.CLASS`."""
+        # NB signature is the same as xr.DataArray.from_series()
+        assert sparse
+        return cls._get_class().from_series(series, sparse)
 
-    def __call__(self, data, *args, **kwargs):
-        name = kwargs.pop("name", None)
-        units = kwargs.pop("units", None)
-        attrs = kwargs.pop("attrs", dict())
+    # Internal methods
 
-        if self.CLASS == "AttrSeries":
-            from .attrseries import AttrSeries as cls
-        elif self.CLASS == "SparseDataArray":
-            from .sparsedataarray import SparseDataArray as cls
+    @staticmethod
+    def _get_class(cls=None):
+        """Get :class:`.AttrSeries` or :class:`.SparseDataArray`, per :data:`.CLASS`."""
+        if cls in (Quantity, None):
+            if CLASS == "AttrSeries":
+                from .attrseries import AttrSeries as cls
+            elif CLASS == "SparseDataArray":
+                from .sparsedataarray import SparseDataArray as cls
+            else:  # pragma: no cover
+                raise ValueError(CLASS)
 
-        if isinstance(data, pd.DataFrame) and len(data.columns) == 1:
-            result = cls.from_series(data.iloc[:, 0])
-        elif isinstance(data, pd.Series):
-            result = cls.from_series(data)
-        elif self.CLASS == "AttrSeries":
-            result = cls(data, *args, **kwargs)
+        return cls
+
+    @staticmethod
+    def _single_column_df(data, name):
+        """Handle `data` and `name` arguments to Quantity constructors."""
+        if isinstance(data, pd.DataFrame):
+            if len(data.columns) != 1:
+                raise TypeError(
+                    f"Cannot instantiate Quantity from {len(data.columns)}-D data frame"
+                )
+
+            # Unpack a single column; use its name if not overridden by `name`
+            return data.iloc[:, 0], (name or data.columns[0])
         else:
-            try:
-                if len(args) == len(kwargs) == 0:
-                    # Single argument, possibly an xr.DataArray; convert to
-                    # SparseDataArray
-                    result = data._sda.convert()
-                else:  # pragma: no cover
-                    result = cls(data, *args, **kwargs)
-            except AttributeError:
-                result = cls(data, *args, **kwargs)
+            return data, name
 
-        if name:
-            result.name = name
+    @staticmethod
+    def _collect_attrs(data, attrs_arg, kwargs):
+        """Handle `attrs` and 'units' `kwargs` to Quantity constructors."""
+        # Use attrs, if any, from an existing object, if any
+        new_attrs = getattr(data, "attrs", dict()).copy()
 
+        # Overwrite with values from an explicit attrs argument
+        new_attrs.update(attrs_arg or dict())
+
+        # Store the "units" keyword argument as an attr
+        units = kwargs.pop("units", None)
         if units:
-            attrs["_unit"] = pint.Unit(units)
+            new_attrs["_unit"] = pint.Unit(units)
 
-        result.attrs.update(attrs)
-
-        return result
-
-
-Quantity = _QuantityFactory()
+        return new_attrs
 
 
 def assert_quantity(*args):
@@ -81,7 +78,7 @@ def assert_quantity(*args):
         with a indicative message.
     """
     for i, arg in enumerate(args):
-        if arg.__class__.__name__ != Quantity.CLASS:
+        if not isinstance(arg, Quantity):
             raise TypeError(
                 f"arg #{i+1} ({repr(arg)}) is not Quantity; likely an incorrect key"
             )
