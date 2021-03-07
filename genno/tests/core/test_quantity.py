@@ -5,9 +5,11 @@ import pandas as pd
 import pint
 import pytest
 import xarray as xr
+from numpy import nan
 
 from genno import Computer, Quantity, computations
 from genno.core.quantity import assert_quantity
+from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import add_large_data, assert_qty_allclose, assert_qty_equal
 
 
@@ -100,6 +102,35 @@ class TestQuantity:
         a.attrs = {"bar": "foo"}
         assert_qty_equal(a, b, check_attrs=False)
 
+    @pytest.fixture()
+    def tri(self):
+        """Fixture returning triangular data to test fill, shift, etc."""
+        return Quantity(
+            xr.DataArray(
+                [
+                    [nan, nan, 1.0, nan, nan],
+                    [nan, 2, 3, 4, nan],
+                    [5, 6, 7, 8, 9],
+                ],
+                coords=[
+                    ("x", ["x0", "x1", "x2"]),
+                    ("y", ["y0", "y1", "y2", "y3", "y4"]),
+                ],
+            ),
+            units="kg",
+        )
+
+    def test_bfill(self, tri):
+        """Test Quantity.bfill()."""
+        if Quantity._get_class() is SparseDataArray:
+            pytest.xfail(reason="sparse.COO.flip() not implemented")
+
+        r1 = tri.bfill("x")
+        assert r1.loc["x0", "y0"] == tri.loc["x2", "y0"]
+
+        r2 = tri.bfill("y")
+        assert r2.loc["x0", "y0"] == tri.loc["x0", "y2"]
+
     def test_copy_modify(self, a):
         """Making a Quantity another produces a distinct attrs dictionary."""
         assert 0 == len(a.attrs)
@@ -111,16 +142,45 @@ class TestQuantity:
 
         assert pint.Unit("km") == a.attrs["_unit"]
 
-    def test_to_dataframe(self, a):
-        """Test Quantity.to_dataframe()."""
-        assert isinstance(a.to_dataframe(), pd.DataFrame)
+    def test_cumprod(self, tri):
+        """Test Quantity.cumprod()."""
+        if Quantity._get_class() is SparseDataArray:
+            pytest.xfail(reason="sparse.COO.nancumprod() not implemented")
 
-    def test_to_series(self, a):
-        """Test .to_series() on child classes, and Quantity.from_series."""
-        s = a.to_series()
-        assert isinstance(s, pd.Series)
+        r1 = tri.cumprod("x")
+        assert 1 * 3 * 7 == r1.loc["x2", "y2"]
 
-        Quantity.from_series(s)
+        r2 = tri.cumprod("y")
+        assert 2 * 3 == r2.loc["x1", "y2"]
+        assert 5 * 6 * 7 * 8 * 9 == r2.loc["x2", "y4"]
+
+    def test_ffill(self, tri):
+        """Test Quantity.ffill()."""
+
+        # Forward fill along "x" dimension results in no change
+        r1 = tri.ffill("x")
+        assert_qty_equal(tri, r1)
+
+        # Forward fill along y dimension works
+        r2 = tri.ffill("y")
+
+        # Check some filled values
+        assert r2.loc["x0", "y4"] == r2.loc["x0", "y3"] == tri.loc["x0", "y2"]
+
+    def test_shift(self, tri):
+        """Test Quantity.shift()."""
+        if Quantity._get_class() is SparseDataArray:
+            pytest.xfail(reason="sparse.COO.pad() not implemented")
+
+        r1 = tri.shift(x=1)
+        assert r1.loc["x2", "y1"] == tri.loc["x1", "y1"]
+
+        r2 = tri.shift(y=2)
+        assert r2.loc["x2", "y4"] == tri.loc["x2", "y2"]
+
+        with pytest.raises(NotImplementedError):
+            # AttrSeries only
+            tri.shift(x=1, y=2)
 
     def test_size(self):
         """Stress-test reporting of large, sparse quantities."""
@@ -141,3 +201,14 @@ class TestQuantity:
 
         # Result can be converted to pd.Series
         result.to_series()
+
+    def test_to_dataframe(self, a):
+        """Test Quantity.to_dataframe()."""
+        assert isinstance(a.to_dataframe(), pd.DataFrame)
+
+    def test_to_series(self, a):
+        """Test .to_series() on child classes, and Quantity.from_series."""
+        s = a.to_series()
+        assert isinstance(s, pd.Series)
+
+        Quantity.from_series(s)
