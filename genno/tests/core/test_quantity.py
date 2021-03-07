@@ -19,12 +19,34 @@ class TestQuantity:
         da = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
         yield Quantity(da)
 
-    @pytest.mark.filterwarnings(
-        "ignore:.*default dtype for empty Series.*:DeprecationWarning"
+    @pytest.mark.parametrize(
+        "args, kwargs",
+        (
+            # Integer, converted to float() for sparse
+            ((3,), dict(units="kg")),
+            # Scalar object
+            ((object(),), dict(units="kg")),
+            # pd.Series
+            ((pd.Series([0, 1], index=["a", "b"], name="foo"),), dict(units="kg")),
+            # pd.DataFrame
+            (
+                (pd.DataFrame([[0], [1]], index=["a", "b"], columns=["foo"]),),
+                dict(units="kg"),
+            ),
+            pytest.param(
+                (
+                    pd.DataFrame(
+                        [[0, 1], [2, 3]], index=["a", "b"], columns=["foo", "bar"]
+                    ),
+                ),
+                dict(units="kg"),
+                marks=pytest.mark.xfail(raises=TypeError),
+            ),
+        ),
     )
-    def test_init(self):
+    def test_init(self, args, kwargs):
         """Instantiated from a scalar object."""
-        Quantity(object())
+        Quantity(*args, **kwargs)
 
     def test_assert(self, a):
         """Test assertions about Quantity.
