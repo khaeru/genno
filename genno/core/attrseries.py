@@ -1,14 +1,21 @@
+import logging
+from typing import Any, Hashable, Mapping
+
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
 
+from genno.core.quantity import Quantity
 
-class AttrSeries(pd.Series):
+log = logging.getLogger(__name__)
+
+
+class AttrSeries(pd.Series, Quantity):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
-    :class:`xarray.DataArray`, so that :mod:`genno.computations`
-    methods can use xarray-like syntax.
+    :class:`xarray.DataArray`, so that :mod:`genno.computations` methods can use xarray-
+    like syntax.
 
     Parameters
     ----------
@@ -27,17 +34,9 @@ class AttrSeries(pd.Series):
         return AttrSeries
 
     def __init__(self, data=None, *args, name=None, attrs=None, **kwargs):
-        attrs = attrs or dict()
+        attrs = Quantity._collect_attrs(data, attrs, kwargs)
 
-        if hasattr(data, "attrs"):
-            # Use attrs from an existing object
-            new_attrs = data.attrs.copy()
-
-            # Overwrite with explicit attrs argument
-            new_attrs.update(attrs)
-            attrs = new_attrs
-
-        if isinstance(data, (AttrSeries, xr.DataArray)):
+        if isinstance(data, (pd.Series, xr.DataArray)):
             # Extract name from existing object or use the argument
             name = ibase.maybe_extract_name(name, data, type(self))
 
@@ -45,15 +44,23 @@ class AttrSeries(pd.Series):
                 # Pre-convert to pd.Series from xr.DataArray to preserve names and
                 # labels. For AttrSeries, this is a no-op (see below).
                 data = data.to_series()
+            except AttributeError:
+                # pd.Series
+                pass
             except ValueError:
+                # xr.DataArray
                 if data.shape == tuple():
                     # data is a scalar/0-dimensional xr.DataArray. Pass the 1 value
                     data = data.data
                 else:  # pragma: no cover
                     raise
+            else:
+                attrs.update()
+
+        data, name = Quantity._single_column_df(data, name)
 
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
-        super().__init__(data, *args, name=name, **kwargs)
+        pd.Series.__init__(self, data, *args, name=name, **kwargs)
 
         # Update the attrs after initialization
         self.attrs.update(attrs)
@@ -61,11 +68,21 @@ class AttrSeries(pd.Series):
     @classmethod
     def from_series(cls, series, sparse=None):
         """Like :meth:`xarray.DataArray.from_series`."""
-        return cls(series)
+        return AttrSeries(series)
 
     def assign_coords(self, **kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
         return pd.concat([self], keys=kwargs.values(), names=kwargs.keys())
+
+    def bfill(self, dim: Hashable, limit: int = None):
+        """Like :meth:`xarray.DataArray.bfill`."""
+        return self.__class__(
+            self.unstack(dim)
+            .fillna(method="bfill", axis=1, limit=limit)
+            .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
+        )
 
     @property
     def coords(self):
@@ -75,6 +92,19 @@ class AttrSeries(pd.Series):
             result[name] = xr.Dataset(None, coords={name: levels})[name]
         return result
 
+    def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
+        """Like :attr:`xarray.DataArray.cumprod`."""
+        if axis:
+            log.info(f"{self.__class__.__name__}.cumprod(…, axis=…) is ignored")
+
+        return self.__class__(
+            self.unstack(dim)
+            .cumprod(axis=1, skipna=skipna, **kwargs)
+            .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
+        )
+
     @property
     def dims(self):
         """Like :attr:`xarray.DataArray.dims`."""
@@ -83,6 +113,16 @@ class AttrSeries(pd.Series):
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
+
+    def ffill(self, dim: Hashable, limit: int = None):
+        """Like :meth:`xarray.DataArray.ffill`."""
+        return self.__class__(
+            self.unstack(dim)
+            .fillna(method="ffill", axis=1, limit=limit)
+            .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
+        )
 
     def item(self, *args):
         """Like :meth:`xarray.DataArray.item`."""
@@ -101,23 +141,54 @@ class AttrSeries(pd.Series):
 
     def sel(self, indexers=None, drop=False, **indexers_kwargs):
         """Like :meth:`xarray.DataArray.sel`."""
-        indexers = indexers.copy() if indexers else {}
-        indexers.update(indexers_kwargs)
+        indexers = xr.core.utils.either_dict_or_kwargs(
+            indexers, indexers_kwargs, "indexers"
+        )
+
         if len(indexers) == 1:
             level, key = list(indexers.items())[0]
             if isinstance(key, str) and not drop:
                 if isinstance(self.index, pd.MultiIndex):
-                    # When using .loc[] to select 1 label on 1 level, pandas
-                    # drops the level. Use .xs() to avoid this behaviour unless
-                    # drop=True
+                    # When using .loc[] to select 1 label on 1 level, pandas drops the
+                    # level. Use .xs() to avoid this behaviour unless drop=True
                     return AttrSeries(self.xs(key, level=level, drop_level=False))
                 else:
-                    # No MultiIndex; use .loc with a slice to avoid returning
-                    # scalar
+                    # No MultiIndex; use .loc with a slice to avoid returning scalar
                     return self.loc[slice(key, key)]
 
-        idx = tuple(indexers.get(n, slice(None)) for n in self.index.names)
-        return AttrSeries(self.loc[idx])
+        # Iterate over dimensions
+        idx = []
+        for dim in self.dims:
+            # Get an indexer for this dimension
+            i = indexers.get(dim, slice(None))
+
+            # Maybe unpack an xarray DataArray indexers, for pandas
+            idx.append(i.data if isinstance(i, xr.DataArray) else i)
+
+        # Select and return
+        return AttrSeries(self.loc[tuple(idx)])
+
+    def shift(
+        self,
+        shifts: Mapping[Hashable, int] = None,
+        fill_value: Any = None,
+        **shifts_kwargs: int,
+    ):
+        """Like :meth:`xarray.DataArray.shift`."""
+        shifts = xr.core.utils.either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
+        if len(shifts) > 1:
+            raise NotImplementedError(
+                f"{self.__class__.__name__}.shift() with > 1 dimension"
+            )
+
+        dim, periods = next(iter(shifts.items()))
+        return self.__class__(
+            self.unstack(dim)
+            .shift(periods=periods, axis=1, fill_value=fill_value)
+            .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
+        )
 
     def sum(self, *args, **kwargs):
         """Like :meth:`xarray.DataArray.sum`."""
@@ -189,6 +260,8 @@ class AttrSeries(pd.Series):
         """Like :meth:`xarray.DataArray.to_series`."""
         return self
 
+    # Internal methods
+
     def align_levels(self, other):
         """Work around https://github.com/pandas-dev/pandas/issues/25760.
 
@@ -208,7 +281,7 @@ class AttrSeries(pd.Series):
             # TODO make this more efficient, e.g. using itertools.product()
             for i, dim in missing:
                 result = pd.concat(
-                    {v: result for v in other.index.get_level_values(i)}, names=dim
+                    {v: result for v in other.index.get_level_values(i)}, names=[dim]
                 )
 
             if len(self) == len(self.index.names) == 1:

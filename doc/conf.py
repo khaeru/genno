@@ -23,6 +23,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+    "sphinx.ext.viewcode",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -60,6 +61,7 @@ intersphinx_mapping = {
     "dask": ("https://docs.dask.org/en/stable/", None),
     "ixmp": ("https://docs.messageix.org/projects/ixmp/en/latest", None),
     "message_ix": ("https://docs.messageix.org/en/latest", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),
     "plotnine": ("https://plotnine.readthedocs.io/en/stable/", None),
     "pyam": ("https://pyam-iamc.readthedocs.io/en/stable/", None),

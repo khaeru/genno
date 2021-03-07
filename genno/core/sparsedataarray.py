@@ -1,10 +1,13 @@
-from typing import Tuple
+from typing import Any, Dict, Hashable, Mapping, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import sparse
 import xarray as xr
+from xarray.core import dtypes
 from xarray.core.utils import either_dict_or_kwargs
+
+from genno.core.quantity import Quantity
 
 
 @xr.register_dataarray_accessor("_sda")
@@ -62,24 +65,84 @@ class SparseAccessor:
         return super(SparseDataArray, self.dense)
 
 
-class SparseDataArray(xr.DataArray):
+class SparseDataArray(xr.DataArray, Quantity):
     """:class:`~xarray.DataArray` with sparse data.
 
     SparseDataArray uses :class:`sparse.COO` for storage with :data:`numpy.nan`
-    as its :attr:`sparse.COO.fill_value`. Some methods of
-    :class:`~xarray.DataArray` are overridden to ensure data is in sparse, or
-    dense, format as necessary, to provide expected functionality not currently
-    supported by :mod:`sparse`, and to avoid exhausting memory for some
-    operations that require dense data.
+    as its :attr:`sparse.COO.fill_value`. Some methods of :class:`~xarray.DataArray`
+    are overridden to ensure data is in sparse, or dense, format as necessary, to
+    provide expected functionality not currently supported by :mod:`sparse`, and to
+    avoid exhausting memory for some operations that require dense data.
     """
 
-    __slots__: Tuple = tuple()
+    __slots__: Tuple[str, ...] = tuple()
+
+    def __init__(
+        self,
+        data: Any = dtypes.NA,
+        coords: Union[Sequence[Tuple], Mapping[Hashable, Any], None] = None,
+        dims: Union[Hashable, Sequence[Hashable], None] = None,
+        name: Hashable = None,
+        attrs: Mapping = None,
+        # internal parameters
+        indexes: Dict[Hashable, pd.Index] = None,
+        fastpath: bool = False,
+        **kwargs,
+    ):
+        if fastpath:
+            return xr.DataArray.__init__(
+                self, data, coords, dims, name, attrs, indexes, fastpath
+            )
+
+        attrs = Quantity._collect_attrs(data, attrs, kwargs)
+
+        assert 0 == len(
+            kwargs
+        ), f"Unrecognized kwargs {kwargs.keys()} to SparseDataArray()"
+
+        if isinstance(data, int):
+            data = float(data)
+
+        data, name = Quantity._single_column_df(data, name)
+
+        if isinstance(data, pd.Series):
+            # Possibly converted from pd.DataFrame, above
+            if data.dtype == int:
+                # Ensure float data
+                data = data.astype(float)
+            data = xr.DataArray.from_series(data, sparse=True)
+
+        if isinstance(data, xr.DataArray):
+            # Possibly converted from pd.Series, above
+            coords = data._coords
+            data = data.variable
+
+        # Invoke the xr.DataArray constructor
+        xr.DataArray.__init__(self, data, coords, dims, name, attrs)
+
+        if not isinstance(self.variable.data, sparse.COO):
+            # Dense (numpy.ndarray) data; convert to sparse
+            data = sparse.COO.from_numpy(self.variable.data, fill_value=np.nan)
+        elif not np.isnan(self.variable.data.fill_value):
+            # sparse.COO with non-NaN fill value; copy and change
+            data = self.variable.data.copy(deep=False)
+            data.fill_value = data.dtype.type(np.nan)
+        else:
+            # No change
+            return
+
+        # Replace the variable
+        self._variable = self._variable._replace(data=data)
 
     @classmethod
     def from_series(cls, obj, sparse=True):
         """Convert a pandas.Series into a SparseDataArray."""
         # Call the parent method always with sparse=True, then re-wrap
         return xr.DataArray.from_series(obj, sparse=True)._sda.convert()
+
+    def ffill(self, dim: Hashable, limit: int = None):
+        """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
+        return self._sda.dense_super.ffill(dim, limit)._sda.convert()
 
     def equals(self, other) -> bool:
         """True if two SparseDataArrays have the same dims, coords, and values.
@@ -100,8 +163,8 @@ class SparseDataArray(xr.DataArray):
     ) -> "SparseDataArray":
         """Return a new array by selecting labels along the specified dim(s).
 
-        Overrides :meth:`~xarray.DataArray.sel` to handle >1-D indexers with
-        sparse data.
+        Overrides :meth:`~xarray.DataArray.sel` to handle >1-D indexers with sparse
+        data.
         """
         indexers = either_dict_or_kwargs(indexers, indexers_kwargs, "sel")
         if isinstance(indexers, dict) and len(indexers) > 1:
@@ -128,12 +191,10 @@ class SparseDataArray(xr.DataArray):
     def to_series(self) -> pd.Series:
         """Convert this array into a :class:`~pandas.Series`.
 
-        Overrides :meth:`~xarray.DataArray.to_series` to create the series
-        without first converting to a potentially very large
-        :class:`numpy.ndarray`.
+        Overrides :meth:`~xarray.DataArray.to_series` to create the series without
+        first converting to a potentially very large :class:`numpy.ndarray`.
         """
-        # Use SparseArray.coords and .data (each already 1-D) to construct the
-        # pd.Series
+        # Use SparseArray.coords and .data (each already 1-D) to construct the pd.Series
 
         # Construct a pd.MultiIndex without using .from_product
         index = pd.MultiIndex.from_arrays(self.data.coords, names=self.dims).set_levels(

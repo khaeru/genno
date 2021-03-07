@@ -73,8 +73,3 @@ def test_scalar():
 
     # Fragment occurring in .computations.add()
     list(map(Quantity, xr.broadcast(A, B)))
-
-    # FIXME int() instead of float() raises an exception
-    C = Quantity(3, units="kg")
-    with pytest.raises(ValueError, match="cannot convert float NaN to integer"):
-        list(map(Quantity, xr.broadcast(A, B, C)))

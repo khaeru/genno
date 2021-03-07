@@ -2,6 +2,7 @@ import logging
 import re
 
 import numpy as np
+import pandas as pd
 import pint
 import pytest
 import xarray as xr
@@ -175,11 +176,17 @@ def test_concat(data):
     *_, t_foo, t_bar, x = data
 
     # Split x into two concatenateable quantities
-    computations.concat(
-        computations.select(x, dict(t=t_foo)),
-        computations.select(x, dict(t=t_bar)),
-        dim="t",
-    )
+    a = computations.select(x, dict(t=t_foo))
+    b = computations.select(x, dict(t=t_bar))
+
+    # Concatenate
+    computations.concat(a, b, dim="t")
+
+    # Concatenate twice on a new dimension
+    result = computations.concat(x, x, dim=pd.Index(["z1", "z2"], name="z"))
+
+    # NB for AttrSeries, the new dimension is first; for SparseDataArray, last
+    assert {"t", "y", "z"} == set(result.dims)
 
 
 def test_group_sum(ureg):
@@ -282,6 +289,7 @@ def test_product0():
         # 2D × scalar × scalar = 2D
         ((dict(a=2, b=2), dict(), dict()), 4),
         # scalar × 1D × scalar = 1D
+        # XFAIL for AttrSeries, not SparseDataArray
         pytest.param((dict(), dict(a=2), dict()), 2, marks=pytest.mark.xfail),
     ),
 )

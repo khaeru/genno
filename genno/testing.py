@@ -13,6 +13,7 @@ import xarray as xr
 from dask.core import quote
 from pandas.testing import assert_series_equal
 
+import genno.core.quantity
 from genno import Computer, Key, Quantity
 
 log = logging.getLogger(__name__)
@@ -223,10 +224,10 @@ def assert_qty_equal(a, b, check_type=True, check_attrs=True, **kwargs):
         a = Quantity(a)
         b = Quantity(b)
 
-    if Quantity.CLASS == "AttrSeries":
+    if genno.core.quantity.CLASS == "AttrSeries":
         try:
-            a = a.sort_index()
-            b = b.sort_index()
+            a = a.sort_index().dropna()
+            b = b.sort_index().dropna()
         except TypeError:
             pass
         assert_series_equal(a, b, check_dtype=False, **kwargs)
@@ -250,7 +251,7 @@ def assert_qty_allclose(a, b, check_type=True, check_attrs=True, **kwargs):
         a = Quantity(a)
         b = Quantity(b)
 
-    if Quantity.CLASS == "AttrSeries":
+    if genno.core.quantity.CLASS == "AttrSeries":
         assert_series_equal(a.sort_index(), b.sort_index(), **kwargs)
     else:
         import xarray.testing
@@ -266,22 +267,22 @@ def assert_qty_allclose(a, b, check_type=True, check_attrs=True, **kwargs):
 @pytest.fixture(params=["AttrSeries", "SparseDataArray"])
 def parametrize_quantity_class(request):
     """Fixture to run tests twice, for both Quantity implementations."""
-    pre = Quantity.CLASS
+    pre = genno.core.quantity.CLASS
 
-    Quantity.CLASS = request.param
+    genno.core.quantity.CLASS = request.param
     yield
 
-    Quantity.CLASS = pre
+    genno.core.quantity.CLASS = pre
 
 
 @pytest.fixture(scope="function")
 def quantity_is_sparsedataarray(request):
-    pre = copy(Quantity.CLASS)
+    pre = copy(genno.core.quantity.CLASS)
 
-    Quantity.CLASS = "SparseDataArray"
+    genno.core.quantity.CLASS = "SparseDataArray"
     yield
 
-    Quantity.CLASS = pre
+    genno.core.quantity.CLASS = pre
 
 
 def random_qty(shape: Dict[str, int], **kwargs):
