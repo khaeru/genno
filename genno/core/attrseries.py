@@ -88,6 +88,14 @@ class AttrSeries(pd.Series, Quantity):
             result[name] = xr.Dataset(None, coords={name: levels})[name]
         return result
 
+    def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
+        if axis or skipna:
+            log.info(f"{self.__class__}.cumprod(…, axis=, skipna=) are ignored")
+
+        return self.__class__(
+            self.unstack(dim).cumprod(axis=1, skipna=skipna, **kwargs).stack()
+        )
+
     @property
     def dims(self):
         """Like :attr:`xarray.DataArray.dims`."""
@@ -137,6 +145,23 @@ class AttrSeries(pd.Series, Quantity):
 
         idx = tuple(indexers.get(n, slice(None)) for n in self.index.names)
         return AttrSeries(self.loc[idx])
+
+    def shift(
+        self,
+        shifts: Mapping[Hashable, int] = None,
+        fill_value: Any = None,
+        **shifts_kwargs: int,
+    ):
+        shifts = xr.core.utils.either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
+        if len(shifts) > 1:
+            raise NotImplementedError(f"{self.__class__}.shift() with > 1 dimension")
+
+        dim, periods = next(iter(shifts.items()))
+        return self.__class__(
+            self.unstack(dim)
+            .shift(periods=periods, axis=1, fill_value=fill_value)
+            .stack()
+        )
 
     def sum(self, *args, **kwargs):
         """Like :meth:`xarray.DataArray.sum`."""
