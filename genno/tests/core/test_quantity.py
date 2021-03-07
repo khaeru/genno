@@ -2,6 +2,7 @@
 import re
 
 import pandas as pd
+import pint
 import pytest
 import xarray as xr
 
@@ -98,6 +99,17 @@ class TestQuantity:
         # attrs are different
         a.attrs = {"bar": "foo"}
         assert_qty_equal(a, b, check_attrs=False)
+
+    def test_copy_modify(self, a):
+        """Making a Quantity another produces a distinct attrs dictionary."""
+        assert 0 == len(a.attrs)
+
+        a.attrs["_unit"] = pint.Unit("km")
+
+        b = Quantity(a, units="kg")
+        assert pint.Unit("kg") == b.attrs["_unit"]
+
+        assert pint.Unit("km") == a.attrs["_unit"]
 
     def test_to_dataframe(self, a):
         """Test Quantity.to_dataframe()."""
