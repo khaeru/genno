@@ -9,8 +9,9 @@ from pathlib import Path
 import pandas as pd
 import pint
 
-from .core.quantity import Quantity, assert_quantity
-from .util import collect_units, filter_concat_args
+from genno.core.attrseries import AttrSeries
+from genno.core.quantity import Quantity, assert_quantity
+from genno.util import collect_units, filter_concat_args
 
 __all__ = [
     "add",
@@ -55,12 +56,12 @@ def add(*quantities, fill_value=0.0):
     # Ensure arguments are all quantities
     assert_quantity(*quantities)
 
-    if Quantity.CLASS == "SparseDataArray":
-        # Use xarray's built-in broadcasting, return to Quantity class
-        quantities = map(Quantity, xr.broadcast(*quantities))
-    else:
+    if isinstance(quantities[0], AttrSeries):
         # map() returns an iterable
         quantities = iter(quantities)
+    else:
+        # Use xarray's built-in broadcasting, return to Quantity class
+        quantities = map(Quantity, xr.broadcast(*quantities))
 
     # Initialize result values with first entry
     result = next(quantities)
@@ -74,7 +75,7 @@ def add(*quantities, fill_value=0.0):
 
         factor = u.from_(1.0, strict=False).to(ref_unit).magnitude
 
-        if Quantity.CLASS == "AttrSeries":
+        if isinstance(q, AttrSeries):
             result = result.add(factor * q, fill_value=fill_value).dropna()
         else:
             result = result + factor * q
@@ -89,12 +90,12 @@ def aggregate(quantity, groups, keep):
     ----------
     quantity : :class:`Quantity <genno.utils.Quantity>`
     groups: dict of dict
-        Top-level keys are the names of dimensions in `quantity`. Second-level
-        keys are group names; second-level values are lists of labels along the
-        dimension to sum into a group.
+        Top-level keys are the names of dimensions in `quantity`. Second-level keys are
+        group names; second-level values are lists of labels along the dimension to sum
+        into a group.
     keep : bool
-        If True, the members that are aggregated into a group are returned with
-        the group sums. If False, they are discarded.
+        If True, the members that are aggregated into a group are returned with the
+        group sums. If False, they are discarded.
 
     Returns
     -------
@@ -113,7 +114,8 @@ def aggregate(quantity, groups, keep):
             agg = (
                 quantity.sel({dim: members}).sum(dim=dim).assign_coords(**{dim: group})
             )
-            if Quantity.CLASS == "AttrSeries":
+
+            if isinstance(agg, AttrSeries):
                 # .transpose() is necessary for AttrSeries
                 agg = agg.transpose(*quantity.dims)
             else:
@@ -220,8 +222,8 @@ def combine(*quantities, select=None, weights=None):  # noqa: F811
     # Check units
     units = collect_units(*quantities)
     for u in units:
-        # TODO relax this condition: modify the weights with conversion factors
-        #      if the units are compatible, but not the same
+        # TODO relax this condition: modify the weights with conversion factors if the
+        #      units are compatible, but not the same
         if u != units[0]:
             raise ValueError(f"Cannot combine() units {units[0]} and {u}")
     units = units[0]
@@ -254,7 +256,7 @@ def concat(*objs, **kwargs):
     Computer.
     """
     objs = filter_concat_args(objs)
-    if Quantity.CLASS == "AttrSeries":
+    if Quantity._get_class() is AttrSeries:
         # Silently discard any "dim" keyword argument
         kwargs.pop("dim", None)
         return pd.concat(objs, **kwargs)
@@ -284,22 +286,22 @@ def group_sum(qty, group, sum):
 def load_file(path, dims={}, units=None, name=None):
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
 
-    Some file formats are automatically converted into objects for direct use
-    in genno computations:
+    Some file formats are automatically converted into objects for direct use in genno
+    computations:
 
     :file:`.csv`:
-       Converted to :class:`.Quantity`. CSV files must have a 'value' column;
-       all others are treated as indices, except as given by `dims`. Lines
-       beginning with '#' are ignored.
+       Converted to :class:`.Quantity`. CSV files must have a 'value' column; all
+       others are treated as indices, except as given by `dims`. Lines beginning with
+       '#' are ignored.
 
     Parameters
     ----------
     path : pathlib.Path
         Path to the file to read.
     dims : collections.abc.Collection or collections.abc.Mapping, optional
-        If a collection of names, other columns besides these and 'value' are
-        discarded. If a mapping, the keys are the column labels in `path`, and
-        the values are the target dimension names.
+        If a collection of names, other columns besides these and 'value' are discarded.
+        If a mapping, the keys are the column labels in `path`, and the values are the
+        target dimension names.
     units : str or pint.Unit
         Units to apply to the loaded Quantity.
     name : str
@@ -381,7 +383,7 @@ def pow(a, b):
     if not u_b.dimensionless:
         raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
 
-    if Quantity.CLASS == "AttrSeries":
+    if isinstance(a, AttrSeries):
         result = a ** b.align_levels(a)
     else:
         result = a ** b
@@ -405,7 +407,7 @@ def product(*quantities):
 
     # Iterate over remaining entries
     for q, u in items:
-        if Quantity.CLASS == "AttrSeries":
+        if isinstance(q, AttrSeries):
             # Work around pandas-dev/pandas#25760; see attrseries.py
             result = (result * q.align_levels(result)).dropna()
         else:
@@ -428,7 +430,7 @@ def ratio(numerator, denominator):
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
-    if Quantity.CLASS == "AttrSeries":
+    if isinstance(numerator, AttrSeries):
         result = numerator / denominator.align_levels(numerator)
     else:
         result = numerator / denominator
@@ -439,7 +441,7 @@ def ratio(numerator, denominator):
     ureg = pint.get_application_registry()
     result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
 
-    if Quantity.CLASS == "AttrSeries":
+    if isinstance(result, AttrSeries):
         result.dropna(inplace=True)
 
     return result
