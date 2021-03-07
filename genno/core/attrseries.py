@@ -77,7 +77,11 @@ class AttrSeries(pd.Series, Quantity):
     def bfill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.bfill`."""
         return self.__class__(
-            self.unstack(dim).fillna(method="bfill", axis=1, limit=limit).stack()
+            self.unstack(dim)
+            .fillna(method="bfill", axis=1, limit=limit)
+            .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
         )
 
     @property
@@ -89,11 +93,16 @@ class AttrSeries(pd.Series, Quantity):
         return result
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
+        """Like :attr:`xarray.DataArray.cumprod`."""
         if axis or skipna:
             log.info(f"{self.__class__}.cumprod(…, axis=, skipna=) are ignored")
 
         return self.__class__(
-            self.unstack(dim).cumprod(axis=1, skipna=skipna, **kwargs).stack()
+            self.unstack(dim)
+            .cumprod(axis=1, skipna=skipna, **kwargs)
+            .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
         )
 
     @property
@@ -108,7 +117,11 @@ class AttrSeries(pd.Series, Quantity):
     def ffill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.ffill`."""
         return self.__class__(
-            self.unstack(dim).fillna(method="ffill", axis=1, limit=limit).stack()
+            self.unstack(dim)
+            .fillna(method="ffill", axis=1, limit=limit)
+            .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
         )
 
     def item(self, *args):
@@ -163,13 +176,17 @@ class AttrSeries(pd.Series, Quantity):
     ):
         shifts = xr.core.utils.either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
         if len(shifts) > 1:
-            raise NotImplementedError(f"{self.__class__}.shift() with > 1 dimension")
+            raise NotImplementedError(
+                f"{self.__class__.__name__}.shift() with > 1 dimension"
+            )
 
         dim, periods = next(iter(shifts.items()))
         return self.__class__(
             self.unstack(dim)
             .shift(periods=periods, axis=1, fill_value=fill_value)
             .stack()
+            .reorder_levels(self.dims),
+            attrs=self.attrs,
         )
 
     def sum(self, *args, **kwargs):
