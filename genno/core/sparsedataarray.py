@@ -140,6 +140,10 @@ class SparseDataArray(xr.DataArray, Quantity):
         # Call the parent method always with sparse=True, then re-wrap
         return xr.DataArray.from_series(obj, sparse=True)._sda.convert()
 
+    def ffill(self, dim: Hashable, limit: int = None):
+        """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
+        return self._sda.dense_super.ffill(dim, limit)._sda.convert()
+
     def equals(self, other) -> bool:
         """True if two SparseDataArrays have the same dims, coords, and values.
 
