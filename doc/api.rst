@@ -279,10 +279,10 @@ Top-level classes and functions
    <foo:a-b-c>
 
 
-.. autodata:: genno.Quantity(data, *args, **kwargs)
-   :annotation:
+.. autoclass:: genno.Quantity
+   :members:
 
-The :data:`.Quantity` constructor converts its arguments to an internal, :class:`xarray.DataArray`-like data format:
+The :class:`.Quantity` constructor converts its arguments to an internal, :class:`xarray.DataArray`-like data format:
 
 .. code-block:: python
 
@@ -307,9 +307,7 @@ Computations
 .. automodule:: genno.computations
    :members:
 
-   Unless otherwise specified, these methods accept and return
-   :class:`Quantity <genno.utils.Quantity>` objects for data
-   arguments/return values.
+   Unless otherwise specified, these methods accept and return :class:`.Quantity` objects for data arguments/return values.
 
    Genno's :ref:`compatibility modules <compat>` each provide additional computations.
 

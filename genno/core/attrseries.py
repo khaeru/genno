@@ -174,6 +174,7 @@ class AttrSeries(pd.Series, Quantity):
         fill_value: Any = None,
         **shifts_kwargs: int,
     ):
+        """Like :meth:`xarray.DataArray.shift`."""
         shifts = xr.core.utils.either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
         if len(shifts) > 1:
             raise NotImplementedError(
