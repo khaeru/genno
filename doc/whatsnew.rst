@@ -9,6 +9,14 @@ What's new
 .. Next release
 .. ============
 
+v1.2.1 (2021-03-08)
+===================
+
+Bug fixes
+---------
+
+- Provide abstract :class:`.Quantity.to_series` method for type checking in packages that depend on :mod:`genno`.
+
 v1.2.0 (2021-03-08)
 ===================
 

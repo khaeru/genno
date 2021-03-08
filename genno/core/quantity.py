@@ -16,10 +16,16 @@ class Quantity:
         # Use _get_class() to retrieve either AttrSeries or SparseDataArray
         return object.__new__(Quantity._get_class(cls))
 
+    def to_series(self) -> pd.Series:
+        """Like :meth:`xarray.DataArray.to_series`."""
+        # Provided only for type-checking in other packages. AttrSeries implements;
+        # SparseDataArray uses the xr.DataArray method.
+        raise RuntimeError
+
     @classmethod
     def from_series(cls, series, sparse=True):
         """Convert `series` to the Quantity class given by :data:`.CLASS`."""
-        # NB signature is the same as xr.DataArray.from_series()
+        # NB signature is the same as xr.DataArray.from_series(); except sparse=True
         assert sparse
         return cls._get_class().from_series(series, sparse)
 
