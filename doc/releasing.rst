@@ -3,7 +3,7 @@ Releasing
 
 Before releasing, check:
 
-- https://github.com/khaeru/genno/actions?query=workflow:pytest+branch:master to ensure that the push and scheduled builds are passing.
+- https://github.com/khaeru/genno/actions?query=workflow:pytest+branch:main to ensure that the push and scheduled builds are passing.
 - https://readthedocs.org/projects/genno/builds/ to ensure that the docs build is passing.
 
 Address any failures before releasing.
@@ -15,7 +15,7 @@ Address any failures before releasing.
 2. Tag the release candidate version, i.e. with a ``rcN`` suffix, and push::
 
     $ git tag v1.2.3rc1
-    $ git push --tags origin master
+    $ git push --tags origin main
 
 3. Check:
 
@@ -31,7 +31,7 @@ Address any failures before releasing.
 4. (optional) Tag the release itself and push::
 
     $ git tag v1.2.3
-    $ git push --tags origin master
+    $ git push --tags origin main
 
    This step (but *not* step (2)) can also be performed directly on GitHub; see (5), next.
 

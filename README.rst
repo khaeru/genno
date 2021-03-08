@@ -13,7 +13,7 @@ genno: efficient, transparent calculation on N-D data
    :target: https://github.com/khaeru/genno/actions?query=workflow:pytest
    :alt: Build status
 
-.. image:: https://codecov.io/gh/khaeru/genno/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/khaeru/genno/branch/main/graph/badge.svg
    :target: https://codecov.io/gh/khaeru/genno
    :alt: Test coverage
 
