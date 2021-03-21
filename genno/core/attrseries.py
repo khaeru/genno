@@ -182,7 +182,9 @@ class AttrSeries(pd.Series, Quantity):
                     # No MultiIndex; use .loc with a slice to avoid returning scalar
                     return self.loc[slice(key, key)]
 
-        if all(isinstance(i, xr.DataArray) for i in indexers.values()):
+        if len(indexers) and all(
+            isinstance(i, xr.DataArray) for i in indexers.values()
+        ):
             # DataArray indexers
 
             # Combine indexers in a data set; dimensions are aligned
@@ -229,6 +231,7 @@ class AttrSeries(pd.Series, Quantity):
             # Other indexers
 
             # Iterate over dimensions
+            idx = []
             for dim in self.dims:
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
