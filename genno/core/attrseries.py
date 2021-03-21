@@ -71,9 +71,29 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.from_series`."""
         return AttrSeries(series)
 
-    def assign_coords(self, **kwargs):
+    def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
-        return pd.concat([self], keys=kwargs.values(), names=kwargs.keys())
+        coords = either_dict_or_kwargs(coords, coord_kwargs, "assign_coords")
+        if all(isinstance(v, (str, int)) for v in coords.values()):
+            # Add new dimensions of length 1
+            return pd.concat([self], keys=coords.values(), names=coords.keys())
+        else:
+            # Replace all labels along a single dimension
+
+            # Construct a new index
+            new_idx = self.index.copy()
+            for dim, values in coords.items():
+                expected_len = len(self.index.levels[self.index.names.index(dim)])
+                if expected_len != len(values):
+                    raise ValueError(
+                        f"New labels for {dim} are of length {len(values)} != "
+                        f"{expected_len}"
+                    )
+
+                new_idx = new_idx.set_levels(values, level=dim)
+
+            # Return a new object with the new index
+            return self.set_axis(new_idx)
 
     def bfill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.bfill`."""
