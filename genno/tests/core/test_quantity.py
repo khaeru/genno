@@ -172,7 +172,12 @@ class TestQuantity:
         r2 = tri.ffill("y")
 
         # Check some filled values
-        assert r2.loc["x0", "y4"] == r2.loc["x0", "y3"] == tri.loc["x0", "y2"]
+        assert (
+            r2.loc["x0", "y4"].item()
+            == r2.loc["x0", "y3"].item()
+            == tri.loc["x0", "y2"].item()
+        )
+
 
     def test_shift(self, tri):
         """Test Quantity.shift()."""
