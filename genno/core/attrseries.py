@@ -114,6 +114,13 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
 
+    def drop_vars(
+        self, names: Union[Hashable, Iterable[Hashable]], *, errors: str = "raise"
+    ):
+        """Like :meth:`xarray.DataArray.drop_vars`."""
+
+        return self.droplevel(names)
+
     def ffill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.ffill`."""
         return self.__class__(
