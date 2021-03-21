@@ -178,6 +178,18 @@ class TestQuantity:
             == tri.loc["x0", "y2"].item()
         )
 
+    def test_sel(self, tri):
+        # Create indexers
+        newdim = [("newdim", ["nd0", "nd1", "nd2"])]
+        x_idx = xr.DataArray(["x2", "x1", "x2"], coords=newdim)
+        y_idx = xr.DataArray(["y4", "y2", "y0"], coords=newdim)
+
+        # Select using the indexers
+        assert_qty_equal(
+            Quantity(xr.DataArray([9.0, 3.0, 5.0], coords=newdim), units="kg"),
+            tri.sel(x=x_idx, y=y_idx),
+        )
+
     def test_shift(self, tri):
         """Test Quantity.shift()."""
         if Quantity._get_class() is SparseDataArray:
