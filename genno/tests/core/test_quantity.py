@@ -188,6 +188,7 @@ class TestQuantity:
         assert_qty_equal(
             Quantity(xr.DataArray([9.0, 3.0, 5.0], coords=newdim), units="kg"),
             tri.sel(x=x_idx, y=y_idx),
+            ignore_extra_coords=True,
         )
 
     def test_shift(self, tri):
