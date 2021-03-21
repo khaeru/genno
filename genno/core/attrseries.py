@@ -4,6 +4,7 @@ from typing import Any, Hashable, Mapping
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
+from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity
 
@@ -148,9 +149,7 @@ class AttrSeries(pd.Series, Quantity):
 
     def sel(self, indexers=None, drop=False, **indexers_kwargs):
         """Like :meth:`xarray.DataArray.sel`."""
-        indexers = xr.core.utils.either_dict_or_kwargs(
-            indexers, indexers_kwargs, "indexers"
-        )
+        indexers = either_dict_or_kwargs(indexers, indexers_kwargs, "indexers")
 
         if len(indexers) == 1:
             level, key = list(indexers.items())[0]
@@ -182,7 +181,7 @@ class AttrSeries(pd.Series, Quantity):
         **shifts_kwargs: int,
     ):
         """Like :meth:`xarray.DataArray.shift`."""
-        shifts = xr.core.utils.either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
+        shifts = either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
         if len(shifts) > 1:
             raise NotImplementedError(
                 f"{self.__class__.__name__}.shift() with > 1 dimension"
