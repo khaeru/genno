@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Hashable, Mapping
+from typing import Any, Hashable, Iterable, Mapping, Union
 
 import pandas as pd
 import pandas.core.indexes.base as ibase
@@ -182,17 +182,64 @@ class AttrSeries(pd.Series, Quantity):
                     # No MultiIndex; use .loc with a slice to avoid returning scalar
                     return self.loc[slice(key, key)]
 
-        # Iterate over dimensions
-        idx = []
-        for dim in self.dims:
-            # Get an indexer for this dimension
-            i = indexers.get(dim, slice(None))
+        if all(isinstance(i, xr.DataArray) for i in indexers.values()):
+            # DataArray indexers
 
-            # Maybe unpack an xarray DataArray indexers, for pandas
-            idx.append(i.data if isinstance(i, xr.DataArray) else i)
+            # Combine indexers in a data set; dimensions are aligned
+            ds = xr.Dataset(indexers)
 
-        # Select and return
-        return AttrSeries(self.loc[tuple(idx)])
+            # All dimensions indexed
+            dims_indexed = set(indexers.keys())
+            # Dimensions to discard
+            dims_drop = set(ds.data_vars.keys())
+
+            # Check contents of indexers
+            if any(ds.isnull().any().values()):
+                raise ValueError(f"indexers have uneven lengths: {ds.notnull().sum()}")
+            elif len(ds.dims) > 1:
+                raise NotImplementedError(
+                    f"map to > 1 dimensions {repr(ds.dims)} with AttrSeries.sel()"
+                )
+
+            # pd.Index object with names and levels of the new dimension to be created
+            idx = ds.coords.to_index()
+
+            # Dimensions to drop on sliced data to avoid duplicated dimensions
+            drop = list(dims_indexed - dims_drop)
+
+            # Dictionary of Series to concatenate
+            data = {}
+
+            # Iterate over labels in the new dimension
+            for label in idx:
+                # Get a slice from the indexers corresponding to this label
+                loc_ds = ds.sel({idx.name: label})
+
+                # Assemble a key with one element for each dimension
+                seq = [loc_ds.get(d) for d in self.dims]
+                # Replace None from .get() with slice(None) or unpack a single value
+                seq = [slice(None) if item is None else item.item() for item in seq]
+
+                # Use the key to retrieve 1+ integer locations; slice; store
+                data[label] = self.iloc[self.index.get_locs(seq)].droplevel(drop)
+
+            # Rejoin to a single data frame; drop the source levels
+            data = pd.concat(data, names=[idx.name]).droplevel(list(dims_drop))
+        else:
+            # Other indexers
+
+            # Iterate over dimensions
+            for dim in self.dims:
+                # Get an indexer for this dimension
+                i = indexers.get(dim, slice(None))
+
+                # Maybe unpack an xarray DataArray indexers, for pandas
+                idx.append(i.data if isinstance(i, xr.DataArray) else i)
+
+            data = self.loc[tuple(idx)]
+
+        # Return
+        return AttrSeries(data, attrs=self.attrs)
 
     def shift(
         self,
