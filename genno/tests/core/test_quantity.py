@@ -178,7 +178,6 @@ class TestQuantity:
             == tri.loc["x0", "y2"].item()
         )
 
-
     def test_shift(self, tri):
         """Test Quantity.shift()."""
         if Quantity._get_class() is SparseDataArray:
