@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Hashable, Iterable, Mapping, Sequence, Union
+from typing import Any, Hashable, Iterable, Mapping, Union
 
 import pandas as pd
 import pandas.core.indexes.base as ibase
