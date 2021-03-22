@@ -163,7 +163,6 @@ class AttrSeries(pd.Series, Quantity):
 
         result = self
         for name, values in reversed(list(dim.items())):
-            print(name, values)
             result = pd.concat([result] * len(values), keys=values, names=[name])
 
         return result
@@ -188,6 +187,7 @@ class AttrSeries(pd.Series, Quantity):
 
     def rename(self, new_name_or_name_dict):
         """Like :meth:`xarray.DataArray.rename`."""
+        # TODO add **names kwargs
         if isinstance(new_name_or_name_dict, dict):
             return self.rename_axis(index=new_name_or_name_dict)
         else:
