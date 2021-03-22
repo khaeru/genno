@@ -1,21 +1,32 @@
 import logging
-from typing import Any, Hashable, Mapping
+from typing import Any, Hashable, Iterable, Mapping, Union
 
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
+from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity
 
 log = logging.getLogger(__name__)
 
 
+def _multiindex_of(obj: pd.Series):
+    """Return ``obj.index``; if this is not a :class:`pandas.MultiIndex`, convert."""
+    return (
+        obj.index
+        if isinstance(obj.index, pd.MultiIndex)
+        else pd.MultiIndex.from_product([obj.index])
+    )
+
+
 class AttrSeries(pd.Series, Quantity):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
-    :class:`xarray.DataArray`, so that :mod:`genno.computations` methods can use xarray-
-    like syntax.
+    :class:`xarray.DataArray`, so that :mod:`genno.computations` functions and user
+    code can use xarray-like syntax. In particular, this allows such code to be agnostic
+    about the order of dimensions.
 
     Parameters
     ----------
@@ -70,9 +81,27 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.from_series`."""
         return AttrSeries(series)
 
-    def assign_coords(self, **kwargs):
+    def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
-        return pd.concat([self], keys=kwargs.values(), names=kwargs.keys())
+        coords = either_dict_or_kwargs(coords, coord_kwargs, "assign_coords")
+
+        idx = _multiindex_of(self)
+
+        # Construct a new index
+        new_idx = idx.copy()
+        for dim, values in coords.items():
+            expected_len = len(idx.levels[idx.names.index(dim)])
+            if expected_len != len(values):
+                raise ValueError(
+                    f"conflicting sizes for dimension {repr(dim)}: length "
+                    f"{expected_len} on <this-array> and length {len(values)} on "
+                    f"{repr(dim)}"
+                )
+
+            new_idx = new_idx.set_levels(values, level=dim)
+
+        # Return a new object with the new index
+        return self.set_axis(new_idx)
 
     def bfill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.bfill`."""
@@ -93,7 +122,7 @@ class AttrSeries(pd.Series, Quantity):
         return result
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
-        """Like :attr:`xarray.DataArray.cumprod`."""
+        """Like :meth:`xarray.DataArray.cumprod`."""
         if axis:
             log.info(f"{self.__class__.__name__}.cumprod(…, axis=…) is ignored")
 
@@ -113,6 +142,31 @@ class AttrSeries(pd.Series, Quantity):
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
+
+    def drop_vars(
+        self, names: Union[Hashable, Iterable[Hashable]], *, errors: str = "raise"
+    ):
+        """Like :meth:`xarray.DataArray.drop_vars`."""
+
+        return self.droplevel(names)
+
+    def expand_dims(
+        self,
+        dim: Union[None, Mapping[Hashable, Any]] = None,
+        axis=None,
+        **dim_kwargs: Any,
+    ):
+        """Like :meth:`xarray.DataArray.expand_dims`."""
+        dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
+        if axis is not None:
+            raise NotImplementedError  # pragma: no cover
+
+        result = self
+        for name, values in reversed(list(dim.items())):
+            print(name, values)
+            result = pd.concat([result] * len(values), keys=values, names=[name])
+
+        return result
 
     def ffill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.ffill`."""
@@ -141,9 +195,7 @@ class AttrSeries(pd.Series, Quantity):
 
     def sel(self, indexers=None, drop=False, **indexers_kwargs):
         """Like :meth:`xarray.DataArray.sel`."""
-        indexers = xr.core.utils.either_dict_or_kwargs(
-            indexers, indexers_kwargs, "indexers"
-        )
+        indexers = either_dict_or_kwargs(indexers, indexers_kwargs, "indexers")
 
         if len(indexers) == 1:
             level, key = list(indexers.items())[0]
@@ -156,17 +208,69 @@ class AttrSeries(pd.Series, Quantity):
                     # No MultiIndex; use .loc with a slice to avoid returning scalar
                     return self.loc[slice(key, key)]
 
-        # Iterate over dimensions
-        idx = []
-        for dim in self.dims:
-            # Get an indexer for this dimension
-            i = indexers.get(dim, slice(None))
+        if len(indexers) and all(
+            isinstance(i, xr.DataArray) for i in indexers.values()
+        ):
+            # DataArray indexers
 
-            # Maybe unpack an xarray DataArray indexers, for pandas
-            idx.append(i.data if isinstance(i, xr.DataArray) else i)
+            # Combine indexers in a data set; dimensions are aligned
+            ds = xr.Dataset(indexers)
 
-        # Select and return
-        return AttrSeries(self.loc[tuple(idx)])
+            # All dimensions indexed
+            dims_indexed = set(indexers.keys())
+            # Dimensions to discard
+            dims_drop = set(ds.data_vars.keys())
+
+            # Check contents of indexers
+            if any(ds.isnull().any().values()):
+                raise IndexError(
+                    f"Dimensions of indexers mismatch: {ds.notnull().sum()}"
+                )
+            elif len(ds.dims) > 1:
+                raise NotImplementedError(  # pragma: no cover
+                    f"map to > 1 dimensions {repr(ds.dims)} with AttrSeries.sel()"
+                )
+
+            # pd.Index object with names and levels of the new dimension to be created
+            idx = ds.coords.to_index()
+
+            # Dimensions to drop on sliced data to avoid duplicated dimensions
+            drop = list(dims_indexed - dims_drop)
+
+            # Dictionary of Series to concatenate
+            data = {}
+
+            # Iterate over labels in the new dimension
+            for label in idx:
+                # Get a slice from the indexers corresponding to this label
+                loc_ds = ds.sel({idx.name: label})
+
+                # Assemble a key with one element for each dimension
+                seq = [loc_ds.get(d) for d in self.dims]
+                # Replace None from .get() with slice(None) or unpack a single value
+                seq = [slice(None) if item is None else item.item() for item in seq]
+
+                # Use the key to retrieve 1+ integer locations; slice; store
+                data[label] = self.iloc[self.index.get_locs(seq)].droplevel(drop)
+
+            # Rejoin to a single data frame; drop the source levels
+            data = pd.concat(data, names=[idx.name]).droplevel(list(dims_drop))
+        else:
+            # Other indexers
+
+            # Iterate over dimensions
+            idx = []
+            for dim in self.dims:
+                # Get an indexer for this dimension
+                i = indexers.get(dim, slice(None))
+
+                # Maybe unpack an xarray DataArray indexers, for pandas
+                idx.append(i.data if isinstance(i, xr.DataArray) else i)
+
+            data = self.loc[tuple(idx)]
+
+        # Return
+        return AttrSeries(data, attrs=self.attrs)
 
     def shift(
         self,
@@ -175,7 +279,7 @@ class AttrSeries(pd.Series, Quantity):
         **shifts_kwargs: int,
     ):
         """Like :meth:`xarray.DataArray.shift`."""
-        shifts = xr.core.utils.either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
+        shifts = either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
         if len(shifts) > 1:
             raise NotImplementedError(
                 f"{self.__class__.__name__}.shift() with > 1 dimension"
@@ -267,9 +371,13 @@ class AttrSeries(pd.Series, Quantity):
 
         Return a copy of `self` with common levels in the same order as `other`.
         """
+        # If other.index is a (1D) Index object, convert to a MultiIndex with 1 level so
+        # .levels[…] can be used, below. See also Quantity._single_column_df()
+        other_index = _multiindex_of(other)
+
         # Lists of common dimensions, and dimensions on `other` missing from `self`.
         common, missing = [], []
-        for (i, n) in enumerate(other.index.names):
+        for (i, n) in enumerate(other_index.names):
             if n in self.index.names:
                 common.append(n)
             else:
@@ -277,11 +385,11 @@ class AttrSeries(pd.Series, Quantity):
 
         result = self
         if len(common) == 0:
-            # Broadcast over missing dimensions
-            # TODO make this more efficient, e.g. using itertools.product()
-            for i, dim in missing:
-                result = pd.concat(
-                    {v: result for v in other.index.get_level_values(i)}, names=[dim]
+            # No common dimensions
+            if len(missing):
+                # Broadcast over missing dimensions
+                result = result.expand_dims(
+                    {dim: other_index.levels[i] for i, dim in missing}
                 )
 
             if len(self) == len(self.index.names) == 1:
@@ -290,7 +398,7 @@ class AttrSeries(pd.Series, Quantity):
                 result = result.droplevel(-1)
 
             # Reordering starts with the dimensions of `other`
-            order = list(other.index.names)
+            order = list(other_index.names)
         else:
             # Some common dimensions exist; no need to broadcast, only reorder
             order = common
@@ -298,7 +406,7 @@ class AttrSeries(pd.Series, Quantity):
         # Append the dimensions of `self`
         order.extend(
             filter(
-                lambda n: n is not None and n not in other.index.names, self.index.names
+                lambda n: n is not None and n not in other_index.names, self.index.names
             )
         )
 

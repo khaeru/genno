@@ -66,6 +66,7 @@ intersphinx_mapping = {
     "plotnine": ("https://plotnine.readthedocs.io/en/stable/", None),
     "pyam": ("https://pyam-iamc.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
+    "xarray": ("https://xarray.pydata.org/en/stable/", None),
 }
 
 # -- Options for sphinx.ext.todo -------------------------------------------------------

@@ -214,15 +214,38 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
             pytest.fail("\n".join(lines))
 
 
-def assert_qty_equal(a, b, check_type=True, check_attrs=True, **kwargs):
-    """Assert that Quantity objects *a* and *b* are equal.
+def assert_qty_equal(
+    a,
+    b,
+    check_type: bool = True,
+    check_attrs: bool = True,
+    ignore_extra_coords: bool = False,
+    **kwargs,
+):
+    """Assert that objects `a` and `b` are equal.
 
-    When Quantity is AttrSeries, *a* and *b* are first passed through
-    :meth:`as_quantity`.
+    Parameters
+    ----------
+    check_type : bool, optional
+        Assert that `a` and `b` are both :class:`Quantity` instances. If :obj:`False`,
+        the arguments are converted to Quantity.
+    check_attrs : bool, optional
+        Also assert that check that attributes are identical.
+    ignore_extra_coords : bool, optional
+        Ignore extra coords that are not dimensions. Only meaningful when Quantity is
+        :class:`SparseDataArray`.
     """
-    if not check_type:
-        a = Quantity(a)
-        b = Quantity(b)
+    __tracebackhide__ = True
+
+    try:
+        assert type(a) == type(b) and type(a).__name__ == genno.core.quantity.CLASS
+    except AssertionError:
+        if check_type:
+            raise
+        else:
+            # Convert both arguments to Quantity
+            a = Quantity(a)
+            b = Quantity(b)
 
     if genno.core.quantity.CLASS == "AttrSeries":
         try:
@@ -234,22 +257,43 @@ def assert_qty_equal(a, b, check_type=True, check_attrs=True, **kwargs):
     else:
         import xarray.testing
 
-        xarray.testing.assert_equal(a, b, **kwargs)
+        if ignore_extra_coords:
+            a = a.reset_coords(set(a.coords.keys()) - set(a.dims), drop=True)
+            b = b.reset_coords(set(b.coords.keys()) - set(b.dims), drop=True)
+
+        assert 0 == len(kwargs)
+
+        xarray.testing.assert_equal(a, b)
 
     # Check attributes are equal
     if check_attrs:
         assert a.attrs == b.attrs
 
 
-def assert_qty_allclose(a, b, check_type=True, check_attrs=True, **kwargs):
-    """Assert that Quantity objects *a* and *b* have numerically close values.
+def assert_qty_allclose(
+    a, b, check_type: bool = True, check_attrs: bool = True, **kwargs
+):
+    """Assert that objects `a` and `b` have numerically close values.
 
-    When Quantity is AttrSeries, *a* and *b* are first passed through
-    :meth:`as_quantity`.
+    Parameters
+    ----------
+    check_type : bool, optional
+        Assert that `a` and `b` are both :class:`Quantity` instances. If :obj:`False`,
+        the arguments are converted to Quantity.
+    check_attrs : bool, optional
+        Also assert that check that attributes are identical.
     """
-    if not check_type:
-        a = Quantity(a)
-        b = Quantity(b)
+    __tracebackhide__ = True
+
+    try:
+        assert type(a) == type(b) and type(a).__name__ == genno.core.quantity.CLASS
+    except AssertionError:
+        if check_type:
+            raise
+        else:
+            # Convert both arguments to Quantity
+            a = Quantity(a)
+            b = Quantity(b)
 
     if genno.core.quantity.CLASS == "AttrSeries":
         assert_series_equal(a.sort_index(), b.sort_index(), **kwargs)
@@ -259,7 +303,7 @@ def assert_qty_allclose(a, b, check_type=True, check_attrs=True, **kwargs):
         kwargs.pop("check_dtype", None)
         xarray.testing.assert_allclose(a._sda.dense, b._sda.dense, **kwargs)
 
-    # check attributes are equal
+    # Check attributes are equal
     if check_attrs:
         assert a.attrs == b.attrs
 

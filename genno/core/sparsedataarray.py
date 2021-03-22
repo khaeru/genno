@@ -144,19 +144,14 @@ class SparseDataArray(xr.DataArray, Quantity):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
         return self._sda.dense_super.ffill(dim, limit)._sda.convert()
 
-    def equals(self, other) -> bool:
-        """True if two SparseDataArrays have the same dims, coords, and values.
-
-        Overrides :meth:`~xarray.DataArray.equals` for sparse data.
-        """
-        # Necessary for :meth:`xarray.testing.assert_equal` to work.
-        return self.variable.equals(other.variable, equiv=np.equal)
-
-    def item(self):
-        """Analogous to :meth:`pandas.Series.item`."""
-        if len(self.data.shape) == 0:
+    def item(self, *args):
+        """Like :meth:`~xarray.DataArray.item`."""
+        if len(args):  # pragma: no cover
+            super().item(*args)
+        elif len(self.data.shape) == 0:
             return self.data.data[0]
-        raise ValueError("can only convert an array of size 1 to a Python scalar")
+        else:
+            raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def sel(
         self, indexers=None, method=None, tolerance=None, drop=False, **indexers_kwargs
