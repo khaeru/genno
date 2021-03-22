@@ -221,9 +221,11 @@ class AttrSeries(pd.Series, Quantity):
 
             # Check contents of indexers
             if any(ds.isnull().any().values()):
-                raise ValueError(f"indexers have uneven lengths: {ds.notnull().sum()}")
+                raise IndexError(
+                    f"Dimensions of indexers mismatch: {ds.notnull().sum()}"
+                )
             elif len(ds.dims) > 1:
-                raise NotImplementedError(
+                raise NotImplementedError(  # pragma: no cover
                     f"map to > 1 dimensions {repr(ds.dims)} with AttrSeries.sel()"
                 )
 

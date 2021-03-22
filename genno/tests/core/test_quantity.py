@@ -21,8 +21,7 @@ class TestQuantity:
 
     @pytest.fixture
     def a(self):
-        da = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-        yield Quantity(da)
+        yield Quantity(xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"]))
 
     @pytest.mark.parametrize(
         "args, kwargs",
@@ -104,6 +103,24 @@ class TestQuantity:
         a.attrs = {"bar": "foo"}
         assert_qty_equal(a, b, check_attrs=False)
 
+    def test_assign_coords(self, a):
+        # Relabel an existing dimension
+        q1 = a.assign_coords({"p": ["apple", "orange"]})
+        assert ("p",) == q1.dims
+        assert all(["apple", "orange"] == q1.coords["p"])
+
+        # Exception raised when the values are of the wrong length
+        with pytest.raises(
+            ValueError,
+            match="conflicting sizes for dimension 'p': .* and length 3 on 'p'",
+        ):
+            a.assign_coords({"p": ["apple", "orange", "banana"]})
+        with pytest.raises(
+            ValueError,
+            match="conflicting sizes for dimension 'p': .* and length 1 on 'p'",
+        ):
+            a.assign_coords({"p": ["apple"]})
+
     @pytest.fixture()
     def tri(self):
         """Fixture returning triangular data to test fill, shift, etc."""
@@ -161,6 +178,23 @@ class TestQuantity:
         assert 2 * 3 == r2.loc["x1", "y2"]
         assert 5 * 6 * 7 * 8 * 9 == r2.loc["x2", "y4"]
 
+    def test_drop_vars(self, a):
+        a.expand_dims({"phase": ["liquid"]}).drop_vars("phase")
+
+    def test_expand_dims(self, a):
+        # Single label on a new dimension
+        q0 = a.expand_dims({"phase": ["liquid"]})
+        assert ("phase", "p") == q0.dims
+
+        # Multiple labels
+        q1 = a.expand_dims({"phase": ["liquid", "solid"]})
+        assert ("phase", "p") == q1.dims
+        assert all(["liquid", "solid"] == q1.coords["phase"])
+
+        # Multiple dimensions and labels
+        q2 = a.expand_dims({"colour": ["red", "blue"], "phase": ["liquid", "solid"]})
+        assert ("colour", "phase", "p") == q2.dims
+
     def test_ffill(self, tri):
         """Test Quantity.ffill()."""
 
@@ -190,6 +224,10 @@ class TestQuantity:
             tri.sel(x=x_idx, y=y_idx),
             ignore_extra_coords=True,
         )
+
+        # Exception raised for mismatched lengths
+        with pytest.raises(IndexError, match="Dimensions of indexers mismatch"):
+            tri.sel(x=x_idx[:-1], y=y_idx)
 
     def test_shift(self, tri):
         """Test Quantity.shift()."""
