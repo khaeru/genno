@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Hashable, Iterable, Mapping, Union
+from typing import Any, Hashable, Iterable, Mapping, Sequence, Union
 
 import pandas as pd
 import pandas.core.indexes.base as ibase
@@ -9,6 +9,15 @@ from xarray.core.utils import either_dict_or_kwargs
 from genno.core.quantity import Quantity
 
 log = logging.getLogger(__name__)
+
+
+def _multiindex_of(obj: pd.Series):
+    """Return ``obj.index``; if this is not a :class:`pandas.MultiIndex`, convert."""
+    return (
+        obj.index
+        if isinstance(obj.index, pd.MultiIndex)
+        else pd.MultiIndex.from_product([obj.index])
+    )
 
 
 class AttrSeries(pd.Series, Quantity):
@@ -74,26 +83,24 @@ class AttrSeries(pd.Series, Quantity):
     def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
         coords = either_dict_or_kwargs(coords, coord_kwargs, "assign_coords")
-        if all(isinstance(v, (str, int)) for v in coords.values()):
-            # Add new dimensions of length 1
-            return pd.concat([self], keys=coords.values(), names=coords.keys())
-        else:
-            # Replace all labels along a single dimension
 
-            # Construct a new index
-            new_idx = self.index.copy()
-            for dim, values in coords.items():
-                expected_len = len(self.index.levels[self.index.names.index(dim)])
-                if expected_len != len(values):
-                    raise ValueError(
-                        f"New labels for {dim} are of length {len(values)} != "
-                        f"{expected_len}"
-                    )
+        idx = _multiindex_of(self)
 
-                new_idx = new_idx.set_levels(values, level=dim)
+        # Construct a new index
+        new_idx = idx.copy()
+        for dim, values in coords.items():
+            expected_len = len(idx.levels[idx.names.index(dim)])
+            if expected_len != len(values):
+                raise ValueError(
+                    f"conflicting sizes for dimension {repr(dim)}: length "
+                    f"{expected_len} on <this-array> and length {len(values)} on "
+                    f"{repr(dim)}"
+                )
 
-            # Return a new object with the new index
-            return self.set_axis(new_idx)
+            new_idx = new_idx.set_levels(values, level=dim)
+
+        # Return a new object with the new index
+        return self.set_axis(new_idx)
 
     def bfill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.bfill`."""
@@ -360,9 +367,13 @@ class AttrSeries(pd.Series, Quantity):
 
         Return a copy of `self` with common levels in the same order as `other`.
         """
+        # If other.index is a (1D) Index object, convert to a MultiIndex with 1 level so
+        # .levels[…] can be used, below. See also Quantity._single_column_df()
+        other_index = _multiindex_of(other)
+
         # Lists of common dimensions, and dimensions on `other` missing from `self`.
         common, missing = [], []
-        for (i, n) in enumerate(other.index.names):
+        for (i, n) in enumerate(other_index.names):
             if n in self.index.names:
                 common.append(n)
             else:
@@ -370,11 +381,11 @@ class AttrSeries(pd.Series, Quantity):
 
         result = self
         if len(common) == 0:
-            # Broadcast over missing dimensions
-            # TODO make this more efficient, e.g. using itertools.product()
-            for i, dim in missing:
-                result = pd.concat(
-                    {v: result for v in other.index.get_level_values(i)}, names=[dim]
+            # No common dimensions
+            if len(missing):
+                # Broadcast over missing dimensions
+                result = result.expand_dims(
+                    {dim: other_index.levels[i] for i, dim in missing}
                 )
 
             if len(self) == len(self.index.names) == 1:
@@ -383,7 +394,7 @@ class AttrSeries(pd.Series, Quantity):
                 result = result.droplevel(-1)
 
             # Reordering starts with the dimensions of `other`
-            order = list(other.index.names)
+            order = list(other_index.names)
         else:
             # Some common dimensions exist; no need to broadcast, only reorder
             order = common
@@ -391,7 +402,7 @@ class AttrSeries(pd.Series, Quantity):
         # Append the dimensions of `self`
         order.extend(
             filter(
-                lambda n: n is not None and n not in other.index.names, self.index.names
+                lambda n: n is not None and n not in other_index.names, self.index.names
             )
         )
 
