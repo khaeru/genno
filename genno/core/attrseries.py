@@ -142,6 +142,23 @@ class AttrSeries(pd.Series, Quantity):
 
         return self.droplevel(names)
 
+    def expand_dims(
+        self,
+        dim: Union[None, Mapping[Hashable, Any]] = None,
+        axis=None,
+        **dim_kwargs: Any,
+    ):
+        dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
+        if axis is not None:
+            raise NotImplementedError  # pragma: no cover
+
+        result = self
+        for name, values in reversed(list(dim.items())):
+            print(name, values)
+            result = pd.concat([result] * len(values), keys=values, names=[name])
+
+        return result
+
     def ffill(self, dim: Hashable, limit: int = None):
         """Like :meth:`xarray.DataArray.ffill`."""
         return self.__class__(
