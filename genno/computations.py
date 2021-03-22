@@ -111,9 +111,7 @@ def aggregate(quantity, groups, keep):
 
         # Aggregate each group
         for group, members in dim_groups.items():
-            agg = (
-                quantity.sel({dim: members}).sum(dim=dim).assign_coords(**{dim: group})
-            )
+            agg = quantity.sel({dim: members}).sum(dim=dim).expand_dims({dim: [group]})
 
             if isinstance(agg, AttrSeries):
                 # .transpose() is necessary for AttrSeries
