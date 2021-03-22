@@ -11,6 +11,14 @@ Next release
 
 - Bump minimum version of :mod:`sparse` from 0.10 to 0.12 and adjust to changes in this version (:pull:`39`)
 
+  - Remove :meth:`.SparseDataArray.equals`, obviated by improvements in :mod:`sparse`.
+
+- Improve :class:`.AttrSeries` (:pull:`39`)
+
+  - Implement :meth:`~.AttrSeries.drop_vars` and :meth:`~.AttrSeries.expand_dims`.
+  - :meth:`~.AttrSeries.assign_coords` can relabel an entire dimension.
+  - :meth:`~.AttrSeries.sel` can accept :class:`.DataArray` indexers and rename/combine dimensions.
+
 v1.2.1 (2021-03-08)
 ===================
 

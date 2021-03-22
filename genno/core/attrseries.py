@@ -24,8 +24,9 @@ class AttrSeries(pd.Series, Quantity):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
-    :class:`xarray.DataArray`, so that :mod:`genno.computations` methods can use xarray-
-    like syntax.
+    :class:`xarray.DataArray`, so that :mod:`genno.computations` functions and user
+    code can use xarray-like syntax. In particular, this allows such code to be agnostic
+    about the order of dimensions.
 
     Parameters
     ----------
@@ -121,7 +122,7 @@ class AttrSeries(pd.Series, Quantity):
         return result
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
-        """Like :attr:`xarray.DataArray.cumprod`."""
+        """Like :meth:`xarray.DataArray.cumprod`."""
         if axis:
             log.info(f"{self.__class__.__name__}.cumprod(…, axis=…) is ignored")
 
@@ -155,6 +156,7 @@ class AttrSeries(pd.Series, Quantity):
         axis=None,
         **dim_kwargs: Any,
     ):
+        """Like :meth:`xarray.DataArray.expand_dims`."""
         dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
         if axis is not None:
             raise NotImplementedError  # pragma: no cover
