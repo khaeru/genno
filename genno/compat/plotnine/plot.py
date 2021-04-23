@@ -4,6 +4,8 @@ from typing import Hashable, Sequence
 
 import plotnine as p9
 
+from genno.core.quantity import Quantity
+
 log = logging.getLogger(__name__)
 
 
@@ -39,11 +41,14 @@ class Plot(ABC):
         else:
             log.info(f"Save to {path}")
 
+        # Convert Quantity arguments to pd.DataFrame for use with plotnine
         args = map(
-            lambda qty: qty.to_series()
-            .rename(qty.name)
+            lambda arg: arg
+            if not isinstance(arg, Quantity)
+            else arg.to_series()
+            .rename(arg.name)
             .reset_index()
-            .assign(unit=qty.attrs.get("_unit", "")),
+            .assign(unit=arg.attrs.get("_unit", "")),
             args,
         )
 
