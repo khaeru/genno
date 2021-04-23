@@ -38,8 +38,6 @@ class Plot(ABC):
                 "output"
             )
             return
-        else:
-            log.info(f"Save to {path}")
 
         # Convert Quantity arguments to pd.DataFrame for use with plotnine
         args = map(
@@ -59,6 +57,9 @@ class Plot(ABC):
                 f"{self.__class__.__name__}.generate() returned {repr(plot_or_plots)}; "
                 "no output"
             )
+            return
+
+        log.info(f"Save to {path}")
 
         try:
             # Single plot

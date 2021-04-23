@@ -1,3 +1,4 @@
+import logging
 import re
 from pathlib import Path
 
@@ -16,14 +17,13 @@ def test_Plot(caplog, tmp_path):
     c.add("y:t", Quantity(xr.DataArray([1.0, 2, 3], coords=t), name="y"))
 
     # Exception raised when the class is incomplete
+    class Plot1(Plot):
+        inputs = ["x:t", "y:t"]
+
     with pytest.raises(
         TypeError,
         match=("Can't instantiate abstract class Plot1 with abstract methods generate"),
     ):
-
-        class Plot1(Plot):
-            inputs = ["x:t", "y:t"]
-
         c.add("plot", Plot1.make_task())
 
     class Plot2(Plot):
@@ -71,3 +71,33 @@ def test_Plot(caplog, tmp_path):
     c.get("plot")
 
     assert "Missing input(s) ('notakey',) to plot 'test'; no output" in caplog.messages
+
+
+def test_plot_none(caplog, tmp_path):
+    """Messages are logged when Plot.generate() returns nothing."""
+    caplog.set_level(logging.INFO)
+    c = Computer(output_dir=tmp_path)
+
+    class Plot1(Plot):
+        basename = "test-1"
+
+        def generate(self):
+            return None
+
+    class Plot2(Plot):
+        basename = "test-2"
+
+        def generate(self):
+            return []
+
+    c.add("plot-1", Plot1.make_task())
+    # Returns None
+    assert c.get("plot-1") is None
+    # Message is logged
+    assert "Plot1.generate() returned None; no output" == caplog.messages[-1]
+
+    caplog.clear()
+
+    c.add("plot-2", Plot2.make_task())
+    assert c.get("plot-2") is None
+    assert "Plot2.generate() returned []; no output" == caplog.messages[-1]
