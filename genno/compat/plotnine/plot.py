@@ -54,11 +54,17 @@ class Plot(ABC):
 
         plot_or_plots = self.generate(*args, **kwargs)
 
+        if not plot_or_plots:
+            log.info(
+                f"{self.__class__.__name__}.generate() returned {repr(plot_or_plots)}; "
+                "no output"
+            )
+
         try:
             # Single plot
             plot_or_plots.save(path, **self.save_args)
         except AttributeError:
-            # Iterator containing multiple plots
+            # Iterator containing 0 or more plots
             p9.save_as_pdf_pages(plot_or_plots, path, **self.save_args)
 
         return path
