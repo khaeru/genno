@@ -6,8 +6,12 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- :meth:`.plotnine.Plot.save` automatically converts inputs (specified with :attr:`.Plot.inputs`) from :class:`.Quantity` to :class:`~pandas.DataFrame`, but others (e.g. basic Python types) are passed through unchanged (:pull:`40`).
+- :meth:`.plotnine.Plot.save` generates no output file if :meth:`~.plotnine.Plot.generate` returns :obj:`None`/empty :class:`list`.
+- Quote :class:`dict` argument to :meth:`.Computer.aggregrate` (for grouped aggregation) to avoid collisions between its contents and other graph keys.
 
 v1.3.0 (2021-03-22)
 ===================
