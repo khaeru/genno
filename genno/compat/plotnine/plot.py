@@ -4,6 +4,8 @@ from typing import Hashable, Sequence
 
 import plotnine as p9
 
+from genno.core.quantity import Quantity
+
 log = logging.getLogger(__name__)
 
 
@@ -36,24 +38,34 @@ class Plot(ABC):
                 "output"
             )
             return
-        else:
-            log.info(f"Save to {path}")
 
+        # Convert Quantity arguments to pd.DataFrame for use with plotnine
         args = map(
-            lambda qty: qty.to_series()
-            .rename(qty.name)
+            lambda arg: arg
+            if not isinstance(arg, Quantity)
+            else arg.to_series()
+            .rename(arg.name)
             .reset_index()
-            .assign(unit=qty.attrs.get("_unit", "")),
+            .assign(unit=arg.attrs.get("_unit", "")),
             args,
         )
 
         plot_or_plots = self.generate(*args, **kwargs)
 
+        if not plot_or_plots:
+            log.info(
+                f"{self.__class__.__name__}.generate() returned {repr(plot_or_plots)}; "
+                "no output"
+            )
+            return
+
+        log.info(f"Save to {path}")
+
         try:
             # Single plot
             plot_or_plots.save(path, **self.save_args)
         except AttributeError:
-            # Iterator containing multiple plots
+            # Iterator containing 0 or more plots
             p9.save_as_pdf_pages(plot_or_plots, path, **self.save_args)
 
         return path

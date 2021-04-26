@@ -543,13 +543,14 @@ class Computer:
             The key of the newly-added node.
         """
         # TODO maybe split this to two methods?
+
         if isinstance(dims_or_groups, dict):
             groups = dims_or_groups
             if len(groups) > 1:
                 raise NotImplementedError("aggregate() along >1 dimension")
 
             key = Key.from_str_or_key(qty, tag=tag)
-            comp = (computations.aggregate, qty, groups, keep)
+            comp = (computations.aggregate, qty, dask.core.quote(groups), keep)
         else:
             dims = dims_or_groups
             if isinstance(dims, str):
