@@ -1,6 +1,10 @@
+import re
 from functools import lru_cache, partial
 from itertools import chain, compress
 from typing import Hashable, Union
+
+#: Regular expression for valid key strings.
+EXPR = re.compile(r"(?P<name>[^:]+)(:(?P<dims>[^:]*)(:(?P<tag>[^:]*))?)?")
 
 
 class Key:
