@@ -1,18 +1,28 @@
+import re
 from functools import lru_cache, partial
 from itertools import chain, compress
-from typing import Hashable, Union
+from typing import Hashable, Iterable, Optional, Tuple, Union
+
+#: Regular expression for valid key strings.
+EXPR = re.compile(r"(?P<name>[^:]+)(:(?P<dims>[^:]*)(:(?P<tag>[^:]*))?)?")
 
 
 class Key:
     """A hashable key for a quantity that includes its dimensionality."""
 
-    def __init__(self, name, dims=[], tag=None):
+    def __init__(self, name: str, dims: Iterable[str] = [], tag: Optional[str] = None):
         self._name = name
         self._dims = tuple(dims)
         self._tag = tag if isinstance(tag, str) and len(tag) else None
 
     @classmethod
-    def from_str_or_key(cls, value, drop=[], append=[], tag=None):
+    def from_str_or_key(
+        cls,
+        value: Union[str, "Key"],
+        drop: Union[Iterable[str], bool] = [],
+        append: Iterable[str] = [],
+        tag: Optional[str] = None,
+    ):
         """Return a new Key from *value*.
 
         Parameters
@@ -32,22 +42,34 @@ class Key:
         :class:`Key`
         """
         # Determine the base Key
-        if isinstance(value, cls):
+        if isinstance(value, str):
+            # Parse a string
+            match = EXPR.match(value)
+            if match is None:
+                raise ValueError(f"Invalid key expression: {repr(value)}")
+            groups = match.groupdict()
+            base = cls(
+                name=groups["name"],
+                dims=[] if not groups["dims"] else groups["dims"].split("-"),
+                tag=groups["tag"],
+            )
+            if any(len(dim) == 0 for dim in base.dims):
+                raise ValueError(f"Invalid key expression: {repr(value)}")
+        elif isinstance(value, cls):
             base = value
         else:
-            # Parse a string
-            name, *dims = value.split(":")
-            _tag = dims[1] if len(dims) == 2 else None
-            dims = dims[0].split("-") if len(dims) and dims != [""] else []
-            base = cls(name, dims, _tag)
+            raise TypeError(type(value))
 
-        # Drop and append dimensions; add tag
-        return (
-            base.drop(*([drop] if drop is True else drop)).append(*append).add_tag(tag)
+        # mypy is fussy here
+        drop_args: Tuple[Union[str, bool], ...] = tuple(
+            [drop] if isinstance(drop, bool) else drop
         )
 
+        # Drop and append dimensions; add tag
+        return base.drop(*drop_args).append(*tuple(append)).add_tag(tag)
+
     @classmethod
-    def product(cls, new_name, *keys, tag=None):
+    def product(cls, new_name: str, *keys, tag: Optional[str] = None) -> "Key":
         """Return a new Key that has the union of dimensions on *keys*.
 
         Dimensions are ordered by their first appearance:
@@ -68,15 +90,14 @@ class Key:
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""
         return f"<{self}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Representation of the Key, e.g. 'name:dim1-dim2-dim3:tag'."""
-        # Use a cache so this value is only generated once; otherwise the
-        # stored value is returned. This requires that the properties of the
-        # key be immutable.
+        # Use a cache so this value is only generated once; otherwise the stored value
+        # is returned. This requires that the properties of the key be immutable.
         @lru_cache(1)
         def _():
             return ":".join(
@@ -87,50 +108,77 @@ class Key:
 
     def __hash__(self):
         """Key hashes the same as str(Key)."""
-        return hash(str(self))
 
-    def __eq__(self, other):
+        @lru_cache(1)
+        def _():
+            return hash(str(self.sorted))
+
+        return _()
+
+    def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
-        return str(self) == other
+        if isinstance(other, str):
+            other = Key.from_str_or_key(other)
+        elif not isinstance(other, Key):
+            return False
+
+        return (
+            (self.name == other.name)
+            and (set(self.dims) == set(other.dims))
+            and (self.tag == other.tag)
+        )
 
     # Less-than and greater-than operations, for sorting
-    def __lt__(self, other):
-        if isinstance(other, (self.__class__, str)):
-            return str(self) < str(other)
+    def __lt__(self, other) -> bool:
+        if isinstance(other, Key):
+            return str(self.sorted) < str(other.sorted)
+        elif isinstance(other, str):
+            return str(self.sorted) < other
+        else:
+            return NotImplemented
 
-    def __gt__(self, other):
-        if isinstance(other, (self.__class__, str)):
-            return str(self) > str(other)
+    def __gt__(self, other) -> bool:
+        if isinstance(other, Key):
+            return str(self.sorted) > str(other.sorted)
+        elif isinstance(other, str):
+            return str(self.sorted) > other
+        else:
+            return NotImplemented
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Name of the quantity, :class:`str`."""
         return self._name
 
     @property
-    def dims(self):
+    def dims(self) -> Tuple[str, ...]:
         """Dimensions of the quantity, :class:`tuple` of :class:`str`."""
         return self._dims
 
     @property
-    def tag(self):
-        """Quantity tag, :class:`str`."""
+    def tag(self) -> Optional[str]:
+        """Quantity tag, :class:`str` or :obj:`None`."""
         return self._tag
 
-    def drop(self, *dims):
-        """Return a new Key with *dims* dropped."""
+    @property
+    def sorted(self) -> "Key":
+        """A version of the Key with its :attr:`dims` sorted alphabetically."""
+        return Key(self.name, sorted(self.dims), self.tag)
+
+    def drop(self, *dims: Union[str, bool]):
+        """Return a new Key with `dims` dropped."""
         if dims == (True,):
-            new_dims = []
+            new_dims: Iterable[str] = []
         else:
             new_dims = filter(lambda d: d not in dims, self.dims)
         return Key(self.name, new_dims, self.tag)
 
-    def append(self, *dims):
-        """Return a new Key with additional dimensions *dims*."""
+    def append(self, *dims: str):
+        """Return a new Key with additional dimensions `dims`."""
         return Key(self.name, list(self.dims) + list(dims), self.tag)
 
     def add_tag(self, tag):
-        """Return a new Key with *tag* appended."""
+        """Return a new Key with `tag` appended."""
         return Key(self.name, self.dims, "+".join(filter(None, [self.tag, tag])))
 
     def iter_sums(self):

@@ -9,6 +9,7 @@ What's new
 Next release
 ============
 
+- Make :attr:`Key.dims` order-insensitive so that ``Key("foo", "ab") == Key("foo", "ba")`` (:pull:`42`).
 - Fix “:class:`AttributeError`: 'COO' object has no attribute 'item'” on :meth:`SparseDataArray.item` (:pull:`41`).
 
 v1.4.0 (2021-04-26)
