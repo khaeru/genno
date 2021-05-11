@@ -96,11 +96,25 @@ class Key:
 
     def __hash__(self):
         """Key hashes the same as str(Key)."""
-        return hash(str(self))
 
-    def __eq__(self, other):
+        @lru_cache(1)
+        def _():
+            return hash(str(self.sorted))
+
+        return _()
+
+    def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
-        return str(self) == other
+        if isinstance(other, str):
+            other = Key.from_str_or_key(other)
+        elif not isinstance(other, Key):
+            return False
+
+        return (
+            (self.name == other.name)
+            and (set(self.dims) == set(other.dims))
+            and (self.tag == other.tag)
+        )
 
     # Less-than and greater-than operations, for sorting
     def __lt__(self, other) -> bool:
