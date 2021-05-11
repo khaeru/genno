@@ -1,3 +1,5 @@
+import pytest
+
 from genno import Key
 
 
@@ -25,6 +27,54 @@ def test_key():
 
     # Key with name and tag but no dimensions
     assert Key("foo", tag="baz") == "foo::baz"
+
+
+_invalid = pytest.mark.xfail(raises=ValueError, match="Invalid key expression")
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("foo", Key("foo")),
+        ("foo:", Key("foo")),
+        ("foo::", Key("foo")),
+        ("foo::bar", Key("foo", tag="bar")),
+        ("foo::bar+baz", Key("foo", tag="bar+baz")),
+        ("foo:a-b", Key("foo", "ab")),
+        ("foo:a-b:", Key("foo", "ab")),
+        ("foo:a-b:bar", Key("foo", "ab", "bar")),
+        # Weird but not invalid
+        ("foo::++", Key("foo", tag="++")),
+        # Invalid
+        pytest.param(":", None, marks=_invalid),
+        pytest.param("::", None, marks=_invalid),
+        pytest.param("::bar", None, marks=_invalid),
+        pytest.param(":a-b:bar", None, marks=_invalid),
+        pytest.param("foo:a-b-", None, marks=_invalid),
+        # Bad arguments
+        pytest.param(42.1, None, marks=pytest.mark.xfail(raises=TypeError)),
+    ],
+)
+def test_from_str(value, expected):
+    assert expected == Key.from_str_or_key(value)
+
+
+def test_sorted():
+    k1 = Key("foo", "abc")
+    k2 = Key("foo", "cba")
+
+    # Keys with same dimensions, ordered differently, compare equal
+    assert k1 == k2
+
+    # Ordered returns a key with sorted dimensions
+    assert k1.dims == k2.sorted.dims
+
+    # Keys compare equal to an equivalent string
+    assert k1 == "foo:b-a-c"
+    assert k2 == "foo:b-c-a"
+
+    # Keys hash equal
+    assert hash(k1) == hash(k2)
 
 
 def test_gt():
