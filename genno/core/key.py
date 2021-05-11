@@ -126,8 +126,13 @@ class Key:
         """Quantity tag, :class:`str` or :obj:`None`."""
         return self._tag
 
-    def drop(self, *dims):
-        """Return a new Key with *dims* dropped."""
+    @property
+    def sorted(self) -> "Key":
+        """A version of the Key with its :attr:`dims` sorted alphabetically."""
+        return Key(self.name, sorted(self.dims), self.tag)
+
+    def drop(self, *dims: Union[str, bool]):
+        """Return a new Key with `dims` dropped."""
         if dims == (True,):
             new_dims: Iterable[str] = []
         else:
