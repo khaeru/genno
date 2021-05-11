@@ -15,10 +15,10 @@ jobs:
     - uses: actions/checkout@v2
 
     - uses: actions/setup-python@v2
-      with:
-        # This should match the "Latest version testable on GitHub Actions"
-        # in pytest.yaml
-        python-version: "3.8"
+      # Uncomment and set this to match the "Latest version testable on GitHub
+      # Actions" in pytest.yaml, if that is not the default used by setup-python
+      # with:
+      #   python-version: "3.9"
 
     - name: Cache Python packages
       uses: actions/cache@v2

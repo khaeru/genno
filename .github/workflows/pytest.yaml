@@ -24,17 +24,17 @@ jobs:
         - windows-latest
         python-version:
         - "3.6"  # Earliest version supported by genno; matches xarray
-        - "3.8"  # Latest version testable on GitHub Actions
+        - "3.8"
+        - "3.9"  # Latest Python release / latest testable on GitHub Actions
 
         # For development versions of Python, compiled binary wheels are not
         # available for some dependencies, e.g. llvmlite, numba, numpy, and/or
         # pandas. Compiling these on the job runner requires a more elaborate
-        # build environment, currently out of scope for the ixmp project.
-        # - "3.9"             # Latest Python release
+        # build environment, currently out of scope for genno.
         # - "3.10.0-alpha.1"  # Development version
 
         exclude:
-        # This job triggers error when importing ixmp.testing: no module named
+        # This job triggers errors when importing ixmp.testing: no module named
         # ixmp.backend. Not critical, since it's upstream.
         - os: windows-latest
           python-version: "3.6"
