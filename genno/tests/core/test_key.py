@@ -79,9 +79,11 @@ def test_sorted():
 
 def test_gt_lt():
     """Test :meth:`Key.__gt__` and :meth:`Key.__lt__`."""
-    k = Key("foo:a-b-d")
+    k = Key("foo", "abd")
     assert k > "foo:a-b-c"
+    assert k > Key("foo", "abc")
     assert k < "foo:a-b-e"
+    assert k < Key("foo", "abe")
 
     # Comparison with other types not supported
     with pytest.raises(TypeError):
