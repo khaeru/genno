@@ -22,7 +22,10 @@ def test_Plot(caplog, tmp_path):
 
     with pytest.raises(
         TypeError,
-        match=("Can't instantiate abstract class Plot1 with abstract methods generate"),
+        # the plural "s" appears in Python <=3.8, but not in Python 3.9
+        match=(
+            "Can't instantiate abstract class Plot1 with abstract methods? generate"
+        ),
     ):
         c.add("plot", Plot1.make_task())
 

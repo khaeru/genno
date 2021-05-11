@@ -65,7 +65,25 @@ class SparseAccessor:
         return super(SparseDataArray, self.dense)
 
 
-class SparseDataArray(xr.DataArray, Quantity):
+class OverrideItem:
+    """Override :meth:`xarray.DataArray.item`.
+
+    The :meth:`item` method is set dynamically by
+    :class:`xarray.ops.IncludeNumpySameMethods`, a parent of
+    :class:`xarray.arithmetic.DataArrayArithmetic` and thus of DataArray.
+    That has the effect of overriding an ordinary :meth:`item` method defined on
+    :class:`SparseDataArray`.
+
+    This class, placed higher in the MRO for SparseDataArray, cancels out that effect.
+    """
+
+    __slots__ = ()
+
+    def __init_subclass__(cls, **kwargs):
+        setattr(cls, "item", cls._item)
+
+
+class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
     """:class:`~xarray.DataArray` with sparse data.
 
     SparseDataArray uses :class:`sparse.COO` for storage with :data:`numpy.nan`
@@ -144,8 +162,9 @@ class SparseDataArray(xr.DataArray, Quantity):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
         return self._sda.dense_super.ffill(dim, limit)._sda.convert()
 
-    def item(self, *args):
+    def _item(self, *args):
         """Like :meth:`~xarray.DataArray.item`."""
+        # See OverrideItem
         if len(args):  # pragma: no cover
             super().item(*args)
         elif len(self.data.shape) == 0:
