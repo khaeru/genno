@@ -77,6 +77,15 @@ def test_sorted():
     assert hash(k1) == hash(k2)
 
 
-def test_gt():
-    """Test :meth:`Key.__gt__`."""
-    assert Key("foo:a-b-d") > "foo:a-b-c"
+def test_gt_lt():
+    """Test :meth:`Key.__gt__` and :meth:`Key.__lt__`."""
+    k = Key("foo:a-b-d")
+    assert k > "foo:a-b-c"
+    assert k < "foo:a-b-e"
+
+    # Comparison with other types not supported
+    with pytest.raises(TypeError):
+        assert k < 1.1
+
+    with pytest.raises(TypeError):
+        assert k > 1.1
