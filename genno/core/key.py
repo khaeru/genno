@@ -42,19 +42,31 @@ class Key:
         :class:`Key`
         """
         # Determine the base Key
-        if isinstance(value, cls):
+        if isinstance(value, str):
+            # Parse a string
+            match = EXPR.match(value)
+            if match is None:
+                raise ValueError(f"Invalid key expression: {repr(value)}")
+            groups = match.groupdict()
+            base = cls(
+                name=groups["name"],
+                dims=[] if not groups["dims"] else groups["dims"].split("-"),
+                tag=groups["tag"],
+            )
+            if any(len(dim) == 0 for dim in base.dims):
+                raise ValueError(f"Invalid key expression: {repr(value)}")
+        elif isinstance(value, cls):
             base = value
         else:
-            # Parse a string
-            name, *dims = value.split(":")
-            _tag = dims[1] if len(dims) == 2 else None
-            dims = dims[0].split("-") if len(dims) and dims != [""] else []
-            base = cls(name, dims, _tag)
+            raise TypeError(type(value))
+
+        # mypy is fussy here
+        drop_args: Tuple[Union[str, bool], ...] = tuple(
+            [drop] if isinstance(drop, bool) else drop
+        )
 
         # Drop and append dimensions; add tag
-        return (
-            base.drop(*([drop] if drop is True else drop)).append(*append).add_tag(tag)
-        )
+        return base.drop(*drop_args).append(*tuple(append)).add_tag(tag)
 
     @classmethod
     def product(cls, new_name: str, *keys, tag: Optional[str] = None) -> "Key":

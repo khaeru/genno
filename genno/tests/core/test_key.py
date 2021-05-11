@@ -29,7 +29,7 @@ def test_key():
     assert Key("foo", tag="baz") == "foo::baz"
 
 
-_invalid = pytest.mark.xfail(raises=ValueError, match="Invalid key expression")
+_invalid = pytest.mark.xfail(raises=ValueError, reason="Invalid key expression")
 
 
 @pytest.mark.parametrize(
