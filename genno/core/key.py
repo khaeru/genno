@@ -103,13 +103,21 @@ class Key:
         return str(self) == other
 
     # Less-than and greater-than operations, for sorting
-    def __lt__(self, other):
-        if isinstance(other, (self.__class__, str)):
-            return str(self) < str(other)
+    def __lt__(self, other) -> bool:
+        if isinstance(other, Key):
+            return str(self.sorted) < str(other.sorted)
+        elif isinstance(other, str):
+            return str(self.sorted) < other
+        else:
+            return NotImplemented
 
-    def __gt__(self, other):
-        if isinstance(other, (self.__class__, str)):
-            return str(self) > str(other)
+    def __gt__(self, other) -> bool:
+        if isinstance(other, Key):
+            return str(self.sorted) > str(other.sorted)
+        elif isinstance(other, str):
+            return str(self.sorted) > other
+        else:
+            return NotImplemented
 
     @property
     def name(self) -> str:
