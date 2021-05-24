@@ -112,12 +112,12 @@ class TestQuantity:
         # Exception raised when the values are of the wrong length
         with pytest.raises(
             ValueError,
-            match="conflicting sizes for dimension 'p': .* and length 3 on 'p'",
+            match="conflicting sizes for dimension 'p': length 2 .* and length 3",
         ):
             a.assign_coords({"p": ["apple", "orange", "banana"]})
         with pytest.raises(
             ValueError,
-            match="conflicting sizes for dimension 'p': .* and length 1 on 'p'",
+            match="conflicting sizes for dimension 'p': length 2 .* and length 1",
         ):
             a.assign_coords({"p": ["apple"]})
 
