@@ -43,7 +43,7 @@ jobs:
         isort --check-only .
 
     - name: Check typing with mypy
+      # Also install packages that provide type hints
       run: |
-        # Also install packages that provide type hints
-        pip install mypy ixmp pytest xarray
+        pip install mypy ixmp pytest types-PyYAML xarray
         mypy .
