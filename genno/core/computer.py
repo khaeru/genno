@@ -313,6 +313,8 @@ class Computer:
             # Unpack a length-1 tuple
             computation = computation[0]
 
+        key = maybe_convert_str(key)
+
         if strict:
             if key in self.graph:
                 # Key already exists in graph
@@ -753,3 +755,12 @@ class Computer:
 
     # Use convert_pyam as a helper for computations.as_pyam
     add_as_pyam = convert_pyam
+
+
+def maybe_convert_str(key):
+    """Maybe convert `key` into a Key object.
+
+    Allow a string like "foo" with no dimensions or tag to remain as-is.
+    """
+    _key = Key.from_str_or_key(key)
+    return _key if (_key.dims or _key.tag) else key
