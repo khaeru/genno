@@ -326,11 +326,11 @@ class Computer:
                 self.check_keys(*keylike)
 
         if index:
-            # String equivalent of *key* with all dimensions dropped, but name
-            # and tag retained
+            # String equivalent of `key` with all dimensions dropped, but name and tag
+            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
             idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
 
-            # Add *key* to the index
+            # Add `key` to the index
             self._index[idx] = key
 
         # Add to the graph
@@ -372,9 +372,9 @@ class Computer:
             self.graph.update(applied)
 
     def get(self, key=None):
-        """Execute and return the result of the computation *key*.
+        """Execute and return the result of the computation `key`.
 
-        Only *key* and its dependencies are computed.
+        Only `key` and its dependencies are computed.
 
         Parameters
         ----------
@@ -432,9 +432,9 @@ class Computer:
     def check_keys(self, *keys):
         """Check that *keys* are in the Computer.
 
-        If any of *keys* is not in the Computer, KeyError is raised.
-        Otherwise, a list is returned with either the key from *keys*, or the
-        corresponding :meth:`full_key`.
+        If any of `keys` is not in the Computer, KeyError is raised. Otherwise, a list
+        is returned with either the key from `keys`, or the corresponding
+        :meth:`full_key`.
         """
         result = []
         missing = []
@@ -627,8 +627,8 @@ class Computer:
         Returns
         -------
         .Key
-            Either `key` (if given) or e.g. ``file:foo.ext`` based on the
-            `path` name, without directory components.
+            Either `key` (if given) or e.g. ``file:foo.ext`` based on the `path` name,
+            without directory components.
 
         See also
         --------
@@ -644,11 +644,16 @@ class Computer:
     add_load_file = add_file
 
     def describe(self, key=None, quiet=True):
-        """Return a string describing the computations that produce *key*.
+        """Return a string describing the computations that produce `key`.
 
-        If *key* is not provided, all keys in the Computer are described.
+        If `key` is not provided, all keys in the Computer are described.
 
-        The string can be printed to the console, if not *quiet*.
+        Unless `quiet`, the string is also printed to the console.
+
+        Returns
+        -------
+        str
+            Description of computations.
         """
         if key is None:
             # Sort with 'all' at the end
