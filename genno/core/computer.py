@@ -2,7 +2,7 @@ import logging
 from functools import partial
 from importlib import import_module
 from inspect import signature
-from itertools import chain, repeat
+from itertools import chain, compress, repeat
 from pathlib import Path
 from types import ModuleType
 from typing import (
@@ -313,30 +313,56 @@ class Computer:
             # Unpack a length-1 tuple
             computation = computation[0]
 
+        key = maybe_convert_str(key)
+
         if strict:
             if key in self.graph:
                 # Key already exists in graph
                 raise KeyExistsError(key)
 
-            # Check valid computations: a tuple with a callable, or a list of other
-            # keys. Don't check a single value that is iterable, e.g. pd.DataFrame
-            if isinstance(computation, (list, tuple)):
-                # Check that keys used in *comp* are in the graph
-                keylike = filter(lambda e: isinstance(e, (str, Key)), computation)
-                self.check_keys(*keylike)
+            # Check valid keys in `computation` and maybe rewrite
+            computation = self._rewrite_comp(computation)
 
         if index:
-            # String equivalent of *key* with all dimensions dropped, but name
-            # and tag retained
+            # String equivalent of `key` with all dimensions dropped, but name and tag
+            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
             idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
 
-            # Add *key* to the index
+            # Add `key` to the index
             self._index[idx] = key
 
         # Add to the graph
         self.graph[key] = computation
 
         return key
+
+    def _rewrite_comp(self, computation):
+        """Check and rewrite `computation`.
+
+        If `computation` is :class:`tuple` or :class:`list`, it may contain other keys
+        that :mod:`dask` must locate in the :attr:`graph`. Check these using
+        :meth:`check_keys`, and return a modified `computation` with these in exactly
+        the form they appear in the graph. This ensures dask can locate them for
+        :meth:`get` and :meth:`describe`.
+        """
+        if not isinstance(computation, (list, tuple)):
+            # Something else, e.g. pd.DataFrame or a literal
+            return computation
+
+        # True if the element is key-like
+        is_keylike = list(map(lambda e: isinstance(e, (str, Key)), computation))
+
+        # Run only the key-like elements through check_keys(); make an iterator
+        checked = iter(self.check_keys(*compress(computation, is_keylike)))
+
+        # Assemble the result using either checked keys (with properly ordered
+        # dimensions) or unmodified elements from `computation`; cast to the same type
+        return type(computation)(
+            [
+                next(checked) if is_keylike[i] else elem
+                for i, elem in enumerate(computation)
+            ]
+        )
 
     def apply(self, generator, *keys, **kwargs):
         """Add computations by applying `generator` to `keys`.
@@ -372,9 +398,9 @@ class Computer:
             self.graph.update(applied)
 
     def get(self, key=None):
-        """Execute and return the result of the computation *key*.
+        """Execute and return the result of the computation `key`.
 
-        Only *key* and its dependencies are computed.
+        Only `key` and its dependencies are computed.
 
         Parameters
         ----------
@@ -391,6 +417,8 @@ class Computer:
                 key = self.default_key
             else:
                 raise ValueError("no default reporting key set")
+        else:
+            key = self.check_keys(key)[0]
 
         # Protect 'config' dict, so that dask schedulers do not try to interpret its
         # contents as further tasks. Workaround for
@@ -427,30 +455,49 @@ class Computer:
         name = str(Key.from_str_or_key(name_or_key, drop=True)).rstrip(":")
         return self._index[name]
 
-    def check_keys(self, *keys):
-        """Check that *keys* are in the Computer.
+    def check_keys(self, *keys: Union[str, Key]) -> List[Union[str, Key]]:
+        """Check that `keys` are in the Computer.
 
-        If any of *keys* is not in the Computer, KeyError is raised.
-        Otherwise, a list is returned with either the key from *keys*, or the
-        corresponding :meth:`full_key`.
+        If any of `keys` is not in the Computer, KeyError is raised. Otherwise, a list
+        is returned with either the key from `keys`, or the corresponding
+        :meth:`full_key`.
         """
         result = []
         missing = []
 
+        all_keys = tuple(self.graph.keys())
+
+        def _check(value):
+            if value in self._index:
+                # Add the full key
+                result.append(self._index[value])
+                return True
+
+            if value in self.graph:
+                # Add the key directly. Use the key from `self.graph` to preserve
+                # dimension order.
+                result.append(all_keys[all_keys.index(value)])
+                return True
+
+            return False
+
         # Process all keys to produce more useful error messages
         for key in keys:
-            # Add the key directly if it is in the graph
-            if key in self.graph:
-                result.append(key)
-                continue
+            matched = _check(key)
 
-            # Try adding the full key
-            try:
-                result.append(self._index[key])
-            except KeyError:
+            if not matched and isinstance(key, str):
+                # Try a Key object parsed from a string
+                value = maybe_convert_str(key)
+                if isinstance(value, Key):
+                    matched = _check(value)
+
+            if not matched:
                 missing.append(key)
 
         if len(missing):
+            # 1 or more keys missing
+            # Suppress traceback from within this function
+            __tracebackhide__ = True
             raise MissingKeyError(*missing)
 
         return result
@@ -483,7 +530,7 @@ class Computer:
         return result[0] if single else tuple(result)
 
     def __contains__(self, name):
-        return name in self.graph
+        return name in self.graph or Key.from_str_or_key(name) in self.graph
 
     # Convenience methods
     def add_product(self, key, *quantities, sums=True):
@@ -625,8 +672,8 @@ class Computer:
         Returns
         -------
         .Key
-            Either `key` (if given) or e.g. ``file:foo.ext`` based on the
-            `path` name, without directory components.
+            Either `key` (if given) or e.g. ``file:foo.ext`` based on the `path` name,
+            without directory components.
 
         See also
         --------
@@ -642,11 +689,16 @@ class Computer:
     add_load_file = add_file
 
     def describe(self, key=None, quiet=True):
-        """Return a string describing the computations that produce *key*.
+        """Return a string describing the computations that produce `key`.
 
-        If *key* is not provided, all keys in the Computer are described.
+        If `key` is not provided, all keys in the Computer are described.
 
-        The string can be printed to the console, if not *quiet*.
+        Unless `quiet`, the string is also printed to the console.
+
+        Returns
+        -------
+        str
+            Description of computations.
         """
         if key is None:
             # Sort with 'all' at the end
@@ -654,7 +706,7 @@ class Computer:
                 sorted(filter(lambda k: k != "all", self.graph.keys())) + ["all"]
             )
         else:
-            key = (key,)
+            key = tuple(self.check_keys(key))
 
         result = describe_recursive(self.graph, key)
         if not quiet:
@@ -746,3 +798,12 @@ class Computer:
 
     # Use convert_pyam as a helper for computations.as_pyam
     add_as_pyam = convert_pyam
+
+
+def maybe_convert_str(key):
+    """Maybe convert `key` into a Key object.
+
+    Allow a string like "foo" with no dimensions or tag to remain as-is.
+    """
+    _key = Key.from_str_or_key(key)
+    return _key if (_key.dims or _key.tag) else key
