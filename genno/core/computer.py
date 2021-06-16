@@ -487,7 +487,7 @@ class Computer:
         return result[0] if single else tuple(result)
 
     def __contains__(self, name):
-        return name in self.graph
+        return name in self.graph or Key.from_str_or_key(name) in self.graph
 
     # Convenience methods
     def add_product(self, key, *quantities, sums=True):
