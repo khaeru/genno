@@ -111,6 +111,15 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     assert "'cache_path' configuration not set; using " in caplog.messages[0]
 
 
+def test_contains():
+    """:meth:`Computer.__contains__` works regardless of dimension order."""
+    c = Computer()
+    c.add("a:x-y", 1)
+
+    assert "a:x-y" in c
+    assert "a:y-x" in c
+
+
 def test_get():
     """Computer.get() using a default key."""
     c = Computer()
@@ -126,7 +135,46 @@ def test_get():
     assert c.get() == 42
 
 
-def testget_comp():
+def test_order():
+    """:meth:`.describe` and :meth:`.get` work with dimensions in a different order."""
+    c = Computer()
+
+    # add() and describe() with dimensions in a different order. The output matches the
+    # order given to add().
+    c.add("a:x-y", 1.1)
+    assert "'a:x-y':\n- 1.1" == c.describe("a:y-x")
+
+    # Opposite order
+    with pytest.raises(KeyExistsError):
+        # Raises an exception with strict=True
+        c.add("a:y-x", 1.1, strict=True)
+
+    # Now replace
+    c.add("a:y-x", 1.1)
+    # Output matches order given to describe()
+    assert "'a:x-y':\n- 1.1" == c.describe("a:x-y")
+
+    # get() works with key in either order
+    assert 1.1 == c.get("a:y-x")
+    assert 1.1 == c.get("a:x-y")
+
+    c.add("b:x-y", 2.2)
+
+    def func(*args):
+        print("sum args", args)
+        return sum(args)
+
+    # Dimensions in correct order
+    key = c.add("c", func, "a:x-y", "b:x-y", strict=True)
+    assert np.isclose(3.3, c.get(key))
+
+    # Dimensions in different order
+    c.graph.pop("c")
+    key = c.add("c", func, "a:y-x", "b:y-x", strict=True)
+    assert np.isclose(3.3, c.get(key))
+
+
+def test_get_comp():
     # Invalid name for a function returns None
     assert Computer().get_comp(42) is None
 
@@ -392,6 +440,17 @@ def test_aggregate():
     with pytest.raises(NotImplementedError):
         # Not yet supported; requires two separate operations
         c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
+
+
+def test_check_keys():
+    """:meth:`.check_keys` succeeds even with dimensions in a different order."""
+    c = Computer()
+
+    # Add with string keys
+    c.add("a:y-x", None)
+    c.add("b:z-y", None)
+
+    assert [Key("a", "xy"), Key("b", "zy")] == c.check_keys("a:x-y", "b:z-y")
 
 
 def test_dantzig(ureg):
