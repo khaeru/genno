@@ -10,7 +10,7 @@ Next release
 ============
 
 - Adjust :meth:`.test_assign_coords` for xarray 0.18.2 (:pull:`43`).
-- Make :attr:`Key.dims` order-insensitive so that ``Key("foo", "ab") == Key("foo", "ba")`` (:pull:`42`).
+- Make :attr:`Key.dims` order-insensitive so that ``Key("foo", "ab") == Key("foo", "ba")`` (:pull:`42`); make corresponding changes to :class:`Computer` (:pull:`44`).
 - Fix “:class:`AttributeError`: 'COO' object has no attribute 'item'” on :meth:`SparseDataArray.item` (:pull:`41`).
 
 v1.4.0 (2021-04-26)
