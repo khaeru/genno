@@ -213,7 +213,7 @@ def test_require_compat():
         c.require_compat("_test")
 
 
-def test_add():
+def test_add0():
     """Adding computations that refer to missing keys raises KeyError."""
     c = Computer()
     c.add("a", 3)
@@ -270,6 +270,12 @@ def test_add():
     msg = "unexpected keyword argument 'bad_kwarg'"
     with pytest.raises(TypeError, match=msg):
         c.add("select", "bar", "a", bad_kwarg="foo", index=True)
+
+
+def test_add1():
+    """:meth:`._rewrite_comp` is a no-op for types other that list and tuple."""
+    Computer().add("a", 1, strict=True)
+    Computer().add("a", pd.DataFrame(), strict=True)
 
 
 def test_add_queue(caplog):
