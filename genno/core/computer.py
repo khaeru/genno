@@ -654,7 +654,7 @@ class Computer:
                 sorted(filter(lambda k: k != "all", self.graph.keys())) + ["all"]
             )
         else:
-            key = (key,)
+            key = tuple(self.check_keys(key))
 
         result = describe_recursive(self.graph, key)
         if not quiet:
