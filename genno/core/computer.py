@@ -431,8 +431,8 @@ class Computer:
         name = str(Key.from_str_or_key(name_or_key, drop=True)).rstrip(":")
         return self._index[name]
 
-    def check_keys(self, *keys):
-        """Check that *keys* are in the Computer.
+    def check_keys(self, *keys: Union[str, Key]) -> List[Union[str, Key]]:
+        """Check that `keys` are in the Computer.
 
         If any of `keys` is not in the Computer, KeyError is raised. Otherwise, a list
         is returned with either the key from `keys`, or the corresponding
@@ -441,20 +441,39 @@ class Computer:
         result = []
         missing = []
 
+        all_keys = tuple(self.graph.keys())
+
+        def _check(value):
+            if value in self._index:
+                # Add the full key
+                result.append(self._index[value])
+                return True
+
+            if value in self.graph:
+                # Add the key directly. Use the key from `self.graph` to preserve
+                # dimension order.
+                result.append(all_keys[all_keys.index(value)])
+                return True
+
+            return False
+
         # Process all keys to produce more useful error messages
         for key in keys:
-            # Add the key directly if it is in the graph
-            if key in self.graph:
-                result.append(key)
-                continue
+            matched = _check(key)
 
-            # Try adding the full key
-            try:
-                result.append(self._index[key])
-            except KeyError:
+            if not matched and isinstance(key, str):
+                # Try a Key object parsed from a string
+                value = maybe_convert_str(key)
+                if isinstance(value, Key):
+                    matched = _check(value)
+
+            if not matched:
                 missing.append(key)
 
         if len(missing):
+            # 1 or more keys missing
+            # Suppress traceback from within this function
+            __tracebackhide__ = True
             raise MissingKeyError(*missing)
 
         return result
