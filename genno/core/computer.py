@@ -2,7 +2,7 @@ import logging
 from functools import partial
 from importlib import import_module
 from inspect import signature
-from itertools import chain, repeat
+from itertools import chain, compress, repeat
 from pathlib import Path
 from types import ModuleType
 from typing import (
@@ -320,12 +320,8 @@ class Computer:
                 # Key already exists in graph
                 raise KeyExistsError(key)
 
-            # Check valid computations: a tuple with a callable, or a list of other
-            # keys. Don't check a single value that is iterable, e.g. pd.DataFrame
-            if isinstance(computation, (list, tuple)):
-                # Check that keys used in *comp* are in the graph
-                keylike = filter(lambda e: isinstance(e, (str, Key)), computation)
-                self.check_keys(*keylike)
+            # Check valid keys in `computation` and maybe rewrite
+            computation = self._rewrite_comp(computation)
 
         if index:
             # String equivalent of `key` with all dimensions dropped, but name and tag
@@ -339,6 +335,34 @@ class Computer:
         self.graph[key] = computation
 
         return key
+
+    def _rewrite_comp(self, computation):
+        """Check and rewrite `computation`.
+
+        If `computation` is :class:`tuple` or :class:`list`, it may contain other keys
+        that :mod:`dask` must locate in the :attr:`graph`. Check these using
+        :meth:`check_keys`, and return a modified `computation` with these in exactly
+        the form they appear in the graph. This ensures dask can locate them for
+        :meth:`get` and :meth:`describe`.
+        """
+        if not isinstance(computation, (list, tuple)):
+            # Something else, e.g. pd.DataFrame or a literal
+            return computation
+
+        # True if the element is key-like
+        is_keylike = list(map(lambda e: isinstance(e, (str, Key)), computation))
+
+        # Run only the key-like elements through check_keys(); make an iterator
+        checked = iter(self.check_keys(*compress(computation, is_keylike)))
+
+        # Assemble the result using either checked keys (with properly ordered
+        # dimensions) or unmodified elements from `computation`; cast to the same type
+        return type(computation)(
+            [
+                next(checked) if is_keylike[i] else elem
+                for i, elem in enumerate(computation)
+            ]
+        )
 
     def apply(self, generator, *keys, **kwargs):
         """Add computations by applying `generator` to `keys`.
