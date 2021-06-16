@@ -391,6 +391,8 @@ class Computer:
                 key = self.default_key
             else:
                 raise ValueError("no default reporting key set")
+        else:
+            key = self.check_keys(key)[0]
 
         # Protect 'config' dict, so that dask schedulers do not try to interpret its
         # contents as further tasks. Workaround for
