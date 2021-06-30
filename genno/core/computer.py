@@ -443,7 +443,7 @@ class Computer:
         return self.graph.keys()
 
     def full_key(self, name_or_key):
-        """Return the full-dimensionality key for *name_or_key*.
+        """Return the full-dimensionality key for `name_or_key`.
 
         An quantity 'foo' with dimensions (a, c, n, q, x) is available in the Computer
         as ``'foo:a-c-n-q-x'``. This :class:`.Key` can be retrieved with::
@@ -518,12 +518,13 @@ class Computer:
             # Has some dimensions or tag
             key = Key.from_str_or_key(k) if ":" in k else k
 
-            if "::" in k or key not in self:
+            if "::" in k or key not in self or (isinstance(key, str) and dims):
+                # Find the full-dimensional key
                 key = self.full_key(key)
 
+            # Drop all but `dims`
             if dims:
-                # Drop all but *dims*
-                key = key.drop(*[d for d in key.dims if d not in dims])
+                key = key.drop(*(set(key.dims) - set(dims)))
 
             result.append(key)
 
