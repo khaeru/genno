@@ -29,7 +29,7 @@ EXPECTED = re.compile(
 Use Computer.describe\(...\) to trace the computation.
 
 Computation traceback:
-  File "<ipython-input-\d*-\w+>", line 4, in fail
+  File "(<ipython-input-\d*-\w+>|[^"]*\.py)", line 4, in fail
     'x' \+ 3.4  # Raises TypeError
 TypeError: .*str.*float.*
 """
