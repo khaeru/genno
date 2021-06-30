@@ -185,14 +185,17 @@ def test_infer_keys():
     X_key = Key("X", list("abcdef"))
     Y_key = Key("Y", list("defghi"), "tag")
 
-    c.add(X_key, None, index=True)
+    c.add(X_key, None, index=True, sums=True)
     c.add(Y_key, None, index=True)
 
     # Single key
     assert X_key == c.infer_keys("X::")
 
-    # Single key with desired dimensions
+    # Single Key with desired dimensions
     assert Key("X", list("ace")) == c.infer_keys("X::", dims="aceq")
+
+    # Single string key with desired dimensions
+    assert Key("X", list("ace")) == c.infer_keys("X", dims="aceq")
 
     # Multiple keys with tag and desired dimensions
     assert (Key("X", list("adf")), Key("Y", list("dfi"), "tag")) == c.infer_keys(
