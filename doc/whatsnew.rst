@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.5.1 (2021-07-01)
+===================
 
 - Bugfix: :meth:`.infer_keys` raises :class:`AttributeError` under some circumstances (:pull:`45`).
 
