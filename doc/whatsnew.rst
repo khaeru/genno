@@ -9,6 +9,11 @@ What's new
 .. Next release
 .. ============
 
+v1.5.2 (2021-07-06)
+===================
+
+- Bugfix: order-insensitive :attr:`Key.dims` broke :meth:`~.Computer.get` in some circumstances (:pull:`46`).
+
 v1.5.1 (2021-07-01)
 ===================
 

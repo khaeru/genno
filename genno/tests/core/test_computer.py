@@ -461,6 +461,12 @@ def test_check_keys():
 
     assert [Key("a", "xy"), Key("b", "zy")] == c.check_keys("a:x-y", "b:z-y")
 
+    # All orders
+    c.check_keys("a:y-x", "a:x-y", "b:z-y", "b:y-z")
+
+    # Non-existent keys, both bare strings and those parsed to Key()
+    assert c.check_keys("foo", "foo:bar-baz", action="return") is None
+
 
 def test_dantzig(ureg):
     c = Computer()

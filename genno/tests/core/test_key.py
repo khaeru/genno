@@ -69,12 +69,13 @@ def test_sorted():
     # Ordered returns a key with sorted dimensions
     assert k1.dims == k2.sorted.dims
 
-    # Keys compare equal to an equivalent string
-    assert k1 == "foo:b-a-c"
-    assert k2 == "foo:b-c-a"
+    # Keys compare equal to an equivalent string and to one another
+    assert k1 == "foo:b-a-c" == k2 == "foo:b-c-a"
 
-    # Keys hash equal
-    assert hash(k1) == hash(k2)
+    # Keys do not hash equal
+    assert hash(k1) == hash("foo:a-b-c")
+    assert hash(k2) == hash("foo:c-b-a")
+    assert hash(k1) != hash(k2)
 
 
 def test_gt_lt():

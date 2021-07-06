@@ -260,13 +260,16 @@ Top-level classes and functions
    **Notes:**
 
    A Key has the same hash, and compares equal to its :class:`str` representation.
+   A Key also compares equal to another key or :class:`str` with the same dimensions in any other order.
    ``repr(key)`` prints the Key in angle brackets ('<>') to signify that it is a Key object.
 
    >>> str(k1)
    'foo:a-b-c'
    >>> repr(k1)
    '<foo:a-b-c>'
-   >>> hash(k1) == hash('foo:a-b-c')
+   >>> hash(k1) == hash("foo:a-b-c")
+   True
+   >>> k1 == "foo:c-b-a"
    True
 
    Keys are **immutable**: the properties :attr:`name`, :attr:`dims`, and :attr:`tag` are *read-only*, and the methods :meth:`append`, :meth:`drop`, and :meth:`add_tag` return *new* Key objects.
