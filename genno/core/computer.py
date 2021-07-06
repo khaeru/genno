@@ -455,12 +455,17 @@ class Computer:
         name = str(Key.from_str_or_key(name_or_key, drop=True)).rstrip(":")
         return self._index[name]
 
-    def check_keys(self, *keys: Union[str, Key]) -> List[Union[str, Key]]:
+    def check_keys(
+        self, *keys: Union[str, Key], action="raise"
+    ) -> Optional[List[Union[str, Key]]]:
         """Check that `keys` are in the Computer.
 
-        If any of `keys` is not in the Computer, KeyError is raised. Otherwise, a list
-        is returned with either the key from `keys`, or the corresponding
-        :meth:`full_key`.
+        If any of `keys` is not in the Computer and `action` is "raise" (the default)
+        :class:`KeyError` is raised. Otherwise, a list is returned with either the key
+        from `keys`, or the corresponding :meth:`full_key`.
+
+        If `action` is "return" (or any other value), :class:`None` is returned on
+        missing keys.
         """
         result = []
         missing = []
@@ -495,10 +500,13 @@ class Computer:
                 missing.append(key)
 
         if len(missing):
-            # 1 or more keys missing
-            # Suppress traceback from within this function
-            __tracebackhide__ = True
-            raise MissingKeyError(*missing)
+            if action == "raise":
+                # 1 or more keys missing
+                # Suppress traceback from within this function
+                __tracebackhide__ = True
+                raise MissingKeyError(*missing)
+            else:
+                return None
 
         return result
 
