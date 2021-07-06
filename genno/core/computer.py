@@ -546,7 +546,11 @@ class Computer:
         return result[0] if single else tuple(result)
 
     def __contains__(self, name):
-        return name in self.graph or Key.from_str_or_key(name) in self.graph
+        # First check using hash (fast), then using comparison (slower) for same key
+        # with dimensions in different order
+        return name in self.graph or any(
+            Key.from_str_or_key(name) == k for k in self.graph.keys()
+        )
 
     # Convenience methods
     def add_product(self, key, *quantities, sums=True):
