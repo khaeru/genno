@@ -111,7 +111,7 @@ class Key:
 
         @lru_cache(1)
         def _():
-            return hash(str(self.sorted))
+            return hash(str(self))
 
         return _()
 
