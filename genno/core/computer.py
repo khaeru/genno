@@ -316,7 +316,9 @@ class Computer:
         key = maybe_convert_str(key)
 
         if strict:
-            if key in self.graph:
+            try:
+                assert self.check_keys(key, action="return") is None
+            except AssertionError:
                 # Key already exists in graph
                 raise KeyExistsError(key)
 
