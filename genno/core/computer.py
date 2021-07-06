@@ -484,6 +484,11 @@ class Computer:
                 result.append(all_keys[all_keys.index(value)])
                 return True
 
+            # Match an existing key with dimensions in a different order
+            for k in filter(lambda k_: k_ == value, self.graph.keys()):
+                result.append(k)
+                return True
+
             return False
 
         # Process all keys to produce more useful error messages
