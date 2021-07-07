@@ -58,6 +58,10 @@ class Key:
         else:
             raise TypeError(type(value))
 
+        # Return quickly if no further manipulations are required
+        if not any([drop, append, tag]):
+            return base
+
         # mypy is fussy here
         drop_args: Tuple[Union[str, bool], ...] = tuple(
             [drop] if isinstance(drop, bool) else drop
