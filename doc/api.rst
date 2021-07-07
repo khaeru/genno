@@ -223,17 +223,15 @@ Top-level classes and functions
    2. zero or more ordered :attr:`dims`, and
    3. an optional :attr:`tag`.
 
-   For example, quantity with three dimensions:
+   For example, for a :math:`\text{foo}` with with three dimensions :math:`a, b, c`:
 
-   # FIXME
-
-   >>> scenario.init_par('foo', ['a', 'b', 'c'], ['apple', 'bird', 'car'])
+   .. math:: \text{foo}^{abc}
 
    Key allows a specific, explicit reference to various forms of “foo”:
 
    - in its full resolution, i.e. indexed by a, b, and c:
 
-     >>> k1 = Key('foo', ['a', 'b', 'c'])
+     >>> k1 = Key("foo", ["a", "b", "c"])
      >>> k1
      <foo:a-b-c>
 
