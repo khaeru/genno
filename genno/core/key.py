@@ -159,23 +159,23 @@ class Key:
     @property
     def sorted(self) -> "Key":
         """A version of the Key with its :attr:`dims` sorted alphabetically."""
-        return Key(self.name, sorted(self.dims), self.tag)
+        return Key(self._name, sorted(self._dims), self._tag)
 
     def drop(self, *dims: Union[str, bool]):
         """Return a new Key with `dims` dropped."""
-        if dims == (True,):
-            new_dims: Iterable[str] = []
-        else:
-            new_dims = filter(lambda d: d not in dims, self.dims)
-        return Key(self.name, new_dims, self.tag)
+        return Key(
+            self._name,
+            [] if dims == (True,) else filter(lambda d: d not in dims, self._dims),
+            self._tag,
+        )
 
     def append(self, *dims: str):
         """Return a new Key with additional dimensions `dims`."""
-        return Key(self.name, list(self.dims) + list(dims), self.tag)
+        return Key(self._name, list(self._dims) + list(dims), self._tag)
 
     def add_tag(self, tag):
         """Return a new Key with `tag` appended."""
-        return Key(self.name, self.dims, "+".join(filter(None, [self.tag, tag])))
+        return Key(self._name, self._dims, "+".join(filter(None, [self._tag, tag])))
 
     def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
@@ -197,7 +197,9 @@ class Key:
         >>> list(k.permute_dims())
         [<A:x-y-z>, <A:x-z-y>, <A:y-x-z>, <A:y-z-x>, <A:z-x-y>, <A:z-y-x>]
         """
-        yield from map(partial(Key, self.name, tag=self.tag), permutations(self.dims))
+        yield from map(
+            partial(Key, self._name, tag=self._tag), permutations(self._dims)
+        )
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
