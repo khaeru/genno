@@ -141,7 +141,7 @@ def test_order():
 
     # add() and describe() with dimensions in a different order. The output matches the
     # order given to add().
-    c.add("a:x-y", 1.1)
+    c.add("a:x-y", 1.1, index=True)
     assert "'a:x-y':\n- 1.1" == c.describe("a:y-x")
 
     # Opposite order
@@ -466,6 +466,10 @@ def test_check_keys():
 
     # Non-existent keys, both bare strings and those parsed to Key()
     assert c.check_keys("foo", "foo:bar-baz", action="return") is None
+
+    # Check a lookup using the index
+    c.add("a:y-x:foo", index=True)
+    assert [Key("a", "yx", "foo")] == c.check_keys("a::foo")
 
 
 def test_dantzig(ureg):

@@ -3,6 +3,7 @@ from functools import partial
 from importlib import import_module
 from inspect import signature
 from itertools import chain, compress, repeat
+from operator import itemgetter
 from pathlib import Path
 from types import ModuleType
 from typing import (
@@ -315,21 +316,26 @@ class Computer:
 
         key = maybe_convert_str(key)
 
+        if strict or index:
+            # String equivalent of `key` with all dimensions dropped, but name and tag
+            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
+            idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
+
         if strict:
+            # Check the target key
             try:
-                assert self.check_keys(key, action="return") is None
+                # Check without dim order permutations
+                assert self.check_keys(key, action="return", _permute=False) is None
+                # Check that `key` is not indexed, possibly with different dim order
+                assert self._index.get(idx, None) != key
             except AssertionError:
                 # Key already exists in graph
-                raise KeyExistsError(key)
+                raise KeyExistsError(key) from None
 
             # Check valid keys in `computation` and maybe rewrite
             computation = self._rewrite_comp(computation)
 
         if index:
-            # String equivalent of `key` with all dimensions dropped, but name and tag
-            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
-            idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
-
             # Add `key` to the index
             self._index[idx] = key
 
@@ -458,7 +464,7 @@ class Computer:
         return self._index[name]
 
     def check_keys(
-        self, *keys: Union[str, Key], action="raise"
+        self, *keys: Union[str, Key], action="raise", _permute=True
     ) -> Optional[List[Union[str, Key]]]:
         """Check that `keys` are in the Computer.
 
@@ -469,49 +475,47 @@ class Computer:
         If `action` is "return" (or any other value), :class:`None` is returned on
         missing keys.
         """
-        result = []
-        missing = []
-
+        # Sequence of graph keys, for indexing
+        # TODO cache this somehow, refresh when .graph is altered
         all_keys = tuple(self.graph.keys())
 
         def _check(value):
             if value in self._index:
                 # Add the full key
-                result.append(self._index[value])
-                return True
+                return self._index[value]
 
             if value in self.graph:
                 # Add the key directly. Use the key from `self.graph` to preserve
                 # dimension order.
-                result.append(all_keys[all_keys.index(value)])
-                return True
+                return all_keys[all_keys.index(value)]
 
-            # Match an existing key with dimensions in a different order
-            for k in filter(lambda k_: k_ == value, self.graph.keys()):
-                result.append(k)
-                return True
+            # Possibly convert a string to a Key
+            value = maybe_convert_str(value)
+            if isinstance(value, str) or not _permute:
+                return None
 
-            return False
+            # Try permutations of dimensions
+            for k in filter(self.graph.__contains__, value.permute_dims()):
+                result = all_keys[all_keys.index(k)]
+                return result
+
+            return None
 
         # Process all keys to produce more useful error messages
-        for key in keys:
-            matched = _check(key)
+        result = list(map(_check, keys))
 
-            if not matched and isinstance(key, str):
-                # Try a Key object parsed from a string
-                value = maybe_convert_str(key)
-                if isinstance(value, Key):
-                    matched = _check(value)
-
-            if not matched:
-                missing.append(key)
-
-        if len(missing):
+        if result.count(None):
             if action == "raise":
                 # 1 or more keys missing
                 # Suppress traceback from within this function
                 __tracebackhide__ = True
-                raise MissingKeyError(*missing)
+
+                # Identify values in `keys` corresponding to None in `result`
+                raise MissingKeyError(
+                    *map(
+                        itemgetter(0), filter(lambda i: i[1] is None, zip(keys, result))
+                    )
+                )
             else:
                 return None
 
@@ -549,7 +553,7 @@ class Computer:
         # First check using hash (fast), then using comparison (slower) for same key
         # with dimensions in different order
         return name in self.graph or any(
-            Key.from_str_or_key(name) == k for k in self.graph.keys()
+            map(self.graph.__contains__, Key.from_str_or_key(name).permute_dims())
         )
 
     # Convenience methods

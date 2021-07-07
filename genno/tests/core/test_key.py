@@ -59,6 +59,11 @@ def test_from_str(value, expected):
     assert expected == Key.from_str_or_key(value)
 
 
+def test_drop():
+    key = Key.from_str_or_key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
+    assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
+
+
 def test_sorted():
     k1 = Key("foo", "abc")
     k2 = Key("foo", "cba")

@@ -1,10 +1,10 @@
 import re
-from functools import lru_cache, partial
-from itertools import chain, compress
-from typing import Hashable, Iterable, Optional, Tuple, Union
+from functools import partial
+from itertools import chain, compress, permutations
+from typing import Callable, Generator, Hashable, Iterable, Optional, Tuple, Union
 
 #: Regular expression for valid key strings.
-EXPR = re.compile(r"(?P<name>[^:]+)(:(?P<dims>[^:]*)(:(?P<tag>[^:]*))?)?")
+EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
 
 
 class Key:
@@ -13,7 +13,12 @@ class Key:
     def __init__(self, name: str, dims: Iterable[str] = [], tag: Optional[str] = None):
         self._name = name
         self._dims = tuple(dims)
-        self._tag = tag if isinstance(tag, str) and len(tag) else None
+        self._tag = tag or None
+
+        self._str = "{}:{}{}".format(
+            name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
+        )
+        self._hash = hash(self._str)
 
     @classmethod
     def from_str_or_key(
@@ -53,12 +58,14 @@ class Key:
                 dims=[] if not groups["dims"] else groups["dims"].split("-"),
                 tag=groups["tag"],
             )
-            if any(len(dim) == 0 for dim in base.dims):
-                raise ValueError(f"Invalid key expression: {repr(value)}")
         elif isinstance(value, cls):
             base = value
         else:
             raise TypeError(type(value))
+
+        # Return quickly if no further manipulations are required
+        if not any([drop, append, tag]):
+            return base
 
         # mypy is fussy here
         drop_args: Tuple[Union[str, bool], ...] = tuple(
@@ -92,28 +99,17 @@ class Key:
 
     def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""
-        return f"<{self}>"
+        return f"<{self._str}>"
 
     def __str__(self) -> str:
         """Representation of the Key, e.g. 'name:dim1-dim2-dim3:tag'."""
         # Use a cache so this value is only generated once; otherwise the stored value
         # is returned. This requires that the properties of the key be immutable.
-        @lru_cache(1)
-        def _():
-            return ":".join(
-                [self._name, "-".join(self._dims)] + ([self._tag] if self._tag else [])
-            )
-
-        return _()
+        return self._str
 
     def __hash__(self):
         """Key hashes the same as str(Key)."""
-
-        @lru_cache(1)
-        def _():
-            return hash(str(self))
-
-        return _()
+        return self._hash
 
     def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
@@ -163,25 +159,25 @@ class Key:
     @property
     def sorted(self) -> "Key":
         """A version of the Key with its :attr:`dims` sorted alphabetically."""
-        return Key(self.name, sorted(self.dims), self.tag)
+        return Key(self._name, sorted(self._dims), self._tag)
 
     def drop(self, *dims: Union[str, bool]):
         """Return a new Key with `dims` dropped."""
-        if dims == (True,):
-            new_dims: Iterable[str] = []
-        else:
-            new_dims = filter(lambda d: d not in dims, self.dims)
-        return Key(self.name, new_dims, self.tag)
+        return Key(
+            self._name,
+            [] if dims == (True,) else filter(lambda d: d not in dims, self._dims),
+            self._tag,
+        )
 
     def append(self, *dims: str):
         """Return a new Key with additional dimensions `dims`."""
-        return Key(self.name, list(self.dims) + list(dims), self.tag)
+        return Key(self._name, list(self._dims) + list(dims), self._tag)
 
     def add_tag(self, tag):
         """Return a new Key with `tag` appended."""
-        return Key(self.name, self.dims, "+".join(filter(None, [self.tag, tag])))
+        return Key(self._name, self._dims, "+".join(filter(None, [self._tag, tag])))
 
-    def iter_sums(self):
+    def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
         from genno import computations
 
@@ -191,6 +187,19 @@ class Key:
                 partial(computations.sum, dimensions=others, weights=None),
                 self,
             )
+
+    def permute_dims(self) -> Generator["Key", None, None]:
+        """Generate variants of the Key with dimensions in all possible orders.
+
+        Examples
+        --------
+        >>> k = Key("A", "xyz")
+        >>> list(k.permute_dims())
+        [<A:x-y-z>, <A:x-z-y>, <A:y-x-z>, <A:y-z-x>, <A:z-x-y>, <A:z-y-x>]
+        """
+        yield from map(
+            partial(Key, self._name, tag=self._tag), permutations(self._dims)
+        )
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
