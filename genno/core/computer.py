@@ -3,6 +3,7 @@ from functools import partial
 from importlib import import_module
 from inspect import signature
 from itertools import chain, compress, repeat
+from operator import itemgetter
 from pathlib import Path
 from types import ModuleType
 from typing import (
@@ -315,21 +316,26 @@ class Computer:
 
         key = maybe_convert_str(key)
 
+        if strict or index:
+            # String equivalent of `key` with all dimensions dropped, but name and tag
+            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
+            idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
+
         if strict:
+            # Check the target key
             try:
-                assert self.check_keys(key, action="return") is None
+                # Check without dim order permutations
+                assert self.check_keys(key, action="return", _permute=False) is None
+                # Check that `key` is not indexed, possibly with different dim order
+                assert self._index.get(idx, None) != key
             except AssertionError:
                 # Key already exists in graph
-                raise KeyExistsError(key)
+                raise KeyExistsError(key) from None
 
             # Check valid keys in `computation` and maybe rewrite
             computation = self._rewrite_comp(computation)
 
         if index:
-            # String equivalent of `key` with all dimensions dropped, but name and tag
-            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
-            idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
-
             # Add `key` to the index
             self._index[idx] = key
 
