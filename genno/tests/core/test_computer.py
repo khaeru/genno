@@ -141,7 +141,7 @@ def test_order():
 
     # add() and describe() with dimensions in a different order. The output matches the
     # order given to add().
-    c.add("a:x-y", 1.1)
+    c.add("a:x-y", 1.1, index=True)
     assert "'a:x-y':\n- 1.1" == c.describe("a:y-x")
 
     # Opposite order
