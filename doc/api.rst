@@ -184,7 +184,7 @@ Top-level classes and functions
 
    .. automethod:: convert_pyam
 
-      The :pyam:doc:`IAMC data format <data>` includes columns named 'Model', 'Scenario', 'Region', 'Variable', 'Unit'; one of 'Year' or 'Time'; and 'value'.
+      The :doc:`IAMC data format <pyam:data>` includes columns named 'Model', 'Scenario', 'Region', 'Variable', 'Unit'; one of 'Year' or 'Time'; and 'value'.
 
       Using :meth:`convert_pyam`:
 
