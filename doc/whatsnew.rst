@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.6.0 (2021-07-07)
+===================
 
 - Add :meth:`Key.permute_dims` (:pull:`47`).
 - Improve performance of :meth:`Computer.check_keys` (:pull:`47`).
@@ -15,12 +18,12 @@ Next release
 v1.5.2 (2021-07-06)
 ===================
 
-- Bugfix: order-insensitive :attr:`Key.dims` broke :meth:`~.Computer.get` in some circumstances (:pull:`46`).
+- Bug fix: order-insensitive :attr:`Key.dims` broke :meth:`~.Computer.get` in some circumstances (:pull:`46`).
 
 v1.5.1 (2021-07-01)
 ===================
 
-- Bugfix: :meth:`.infer_keys` raises :class:`AttributeError` under some circumstances (:pull:`45`).
+- Bug fix: :meth:`.infer_keys` raises :class:`AttributeError` under some circumstances (:pull:`45`).
 
 v1.5.0 (2021-06-27)
 ===================
@@ -52,10 +55,7 @@ v1.3.0 (2021-03-22)
 v1.2.1 (2021-03-08)
 ===================
 
-Bug fixes
----------
-
-- Provide abstract :class:`.Quantity.to_series` method for type checking in packages that depend on :mod:`genno`.
+- Bug fix: Provide abstract :class:`.Quantity.to_series` method for type checking in packages that depend on :mod:`genno`.
 
 v1.2.0 (2021-03-08)
 ===================
@@ -65,14 +65,10 @@ v1.2.0 (2021-03-08)
 - :func:`.computations.load_file` uses the `skipinitialspace` parameter to :func:`pandas.read_csv`; extra dimensions not mentioned in the `dims` parameter are preserved (:pull:`37`).
 - :meth:`.AttrSeries.sel` accepts :class:`xarray.DataArray` for xarray-style indexing (:pull:`37`).
 
-
 v1.1.1 (2021-02-22)
 ===================
 
-Bug fixes
----------
-
-- :meth:`.Computer.add_single` incorrectly calls :meth:`.check_keys` on iterables (e.g. :class:`pandas.DataFrame`) that are not computations (:pull:`36`).
+- Bug fix: :meth:`.Computer.add_single` incorrectly calls :meth:`.check_keys` on iterables (e.g. :class:`pandas.DataFrame`) that are not computations (:pull:`36`).
 
 v1.1.0 (2021-02-16)
 ===================
@@ -107,19 +103,22 @@ v1.0.0 (2021-02-13)
 - Simplify :func:`.collect_units` and improve unit handling in :func:`.ratio`  (:issue:`25`, :pull:`26`).
 - Add file-based caching via :meth:`.Computer.cache` and :mod:`genno.caching` (:issue:`20`, :pull:`24`).
 
+v0.4.0 and earlier
+==================
+
 v0.4.0 (2021-02-07)
-===================
+-------------------
 
 - Add file-based configuration in :mod:`genno.config` and :doc:`associated documentation <config>` (:issue:`8`, :pull:`16`).
 
 v0.3.0 (2021-02-05)
-===================
+-------------------
 
 - Add :doc:`compat-plotnine` compatibility (:pull:`15`).
 - Add a :doc:`usage` overview to the documentation (:pull:`13`).
 
 v0.2.0 (2021-01-18)
-===================
+-------------------
 
 - Increase test coverage to 100% (:pull:`12`).
 - Port code from :mod:`message_ix.reporting` (:pull:`11`).
@@ -127,6 +126,6 @@ v0.2.0 (2021-01-18)
 - Add a `name` parameter to :func:`.load_file`.
 
 v0.1.0 (2021-01-10)
-===================
+-------------------
 
 - Initial code port from :mod:`ixmp.reporting`.
