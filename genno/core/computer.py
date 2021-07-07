@@ -458,7 +458,7 @@ class Computer:
         return self._index[name]
 
     def check_keys(
-        self, *keys: Union[str, Key], action="raise"
+        self, *keys: Union[str, Key], action="raise", _permute=True
     ) -> Optional[List[Union[str, Key]]]:
         """Check that `keys` are in the Computer.
 
@@ -469,49 +469,54 @@ class Computer:
         If `action` is "return" (or any other value), :class:`None` is returned on
         missing keys.
         """
-        result = []
-        missing = []
-
+        # Sequence of graph keys, for indexing
+        # TODO cache this somehow, refresh when .graph is altered
         all_keys = tuple(self.graph.keys())
 
         def _check(value):
             if value in self._index:
                 # Add the full key
-                result.append(self._index[value])
-                return True
+                return self._index[value]
 
             if value in self.graph:
                 # Add the key directly. Use the key from `self.graph` to preserve
                 # dimension order.
-                result.append(all_keys[all_keys.index(value)])
-                return True
+                return all_keys[all_keys.index(value)]
 
-            # Match an existing key with dimensions in a different order
-            for k in filter(lambda k_: k_ == value, self.graph.keys()):
-                result.append(k)
-                return True
+            # Possibly convert a string to a Key
+            value = maybe_convert_str(value)
+            if isinstance(value, str):
+                return None
 
-            return False
+            # Same method
+            if value in self._index:
+                return self._index[value]
+
+            if not _permute:
+                return None
+
+            # Try permutations of dimensions
+            for k in filter(self.graph.__contains__, value.permute_dims()):
+                result = all_keys[all_keys.index(k)]
+                return result
+
+            return None
 
         # Process all keys to produce more useful error messages
-        for key in keys:
-            matched = _check(key)
+        result = list(map(_check, keys))
 
-            if not matched and isinstance(key, str):
-                # Try a Key object parsed from a string
-                value = maybe_convert_str(key)
-                if isinstance(value, Key):
-                    matched = _check(value)
-
-            if not matched:
-                missing.append(key)
-
-        if len(missing):
+        if result.count(None):
             if action == "raise":
                 # 1 or more keys missing
                 # Suppress traceback from within this function
                 __tracebackhide__ = True
-                raise MissingKeyError(*missing)
+
+                # Identify values in `keys` corresponding to None in `result`
+                raise MissingKeyError(
+                    *map(
+                        itemgetter(0), filter(lambda i: i[1] is None, zip(keys, result))
+                    )
+                )
             else:
                 return None
 
