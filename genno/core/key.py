@@ -4,7 +4,7 @@ from itertools import chain, compress
 from typing import Hashable, Iterable, Optional, Tuple, Union
 
 #: Regular expression for valid key strings.
-EXPR = re.compile(r"(?P<name>[^:]+)(:(?P<dims>[^:]*)(:(?P<tag>[^:]*))?)?")
+EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
 
 
 class Key:
@@ -53,8 +53,6 @@ class Key:
                 dims=[] if not groups["dims"] else groups["dims"].split("-"),
                 tag=groups["tag"],
             )
-            if any(len(dim) == 0 for dim in base.dims):
-                raise ValueError(f"Invalid key expression: {repr(value)}")
         elif isinstance(value, cls):
             base = value
         else:
