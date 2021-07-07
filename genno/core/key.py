@@ -179,7 +179,7 @@ class Key:
         """Return a new Key with `tag` appended."""
         return Key(self.name, self.dims, "+".join(filter(None, [self.tag, tag])))
 
-    def iter_sums(self):
+    def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
         from genno import computations
 
