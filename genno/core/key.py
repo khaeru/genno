@@ -16,7 +16,7 @@ class Key:
         self._tag = tag or None
 
         self._str = "{}:{}{}".format(
-            name, "-".join(dims), f":{self._tag}" if self._tag else ""
+            name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
         )
         self._hash = hash(self._str)
 
