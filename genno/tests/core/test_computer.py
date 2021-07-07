@@ -467,6 +467,10 @@ def test_check_keys():
     # Non-existent keys, both bare strings and those parsed to Key()
     assert c.check_keys("foo", "foo:bar-baz", action="return") is None
 
+    # Check a lookup using the index
+    c.add("a:y-x:foo", index=True)
+    assert [Key("a", "yx", "foo")] == c.check_keys("a::foo")
+
 
 def test_dantzig(ureg):
     c = Computer()

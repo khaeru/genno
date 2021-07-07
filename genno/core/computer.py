@@ -491,14 +491,7 @@ class Computer:
 
             # Possibly convert a string to a Key
             value = maybe_convert_str(value)
-            if isinstance(value, str):
-                return None
-
-            # Same method
-            if value in self._index:
-                return self._index[value]
-
-            if not _permute:
+            if isinstance(value, str) or not _permute:
                 return None
 
             # Try permutations of dimensions
