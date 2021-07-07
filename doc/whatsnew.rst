@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Add :meth:`Key.permute_dims` (:pull:`47`).
+- Improve performance of :meth:`Computer.check_keys` (:pull:`47`).
 
 v1.5.2 (2021-07-06)
 ===================
