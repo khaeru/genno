@@ -554,7 +554,7 @@ class Computer:
         # First check using hash (fast), then using comparison (slower) for same key
         # with dimensions in different order
         return name in self.graph or any(
-            Key.from_str_or_key(name) == k for k in self.graph.keys()
+            map(self.graph.__contains__, Key.from_str_or_key(name).permute_dims())
         )
 
     # Convenience methods
