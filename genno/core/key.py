@@ -188,6 +188,17 @@ class Key:
                 self,
             )
 
+    def permute_dims(self) -> Generator["Key", None, None]:
+        """Generate variants of the Key with dimensions in all possible orders.
+
+        Examples
+        --------
+        >>> k = Key("A", "xyz")
+        >>> list(k.permute_dims())
+        [<A:x-y-z>, <A:x-z-y>, <A:y-x-z>, <A:y-z-x>, <A:z-x-y>, <A:z-y-x>]
+        """
+        yield from map(partial(Key, self.name, tag=self.tag), permutations(self.dims))
+
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
 KeyLike = Union[Key, Hashable]
