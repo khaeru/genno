@@ -1,7 +1,7 @@
 import re
-from functools import lru_cache, partial
-from itertools import chain, compress
-from typing import Hashable, Iterable, Optional, Tuple, Union
+from functools import partial
+from itertools import chain, compress, permutations
+from typing import Callable, Generator, Hashable, Iterable, Optional, Tuple, Union
 
 #: Regular expression for valid key strings.
 EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
@@ -13,7 +13,12 @@ class Key:
     def __init__(self, name: str, dims: Iterable[str] = [], tag: Optional[str] = None):
         self._name = name
         self._dims = tuple(dims)
-        self._tag = tag if isinstance(tag, str) and len(tag) else None
+        self._tag = tag or None
+
+        self._str = "{}:{}{}".format(
+            name, "-".join(dims), f":{self._tag}" if self._tag else ""
+        )
+        self._hash = hash(self._str)
 
     @classmethod
     def from_str_or_key(
@@ -94,28 +99,17 @@ class Key:
 
     def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""
-        return f"<{self}>"
+        return f"<{self._str}>"
 
     def __str__(self) -> str:
         """Representation of the Key, e.g. 'name:dim1-dim2-dim3:tag'."""
         # Use a cache so this value is only generated once; otherwise the stored value
         # is returned. This requires that the properties of the key be immutable.
-        @lru_cache(1)
-        def _():
-            return ":".join(
-                [self._name, "-".join(self._dims)] + ([self._tag] if self._tag else [])
-            )
-
-        return _()
+        return self._str
 
     def __hash__(self):
         """Key hashes the same as str(Key)."""
-
-        @lru_cache(1)
-        def _():
-            return hash(str(self))
-
-        return _()
+        return self._hash
 
     def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
