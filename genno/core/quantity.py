@@ -93,3 +93,27 @@ def assert_quantity(*args):
             raise TypeError(
                 f"arg #{i+1} ({repr(arg)}) is not Quantity; likely an incorrect key"
             )
+
+
+def maybe_densify(func):
+    """Wrapper for computations that densifies :class:`.SparseDataArray`."""
+
+    def wrapped(*args, **kwargs):
+        if CLASS == "SparseDataArray":
+
+            def densify(arg):
+                return arg._sda.dense if isinstance(arg, Quantity) else arg
+
+            def sparsify(result):
+                return result._sda.convert()
+
+        else:
+
+            def densify(arg):
+                return arg
+
+            sparsify = densify
+
+        return sparsify(func(*map(densify, args), **kwargs))
+
+    return wrapped
