@@ -150,6 +150,10 @@ class TestQuantity:
         r2 = tri.bfill("y")
         assert r2.loc["x0", "y0"] == tri.loc["x0", "y2"]
 
+    def test_coords(self, tri):
+        assert isinstance(tri.coords, xr.core.coordinates.Coordinates)
+        assert ["x", "y"] == list(tri.coords)
+
     def test_copy_modify(self, a):
         """Making a Quantity another produces a distinct attrs dictionary."""
         assert 0 == len(a.attrs)
