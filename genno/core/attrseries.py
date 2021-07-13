@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 from typing import Any, Hashable, Iterable, Mapping, Union
 
 import pandas as pd
@@ -184,6 +185,91 @@ class AttrSeries(pd.Series, Quantity):
         elif self.size != 1:
             raise ValueError
         return self.iloc[0]
+
+    def interp(
+        self,
+        coords: Mapping[Hashable, Any] = None,
+        method: str = "linear",
+        assume_sorted: bool = True,
+        kwargs: Mapping[str, Any] = None,
+        **coords_kwargs: Any,
+    ):
+        """Like :meth:`xarray.DataArray.interp`.
+
+        This method works around two long-standing bugs in :mod:`pandas`:
+
+        - `pandas-dev/pandas#25460 <https://github.com/pandas-dev/pandas/issues/25460>`_
+        - `pandas-dev/pandas#31949 <https://github.com/pandas-dev/pandas/issues/31949>`_
+        """
+        from scipy.interpolate import interp1d
+
+        if kwargs is None:
+            kwargs = {}
+
+        coords = either_dict_or_kwargs(coords, coords_kwargs, "interp")
+        if len(coords) > 1:
+            raise NotImplementedError("interp() on more than 1 dimension")
+
+        # Unpack the dimension and levels (possibly overlapping with existing)
+        dim = list(coords.keys())[0]
+        levels = coords[dim]
+        # Ensure a list
+        if isinstance(levels, (int, float)):
+            levels = [levels]
+
+        # Preserve order of dimensions
+        dims = self.dims
+
+        # Dimension other than `dim`
+        other_dims = list(filter(lambda d: d != dim, dims))
+
+        # Used to rejoin MultiIndices; `base` either a tuple or a scalar value
+        def join(base, item):
+            return (list(base) + [item[1]]) if len(other_dims) > 1 else [base, item]
+
+        # Group by `dim` so that each level appears ≤ 1 time in `group_series`
+        result = []
+        for group_key, group_series in self.groupby(other_dims):
+            # Work around https://github.com/pandas-dev/pandas/issues/25460; can't do:
+            # group_series.reindex(…, level=dim)
+
+            # A 1-D index for `dim` with the union of existing and new coords
+            idx = group_series.index.droplevel(other_dims)
+            idx = type(idx)(sorted(set(idx).union(levels)))
+
+            # Reassemble full MultiIndex with the new coords added along `dim`
+            full_idx = pd.MultiIndex.from_tuples(
+                map(partial(join, group_key), idx), names=other_dims + [dim]
+            )
+
+            # - Reindex to insert NaNs
+            # - Replace the full index with the 1-D index
+            s = group_series.reindex(full_idx).set_axis(idx)
+
+            # Work around https://github.com/pandas-dev/pandas/issues/31949
+            # Location of existing values
+            x = s.notna()
+
+            # - Create an interpolator from the non-NaN values.
+            # - Apply it to the missing indices.
+            # - Reconstruct a Series with these indices.
+            # - Use this Series to fill the NaNs in `s`.
+            # - Restore the full MultiIndex.
+            result.append(
+                s.fillna(
+                    pd.Series(
+                        interp1d(s[x].index, s[x], kind=method, **kwargs)(s[~x].index),
+                        index=s[~x].index,
+                    )
+                ).set_axis(full_idx)
+            )
+
+        # - Restore dimension order and attributes.
+        # - Select only the desired `coords`.
+        return AttrSeries(
+            pd.concat(result).reorder_levels(dims),
+            attrs=self.attrs,
+        ).sel(coords)
 
     def rename(self, new_name_or_name_dict):
         """Like :meth:`xarray.DataArray.rename`."""
