@@ -117,10 +117,12 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def coords(self):
         """Like :attr:`xarray.DataArray.coords`. Read-only."""
-        result = dict()
-        for name, levels in zip(self.index.names, self.index.levels):
-            result[name] = xr.Dataset(None, coords={name: levels})[name]
-        return result
+        levels = (
+            self.index.levels
+            if isinstance(self.index, pd.MultiIndex)
+            else [self.index.values]
+        )
+        return xr.Dataset(None, coords=dict(zip(self.index.names, levels))).coords
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
         """Like :meth:`xarray.DataArray.cumprod`."""
