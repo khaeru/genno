@@ -5,12 +5,13 @@
 import logging
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Any, Hashable
 
 import pandas as pd
 import pint
 
 from genno.core.attrseries import AttrSeries
-from genno.core.quantity import Quantity, assert_quantity
+from genno.core.quantity import Quantity, assert_quantity, maybe_densify
 from genno.util import collect_units, filter_concat_args
 
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "concat",
     "disaggregate_shares",
     "group_sum",
+    "interpolate",
     "load_file",
     "pow",
     "product",
@@ -290,6 +292,21 @@ def group_sum(qty, group, sum):
         *[values.sum(dim=[sum]) for _, values in qty.groupby(group)],
         dim=group,
     )
+
+
+@maybe_densify
+def interpolate(
+    qty: Quantity,
+    coords: Mapping[Hashable, Any] = None,
+    method: str = "linear",
+    assume_sorted: bool = True,
+    kwargs: Mapping[str, Any] = None,
+    **coords_kwargs: Any,
+) -> Quantity:
+    if assume_sorted is not True:
+        raise NotImplementedError(f"interpolate(…, assume_sorted={assume_sorted})")
+
+    return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
 def load_file(path, dims={}, units=None, name=None):

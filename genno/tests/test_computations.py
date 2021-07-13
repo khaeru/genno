@@ -202,6 +202,40 @@ def test_group_sum(ureg):
     assert 2 == len(result)
 
 
+def test_interpolate(data):
+    *_, x = data
+
+    # Linear interpolation of 1 point
+    result = computations.interpolate(x, dict(y=2025))
+
+    # Result has the expected class, dimensions, and values
+    assert isinstance(result, x.__class__)
+    assert ("t",) == result.dims
+    assert (result == 0.5 * x.sel(y=[2020, 2030]).sum("y")).all()
+
+    # Extrapolation on both ends of the data
+    y = list(x.coords["y"].values)
+    y = sorted(list(y) + [y[0] - 1, y[-1] + 1])
+
+    # Works
+    result = computations.interpolate(
+        x, dict(y=y), method="linear", kwargs=dict(fill_value="extrapolate")
+    )
+
+    # Produces the expected results
+    r = result.sel(t="foo1")
+    for i1, i2, i3 in ((0, 1, 2), (-1, -2, -3)):
+        slope_int = ((r.sel(y=y[i3]) - r.sel(y=y[i2])) / (y[i3] - y[i2])).item()
+        slope_ext = ((r.sel(y=y[i2]) - r.sel(y=y[i1])) / (y[i2] - y[i1])).item()
+        assert np.isclose(slope_int, slope_ext), (
+            (i1, y[i1], r.sel(y=y[i1])),
+            (i2, y[i2], r.sel(y=y[i2])),
+            (i3, y[i3], r.sel(y=y[i3])),
+            slope_int,
+            slope_ext,
+        )
+
+
 @pytest.mark.parametrize(
     "name, kwargs",
     [
