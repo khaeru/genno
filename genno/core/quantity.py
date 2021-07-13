@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Hashable, Mapping, Tuple
 
 import pandas as pd
 import pint
@@ -27,6 +27,17 @@ class Quantity:
         # NB signature is the same as xr.DataArray.from_series(); except sparse=True
         assert sparse
         return cls._get_class().from_series(series, sparse)
+
+    # For mypy
+    def interp(
+        self,
+        coords: Mapping[Hashable, Any] = None,
+        method: str = "linear",
+        assume_sorted: bool = True,
+        kwargs: Mapping[str, Any] = None,
+        **coords_kwargs: Any,
+    ):
+        raise NotImplementedError
 
     # Internal methods
 
