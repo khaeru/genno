@@ -79,7 +79,7 @@ def add_test_data(c: Computer):
     t_foo = ["foo{}".format(i) for i in (1, 2, 3)]
     t_bar = ["bar{}".format(i) for i in (4, 5, 6)]
     t = t_foo + t_bar
-    y = list(map(str, range(2000, 2051, 10)))
+    y = list(range(2000, 2051, 10))
 
     # Add to Computer
     c.add("t", quote(t))
