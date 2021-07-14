@@ -43,7 +43,7 @@ class Quantity:
         assume_sorted: bool = True,
         kwargs: Mapping[str, Any] = None,
         **coords_kwargs: Any,
-    ):
+    ):  # pragma: no cover
         raise NotImplementedError
 
     # Internal methods

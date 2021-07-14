@@ -16,6 +16,11 @@ def bar():
     yield AttrSeries([0, 1], index=pd.Index(["a1", "a2"], name="a"))
 
 
+def test_interp(foo):
+    with pytest.raises(NotImplementedError):
+        foo.interp(coords=dict(a=["a1", "a1.5", "a2"], b=["b1", "b1.5", "b2"]))
+
+
 def test_rename(foo):
     assert foo.rename({"a": "c", "b": "d"}).dims == ("c", "d")
 

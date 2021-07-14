@@ -304,7 +304,7 @@ def interpolate(
     **coords_kwargs: Any,
 ) -> Quantity:
     if assume_sorted is not True:
-        raise NotImplementedError(f"interpolate(…, assume_sorted={assume_sorted})")
+        log.warning(f"interpolate(…, assume_sorted={assume_sorted}) ignored")
 
     return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 

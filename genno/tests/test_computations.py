@@ -9,7 +9,13 @@ import xarray as xr
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
-from genno.testing import add_test_data, assert_logs, assert_qty_equal, random_qty
+from genno.testing import (
+    add_test_data,
+    assert_logs,
+    assert_qty_allclose,
+    assert_qty_equal,
+    random_qty,
+)
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
@@ -202,16 +208,17 @@ def test_group_sum(ureg):
     assert 2 == len(result)
 
 
-def test_interpolate(data):
+def test_interpolate(caplog, data):
     *_, x = data
 
     # Linear interpolation of 1 point
-    result = computations.interpolate(x, dict(y=2025))
+    result = computations.interpolate(x, dict(y=2025), assume_sorted=False)
+    assert "interpolate(…, assume_sorted=False) ignored" in caplog.messages
 
     # Result has the expected class, dimensions, and values
     assert isinstance(result, x.__class__)
     assert ("t",) == result.dims
-    assert_qty_equal(
+    assert_qty_allclose(
         result, 0.5 * x.sel(y=[2020, 2030]).sum("y"), ignore_extra_coords=True
     )
 
