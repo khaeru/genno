@@ -39,7 +39,7 @@ def clean_units(input_string):
 
 
 def collect_units(*args):
-    """Return the "_unit" attributes of the *args*."""
+    """Return the "_unit" attributes of the `args`."""
     registry = pint.get_application_registry()
 
     for arg in args:

@@ -2,6 +2,7 @@ from typing import Any, Dict, Hashable, Mapping, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
+import pint
 import sparse
 import xarray as xr
 from xarray.core import dtypes
@@ -157,6 +158,13 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         """Convert a pandas.Series into a SparseDataArray."""
         # Call the parent method always with sparse=True, then re-wrap
         return xr.DataArray.from_series(obj, sparse=True)._sda.convert()
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Set the units of the Quantity."""
+        if name == "units":
+            self.attrs["_unit"] = pint.get_application_registry().Unit(value)
+        else:
+            super().__setattr__(name, value)
 
     def ffill(self, dim: Hashable, limit: int = None):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""

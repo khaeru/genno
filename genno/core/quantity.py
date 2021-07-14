@@ -28,6 +28,13 @@ class Quantity:
         assert sparse
         return cls._get_class().from_series(series, sparse)
 
+    @property
+    def units(self):
+        """Retrieve the units of the Quantity."""
+        return self.attrs.setdefault(
+            "_unit", pint.get_application_registry().dimensionless
+        )
+
     # For mypy
     def interp(
         self,
