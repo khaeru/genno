@@ -359,7 +359,7 @@ def test_select(data):
     assert result_0.size == 2 * 6
 
     # Single indexer along one dimension results in 1D data
-    indexers["y"] = "2010"
+    indexers["y"] = [2010]
     result_1 = computations.select(x, indexers=indexers)
     assert result_1.size == 2 * 1
 

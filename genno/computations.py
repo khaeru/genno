@@ -484,8 +484,8 @@ def select(qty, indexers, inverse=False):
     ----------
     qty : .Quantity
     indexers : dict (str -> list of str)
-        Elements to be selected from *qty*. Mapping from dimension names to
-        labels along each dimension.
+        Elements to be selected from *qty*. Mapping from dimension names to labels
+        along each dimension.
     inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
     """

@@ -62,7 +62,7 @@ def test_loc():
     *_, x = add_test_data(Computer())
 
     # .loc accessor works
-    assert isinstance(x.loc["foo1", "2040"], float)
+    assert isinstance(x.loc["foo1", 2040], float)
 
 
 @pytest.mark.usefixtures("quantity_is_sparsedataarray")
