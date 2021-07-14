@@ -3,9 +3,8 @@
 # - To avoid ambiguity, computations should not have default arguments. Define
 #   default values for the corresponding methods on the Computer class.
 import logging
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Hashable
+from typing import Any, Hashable, Mapping
 
 import pandas as pd
 import pint
