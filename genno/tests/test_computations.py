@@ -211,7 +211,9 @@ def test_interpolate(data):
     # Result has the expected class, dimensions, and values
     assert isinstance(result, x.__class__)
     assert ("t",) == result.dims
-    assert (result == 0.5 * x.sel(y=[2020, 2030]).sum("y")).all()
+    assert_qty_equal(
+        result, 0.5 * x.sel(y=[2020, 2030]).sum("y"), ignore_extra_coords=True
+    )
 
     # Extrapolation on both ends of the data
     y = list(x.coords["y"].values)
