@@ -263,7 +263,7 @@ def assert_qty_equal(
 
         assert 0 == len(kwargs)
 
-        xarray.testing.assert_equal(a, b)
+        xarray.testing.assert_equal(a._sda.dense, b._sda.dense)
 
     # Check attributes are equal
     if check_attrs:
