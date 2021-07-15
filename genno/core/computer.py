@@ -213,7 +213,12 @@ class Computer:
             raise TypeError(data)
 
     def cache(self, func):
-        """Return a decorator to cache data."""
+        """Return a decorator to cache data.
+
+        See also
+        --------
+        :doc:`cache`
+        """
         return make_cache_decorator(self, func)
 
     def add_queue(
