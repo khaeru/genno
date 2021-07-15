@@ -148,7 +148,7 @@ def apply_units(qty, units, quiet=False):
 
     existing = qty.attrs.get("_unit", None)
     existing_dims = getattr(existing, "dimensionality", {})
-    new_units = registry.parse_units(units)
+    new_units = registry.Unit(units)
 
     if len(existing_dims):
         # Some existing dimensions: log a message either way
