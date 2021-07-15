@@ -18,6 +18,7 @@ class PathEncoder(json.JSONEncoder):
     """
 
     def default(self, o):
+        """"""
         if isinstance(o, Path):
             return str(o)
         # Let the base class default method raise the TypeError
@@ -37,7 +38,7 @@ def arg_hash(*args, **kwargs):
     # Uncomment for debugging
     # log.debug(f"Cache key hashed from: {unique}")
 
-    return sha1(unique.encode()).hexdigest()
+    return blake2b(unique.encode(), digest_size=20).hexdigest()
 
 
 def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
