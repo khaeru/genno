@@ -1,8 +1,10 @@
 import json
 import logging
 import pickle
-from hashlib import sha1
+from hashlib import blake2b
+from inspect import getmembers
 from pathlib import Path
+from typing import Callable, Union
 
 from .util import unquote
 
@@ -38,6 +40,30 @@ def arg_hash(*args, **kwargs):
     return sha1(unique.encode()).hexdigest()
 
 
+def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
+    """Return a :class:`.blake2b` hash of the contents of the file at `path`.
+
+    Parameters
+    ----------
+    chunk_size : int, optional
+        Read the file in chunks of this size; default 64 kB.
+    """
+    with Path(path).open("rb") as f:
+        hash = blake2b()
+        while chunk := f.read(chunk_size):
+            hash.update(chunk)
+    return hash.hexdigest()
+
+
+def hash_code(func: Callable) -> str:
+    """Return a :class:`.blake2b` hash of the compiled bytecode of `func`."""
+    # Get the code object
+    code_obj = next(filter(lambda kv: kv[0] == "__code__", getmembers(func)))[1]
+    # Hash the identifying information: raw bytecode & constants used
+    info = code_obj.co_code + json.dumps(code_obj.co_consts).encode()
+    return blake2b(info).hexdigest()
+
+
 def make_cache_decorator(computer, func):
     """Helper for :meth:`.Computer.cache`."""
     log.debug(f"Wrapping {func.__name__} in Computer.cache()")
@@ -53,8 +79,9 @@ def make_cache_decorator(computer, func):
             cache_path = Path.cwd()
             log.warning(f"'cache_path' configuration not set; using {cache_path}")
 
+        # Parts of the file name: function name, hash of arguments and code
+        name_parts = [func.__name__, arg_hash(*args, hash_code(func), **kwargs)]
         # Path to the cache file
-        name_parts = [func.__name__, arg_hash(*args, **kwargs)]
         cache_path = cache_path.joinpath("-".join(name_parts)).with_suffix(".pkl")
 
         # Shorter name for logging
