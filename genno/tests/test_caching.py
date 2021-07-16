@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from genno.caching import PathEncoder, arg_hash, hash_code
+from genno.caching import PathEncoder, hash_args, hash_code
 
 
 def test_PathEncoder():
@@ -13,9 +13,9 @@ def test_PathEncoder():
         PathEncoder().default(lambda foo: foo)
 
 
-def test_arg_hash():
+def test_hash_args():
     # Expected value with no arguments
-    assert "3345524abf6bbe1809449224b5972c41790b6cf2" == arg_hash()
+    assert "3345524abf6bbe1809449224b5972c41790b6cf2" == hash_args()
 
 
 def test_hash_code():
