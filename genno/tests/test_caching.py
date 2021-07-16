@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from genno.caching import PathEncoder, hash_args, hash_code
+from genno.caching import PathEncoder, hash_args, hash_code, hash_contents
 
 
 def test_PathEncoder():
@@ -18,7 +18,8 @@ def test_hash_args():
     assert "3345524abf6bbe1809449224b5972c41790b6cf2" == hash_args()
 
 
-def test_hash_code():
+def test_hash_code():  # pragma: no cover
+    # "no cover" applies to each of the function bodies below, never executed
     def foo():
         x = 3
         return x + 1
@@ -52,3 +53,12 @@ def test_hash_code():
     l2 = lambda y: y + 2  # noqa: E731
 
     assert hash_code(l1) == hash_code(l2)
+
+
+def test_hash_contents(test_data_path):
+    """:func:`.hash_contents` runs."""
+    assert (
+        "4d28f2d5bbfde96d3cd6fa91506315df27e41d8acc71dae38238b4afcde77e5460dce751a765e5"
+        "c82e514b57d70d54dd61dfbc007846f05d8e9a2fd0a08d180b"
+        == hash_contents(test_data_path / "input0.csv")
+    )
