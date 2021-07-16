@@ -1,0 +1,2 @@
+# Ensure binary-identical contents on checkout, for .tests.test_caching
+genno/tests/data/input0.csv binary
