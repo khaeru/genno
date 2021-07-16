@@ -1,6 +1,7 @@
 import json
 import logging
 import pickle
+from functools import partial
 from hashlib import blake2b
 from inspect import getmembers
 from pathlib import Path
@@ -51,7 +52,7 @@ def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
     """
     with Path(path).open("rb") as f:
         hash = blake2b()
-        while chunk := f.read(chunk_size):
+        for chunk in iter(partial(f.read, chunk_size), b""):
             hash.update(chunk)
     return hash.hexdigest()
 
