@@ -1,3 +1,4 @@
+from functools import update_wrapper
 from typing import Any, Hashable, Mapping, Tuple
 
 import pandas as pd
@@ -9,6 +10,12 @@ CLASS = "AttrSeries"
 
 
 class Quantity:
+    """A sparse data structure that behaves like :class:`xarray.DataArray`.
+
+    Depending on the value of :data:`CLASS`, Quantity is either :class:`.AttrSeries` or
+    :class:`SparseDataArray`.
+    """
+
     # To silence a warning in xarray
     __slots__: Tuple[str, ...] = tuple()
 
@@ -30,7 +37,21 @@ class Quantity:
 
     @property
     def units(self):
-        """Retrieve the units of the Quantity."""
+        """Retrieve or set the units of the Quantity.
+
+        Examples
+        --------
+        Create a quantity without units:
+
+        >>> qty = Quantity(...)
+
+        Set using a string; automatically converted to pint.Unit:
+
+        >>> qty.units = "kg"
+        >>> qty.units
+        <Unit('kilogram')>
+
+        """
         return self.attrs.setdefault(
             "_unit", pint.get_application_registry().dimensionless
         )
@@ -114,7 +135,7 @@ def assert_quantity(*args):
 
 
 def maybe_densify(func):
-    """Wrapper for computations that densifies :class:`.SparseDataArray`."""
+    """Wrapper for computations that densifies :class:`.SparseDataArray` input."""
 
     def wrapped(*args, **kwargs):
         if CLASS == "SparseDataArray":
@@ -133,5 +154,7 @@ def maybe_densify(func):
             sparsify = densify
 
         return sparsify(func(*map(densify, args), **kwargs))
+
+    update_wrapper(wrapped, func)
 
     return wrapped

@@ -1,8 +1,8 @@
 Caching
 *******
 
-Use :meth:`.Computer.cache` to decorate another function, `func` to be added as the computation/callable in a task.
-Caching is useful when :meth:`.get` is called multiple times on the same Computer, invoking a slow `func` each time.
+Use :meth:`.Computer.cache` to decorate another function, `func`, that will be added as the computation/callable in a task.
+Caching is useful when :meth:`.get` is called multiple times on the same Computer, or across processes, invoking a slow `func` each time.
 
 .. code-block:: python
 

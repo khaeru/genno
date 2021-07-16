@@ -6,8 +6,14 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Add :func:`.computations.interpolate` and supporting :meth:`.AttrSeries.interp` (:pull:`48`).
+  This code works around issues `pandas#25460 <https://github.com/pandas-dev/pandas/issues/25460>`_ and `pandas#31949 <https://github.com/pandas-dev/pandas/issues/31949>`_.
+- :meth:`.Computer.cache` now also invalidates cache if the compiled bytecode of the decorated function changes (:pull:`48`).
+- Separate and expand docs of :doc:`cache` to show how to check modification time and/or contents of files (:issue:`49`, :pull:`48`).
+- Add :attr:`.Quantity.units` attribute for access to units (:pull:`48`).
 
 v1.6.0 (2021-07-07)
 ===================

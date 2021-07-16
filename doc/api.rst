@@ -299,6 +299,7 @@ Computations
       combine
       disaggregate_shares
       group_sum
+      interpolate
       pow
       product
       ratio
@@ -323,7 +324,7 @@ Internal format for quantities
 .. currentmodule:: genno.core.quantity
 
 .. automodule:: genno.core.quantity
-   :members: assert_quantity
+   :members: CLASS, assert_quantity, maybe_densify
 
 .. currentmodule:: genno.core.attrseries
 
