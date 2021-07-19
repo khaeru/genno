@@ -233,13 +233,18 @@ class AttrSeries(pd.Series, Quantity):
         # Dimension other than `dim`
         other_dims = list(filter(lambda d: d != dim, dims))
 
-        # Used to rejoin MultiIndices; `base` either a tuple or a scalar value
         def join(base, item):
-            return (list(base) + [item[1]]) if len(other_dims) > 1 else [base, item]
+            """Rejoin a full key for the MultiIndex in the correct order."""
+            # Wrap a scalar `base`
+            base = [base] if len(other_dims) < 2 else base
+            return [
+                (base[other_dims.index(d)] if d in other_dims else item) for d in dims
+            ]
 
         # Group by `dim` so that each level appears ≤ 1 time in `group_series`
         result = []
-        for group_key, group_series in self.groupby(other_dims):
+        groups = self.groupby(other_dims) if len(other_dims) else [(None, self)]
+        for group_key, group_series in groups:
             # Work around https://github.com/pandas-dev/pandas/issues/25460; can't do:
             # group_series.reindex(…, level=dim)
 
@@ -249,7 +254,7 @@ class AttrSeries(pd.Series, Quantity):
 
             # Reassemble full MultiIndex with the new coords added along `dim`
             full_idx = pd.MultiIndex.from_tuples(
-                map(partial(join, group_key), idx), names=other_dims + [dim]
+                map(partial(join, group_key), idx), names=dims
             )
 
             # - Reindex to insert NaNs

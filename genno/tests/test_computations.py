@@ -209,6 +209,9 @@ def test_group_sum(ureg):
 
 
 def test_interpolate(caplog, data):
+    # TODO test 1-D
+    # TODO test 3-D with various dimension orders
+
     *_, x = data
 
     # Linear interpolation of 1 point
