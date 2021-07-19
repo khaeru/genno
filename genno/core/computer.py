@@ -210,7 +210,7 @@ class Computer:
                 return self.add_single(key, *computation, **kwargs)
         else:
             # Some other kind of input
-            raise TypeError(data)
+            raise TypeError(f"{type(data)} `data` argument")
 
     def cache(self, func):
         """Return a decorator to cache data.
