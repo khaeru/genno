@@ -10,8 +10,7 @@ on:
 
 
 env:
-  GAMS_VERSION: 25.1.1
-  # See description in lint.yml
+  # History to clone, for setuptools-scm
   depth: 100
 
 jobs:
@@ -74,39 +73,16 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Use OpenJDK 14 (macOS only)
-      # Using the default OpenJDK 1.8 on the macos-latest runner produces
-      # "Abort trap: 6" when JPype1 starts the JVM
-      if: ${{ startsWith(matrix.os, 'macos') }}
-      uses: actions/setup-java@v1
-      with:
-        java-version: '14'
-
-    - name: Cache GAMS installer, Python packages, and R packages
+    - name: Cache Python packages
       uses: actions/cache@v2
       with:
         path: |
-          gams
           ~/.cache/pip
           ~/Library/Caches/pip
           ~/appdata/local/pip/cache
-          ${{ env.R_LIBS_USER }}
-        key: ${{ matrix.os }}-gams${{ env.GAMS_VERSION }}-py${{ matrix.python-version }}
+        key: ${{ matrix.os }}-py${{ matrix.python-version }}
         restore-keys: |
-          ${{ matrix.os }}-gams${{ env.GAMS_VERSION }}-
           ${{ matrix.os }}-
-
-    - name: Install GAMS and Graphviz
-      env:
-        CI_OS: ${{ matrix.os }}
-      working-directory: genno
-      shell: bash
-      run: |
-        ci/install-gams.sh
-
-    - name: Check GAMS
-      run: gams
-      shell: bash
 
     - uses: ts-graphviz/setup-graphviz@v1
 
