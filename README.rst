@@ -9,8 +9,8 @@ genno: efficient, transparent calculation on N-D data
    :target: https://genno.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation build
 
-.. image:: https://github.com/khaeru/genno/workflows/pytest/badge.svg
-   :target: https://github.com/khaeru/genno/actions?query=workflow:pytest
+.. image:: https://github.com/khaeru/genno/actions/workflows/pytest.yaml/badge.svg
+   :target: https://github.com/khaeru/genno/actions/workflows/pytest.yaml
    :alt: Build status
 
 .. image:: https://codecov.io/gh/khaeru/genno/branch/main/graph/badge.svg

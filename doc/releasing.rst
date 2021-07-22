@@ -3,7 +3,7 @@ Releasing
 
 Before releasing, check:
 
-- https://github.com/khaeru/genno/actions?query=workflow:pytest+branch:main to ensure that the push and scheduled builds are passing.
+- https://github.com/khaeru/genno/actions/workflows/pytest.yaml?query=branch:main to ensure that the push and scheduled builds are passing.
 - https://readthedocs.org/projects/genno/builds/ to ensure that the docs build is passing.
 
 Address any failures before releasing.
@@ -19,7 +19,7 @@ Address any failures before releasing.
 
 3. Check:
 
-   - at https://github.com/khaeru/genno/actions?query=workflow:publish that the workflow completes: the package builds successfully and is published to TestPyPI.
+   - at https://github.com/khaeru/genno/actions/workflows/publish.yaml that the workflow completes: the package builds successfully and is published to TestPyPI.
    - at https://test.pypi.org/project/genno/ that:
 
       - The package can be downloaded, installed and run.
@@ -37,4 +37,4 @@ Address any failures before releasing.
 
 5. Visit https://github.com/khaeru/genno/releases and mark the new release: either using the pushed tag from (4), or by creating the tag and release simultaneously.
 
-6. Check at https://github.com/khaeru/genno/actions?query=workflow:publish and https://pypi.org/project/genno/ that the distributions are published.
+6. Check at https://github.com/khaeru/genno/actions/workflows/publish.yaml and https://pypi.org/project/genno/ that the distributions are published.
