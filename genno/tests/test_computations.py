@@ -208,44 +208,62 @@ def test_group_sum(ureg):
     assert 2 == len(result)
 
 
-def test_interpolate(caplog, data):
-    # TODO test 1-D
-    # TODO test 3-D with various dimension orders
-
-    *_, x = data
+@pytest.mark.parametrize(
+    "shape",
+    [
+        dict(x=3),
+        dict(x=3, y=3),
+        dict(y=3, x=3),
+        dict(x=3, y=3, z=2),
+        dict(y=3, x=3, z=2),
+        dict(y=3, z=2, x=3),
+    ],
+)
+def test_interpolate(caplog, shape):
+    """Test :func:`.interpolate`."""
+    # Generate a random quantity with one dimension indexed by integers
+    q = random_qty(shape)
+    x = [2020, 2030, 2040]
+    q = q.assign_coords({"x": x})
 
     # Linear interpolation of 1 point
-    result = computations.interpolate(x, dict(y=2025), assume_sorted=False)
+    result = computations.interpolate(q, dict(x=2025), assume_sorted=False)
     assert "interpolate(…, assume_sorted=False) ignored" in caplog.messages
 
     # Result has the expected class, dimensions, and values
-    assert isinstance(result, x.__class__)
-    assert ("t",) == result.dims
+    assert isinstance(result, q.__class__)
+    assert tuple([d for d in q.dims if d != "x"]) == result.dims
     assert_qty_allclose(
-        result, 0.5 * x.sel(y=[2020, 2030]).sum("y"), ignore_extra_coords=True
+        result, 0.5 * q.sel(x=[2020, 2030]).sum("x"), ignore_extra_coords=True
     )
 
     # Extrapolation on both ends of the data
-    y = list(x.coords["y"].values)
-    y = sorted(list(y) + [y[0] - 1, y[-1] + 1])
+    x = sorted(x + [x[0] - 1, x[-1] + 1])
 
-    # Works
+    # interpolate() works
     result = computations.interpolate(
-        x, dict(y=y), method="linear", kwargs=dict(fill_value="extrapolate")
+        q, dict(x=x), method="linear", kwargs=dict(fill_value="extrapolate")
     )
 
     # Produces the expected results
-    r = result.sel(t="foo1")
+    r = result
     for i1, i2, i3 in ((0, 1, 2), (-1, -2, -3)):
-        slope_int = ((r.sel(y=y[i3]) - r.sel(y=y[i2])) / (y[i3] - y[i2])).item()
-        slope_ext = ((r.sel(y=y[i2]) - r.sel(y=y[i1])) / (y[i2] - y[i1])).item()
-        assert np.isclose(slope_int, slope_ext), (
-            (i1, y[i1], r.sel(y=y[i1])),
-            (i2, y[i2], r.sel(y=y[i2])),
-            (i3, y[i3], r.sel(y=y[i3])),
-            slope_int,
-            slope_ext,
+        # Slope interior to the existing data
+        slope_int = (r.sel(x=x[i3], drop=True) - r.sel(x=x[i2], drop=True)) / (
+            x[i3] - x[i2]
         )
+        # Slope to extrapolated points
+        slope_ext = (r.sel(x=x[i2], drop=True) - r.sel(x=x[i1], drop=True)) / (
+            x[i2] - x[i1]
+        )
+        # print(
+        #     (i1, x[i1], r.sel(x=x[i1])),
+        #     (i2, x[i2], r.sel(x=x[i2])),
+        #     (i3, x[i3], r.sel(x=x[i3])),
+        #     slope_int,
+        #     slope_ext,
+        # )
+        assert_qty_allclose(slope_int, slope_ext)
 
 
 @pytest.mark.parametrize(
