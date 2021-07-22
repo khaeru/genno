@@ -225,7 +225,7 @@ class Computer:
         self,
         queue: Iterable[Tuple[Tuple, Mapping]],
         max_tries: int = 1,
-        fail: Union[str, int] = "raise",
+        fail: Union[str, int] = None,
     ) -> Tuple[KeyLike, ...]:
         """Add tasks from a list or `queue`.
 
@@ -241,6 +241,18 @@ class Computer:
             `max_tries`: "raise" an exception, or log messages on the indicated level
             and continue.
         """
+        if isinstance(fail, str):
+            # Convert a string like 'debug' to logging.DEBUG
+            fail = getattr(logging, fail.upper(), fail)
+
+        if fail is not None:
+            pop_level = True  # Remove this value at the end of this (outer) call
+            self._queue_fail_log_level = fail
+        else:
+            # No value given: use the instance property from an outer call, else "raise"
+            fail = getattr(self, "_queue_fail_log_level", "raise")
+            pop_level = False
+
         # Elements to retry: list of (tries, args, kwargs)
         retry: List[Tuple[int, Tuple[Tuple, Mapping]]] = []
         added: List[KeyLike] = []
@@ -265,26 +277,24 @@ class Computer:
                     [log.log(level, i) for i in info]
 
                 if count < max_tries:
-                    _log(logging.DEBUG)
-                    # This may only be due to items being out of order, so
-                    # retry silently
+                    # This may only be due to items being out of order; retry silently
                     retry.append((count + 1, (args, kwargs)))
+                    # _log(logging.DEBUG)  # verbose: uncomment for debugging only
                 else:
-                    # More than *max_tries* failures; something has gone wrong
+                    # More than `max_tries` failures; something has gone wrong
                     if fail == "raise":
                         _log(logging.ERROR)
                         raise
                     else:
-                        _log(
-                            getattr(logging, fail.upper())
-                            if isinstance(fail, str)
-                            else fail
-                        )
+                        _log(fail)
             else:
                 if isinstance(key_or_keys, tuple):
                     added.extend(key_or_keys)
                 else:
                     added.append(key_or_keys)
+
+        if pop_level:  # End of the outer call
+            delattr(self, "_queue_fail_log_level")
 
         return tuple(added)
 
