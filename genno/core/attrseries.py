@@ -250,8 +250,9 @@ class AttrSeries(pd.Series, Quantity):
             # group_series.reindex(…, level=dim)
 
             # A 1-D index for `dim` with the union of existing and new coords
-            idx = group_series.index.droplevel(other_dims)
-            idx = type(idx)(sorted(set(idx).union(levels)))
+            idx = pd.Index(
+                sorted(set(group_series.index.get_level_values(dim)).union(levels))
+            )
 
             # Reassemble full MultiIndex with the new coords added along `dim`
             full_idx = pd.MultiIndex.from_tuples(
