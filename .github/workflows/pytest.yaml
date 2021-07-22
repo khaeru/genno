@@ -103,11 +103,12 @@ jobs:
       shell: bash
       run: |
         ci/install-gams.sh
-        ci/install-graphviz.sh
 
     - name: Check GAMS
       run: gams
       shell: bash
+
+    - uses: ts-graphviz/setup-graphviz@v1
 
     - name: Upgrade pip, wheel, setuptools-scm
       run: python -m pip install --upgrade pip wheel setuptools-scm
