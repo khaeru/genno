@@ -304,9 +304,9 @@ def interpolate(
 ) -> Quantity:
     """Interpolate `qty`.
 
-    For the meaning of arguments, see :meth:`.DataArray.interp`. When :data:`.CLASS` is
-    :class:`.AttrSeries`, only 1-dimensional interpolation (one key in `coords`) is
-    tested/supported.
+    For the meaning of arguments, see :meth:`xarray.DataArray.interp`. When
+    :data:`.CLASS` is :class:`.AttrSeries`, only 1-dimensional interpolation (one key
+    in `coords`) is tested/supported.
     """
     if assume_sorted is not True:
         log.warning(f"interpolate(…, assume_sorted={assume_sorted}) ignored")
