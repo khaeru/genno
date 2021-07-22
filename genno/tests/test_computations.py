@@ -9,7 +9,13 @@ import xarray as xr
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
-from genno.testing import add_test_data, assert_logs, assert_qty_equal, random_qty
+from genno.testing import (
+    add_test_data,
+    assert_logs,
+    assert_qty_allclose,
+    assert_qty_equal,
+    random_qty,
+)
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
@@ -203,6 +209,64 @@ def test_group_sum(ureg):
 
 
 @pytest.mark.parametrize(
+    "shape",
+    [
+        dict(x=3),
+        dict(x=3, y=3),
+        dict(y=3, x=3),
+        dict(x=3, y=3, z=2),
+        dict(y=3, x=3, z=2),
+        dict(y=3, z=2, x=3),
+    ],
+)
+def test_interpolate(caplog, shape):
+    """Test :func:`.interpolate`."""
+    # Generate a random quantity with one dimension indexed by integers
+    q = random_qty(shape)
+    x = [2020, 2030, 2040]
+    q = q.assign_coords({"x": x})
+
+    # Linear interpolation of 1 point
+    result = computations.interpolate(q, dict(x=2025), assume_sorted=False)
+    assert "interpolate(…, assume_sorted=False) ignored" in caplog.messages
+
+    # Result has the expected class, dimensions, and values
+    assert isinstance(result, q.__class__)
+    assert tuple([d for d in q.dims if d != "x"]) == result.dims
+    assert_qty_allclose(
+        result, 0.5 * q.sel(x=[2020, 2030]).sum("x"), ignore_extra_coords=True
+    )
+
+    # Extrapolation on both ends of the data
+    x = sorted(x + [x[0] - 1, x[-1] + 1])
+
+    # interpolate() works
+    result = computations.interpolate(
+        q, dict(x=x), method="linear", kwargs=dict(fill_value="extrapolate")
+    )
+
+    # Produces the expected results
+    r = result
+    for i1, i2, i3 in ((0, 1, 2), (-1, -2, -3)):
+        # Slope interior to the existing data
+        slope_int = (r.sel(x=x[i3], drop=True) - r.sel(x=x[i2], drop=True)) / (
+            x[i3] - x[i2]
+        )
+        # Slope to extrapolated points
+        slope_ext = (r.sel(x=x[i2], drop=True) - r.sel(x=x[i1], drop=True)) / (
+            x[i2] - x[i1]
+        )
+        # print(
+        #     (i1, x[i1], r.sel(x=x[i1])),
+        #     (i2, x[i2], r.sel(x=x[i2])),
+        #     (i3, x[i3], r.sel(x=x[i3])),
+        #     slope_int,
+        #     slope_ext,
+        # )
+        assert_qty_allclose(slope_int, slope_ext)
+
+
+@pytest.mark.parametrize(
     "name, kwargs",
     [
         ("input0.csv", dict(units="km")),
@@ -325,7 +389,7 @@ def test_select(data):
     assert result_0.size == 2 * 6
 
     # Single indexer along one dimension results in 1D data
-    indexers["y"] = "2010"
+    indexers["y"] = [2010]
     result_1 = computations.select(x, indexers=indexers)
     assert result_1.size == 2 * 1
 

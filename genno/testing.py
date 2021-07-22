@@ -79,7 +79,7 @@ def add_test_data(c: Computer):
     t_foo = ["foo{}".format(i) for i in (1, 2, 3)]
     t_bar = ["bar{}".format(i) for i in (4, 5, 6)]
     t = t_foo + t_bar
-    y = list(map(str, range(2000, 2051, 10)))
+    y = list(range(2000, 2051, 10))
 
     # Add to Computer
     c.add("t", quote(t))
@@ -263,7 +263,7 @@ def assert_qty_equal(
 
         assert 0 == len(kwargs)
 
-        xarray.testing.assert_equal(a, b)
+        xarray.testing.assert_equal(a._sda.dense, b._sda.dense)
 
     # Check attributes are equal
     if check_attrs:
@@ -271,7 +271,12 @@ def assert_qty_equal(
 
 
 def assert_qty_allclose(
-    a, b, check_type: bool = True, check_attrs: bool = True, **kwargs
+    a,
+    b,
+    check_type: bool = True,
+    check_attrs: bool = True,
+    ignore_extra_coords: bool = False,
+    **kwargs,
 ):
     """Assert that objects `a` and `b` have numerically close values.
 
@@ -282,6 +287,9 @@ def assert_qty_allclose(
         the arguments are converted to Quantity.
     check_attrs : bool, optional
         Also assert that check that attributes are identical.
+    ignore_extra_coords : bool, optional
+        Ignore extra coords that are not dimensions. Only meaningful when Quantity is
+        :class:`SparseDataArray`.
     """
     __tracebackhide__ = True
 
@@ -300,7 +308,13 @@ def assert_qty_allclose(
     else:
         import xarray.testing
 
+        if ignore_extra_coords:
+            a = a.reset_coords(set(a.coords.keys()) - set(a.dims), drop=True)
+            b = b.reset_coords(set(b.coords.keys()) - set(b.dims), drop=True)
+
+        # Remove a kwarg not recognized by the xarray function
         kwargs.pop("check_dtype", None)
+
         xarray.testing.assert_allclose(a._sda.dense, b._sda.dense, **kwargs)
 
     # Check attributes are equal

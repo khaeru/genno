@@ -1,8 +1,11 @@
 import logging
+from functools import partial
 from typing import Any, Hashable, Iterable, Mapping, Union
 
+import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
+import pint
 import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 
@@ -81,6 +84,13 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.from_series`."""
         return AttrSeries(series)
 
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Set the units of the Quantity."""
+        if name == "units":
+            self.attrs["_unit"] = pint.get_application_registry().Unit(value)
+        else:
+            super().__setattr__(name, value)
+
     def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
         coords = either_dict_or_kwargs(coords, coord_kwargs, "assign_coords")
@@ -116,10 +126,12 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def coords(self):
         """Like :attr:`xarray.DataArray.coords`. Read-only."""
-        result = dict()
-        for name, levels in zip(self.index.names, self.index.levels):
-            result[name] = xr.Dataset(None, coords={name: levels})[name]
-        return result
+        levels = (
+            self.index.levels
+            if isinstance(self.index, pd.MultiIndex)
+            else [self.index.values]
+        )
+        return xr.Dataset(None, coords=dict(zip(self.index.names, levels))).coords
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
         """Like :meth:`xarray.DataArray.cumprod`."""
@@ -137,7 +149,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def dims(self):
         """Like :attr:`xarray.DataArray.dims`."""
-        return tuple(self.index.names)
+        return tuple(filter(None, self.index.names))
 
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
@@ -184,6 +196,97 @@ class AttrSeries(pd.Series, Quantity):
         elif self.size != 1:
             raise ValueError
         return self.iloc[0]
+
+    def interp(
+        self,
+        coords: Mapping[Hashable, Any] = None,
+        method: str = "linear",
+        assume_sorted: bool = True,
+        kwargs: Mapping[str, Any] = None,
+        **coords_kwargs: Any,
+    ):
+        """Like :meth:`xarray.DataArray.interp`.
+
+        This method works around two long-standing bugs in :mod:`pandas`:
+
+        - `pandas-dev/pandas#25460 <https://github.com/pandas-dev/pandas/issues/25460>`_
+        - `pandas-dev/pandas#31949 <https://github.com/pandas-dev/pandas/issues/31949>`_
+        """
+        from scipy.interpolate import interp1d
+
+        if kwargs is None:
+            kwargs = {}
+
+        coords = either_dict_or_kwargs(coords, coords_kwargs, "interp")
+        if len(coords) > 1:
+            raise NotImplementedError("interp() on more than 1 dimension")
+
+        # Unpack the dimension and levels (possibly overlapping with existing)
+        dim = list(coords.keys())[0]
+        levels = coords[dim]
+        # Ensure a list
+        if isinstance(levels, (int, float)):
+            levels = [levels]
+
+        # Preserve order of dimensions
+        dims = self.dims
+
+        # Dimension other than `dim`
+        other_dims = list(filter(lambda d: d != dim, dims))
+
+        def join(base, item):
+            """Rejoin a full key for the MultiIndex in the correct order."""
+            # Wrap a scalar `base`
+            base = [base] if len(other_dims) < 2 else base
+            return [
+                (base[other_dims.index(d)] if d in other_dims else item) for d in dims
+            ]
+
+        # Group by `dim` so that each level appears ≤ 1 time in `group_series`
+        result = []
+        groups = self.groupby(other_dims) if len(other_dims) else [(None, self)]
+        for group_key, group_series in groups:
+            # Work around https://github.com/pandas-dev/pandas/issues/25460; can't do:
+            # group_series.reindex(…, level=dim)
+
+            # A 1-D index for `dim` with the union of existing and new coords
+            idx = pd.Index(
+                sorted(set(group_series.index.get_level_values(dim)).union(levels))
+            )
+
+            # Reassemble full MultiIndex with the new coords added along `dim`
+            full_idx = pd.MultiIndex.from_tuples(
+                map(partial(join, group_key), idx), names=dims
+            )
+
+            # - Reindex to insert NaNs
+            # - Replace the full index with the 1-D index
+            s = group_series.reindex(full_idx).set_axis(idx)
+
+            # Work around https://github.com/pandas-dev/pandas/issues/31949
+            # Location of existing values
+            x = s.notna()
+
+            # - Create an interpolator from the non-NaN values.
+            # - Apply it to the missing indices.
+            # - Reconstruct a Series with these indices.
+            # - Use this Series to fill the NaNs in `s`.
+            # - Restore the full MultiIndex.
+            result.append(
+                s.fillna(
+                    pd.Series(
+                        interp1d(s[x].index, s[x], kind=method, **kwargs)(s[~x].index),
+                        index=s[~x].index,
+                    )
+                ).set_axis(full_idx)
+            )
+
+        # - Restore dimension order and attributes.
+        # - Select only the desired `coords`.
+        return AttrSeries(
+            pd.concat(result).reorder_levels(dims),
+            attrs=self.attrs,
+        ).sel(coords)
 
     def rename(self, new_name_or_name_dict):
         """Like :meth:`xarray.DataArray.rename`."""
@@ -260,14 +363,24 @@ class AttrSeries(pd.Series, Quantity):
 
             # Iterate over dimensions
             idx = []
+            to_drop = set()
             for dim in self.dims:
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
 
+                if np.isscalar(i) and drop:
+                    to_drop.add(dim)
+
                 # Maybe unpack an xarray DataArray indexers, for pandas
                 idx.append(i.data if isinstance(i, xr.DataArray) else i)
 
+            # Select
             data = self.loc[tuple(idx)]
+
+            # Only drop if not returning a scalar value
+            if not np.isscalar(data):
+                # Drop levels where a single value was selected
+                data = data.droplevel(list(to_drop & set(data.index.names)))
 
         # Return
         return AttrSeries(data, attrs=self.attrs)

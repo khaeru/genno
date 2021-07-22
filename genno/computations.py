@@ -3,14 +3,14 @@
 # - To avoid ambiguity, computations should not have default arguments. Define
 #   default values for the corresponding methods on the Computer class.
 import logging
-from collections.abc import Mapping
 from pathlib import Path
+from typing import Any, Hashable, Mapping
 
 import pandas as pd
 import pint
 
 from genno.core.attrseries import AttrSeries
-from genno.core.quantity import Quantity, assert_quantity
+from genno.core.quantity import Quantity, assert_quantity, maybe_densify
 from genno.util import collect_units, filter_concat_args
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     "concat",
     "disaggregate_shares",
     "group_sum",
+    "interpolate",
     "load_file",
     "pow",
     "product",
@@ -147,7 +148,7 @@ def apply_units(qty, units, quiet=False):
 
     existing = qty.attrs.get("_unit", None)
     existing_dims = getattr(existing, "dimensionality", {})
-    new_units = registry.parse_units(units)
+    new_units = registry.Unit(units)
 
     if len(existing_dims):
         # Some existing dimensions: log a message either way
@@ -290,6 +291,27 @@ def group_sum(qty, group, sum):
         *[values.sum(dim=[sum]) for _, values in qty.groupby(group)],
         dim=group,
     )
+
+
+@maybe_densify
+def interpolate(
+    qty: Quantity,
+    coords: Mapping[Hashable, Any] = None,
+    method: str = "linear",
+    assume_sorted: bool = True,
+    kwargs: Mapping[str, Any] = None,
+    **coords_kwargs: Any,
+) -> Quantity:
+    """Interpolate `qty`.
+
+    For the meaning of arguments, see :meth:`.DataArray.interp`. When :data:`.CLASS` is
+    :class:`.AttrSeries`, only 1-dimensional interpolation (one key in `coords`) is
+    tested/supported.
+    """
+    if assume_sorted is not True:
+        log.warning(f"interpolate(…, assume_sorted={assume_sorted}) ignored")
+
+    return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
 def load_file(path, dims={}, units=None, name=None):
@@ -467,8 +489,8 @@ def select(qty, indexers, inverse=False):
     ----------
     qty : .Quantity
     indexers : dict (str -> list of str)
-        Elements to be selected from *qty*. Mapping from dimension names to
-        labels along each dimension.
+        Elements to be selected from *qty*. Mapping from dimension names to labels
+        along each dimension.
     inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
     """

@@ -150,6 +150,10 @@ class TestQuantity:
         r2 = tri.bfill("y")
         assert r2.loc["x0", "y0"] == tri.loc["x0", "y2"]
 
+    def test_coords(self, tri):
+        assert isinstance(tri.coords, xr.core.coordinates.Coordinates)
+        assert ["x", "y"] == list(tri.coords)
+
     def test_copy_modify(self, a):
         """Making a Quantity another produces a distinct attrs dictionary."""
         assert 0 == len(a.attrs)
@@ -274,3 +278,15 @@ class TestQuantity:
         assert isinstance(s, pd.Series)
 
         Quantity.from_series(s)
+
+    def test_units(self, a):
+        # Units can be retrieved; dimensionless by default
+        assert a.units.dimensionless
+
+        # Set with a string results in a pint.Unit instance
+        a.units = "kg"
+        assert pint.Unit("kg") == a.units
+
+        # Can be set to dimensionless
+        a.units = ""
+        assert a.units.dimensionless

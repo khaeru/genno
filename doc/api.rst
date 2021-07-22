@@ -22,7 +22,7 @@ Top-level classes and functions
 
 .. autoclass:: genno.Computer
    :members:
-   :exclude-members: add, add_as_pyam, add_load_file, apply, cache, convert_pyam, graph
+   :exclude-members: add, add_as_pyam, add_load_file, apply, convert_pyam, graph
 
    A Computer is used to describe (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **tasks** stored in a :attr:`graph`.
    Advanced users may manipulate the graph directly; but common reporting tasks can be handled by using Computer methods.
@@ -158,29 +158,6 @@ Top-level classes and functions
              yield from (f"file:{i}", (op, "file{i}.txt")) for i in range(2)
 
          rep.apply(my_gen1, units="kg")
-
-   .. automethod:: cache
-
-      Use this function to decorate another function to be added as the computation/callable in a task:
-
-      .. code-block:: python
-
-         c = Computer(cache_path=Path("/some/directory"))
-
-         @c.cache
-         def myfunction(*args, **kwargs):
-             # Expensive operations, e.g. loading large files
-             return data
-
-         c.add("myvar", (myfunction,))
-
-         # Data is cached in /some/directory/myfunction-*.pkl
-
-      On the first call of :meth:`get` that invokes `func`, the data requested is returned, but also cached in the cache directory (see :ref:`Configuration → Caching <config-cache>`).
-
-      On subsequent calls, if the cache exists, it is used instead of calling the (possibly slow) `func`.
-
-      If the ``"cache_skip"`` configuration option is :obj:`True`, `func` is always called.
 
    .. automethod:: convert_pyam
 
@@ -322,6 +299,7 @@ Computations
       combine
       disaggregate_shares
       group_sum
+      interpolate
       pow
       product
       ratio
@@ -346,7 +324,7 @@ Internal format for quantities
 .. currentmodule:: genno.core.quantity
 
 .. automodule:: genno.core.quantity
-   :members: assert_quantity
+   :members: CLASS, assert_quantity, maybe_densify
 
 .. currentmodule:: genno.core.attrseries
 
@@ -363,7 +341,4 @@ Utilities
 =========
 
 .. automodule:: genno.util
-   :members:
-
-.. automodule:: genno.caching
    :members:

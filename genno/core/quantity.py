@@ -1,4 +1,5 @@
-from typing import Tuple
+from functools import update_wrapper
+from typing import Any, Hashable, Mapping, Tuple
 
 import pandas as pd
 import pint
@@ -9,6 +10,12 @@ CLASS = "AttrSeries"
 
 
 class Quantity:
+    """A sparse data structure that behaves like :class:`xarray.DataArray`.
+
+    Depending on the value of :data:`CLASS`, Quantity is either :class:`.AttrSeries` or
+    :class:`SparseDataArray`.
+    """
+
     # To silence a warning in xarray
     __slots__: Tuple[str, ...] = tuple()
 
@@ -27,6 +34,38 @@ class Quantity:
         # NB signature is the same as xr.DataArray.from_series(); except sparse=True
         assert sparse
         return cls._get_class().from_series(series, sparse)
+
+    @property
+    def units(self):
+        """Retrieve or set the units of the Quantity.
+
+        Examples
+        --------
+        Create a quantity without units:
+
+        >>> qty = Quantity(...)
+
+        Set using a string; automatically converted to pint.Unit:
+
+        >>> qty.units = "kg"
+        >>> qty.units
+        <Unit('kilogram')>
+
+        """
+        return self.attrs.setdefault(
+            "_unit", pint.get_application_registry().dimensionless
+        )
+
+    # For mypy
+    def interp(
+        self,
+        coords: Mapping[Hashable, Any] = None,
+        method: str = "linear",
+        assume_sorted: bool = True,
+        kwargs: Mapping[str, Any] = None,
+        **coords_kwargs: Any,
+    ):  # pragma: no cover
+        raise NotImplementedError
 
     # Internal methods
 
@@ -93,3 +132,29 @@ def assert_quantity(*args):
             raise TypeError(
                 f"arg #{i+1} ({repr(arg)}) is not Quantity; likely an incorrect key"
             )
+
+
+def maybe_densify(func):
+    """Wrapper for computations that densifies :class:`.SparseDataArray` input."""
+
+    def wrapped(*args, **kwargs):
+        if CLASS == "SparseDataArray":
+
+            def densify(arg):
+                return arg._sda.dense if isinstance(arg, Quantity) else arg
+
+            def sparsify(result):
+                return result._sda.convert()
+
+        else:
+
+            def densify(arg):
+                return arg
+
+            sparsify = densify
+
+        return sparsify(func(*map(densify, args), **kwargs))
+
+    update_wrapper(wrapped, func)
+
+    return wrapped

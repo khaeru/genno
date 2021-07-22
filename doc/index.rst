@@ -12,6 +12,7 @@ genno is built on high-quality Python data packages including ``dask``, ``xarray
 
    usage
    config
+   cache
    api
 
 .. _compat:
