@@ -148,7 +148,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def dims(self):
         """Like :attr:`xarray.DataArray.dims`."""
-        return tuple(self.index.names)
+        return tuple(filter(None, self.index.names))
 
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
