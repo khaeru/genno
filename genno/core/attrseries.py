@@ -2,6 +2,7 @@ import logging
 from functools import partial
 from typing import Any, Hashable, Iterable, Mapping, Union
 
+import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import pint
@@ -361,14 +362,24 @@ class AttrSeries(pd.Series, Quantity):
 
             # Iterate over dimensions
             idx = []
+            to_drop = set()
             for dim in self.dims:
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
 
+                if np.isscalar(i) and drop:
+                    to_drop.add(dim)
+
                 # Maybe unpack an xarray DataArray indexers, for pandas
                 idx.append(i.data if isinstance(i, xr.DataArray) else i)
 
+            # Select
             data = self.loc[tuple(idx)]
+
+            # Only drop if not returning a scalar value
+            if not np.isscalar(data):
+                # Drop levels where a single value was selected
+                data = data.droplevel(list(to_drop & set(data.index.names)))
 
         # Return
         return AttrSeries(data, attrs=self.attrs)
