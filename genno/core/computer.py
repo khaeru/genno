@@ -26,8 +26,7 @@ import pint
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
 
-from genno import computations
-from genno.caching import make_cache_decorator
+from genno import caching, computations
 from genno.util import partial_split
 
 from .describe import describe_recursive
@@ -213,13 +212,13 @@ class Computer:
             raise TypeError(f"{type(data)} `data` argument")
 
     def cache(self, func):
-        """Return a decorator to cache data.
+        """Decorate `func` so that its return value is cached.
 
         See also
         --------
         :doc:`cache`
         """
-        return make_cache_decorator(self, func)
+        return caching.decorate(func, computer=self)
 
     def add_queue(
         self,
