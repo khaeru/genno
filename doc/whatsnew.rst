@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.8.1 (2021-07-27)
+===================
 
 Bug fixes
 ---------
