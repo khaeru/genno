@@ -80,9 +80,9 @@ Another possibility is to hash the entire file.
     def load_cached_2(path):
         return slow_data_load(path, hash_contents(path))
 
-.. warning:: Even hashing very large files can be slow, and this check is always performed in order to determine the hash key.
+.. warning:: For very large files, even hashing the file in this way can be slow, and this check must *always* be performed in order to check for a matching cache key.
 
-These wrapper functions can be used as computations in the graph, or called directly:
+The decorated functions can be used as computations in the graph, or called directly:
 
 .. code-block:: python
 
