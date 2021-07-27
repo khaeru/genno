@@ -6,8 +6,13 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+Bug fixes
+---------
+
+- :class:`.Path` not serialized correctly in :mod:`.caching` (:pull:`51`).
 
 v1.8.0 (2021-07-27)
 ===================
