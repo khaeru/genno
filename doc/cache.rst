@@ -1,6 +1,13 @@
 Caching
 *******
 
+.. contents::
+   :local:
+   :backlinks: none
+
+Basics
+======
+
 Use :meth:`.Computer.cache` to decorate another function, `func`, that will be added as the computation/callable in a task.
 Caching is useful when :meth:`.get` is called multiple times on the same Computer, or across processes, invoking a slow `func` each time.
 
@@ -39,8 +46,8 @@ A cache miss will occur if any part of the key changes; that is, if:
 2. the function is called with different arguments, or
 3. the function source code is modified.
 
-Caching data loaded from files
-==============================
+Cache data loaded from files
+============================
 
 Consider a function that loads a very large file, or performs some slow processing on its contents:
 
@@ -99,6 +106,28 @@ The decorated functions can be used as computations in the graph, or called dire
     # Same without using the Computer
     load_cached1("example-file-A.xml")
     load_cached1("example-file-A.xml")
+
+Integrate and extend
+====================
+
+- :class:`.Encoder` may be configured to handle (or ignore) additional/custom types that may appear as arguments to functions decorated with :meth:`.Computer.cache`.
+  See the examples for :meth:`.Encoder.register` and :meth:`.Encoder.ignore`.
+- :func:`.decorate` can be used entirely independently of any :class:`.Computer` by passing the `cache_path` (and optional `cache_skip`) keyword arguments:
+
+  .. code-block:: python
+
+      from functools import partial
+
+      from genno.caching import decorate
+
+      # Create a decorator with a custom cache path
+      mycache = partial(decorate, cache_path=Path("/path/to/cache"))
+
+      @mycache
+      def func(a, b=2):
+          return a ** b
+
+  In this usage, it offers a subset of the feature-set of :class:`joblib.Memory`
 
 
 Internals and utilities

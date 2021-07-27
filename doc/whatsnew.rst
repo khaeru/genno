@@ -6,8 +6,14 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Improve caching (:pull:`50`):
+
+  - Handle a lambda functions in :meth:`.cache`-decorated code.
+  - Add :meth:`.Encoder.register` and :meth:`.Encoder.ignore` for downstream code to extend hashing of function arguments into cache keys.
+  - Expand docs.
 
 v1.7.0 (2021-07-22)
 ===================
