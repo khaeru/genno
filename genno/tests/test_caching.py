@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 
 import pytest
 
@@ -12,19 +11,13 @@ class Bar:
 
 
 class TestEncoder:
-    @pytest.mark.parametrize(
-        "value, passes",
-        [
-            (Path.cwd(), True),
-            (lambda foo: foo, False),
-        ],
-    )
-    def test_default(self, value, passes):
-        if passes:
-            Encoder().default(value)
-        else:
-            with pytest.raises(TypeError):
-                Encoder().default(value)
+    def test_default(self, tmp_path):
+        # Different paths encode differently
+        assert Encoder().default(tmp_path / "x ") != Encoder().default(tmp_path / "y")
+
+        # Lambda function is not encodable
+        with pytest.raises(TypeError):
+            Encoder().default(lambda foo: foo)
 
     @pytest.mark.parametrize("types", [Bar, object])
     def test_ignore(self, monkeypatch, types):

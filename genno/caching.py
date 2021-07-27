@@ -23,7 +23,7 @@ def _encode(o):
 
 @_encode.register(Path)  # py3.6 compat: must give the type as an argument
 def _encode_path(o: Path):
-    return str(Path)
+    return str(o)
 
 
 class Encoder(json.JSONEncoder):
