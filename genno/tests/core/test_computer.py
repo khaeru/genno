@@ -678,7 +678,8 @@ def test_units(ureg):
     """Test handling of units within computations."""
     c = Computer()
 
-    assert isinstance(c.unit_registry, pint.UnitRegistry)
+    # One of the two classes may be referenced
+    assert isinstance(c.unit_registry, (pint.UnitRegistry, pint.ApplicationRegistry))
 
     # Create some dummy data
     dims = dict(coords=["a b c".split()], dims=["x"])
