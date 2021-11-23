@@ -189,10 +189,8 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
         # the level of the logger for the whole package (parent of the current module)
         ctx = caplog.at_level(at_level, logger=__name__.split(".")[0])
     else:
-        # Python 3.6 compatibility: use suppress for nullcontext
-        nullcontext = getattr(contextlib, "nullcontext", contextlib.suppress)
         # ctx does nothing
-        ctx = nullcontext()
+        ctx = contextlib.nullcontext()
 
     try:
         with ctx:

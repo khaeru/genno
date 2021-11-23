@@ -9,18 +9,14 @@ from genno.testing import assert_logs
 def test_computationerror(caplog):
     ce_none = ComputationError(None)
 
-    # Message ends with ',)' on Python 3.6, only ')' on Python 3.7
     msg = (
         "Exception raised while formatting None:\nAttributeError"
-        "(\"'NoneType' object has no attribute '__traceback__'\""
+        "(\"'NoneType' object has no attribute '__traceback__'\")"
     )
     with assert_logs(caplog, msg):
         str(ce_none)
 
 
-# The TypeError message differs:
-# - Python 3.6: "must be str, not float"
-# - Python 3.7: "can only concatenate str (not "float") to str"
 EXPECTED = re.compile(
     r"""computing 'test' using:
 
@@ -31,8 +27,7 @@ Use Computer.describe\(...\) to trace the computation.
 Computation traceback:
   File "(<ipython-input-\d*-\w+>|[^"]*\.py)", line 4, in fail
     'x' \+ 3.4  # Raises TypeError
-TypeError: .*str.*float.*
-"""
+TypeError: can only concatenate str \(not "float"\) to str.*"""
 )
 
 

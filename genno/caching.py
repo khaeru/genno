@@ -21,7 +21,7 @@ def _encode(o):
     return json.JSONEncoder().default(o)
 
 
-@_encode.register(Path)  # py3.6 compat: must give the type as an argument
+@_encode.register
 def _encode_path(o: Path):
     return str(o)
 
