@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Fix error messages raised by :meth:`.AttrSerie.sel` on incorrect usage (:pull:`52`).
+- :mod:`genno` no longer supports Python 3.6 or earlier, following :mod:`xarray` (:pull:`52`)
 
 v1.8.1 (2021-07-27)
 ===================
