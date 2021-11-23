@@ -310,11 +310,7 @@ def test_add_queue(caplog):
     # Failures without raising an exception
     c.add(queue, max_tries=3, fail=logging.INFO)
     assert "Failed 3 times to add:" in caplog.messages
-
-    # NB the following works in Python >= 3.7, but not 3.6, where it ends ",)"
-    # assert "    with MissingKeyError('foo-3')" in caplog.messages
-    expr = re.compile(r"    with MissingKeyError\('foo-3',?\)")
-    assert any(expr.match(m) for m in caplog.messages)
+    assert "    with MissingKeyError('foo-3')" in caplog.messages
 
     queue = [((Key("bar", list("abcd")), 10), dict(sums=True))]
     added = c.add_queue(queue)
@@ -682,7 +678,8 @@ def test_units(ureg):
     """Test handling of units within computations."""
     c = Computer()
 
-    assert isinstance(c.unit_registry, pint.UnitRegistry)
+    # One of the two classes may be referenced
+    assert isinstance(c.unit_registry, (pint.UnitRegistry, pint.ApplicationRegistry))
 
     # Create some dummy data
     dims = dict(coords=["a b c".split()], dims=["x"])

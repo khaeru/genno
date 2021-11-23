@@ -39,7 +39,7 @@ class TestEncoder:
             Encoder().default(Bar())
 
         # Register a serializer
-        @Encoder.register(Bar)  # py3.6 compat: must give the type as an argument
+        @Encoder.register
         def _serialize_bar(o: Bar):
             return dict(bar=42)
 
