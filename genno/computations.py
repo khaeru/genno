@@ -340,6 +340,8 @@ def load_file(path, dims={}, units=None, name=None):
     """
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
+    # TODO strip leading/trailing whitespace from column names
+    # TODO read units from header
     if path.suffix == ".csv":
         data = pd.read_csv(path, comment="#", skipinitialspace=True)
 
