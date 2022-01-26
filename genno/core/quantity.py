@@ -1,5 +1,5 @@
 from functools import update_wrapper
-from typing import Any, Hashable, Mapping, Tuple, Union
+from typing import Any, Dict, Hashable, Mapping, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -66,7 +66,7 @@ class Quantity:
         ...
 
     @property
-    def attrs(self) -> dict[Any, Any]:
+    def attrs(self) -> Dict[Any, Any]:
         ...
 
     @property
