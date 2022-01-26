@@ -58,6 +58,10 @@ class Quantity:
             "_unit", pint.get_application_registry().dimensionless
         )
 
+    @units.setter
+    def units(self, value):
+        self.attrs["_unit"] = pint.get_application_registry().Unit(value)
+
     # Type hints for mypy in downstream applications
     def __len__(self) -> int:
         ...

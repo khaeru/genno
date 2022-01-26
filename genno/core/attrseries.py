@@ -5,7 +5,6 @@ from typing import Any, Hashable, Iterable, Mapping, Union
 import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
-import pint
 import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 
@@ -83,13 +82,6 @@ class AttrSeries(pd.Series, Quantity):
     def from_series(cls, series, sparse=None):
         """Like :meth:`xarray.DataArray.from_series`."""
         return AttrSeries(series)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        """Set the units of the Quantity."""
-        if name == "units":
-            self.attrs["_unit"] = pint.get_application_registry().Unit(value)
-        else:
-            super().__setattr__(name, value)
 
     def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
