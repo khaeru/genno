@@ -181,7 +181,12 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
             raise ValueError("can only convert an array of size 1 to a Python scalar")
 
     def sel(
-        self, indexers=None, method=None, tolerance=None, drop=False, **indexers_kwargs
+        self,
+        indexers: Mapping[Any, Any] = None,
+        method: str = None,
+        tolerance=None,
+        drop: bool = False,
+        **indexers_kwargs: Any,
     ) -> "SparseDataArray":
         """Return a new array by selecting labels along the specified dim(s).
 

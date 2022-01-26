@@ -1,8 +1,10 @@
 from functools import update_wrapper
-from typing import Any, Hashable, Mapping, Tuple
+from typing import Any, Hashable, Mapping, Tuple, Union
 
+import numpy as np
 import pandas as pd
 import pint
+import xarray
 
 #: Name of the class used to implement :class:`.Quantity`.
 CLASS = "AttrSeries"
@@ -56,7 +58,21 @@ class Quantity:
             "_unit", pint.get_application_registry().dimensionless
         )
 
-    # For mypy
+    # Type hints for mypy in downstream applications
+    def __len__(self) -> int:
+        ...
+
+    def __truediv__(self, other) -> "Quantity":
+        ...
+
+    @property
+    def attrs(self) -> dict[Any, Any]:
+        ...
+
+    @property
+    def coords(self) -> xarray.core.coordinates.DataArrayCoordinates:
+        ...
+
     def interp(
         self,
         coords: Mapping[Hashable, Any] = None,
@@ -64,8 +80,31 @@ class Quantity:
         assume_sorted: bool = True,
         kwargs: Mapping[str, Any] = None,
         **coords_kwargs: Any,
-    ):  # pragma: no cover
-        raise NotImplementedError
+    ):
+        ...
+
+    def item(self, *args):
+        ...
+
+    def rename(
+        self,
+        new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
+        **names: Hashable,
+    ):  # NB "Quantity" here offends mypy
+        ...
+
+    def sel(
+        self,
+        indexers: Mapping[Any, Any] = None,
+        method: str = None,
+        tolerance=None,
+        drop: bool = False,
+        **indexers_kwargs: Any,
+    ) -> "Quantity":
+        ...
+
+    def to_numpy(self) -> np.ndarray:
+        ...
 
     # Internal methods
 

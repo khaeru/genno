@@ -13,8 +13,8 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    MutableSequence,
     Optional,
-    Sequence,
     Tuple,
     Union,
     cast,
@@ -60,7 +60,7 @@ class Computer:
     #: :mod:`genno.computations`. :meth:`require_compat` appends additional modules,
     #: e.g. #: :mod:`.compat.pyam.computations`, to this list. User code may also add
     #: modules to this list.
-    modules: Sequence[ModuleType] = [computations]
+    modules: MutableSequence[ModuleType] = [computations]
 
     def __init__(self, **kwargs):
         self.graph = {"config": {}}
