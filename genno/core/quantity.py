@@ -64,18 +64,18 @@ class Quantity:
 
     # Type hints for mypy in downstream applications
     def __len__(self) -> int:
-        ...
+        ...  # pragma: no cover
 
     def __truediv__(self, other) -> "Quantity":
-        ...
+        ...  # pragma: no cover
 
     @property
     def attrs(self) -> Dict[Any, Any]:
-        ...
+        ...  # pragma: no cover
 
     @property
     def coords(self) -> xarray.core.coordinates.DataArrayCoordinates:
-        ...
+        ...  # pragma: no cover
 
     def interp(
         self,
@@ -85,17 +85,17 @@ class Quantity:
         kwargs: Mapping[str, Any] = None,
         **coords_kwargs: Any,
     ):
-        ...
+        ...  # pragma: no cover
 
     def item(self, *args):
-        ...
+        ...  # pragma: no cover
 
     def rename(
         self,
         new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
         **names: Hashable,
     ):  # NB "Quantity" here offends mypy
-        ...
+        ...  # pragma: no cover
 
     def sel(
         self,
@@ -105,10 +105,10 @@ class Quantity:
         drop: bool = False,
         **indexers_kwargs: Any,
     ) -> "Quantity":
-        ...
+        ...  # pragma: no cover
 
     def to_numpy(self) -> np.ndarray:
-        ...
+        ...  # pragma: no cover
 
     # Internal methods
 
