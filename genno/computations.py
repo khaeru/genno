@@ -269,7 +269,11 @@ def concat(*objs, **kwargs):
                 # Something else; warn and discard
                 log.warning(f"Ignore concat(…, dim={repr(dim)})")
 
-        return pd.concat(objs, **kwargs)
+        # Ensure objects have aligned dimensions
+        _objs = [next(objs)]
+        _objs.extend(map(lambda o: o.align_levels(_objs[0]), objs))
+
+        return pd.concat(_objs, **kwargs)
     else:
         # Correct fill-values
         return xr.concat(objs, **kwargs)._sda.convert()
