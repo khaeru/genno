@@ -6,8 +6,14 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+Note that installing ``genno[pyam]`` (including via ``genno[compat]``) currently forces the installation of an old version of :mod:`pint`; version 0.17 or earlier.
+Users wishing to use :mod:`genno.compat.pyam` should first install ``genno[pyam]``, then ``pip install --upgrade pint`` to restore a recent version of pint (0.18 or newer) that is usable with genno.
+
+- :func:`computations.concat` works with :class:`.AttrSeries` with misaligned dimensions (:pull:`53`).
+- Improve typing of :class:`.Quantity` and :class:`.Computer` to help with using `mypy <https://mypy.readthedocs.io>`_ on code that uses :mod:`genno` (:pull:`53`).
 
 v1.9.0 (2021-11-23)
 ===================
