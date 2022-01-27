@@ -29,6 +29,6 @@ The package name is warning, by reference, to the adage “When you hold a hamme
 License
 =======
 
-Copyright © 2018–2021 genno developers.
+Copyright © 2018–2022 genno contributors.
 
 Licensed under the GNU General Public License, version 3.0.

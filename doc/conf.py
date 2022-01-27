@@ -7,8 +7,8 @@
 # -- Project information ---------------------------------------------------------------
 
 project = "genno"
-copyright = "2021, Genno Contributors"
-author = "Genno Contributors"
+copyright = "2018–2022, Genno contributors"
+author = "Genno contributors"
 
 
 # -- General configuration -------------------------------------------------------------
