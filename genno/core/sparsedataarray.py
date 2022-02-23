@@ -1,4 +1,4 @@
-from typing import Any, Dict, Hashable, Mapping, Sequence, Tuple, Union
+from typing import Any, Dict, Hashable, List, Mapping, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -201,7 +201,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
             )
 
     def to_dataframe(
-        self, name: Hashable = None, dim_order: list[Hashable] = None
+        self, name: Hashable = None, dim_order: List[Hashable] = None
     ) -> pd.DataFrame:
         """Convert this array and its coords into a :class:`~xarray.DataFrame`.
 
