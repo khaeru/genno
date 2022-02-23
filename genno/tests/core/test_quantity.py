@@ -279,8 +279,11 @@ class TestQuantity:
         # "value" is used as a column name
         assert ["value"] == result.columns
 
-        # Explicitly passed name produces
+        # Explicitly passed name produces a named column
         assert ["foo"] == a.to_dataframe("foo").columns
+
+        with pytest.raises(NotImplementedError):
+            a.to_dataframe(dim_order=["foo", "bar"])
 
     def test_to_series(self, a):
         """Test .to_series() on child classes, and Quantity.from_series."""
