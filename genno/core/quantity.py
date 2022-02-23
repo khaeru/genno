@@ -107,6 +107,14 @@ class Quantity:
     ) -> "Quantity":
         ...  # pragma: no cover
 
+    def shift(
+        self,
+        shifts: Mapping[Hashable, int] = None,
+        fill_value: Any = None,
+        **shifts_kwargs: int,
+    ):  # NB "Quantity" here offends mypy
+        ...  # pragma: no cover
+
     def to_numpy(self) -> np.ndarray:
         ...  # pragma: no cover
 
