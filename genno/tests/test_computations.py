@@ -305,7 +305,7 @@ def test_pow(ureg):
     result = computations.pow(A, 2)
 
     # Expected units
-    assert ureg.kg ** 2 == result.attrs["_unit"]
+    assert ureg.kg**2 == result.attrs["_unit"]
 
     # 2D ** 1D
     B = random_qty(dict(y=3))
@@ -347,9 +347,9 @@ def test_product0():
     "dims, exp_size",
     (
         # Some overlapping dimensions
-        ((dict(a=2, b=2, c=2, d=2), dict(b=2, c=2, d=2, e=2, f=2)), 2 ** 6),
+        ((dict(a=2, b=2, c=2, d=2), dict(b=2, c=2, d=2, e=2, f=2)), 2**6),
         # 1D with disjoint dimensions ** 3 = 3D
-        ((dict(a=2), dict(b=2), dict(c=2)), 2 ** 3),
+        ((dict(a=2), dict(b=2), dict(c=2)), 2**3),
         # 2D × scalar × scalar = 2D
         ((dict(a=2, b=2), dict(), dict()), 4),
         # scalar × 1D × scalar = 1D

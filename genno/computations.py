@@ -423,7 +423,7 @@ def pow(a, b):
     if isinstance(a, AttrSeries):
         result = a ** b.align_levels(a)
     else:
-        result = a ** b
+        result = a**b
 
     result.attrs["_unit"] = (
         a.attrs["_unit"] ** unit_exponent
