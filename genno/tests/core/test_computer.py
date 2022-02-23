@@ -394,7 +394,7 @@ def test_add_product(ureg):
     assert key == "x squared:t-y"
 
     # Product has the expected value
-    assert_qty_equal(Quantity(x * x, units=ureg.kilogram ** 2), c.get(key))
+    assert_qty_equal(Quantity(x * x, units=ureg.kilogram**2), c.get(key))
 
     # add('product', ...) works
     key = c.add("product", "x_squared", "x", "x", sums=True)

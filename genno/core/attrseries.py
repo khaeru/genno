@@ -1,6 +1,6 @@
 import logging
 from functools import partial
-from typing import Any, Hashable, Iterable, Mapping, Union
+from typing import Any, Hashable, Iterable, List, Mapping, Union
 
 import numpy as np
 import pandas as pd
@@ -461,8 +461,14 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.transpose`."""
         return self.reorder_levels(dims)
 
-    def to_dataframe(self):
+    def to_dataframe(
+        self, name: Hashable = None, dim_order: List[Hashable] = None
+    ) -> pd.DataFrame:
         """Like :meth:`xarray.DataArray.to_dataframe`."""
+        if dim_order is not None:
+            raise NotImplementedError("dim_order arg to to_dataframe()")
+
+        self.name = name or self.name or "value"  # type: ignore
         return self.to_frame()
 
     def to_series(self):

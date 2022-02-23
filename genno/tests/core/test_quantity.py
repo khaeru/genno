@@ -1,5 +1,6 @@
 """Tests for genno.quantity."""
 import logging
+import operator
 import re
 
 import pandas as pd
@@ -7,6 +8,7 @@ import pint
 import pytest
 import xarray as xr
 from numpy import nan
+from pytest import param
 
 from genno import Computer, Quantity, computations
 from genno.core.attrseries import AttrSeries
@@ -270,7 +272,18 @@ class TestQuantity:
 
     def test_to_dataframe(self, a):
         """Test Quantity.to_dataframe()."""
-        assert isinstance(a.to_dataframe(), pd.DataFrame)
+        # Returns pd.DataFrame
+        result = a.to_dataframe()
+        assert isinstance(result, pd.DataFrame)
+
+        # "value" is used as a column name
+        assert ["value"] == result.columns
+
+        # Explicitly passed name produces a named column
+        assert ["foo"] == a.to_dataframe("foo").columns
+
+        with pytest.raises(NotImplementedError):
+            a.to_dataframe(dim_order=["foo", "bar"])
 
     def test_to_series(self, a):
         """Test .to_series() on child classes, and Quantity.from_series."""
@@ -290,3 +303,14 @@ class TestQuantity:
         # Can be set to dimensionless
         a.units = ""
         assert a.units.dimensionless
+
+    @pytest.mark.parametrize(
+        "op", [operator.add, operator.mul, operator.sub, operator.truediv]
+    )
+    @pytest.mark.parametrize("type_", [int, float, param(str, marks=pytest.mark.xfail)])
+    def test_arithmetic(self, op, type_, a):
+        """Quantity can be added to int or float."""
+        result = op(type_(4.2), a)
+
+        assert (2,) == result.shape
+        assert a.dtype == result.dtype

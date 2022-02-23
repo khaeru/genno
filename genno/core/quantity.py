@@ -66,6 +66,18 @@ class Quantity:
     def __len__(self) -> int:
         ...  # pragma: no cover
 
+    def __radd__(self, other):
+        ...  # pragma: no cover
+
+    def __rmul__(self, other):
+        ...  # pragma: no cover
+
+    def __rsub__(self, other):
+        ...  # pragma: no cover
+
+    def __rtruediv__(self, other):
+        ...  # pragma: no cover
+
     def __truediv__(self, other) -> "Quantity":
         ...  # pragma: no cover
 
@@ -105,6 +117,14 @@ class Quantity:
         drop: bool = False,
         **indexers_kwargs: Any,
     ) -> "Quantity":
+        ...  # pragma: no cover
+
+    def shift(
+        self,
+        shifts: Mapping[Hashable, int] = None,
+        fill_value: Any = None,
+        **shifts_kwargs: int,
+    ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
     def to_numpy(self) -> np.ndarray:
