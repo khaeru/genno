@@ -272,7 +272,15 @@ class TestQuantity:
 
     def test_to_dataframe(self, a):
         """Test Quantity.to_dataframe()."""
-        assert isinstance(a.to_dataframe(), pd.DataFrame)
+        # Returns pd.DataFrame
+        result = a.to_dataframe()
+        assert isinstance(result, pd.DataFrame)
+
+        # "value" is used as a column name
+        assert ["value"] == result.columns
+
+        # Explicitly passed name produces
+        assert ["foo"] == a.to_dataframe("foo").columns
 
     def test_to_series(self, a):
         """Test .to_series() on child classes, and Quantity.from_series."""

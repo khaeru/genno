@@ -200,12 +200,16 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
                 ._sda.convert()
             )
 
-    def to_dataframe(self, name=None):
+    def to_dataframe(
+        self, name: Hashable = None, dim_order: list[Hashable] = None
+    ) -> pd.DataFrame:
         """Convert this array and its coords into a :class:`~xarray.DataFrame`.
 
         Overrides :meth:`~xarray.DataArray.to_dataframe`.
         """
-        return self.to_series().to_frame(name)
+        if dim_order is not None:
+            raise NotImplementedError("dim_order arg to to_dataframe()")
+        return self.to_series().to_frame(name or self.name or "value")
 
     def to_series(self) -> pd.Series:
         """Convert this array into a :class:`~pandas.Series`.
