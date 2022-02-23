@@ -62,6 +62,27 @@ class Quantity:
     def units(self, value):
         self.attrs["_unit"] = pint.get_application_registry().Unit(value)
 
+    # Convenience and typing
+    def __radd__(self, other: Union[float, int]):
+        if not isinstance(other, (float, int)):
+            return NotImplemented
+        return Quantity(other) + self  # type: ignore [operator]
+
+    def __rtruediv__(self, other: Union[float, int]):
+        if not isinstance(other, (float, int)):
+            return NotImplemented
+        return Quantity(other) / self
+
+    def __rmul__(self, other: Union[float, int]):
+        if not isinstance(other, (float, int)):
+            return NotImplemented
+        return Quantity(other) * self  # type: ignore [operator]
+
+    def __rsub__(self, other: Union[float, int]):
+        if not isinstance(other, (float, int)):
+            return NotImplemented
+        return Quantity(other) - self  # type: ignore [operator]
+
     # Type hints for mypy in downstream applications
     def __len__(self) -> int:
         ...  # pragma: no cover
