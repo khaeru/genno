@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Add explicit implementations of :meth:`~.object.__radd__`, :meth:`~.object.__rmul__`, :meth:`~.object.__rsub__` and :meth:`~.object.__rtruediv__` for e.g. ``4.2 * Quantity(...)`` (:pull:`55`)
+- Improve typing of :meth:`.Quantity.shift` (:pull:`55`)
 
 v1.9.1 (2022-01-27)
 ===================

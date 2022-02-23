@@ -302,7 +302,7 @@ class TestQuantity:
         assert a.units.dimensionless
 
     @pytest.mark.parametrize(
-        "op", [operator.add, operator.truediv, operator.mul, operator.sub]
+        "op", [operator.add, operator.mul, operator.sub, operator.truediv]
     )
     @pytest.mark.parametrize("type_", [int, float, param(str, marks=pytest.mark.xfail)])
     def test_arithmetic(self, op, type_, a):

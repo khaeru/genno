@@ -68,11 +68,6 @@ class Quantity:
             return NotImplemented
         return Quantity(other) + self  # type: ignore [operator]
 
-    def __rtruediv__(self, other: Union[float, int]):
-        if not isinstance(other, (float, int)):
-            return NotImplemented
-        return Quantity(other) / self
-
     def __rmul__(self, other: Union[float, int]):
         if not isinstance(other, (float, int)):
             return NotImplemented
@@ -82,6 +77,11 @@ class Quantity:
         if not isinstance(other, (float, int)):
             return NotImplemented
         return Quantity(other) - self  # type: ignore [operator]
+
+    def __rtruediv__(self, other: Union[float, int]):
+        if not isinstance(other, (float, int)):
+            return NotImplemented
+        return Quantity(other) / self
 
     # Type hints for mypy in downstream applications
     def __len__(self) -> int:
