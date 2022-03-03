@@ -44,7 +44,7 @@ def collect_units(*args):
 
     for arg in args:
         unit = arg.attrs.get("_unit")
-        if not unit:
+        if unit is None:
             log.debug(f"{arg} lacks units; assume dimensionless")
             unit = registry.dimensionless
 
