@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import partial
 from typing import Any, Hashable, Iterable, List, Mapping, Union
 
@@ -366,8 +367,16 @@ class AttrSeries(pd.Series, Quantity):
                 # Maybe unpack an xarray DataArray indexers, for pandas
                 idx.append(i.data if isinstance(i, xr.DataArray) else i)
 
-            # Select
-            data = self.loc[tuple(idx)]
+            # Silence a warning from pandas ≥1.4 that may be spurious
+            # FIXME investigate, adjust the code, remove the filter
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore",
+                    ".*indexing on a MultiIndex with a nested sequence.*",
+                    FutureWarning,
+                )
+                # Select
+                data = self.loc[tuple(idx)]
 
             # Only drop if not returning a scalar value
             if not np.isscalar(data):

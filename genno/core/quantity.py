@@ -176,7 +176,7 @@ class Quantity:
 
         # Store the "units" keyword argument as an attr
         units = kwargs.pop("units", None)
-        if units:
+        if units is not None:
             new_attrs["_unit"] = pint.Unit(units)
 
         return new_attrs
