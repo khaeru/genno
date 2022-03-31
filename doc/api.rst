@@ -342,3 +342,10 @@ Utilities
 
 .. automodule:: genno.util
    :members:
+
+Utilities for testing
+=====================
+
+.. automodule:: genno.testing
+   :members:
+   :exclude-members: parametrize_quantity_class
