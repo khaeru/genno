@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.10.0 (2022-03-31)
+====================
 
 - Add :func:`.testing.assert_units` (:pull:`58`).
 
