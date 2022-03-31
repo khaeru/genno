@@ -2,7 +2,13 @@ import logging
 
 import pytest
 
-from genno.testing import assert_logs, assert_qty_allclose, assert_qty_equal
+from genno import Quantity
+from genno.testing import (
+    assert_logs,
+    assert_qty_allclose,
+    assert_qty_equal,
+    assert_units,
+)
 
 log = logging.getLogger(__name__)
 
@@ -15,6 +21,10 @@ def test_assert_logs(caplog):
         log.debug("bar")
         log.info("baz")
         log.warning("spam and eggs")
+
+
+def test_assert_units():
+    assert_units(Quantity(), "")
 
 
 def test_assert_check_type():

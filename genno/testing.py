@@ -320,6 +320,13 @@ def assert_qty_allclose(
         assert a.attrs == b.attrs
 
 
+def assert_units(qty: Quantity, exp: str) -> None:
+    """Assert that `qty` has units `exp`."""
+    assert (
+        qty.units / qty.units._REGISTRY(exp)
+    ).dimensionless, f"Units '{qty.units:~}'; expected {repr(exp)}"
+
+
 @pytest.fixture(params=["AttrSeries", "SparseDataArray"])
 def parametrize_quantity_class(request):
     """Fixture to run tests twice, for both Quantity implementations."""
