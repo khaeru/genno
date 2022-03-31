@@ -129,7 +129,7 @@ _TEST_DATA = {
 }
 
 
-def get_test_quantity(key):
+def get_test_quantity(key: Key) -> Quantity:
     """Computation that returns test data."""
     value, unit = _TEST_DATA[key]
     return Quantity(value, name=key.name, units=unit)
@@ -160,10 +160,9 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
 
     Example
     -------
-
-    def test_foo(caplog):
-        with assert_logs(caplog, 'a message'):
-            logging.getLogger(__name__).info('this is a message!')
+    >>> def test_foo(caplog):
+    ...     with assert_logs(caplog, 'a message'):
+    ...         logging.getLogger(__name__).info('this is a message!')
 
     Parameters
     ----------
