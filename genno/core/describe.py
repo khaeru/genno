@@ -1,11 +1,14 @@
 from collections.abc import Hashable
 from functools import partial
 from itertools import chain
+from textwrap import shorten
 
 import dask.core
 import xarray as xr
 
 from .key import Key
+
+MAX_ITEM_LENGTH = 160
 
 
 def describe_recursive(graph, comp, depth=0, seen=None):
@@ -48,14 +51,13 @@ def describe_recursive(graph, comp, depth=0, seen=None):
             item = str(arg).split("\n")[0]
         elif isinstance(arg, partial):
             # functools.partial → less verbose format
-            fn_name = arg.func.__name__
             fn_args = ", ".join(
                 chain(
                     map(repr, arg.args),
                     map("{0[0]}={0[1]}".format, arg.keywords.items()),
                 )
             )
-            item = f"{fn_name}({fn_args}, ...)"
+            item = f"{arg.func.__name__}({fn_args}, ...)"
         elif isinstance(arg, (str, Key)) and arg in graph:
             # key that exists in the graph → recurse
             item = "'{}':\n{}".format(
@@ -75,9 +77,9 @@ def describe_recursive(graph, comp, depth=0, seen=None):
             seen.update(arg)
         elif isinstance(arg, dask.core.literal):
             # Item protected with dask.core.quote()
-            item = str(arg.data)
+            item = shorten(str(arg.data), MAX_ITEM_LENGTH)
         else:
-            item = str(arg)
+            item = shorten(str(arg), MAX_ITEM_LENGTH)
 
         result.append(indent + item)
 

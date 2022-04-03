@@ -14,3 +14,20 @@ def test_describe():
         assert "\n".join(
             ["'foo':", "- <xarray.SparseDataArray (index: 2)>"]
         ) == c.describe("foo")
+
+
+def test_describe_shorten():
+    c = Computer()
+    c.add_single("foo", len, dict([(f"key{N}", "X" * N) for N in range(10)]))
+
+    assert (
+        """'config':
+- {}
+
+'foo':
+- <built-in function len>
+- {'key0': '', 'key1': 'X', 'key2': 'XX', 'key3': 'XXX', 'key4': 'XXXX', 'key5': 'XXXXX', 'key6': 'XXXXXX', 'key7': 'XXXXXXX', 'key8': 'XXXXXXXX', 'key9': [...]
+
+all"""  # noqa: 501
+        == c.describe()
+    )
