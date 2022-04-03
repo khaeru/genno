@@ -151,8 +151,8 @@ def test_order():
 
     # Now replace
     c.add("a:y-x", 1.1)
-    # Output matches order given to describe()
-    assert "'a:x-y':\n- 1.1" == c.describe("a:x-y")
+    # Output matches order given to add()
+    assert "'a:y-x':\n- 1.1" == c.describe("a:x-y")
 
     # get() works with key in either order
     assert 1.1 == c.get("a:y-x")
