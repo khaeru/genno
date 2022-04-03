@@ -331,8 +331,8 @@ def test_apply():
 
     # A generator function that yields keys and computations
     def baz_qux(key):
-        yield key + ":baz", (_product, key, 0.5)
-        yield key + ":qux", (_product, key, 1.1)
+        yield key + " baz", (_product, key, 0.5)
+        yield key + " qux", (_product, key, 1.1)
 
     # Apply the generator to two targets
     c.apply(baz_qux, "foo")
@@ -341,21 +341,21 @@ def test_apply():
     # Four computations were added
     N += 4
     assert len(c.keys()) == N
-    assert c.get("foo:baz") == 42 * 0.5
-    assert c.get("foo:qux") == 42 * 1.1
-    assert c.get("bar:baz") == 11 * 0.5
-    assert c.get("bar:qux") == 11 * 1.1
+    assert c.get("foo baz") == 42 * 0.5
+    assert c.get("foo qux") == 42 * 1.1
+    assert c.get("bar baz") == 11 * 0.5
+    assert c.get("bar qux") == 11 * 1.1
 
     # A generator that takes two arguments
     def twoarg(key1, key2):
         yield key1 + "__" + key2, (_product, key1, key2)
 
-    c.apply(twoarg, "foo:baz", "bar:qux")
+    c.apply(twoarg, "foo baz", "bar qux")
 
     # One computation added
     N += 1
     assert len(c.keys()) == N
-    assert c.get("foo:baz__bar:qux") == 42 * 0.5 * 11 * 1.1
+    assert c.get("foo baz__bar qux") == 42 * 0.5 * 11 * 1.1
 
     # A useless generator that does nothing
     def useless():
