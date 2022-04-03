@@ -634,12 +634,12 @@ class Computer:
 
         # Get the method
         if isinstance(method, str):
+            name = f"disaggregate_{method}"
             try:
-                method = getattr(computations, "disaggregate_{}".format(method))
+                method = getattr(computations, name)
             except AttributeError:
-                raise ValueError(
-                    "No disaggregation method 'disaggregate_{}'".format(method)
-                )
+                raise ValueError(f"No disaggregation method '{name}'")
+
         if not callable(method):
             raise TypeError(method)
 
