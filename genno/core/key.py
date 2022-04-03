@@ -33,11 +33,11 @@ class Key:
     @classmethod
     def from_str_or_key(
         cls,
-        value: Union[str, "Key"],
+        value: Union["Key", Hashable],
         drop: Union[Iterable[str], bool] = [],
         append: Iterable[str] = [],
         tag: Optional[str] = None,
-    ):
+    ) -> "Key":
         """Return a new Key from *value*.
 
         Parameters
@@ -57,7 +57,9 @@ class Key:
         :class:`Key`
         """
         # Determine the base Key
-        if isinstance(value, str):
+        if isinstance(value, cls):
+            base = value
+        elif isinstance(value, str):
             # Parse a string
             match = EXPR.match(value)
             if match is None:
@@ -68,8 +70,6 @@ class Key:
                 dims=[] if not groups["dims"] else groups["dims"].split("-"),
                 tag=groups["tag"],
             )
-        elif isinstance(value, cls):
-            base = value
         else:
             raise TypeError(type(value))
 
@@ -123,9 +123,9 @@ class Key:
 
     def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
-        if isinstance(other, str):
+        try:
             other = Key.from_str_or_key(other)
-        elif not isinstance(other, Key):
+        except TypeError:
             return False
 
         return (
