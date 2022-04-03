@@ -7,9 +7,8 @@ from operator import itemgetter
 from pathlib import Path
 from types import ModuleType
 from typing import (
-    Any,
     Callable,
-    Dict,
+    Hashable,
     Iterable,
     List,
     Mapping,
@@ -31,6 +30,7 @@ from genno.util import partial_split
 
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
+from .graph import Graph
 from .key import Key, KeyLike
 
 log = logging.getLogger(__name__)
@@ -46,13 +46,10 @@ class Computer:
     """
 
     #: A dask-format graph (see :doc:`1 <dask:graphs>`, :doc:`2 <dask:spec>`).
-    graph: Dict[str, Any] = {"config": {}}
+    graph: Graph = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
     default_key = None
-
-    # An index of key names -> full keys.
-    _index: Dict[str, Key] = {}
 
     #: List of modules containing pre-defined computations.
     #:
@@ -63,8 +60,7 @@ class Computer:
     modules: MutableSequence[ModuleType] = [computations]
 
     def __init__(self, **kwargs):
-        self.graph = {"config": {}}
-        self._index = {}
+        self.graph = Graph(config=dict())
         self.configure(**kwargs)
 
     def configure(
@@ -328,30 +324,20 @@ class Computer:
             # Unpack a length-1 tuple
             computation = computation[0]
 
-        key = maybe_convert_str(key)
+        if index:
+            warn(
+                "add_single(…, index=True); full keys are automatically indexed",
+                DeprecationWarning,
+            )
 
-        if strict or index:
-            # String equivalent of `key` with all dimensions dropped, but name and tag
-            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
-            idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
+        key = Key.bare_name(key) or Key.from_str_or_key(key)
 
         if strict:
-            # Check the target key
-            try:
-                # Check without dim order permutations
-                assert self.check_keys(key, action="return", _permute=False) is None
-                # Check that `key` is not indexed, possibly with different dim order
-                assert self._index.get(idx, None) != key
-            except AssertionError:
-                # Key already exists in graph
-                raise KeyExistsError(key) from None
+            if key in self.graph:
+                raise KeyExistsError(key)
 
             # Check valid keys in `computation` and maybe rewrite
             computation = self._rewrite_comp(computation)
-
-        if index:
-            # Add `key` to the index
-            self._index[idx] = key
 
         # Add to the graph
         self.graph[key] = computation
@@ -460,11 +446,13 @@ class Computer:
         finally:
             self.graph["config"] = self.graph["config"][0].data
 
+    # Convenience methods for the graph and its keys
+
     def keys(self):
         """Return the keys of :attr:`graph`."""
         return self.graph.keys()
 
-    def full_key(self, name_or_key):
+    def full_key(self, name_or_key: KeyLike) -> KeyLike:
         """Return the full-dimensionality key for `name_or_key`.
 
         An quantity 'foo' with dimensions (a, c, n, q, x) is available in the Computer
@@ -473,12 +461,19 @@ class Computer:
             c.full_key("foo")
             c.full_key("foo:c")
             # etc.
+
+        Raises
+        ------
+        KeyError
+            if `name_or_key` is not in the graph.
         """
-        name = str(Key.from_str_or_key(name_or_key, drop=True)).rstrip(":")
-        return self._index[name]
+        result = self.graph.full_key(name_or_key)
+        if result is None:
+            raise KeyError(name_or_key)
+        return result
 
     def check_keys(
-        self, *keys: Union[str, Key], action="raise", _permute=True
+        self, *keys: Union[str, Key], action="raise"
     ) -> Optional[List[Union[str, Key]]]:
         """Check that `keys` are in the Computer.
 
@@ -489,31 +484,9 @@ class Computer:
         If `action` is "return" (or any other value), :class:`None` is returned on
         missing keys.
         """
-        # Sequence of graph keys, for indexing
-        # TODO cache this somehow, refresh when .graph is altered
-        all_keys = tuple(self.graph.keys())
 
         def _check(value):
-            if value in self._index:
-                # Add the full key
-                return self._index[value]
-
-            if value in self.graph:
-                # Add the key directly. Use the key from `self.graph` to preserve
-                # dimension order.
-                return all_keys[all_keys.index(value)]
-
-            # Possibly convert a string to a Key
-            value = maybe_convert_str(value)
-            if isinstance(value, str) or not _permute:
-                return None
-
-            # Try permutations of dimensions
-            for k in filter(self.graph.__contains__, value.permute_dims()):
-                result = all_keys[all_keys.index(k)]
-                return result
-
-            return None
+            return self.graph.unsorted_key(value) or self.graph.full_key(value)
 
         # Process all keys to produce more useful error messages
         result = list(map(_check, keys))
@@ -535,7 +508,7 @@ class Computer:
 
         return result
 
-    def infer_keys(self, key_or_keys, dims=[]):
+    def infer_keys(self, key_or_keys: Union[KeyLike, Iterable[KeyLike]], dims=[]):
         """Infer complete `key_or_keys`.
 
         Parameters
@@ -543,32 +516,18 @@ class Computer:
         dims : list of str, optional
             Drop all but these dimensions from the returned key(s).
         """
-        single = isinstance(key_or_keys, (str, Key))
+        single = isinstance(key_or_keys, (Key, Hashable))
+        keys = [key_or_keys] if single else tuple(cast(Iterable, key_or_keys))
 
-        result = []
+        result = list(map(partial(self.graph.infer, dims=dims), keys))
 
-        for k in [key_or_keys] if single else key_or_keys:
-            # Has some dimensions or tag
-            key = Key.from_str_or_key(k) if ":" in k else k
-
-            if "::" in k or key not in self or (isinstance(key, str) and dims):
-                # Find the full-dimensional key
-                key = self.full_key(key)
-
-            # Drop all but `dims`
-            if dims:
-                key = key.drop(*(set(key.dims) - set(dims)))
-
-            result.append(key)
+        if None in result:
+            raise KeyError(keys[result.index(None)])
 
         return result[0] if single else tuple(result)
 
-    def __contains__(self, name):
-        # First check using hash (fast), then using comparison (slower) for same key
-        # with dimensions in different order
-        return name in self.graph or any(
-            map(self.graph.__contains__, Key.from_str_or_key(name).permute_dims())
-        )
+    def __contains__(self, item):
+        return self.graph.__contains__(item)
 
     # Convenience methods
     def add_product(self, key, *quantities, sums=True):
@@ -836,12 +795,3 @@ class Computer:
 
     # Use convert_pyam as a helper for computations.as_pyam
     add_as_pyam = convert_pyam
-
-
-def maybe_convert_str(key):
-    """Maybe convert `key` into a Key object.
-
-    Allow a string like "foo" with no dimensions or tag to remain as-is.
-    """
-    _key = Key.from_str_or_key(key)
-    return _key if (_key.dims or _key.tag) else key
