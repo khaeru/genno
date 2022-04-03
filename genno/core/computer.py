@@ -558,7 +558,7 @@ class Computer:
         key = Key.product(key.name, *base_keys, tag=key.tag)
 
         # Add the basic product to the graph and index
-        keys = self.add(key, computations.product, *base_keys, sums=sums, index=True)
+        keys = self.add(key, computations.product, *base_keys, sums=sums)
 
         return keys[0]
 
@@ -603,7 +603,7 @@ class Computer:
             key = Key.from_str_or_key(qty, drop=dims, tag=tag)
             comp = (partial(computations.sum, dimensions=dims), qty, weights)
 
-        return self.add(key, comp, strict=True, index=True, sums=sums)
+        return self.add(key, comp, strict=True, sums=sums)
 
     add_aggregate = aggregate
 

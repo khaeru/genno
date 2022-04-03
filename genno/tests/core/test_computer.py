@@ -141,7 +141,7 @@ def test_order():
 
     # add() and describe() with dimensions in a different order. The output matches the
     # order given to add().
-    c.add("a:x-y", 1.1, index=True)
+    c.add("a:x-y", 1.1)
     assert "'a:x-y':\n- 1.1" == c.describe("a:y-x")
 
     # Opposite order
@@ -185,8 +185,8 @@ def test_infer_keys():
     X_key = Key("X", list("abcdef"))
     Y_key = Key("Y", list("defghi"), "tag")
 
-    c.add(X_key, None, index=True, sums=True)
-    c.add(Y_key, None, index=True)
+    c.add(X_key, None, sums=True)
+    c.add(Y_key, None)
 
     # Single key
     assert X_key == c.infer_keys("X::")
@@ -272,7 +272,7 @@ def test_add0():
     # raises an exception
     msg = "unexpected keyword argument 'bad_kwarg'"
     with pytest.raises(TypeError, match=msg):
-        c.add("select", "bar", "a", bad_kwarg="foo", index=True)
+        c.add("select", "bar", "a", bad_kwarg="foo")
 
 
 def test_add1():
@@ -464,7 +464,7 @@ def test_check_keys():
     assert c.check_keys("foo", "foo:bar-baz", action="return") is None
 
     # Check a lookup using the index
-    c.add("a:y-x:foo", index=True)
+    c.add("a:y-x:foo")
     assert [Key("a", "yx", "foo")] == c.check_keys("a::foo")
 
 
@@ -655,20 +655,23 @@ def test_file_formats(test_data_path, tmp_path):
 def test_full_key():
     c = Computer()
 
-    # Without index, the full key cannot be retrieved
+    # Using add() updates the index of full keys
     c.add("a:i-j-k", [])
-    with pytest.raises(KeyError, match="a"):
-        c.full_key("a")
 
-    # Using index=True adds the full key to the index
-    c.add("a:i-j-k", [], index=True)
-    assert c.full_key("a") == "a:i-j-k"
+    # Raises KeyError for a missing key
+    with pytest.raises(KeyError):
+        c.full_key("b")
 
     # The full key can be retrieved by giving only some of the indices
-    assert c.full_key("a:j") == "a:i-j-k"
+    for s in ("a", "a:", "a:j", "a:k-j-i", "a:k-i"):
+        assert "a:i-j-k" == c.full_key(s)
+
+    # index=True is deprecated
+    with pytest.warns(DeprecationWarning, match="full keys are automatically indexed"):
+        c.add("a:i-j-k", [], index=True)
 
     # Same with a tag
-    c.add("a:i-j-k:foo", [], index=True)
+    c.add("a:i-j-k:foo", [])
     # Original and tagged key can both be retrieved
     assert c.full_key("a") == "a:i-j-k"
     assert c.full_key("a::foo") == "a:i-j-k:foo"

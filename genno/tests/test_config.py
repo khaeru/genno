@@ -40,8 +40,8 @@ def test_file(test_data_path, name):
     c = Computer()
 
     # Set up test contents
-    c.add(Key("X", list("abc")), None, index=True, sums=True)
-    c.add(Key("Y", list("bcd")), None, index=True, sums=True)
+    c.add(Key("X", list("abc")), None, sums=True)
+    c.add(Key("Y", list("bcd")), None, sums=True)
 
     c.configure(path=test_data_path / name)
 

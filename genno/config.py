@@ -191,7 +191,7 @@ def combine(c: Computer, info):
         [partial(computations.combine, select=select, weights=weights)] + quantities
     )
 
-    added = c.add(key, task, strict=True, index=True, sums=True)
+    added = c.add(key, task, strict=True, sums=True)
 
     log.info(f"Add {repr(key)} + {len(added)-1} partial sums")
     log.debug("    as combination of")
@@ -241,7 +241,7 @@ def general(c: Computer, info):
         kwargs = info.get("args", {})
         task = tuple([partial(f, **kwargs)] + list(inputs))
 
-        added = c.add(key, task, strict=True, index=True, sums=info.get("sums", False))
+        added = c.add(key, task, strict=True, sums=info.get("sums", False))
 
         if isinstance(added, tuple):
             log.info(f"    + {len(added)-1} partial sums")

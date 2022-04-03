@@ -32,7 +32,7 @@ def dantzig_computer(test_data_path, scenario, ureg):
     for name, units in (("ACT", ""), ("var_cost", "USD/case"), ("vom", "USD")):
         # NB need to load the file here in order to identify the dims of each quantity
         qty = load_file(test_data_path / f"dantzig-{name}.csv", name=name, units=units)
-        c.add(Key(name, qty.dims), qty, index=True, sums=True)
+        c.add(Key(name, qty.dims), qty, sums=True)
 
     # Reduced version of the "total operation & maintenance" calculation in MESSAGEix;
     # for test_concat()
@@ -62,7 +62,7 @@ def test_config(test_data_path):
     """Test handling configuration file syntax using test data files."""
     c = Computer()
 
-    c.add(Key("X", list("abcdefy")), None, index=True, sums=True)
+    c.add(Key("X", list("abcdefy")), None, sums=True)
     c.add("message:default", tuple())
 
     c.configure(path=test_data_path / "config-pyam.yaml")
