@@ -677,7 +677,7 @@ class Computer:
         genno.computations.load_file
         """
         path = Path(path)
-        key = key if key else "file:{}".format(path.name)
+        key = key if key else "file {}".format(path.name)
         return self.add(
             key, (partial(self.get_comp("load_file"), path, **kwargs),), strict=True
         )

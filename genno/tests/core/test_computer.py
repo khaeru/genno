@@ -594,20 +594,20 @@ def test_file_io(tmp_path):
     k1 = c.add_file(p)
 
     # File has the expected key
-    assert k1 == "file:foo.txt"
+    assert k1 == "file foo.txt"
 
     # Add some contents to the file
     p.write_text("Hello, world!")
 
     # The file's contents can be read through the Computer
-    assert c.get("file:foo.txt") == "Hello, world!"
+    assert c.get("file foo.txt") == "Hello, world!"
 
     # Write the resulting quantity to a different file
     p2 = tmp_path / "bar.txt"
-    c.write("file:foo.txt", p2)
+    c.write("file foo.txt", p2)
 
     # Write using a string path
-    c.write("file:foo.txt", str(p2))
+    c.write("file foo.txt", str(p2))
 
     # The Computer produces the expected output file
     assert p2.read_text() == "Hello, world!"
