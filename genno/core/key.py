@@ -1,10 +1,13 @@
 import re
 from functools import partial
-from itertools import chain, compress, permutations
+from itertools import chain, compress
 from typing import Callable, Generator, Hashable, Iterable, Optional, Tuple, Union
 
 #: Regular expression for valid key strings.
 EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
+
+#: Regular expression for non-keylike strings.
+BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
 
 
 class Key:
@@ -19,6 +22,13 @@ class Key:
             name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
         )
         self._hash = hash(self._str)
+
+    @classmethod
+    def bare_name(cls, value) -> Optional[str]:
+        if not isinstance(value, str):
+            return None
+        match = BARE_STR.match(value)
+        return match.group("name") if match else None
 
     @classmethod
     def from_str_or_key(
@@ -187,19 +197,6 @@ class Key:
                 partial(computations.sum, dimensions=others, weights=None),
                 self,
             )
-
-    def permute_dims(self) -> Generator["Key", None, None]:
-        """Generate variants of the Key with dimensions in all possible orders.
-
-        Examples
-        --------
-        >>> k = Key("A", "xyz")
-        >>> list(k.permute_dims())
-        [<A:x-y-z>, <A:x-z-y>, <A:y-x-z>, <A:y-z-x>, <A:z-x-y>, <A:z-y-x>]
-        """
-        yield from map(
-            partial(Key, self._name, tag=self._tag), permutations(self._dims)
-        )
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
