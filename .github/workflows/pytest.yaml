@@ -86,4 +86,4 @@ jobs:
       run: make html
 
     - name: Upload test coverage to Codecov.io
-      uses: codecov/codecov-action@v1.2.1
+      uses: codecov/codecov-action@v2
