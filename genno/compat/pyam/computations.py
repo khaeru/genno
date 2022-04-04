@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from typing import Callable, Collection, Optional, Union
 
 import pyam
@@ -99,6 +100,8 @@ def write_report(quantity, path):
     """
     if not isinstance(quantity, pyam.IamDataFrame):
         return genno.computations.write_report(quantity, path)
+
+    path = Path(path)
 
     if path.suffix == ".csv":
         quantity.to_csv(path)
