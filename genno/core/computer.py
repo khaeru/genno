@@ -697,6 +697,7 @@ class Computer:
         str
             Description of computations.
         """
+        # TODO accept a list of keys, like get()
         if key is None:
             # Sort with 'all' at the end
             key = tuple(

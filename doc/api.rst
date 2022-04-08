@@ -289,12 +289,11 @@ Computations
 
    Genno's :ref:`compatibility modules <compat>` each provide additional computations.
 
-   Calculations:
+   Numerical calculations:
 
    .. autosummary::
       add
       aggregate
-      apply_units
       broadcast_map
       combine
       disaggregate_shares
@@ -303,7 +302,6 @@ Computations
       pow
       product
       ratio
-      select
       sum
 
    Input and output:
@@ -315,7 +313,11 @@ Computations
    Data manipulation:
 
    .. autosummary::
+      apply_units
       concat
+      relabel
+      rename_dims
+      select
 
 
 Internal format for quantities

@@ -4,10 +4,11 @@
 #   default values for the corresponding methods on the Computer class.
 import logging
 from pathlib import Path
-from typing import Any, Hashable, Mapping
+from typing import Any, Hashable, Mapping, Union
 
 import pandas as pd
 import pint
+from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
 from genno.core.quantity import Quantity, assert_quantity, maybe_densify
@@ -27,6 +28,8 @@ __all__ = [
     "pow",
     "product",
     "ratio",
+    "relabel",
+    "rename_dims",
     "select",
     "sum",
     "write_report",
@@ -454,6 +457,56 @@ def product(*quantities):
     result.attrs["_unit"] = u_result
 
     return result
+
+
+def relabel(
+    qty: Quantity,
+    labels: Mapping[Hashable, Mapping] = dict(),
+    **dim_labels: Mapping,
+) -> Quantity:
+    """Relabel dimensions.
+
+    Parameters
+    ----------
+    mapper :
+        Keys are strings identifying dimensions of `qty`; values are further mappings
+        from original labels to new labels. Dimensions and labels not appearing in `qty`
+        have no effect.
+    mapped_dims :
+        Mappings with dimensions as the keyword argument.
+    """
+    # TODO accept callables as values in `mapper`
+    mapper = either_dict_or_kwargs(labels, dim_labels, "relabel")
+
+    if isinstance(qty, AttrSeries):
+        # Prepare a new index
+        idx = qty.index
+        for dim, label_map in filter(lambda kv: kv[0] in qty.dims, mapper.items()):
+            # Numerical index of the dimension in `idx`
+            i_name = idx.names.index(dim)
+            # Relabel the levels on this dimension
+            levels = list(
+                map(lambda label: label_map.get(label, label), idx.levels[i_name])
+            )
+            # Create a new index
+            idx = idx.set_levels(levels, level=dim)
+
+        # Assign the new index to a copy
+        result = qty.copy()
+        result.index = idx
+    else:
+        raise NotImplementedError
+
+    return result
+
+
+def rename_dims(
+    qty: Quantity,
+    new_name_or_name_dict: Union[Hashable, Mapping[Hashable, Hashable]] = None,
+    **names: Hashable,
+) -> Quantity:
+    """Like :meth:`xarray.DataArray.rename`."""
+    return qty.rename(new_name_or_name_dict, **names)
 
 
 def ratio(numerator, denominator):
