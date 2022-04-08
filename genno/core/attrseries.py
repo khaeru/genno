@@ -1,7 +1,7 @@
 import logging
 import warnings
 from functools import partial
-from typing import Any, Hashable, Iterable, List, Mapping, Union
+from typing import Any, Hashable, Iterable, List, Mapping, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -140,7 +140,7 @@ class AttrSeries(pd.Series, Quantity):
         )
 
     @property
-    def dims(self):
+    def dims(self) -> Tuple[Hashable, ...]:
         """Like :attr:`xarray.DataArray.dims`."""
         return tuple(filter(None, self.index.names))
 
