@@ -297,8 +297,10 @@ Computations
       broadcast_map
       combine
       disaggregate_shares
+      div
       group_sum
       interpolate
+      mul
       pow
       product
       ratio

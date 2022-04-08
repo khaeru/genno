@@ -22,9 +22,11 @@ __all__ = [
     "combine",
     "concat",
     "disaggregate_shares",
+    "div",
     "group_sum",
     "interpolate",
     "load_file",
+    "mul",
     "pow",
     "product",
     "ratio",
@@ -457,6 +459,9 @@ def product(*quantities):
     result.attrs["_unit"] = u_result
 
     return result
+
+
+mul = product
 
 
 def relabel(
