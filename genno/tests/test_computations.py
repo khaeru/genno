@@ -1,11 +1,13 @@
 import logging
 import re
+from functools import partial
 
 import numpy as np
 import pandas as pd
 import pint
 import pytest
 import xarray as xr
+from dask.core import quote
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
@@ -364,6 +366,79 @@ def test_product(dims, exp_size):
     result = computations.product(*quantities)
 
     assert exp_size == result.size
+
+
+def test_relabel(data):
+    # Unpack
+    c, t, t_foo, t_bar, x = data
+
+    # Mapping from old to new labels for each dimension
+    args = dict(
+        t={"foo2": "baz", "bar5": "qux", "nothing": "nothing"},
+        y={2030: 3030},
+        not_a_dimension=None,
+    )
+
+    def check(qty):
+        # Dimension t was relabeled
+        t_out = set(qty.coords["t"].data)
+        assert {"baz", "qux"} < t_out and not {"foo2", "bar5"} & t_out
+        # Dimension y was relabeled
+        assert 3030 in result.coords["y"] and 2030 not in result.coords["y"]
+
+    # Can be called with a dictionary
+    result = computations.relabel(x, args)
+    check(result)
+
+    # Can be added and used through Computer
+
+    # Store the name map in the Computer
+    c.add("labels", quote(args))
+
+    # Test multiple ways of adding this computation
+    for args in [
+        ("test", computations.relabel, "x:t-y", args),
+        ("test", partial(computations.relabel, **args), "x:t-y"),
+        ("relabel", "test", "x:t-y", args),
+        ("relabel", "test", "x:t-y", "labels"),
+    ]:
+        c.add(*args)
+        result = c.get("test")
+        check(result)
+
+
+def test_rename_dims(data):
+    # Unpack
+    c, t, t_foo, t_bar, x = data
+
+    # Can be called with a dictionary
+    args = {"t": "s", "y": "z"}
+    result = computations.rename_dims(x, args)
+    assert ("s", "z") == result.dims  # Quantity has renamed dimensions
+    assert all(t == result.coords["s"])  # Renamed dimension contain original labels
+
+    # Can be called with keyword arguments
+    result = computations.rename_dims(x, **args)
+    assert ("s", "z") == result.dims and all(t == result.coords["s"])  # As above
+
+    with pytest.raises(ValueError, match="cannot specify both keyword and positional"):
+        computations.rename_dims(x, args, **args)
+
+    # Can be added and used through Computer
+
+    # Store the name map in the Computer
+    c.add("dim name map", quote(args))
+
+    # Test multiple ways of adding this computation
+    for args in [
+        ("test", computations.rename_dims, "x:t-y", args),
+        ("test", partial(computations.rename_dims, **args), "x:t-y"),
+        ("rename_dims", "test", "x:t-y", args),
+        ("rename_dims", "test", "x:t-y", "dim name map"),
+    ]:
+        c.add(*args)
+        result = c.get("test")
+        assert ("s", "z") == result.dims and all(t == result.coords["s"])  # As above
 
 
 def test_ratio(ureg):
