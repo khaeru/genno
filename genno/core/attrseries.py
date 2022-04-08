@@ -281,12 +281,17 @@ class AttrSeries(pd.Series, Quantity):
             attrs=self.attrs,
         ).sel(coords)
 
-    def rename(self, new_name_or_name_dict):
+    def rename(
+        self,
+        new_name_or_name_dict: Union[Hashable, Mapping[Hashable, Hashable]] = None,
+        **names: Hashable,
+    ):
         """Like :meth:`xarray.DataArray.rename`."""
-        # TODO add **names kwargs
-        if isinstance(new_name_or_name_dict, dict):
-            return self.rename_axis(index=new_name_or_name_dict)
+        if new_name_or_name_dict is None or isinstance(new_name_or_name_dict, Mapping):
+            index = either_dict_or_kwargs(new_name_or_name_dict, names, "rename")
+            return self.rename_axis(index=index)
         else:
+            assert 0 == len(names)
             return super().rename(new_name_or_name_dict)
 
     def sel(self, indexers=None, drop=False, **indexers_kwargs):
