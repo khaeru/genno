@@ -474,12 +474,17 @@ def relabel(
 
     Parameters
     ----------
-    mapper :
+    labels :
         Keys are strings identifying dimensions of `qty`; values are further mappings
         from original labels to new labels. Dimensions and labels not appearing in `qty`
         have no effect.
-    mapped_dims :
-        Mappings with dimensions as the keyword argument.
+    dim_labels :
+        Mappings given as keyword arguments, where argument name is the dimension.
+
+    Raises
+    ------
+    ValueError
+        if both `labels` and `dim_labels` are given.
     """
     # NB pandas uses the term "levels [of a MultiIndex]"; xarray uses "coords [for a
     # dimension]".
