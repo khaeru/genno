@@ -73,6 +73,9 @@ class AttrSeries(pd.Series, Quantity):
 
         data, name = Quantity._single_column_df(data, name)
 
+        if data is None:
+            kwargs["dtype"] = float
+
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
         pd.Series.__init__(self, data, *args, name=name, **kwargs)
 
