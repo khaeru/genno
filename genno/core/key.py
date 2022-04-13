@@ -25,6 +25,7 @@ class Key:
 
     @classmethod
     def bare_name(cls, value) -> Optional[str]:
+        """If `value` is a bare name (no dims or tags), return it; else :obj:`None`."""
         if not isinstance(value, str):
             return None
         match = BARE_STR.match(value)
