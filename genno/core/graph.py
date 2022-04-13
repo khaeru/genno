@@ -114,12 +114,12 @@ class Graph(dict):
         """
         result = self.unsorted_key(key) or key
 
-        if isinstance(key, str) and ("::" in key or dims):
+        if isinstance(key, str) or not key.dims:
             # Find the full-dimensional key
             result = self.full_key(result)
 
         if not isinstance(result, Key):
-            return result
+            return result or key
 
         # Drop all but `dims`
         if dims:

@@ -16,6 +16,23 @@ class TestGraph:
         del g["foo:c-b-a"]
         assert None is g.full_key("foo")
 
+    def test_infer(self, g):
+        g["foo:x-y-z:bar"] = 2
+        g["config"] = dict(baz="qux")
+
+        # Correct result for str or Key argument
+        assert "foo:c-b-a" == g.infer("foo")
+        assert "foo:c-b-a" == g.infer(Key("foo"))
+
+        # Correct result for str or Key argument with tag
+        assert "foo:x-y-z:bar" == g.infer("foo::bar")
+        assert "foo:x-y-z:bar" == g.infer(Key("foo", tag="bar"))
+
+        # String passes through
+        for k in ("config", "baz"):
+            result = g.infer(k)
+            assert isinstance(result, str) and k == result
+
     def test_pop(self, g):
         assert Key("foo", "cba") == g.full_key("foo")
         assert 1 == g.pop("foo:c-b-a")

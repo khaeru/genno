@@ -508,7 +508,9 @@ class Computer:
 
         return result
 
-    def infer_keys(self, key_or_keys: Union[KeyLike, Iterable[KeyLike]], dims=[]):
+    def infer_keys(
+        self, key_or_keys: Union[KeyLike, Iterable[KeyLike]], dims: Iterable[str] = []
+    ):
         """Infer complete `key_or_keys`.
 
         Parameters

@@ -203,8 +203,8 @@ def test_infer_keys():
     )
 
     # Value with missing tag does not produce a match
-    with pytest.raises(KeyError):
-        c.infer_keys("Y::")
+    result = c.infer_keys("Y::")
+    assert isinstance(result, str) and "Y::" == result
 
 
 def test_require_compat():
