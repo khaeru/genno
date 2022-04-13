@@ -60,13 +60,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Get pip cache dir
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
+
     - name: Cache Python packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
-        path: |
-          ~/.cache/pip
-          ~/Library/Caches/pip
-          ~/appdata/local/pip/cache
+        path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ matrix.os }}-py${{ matrix.python-version }}
         restore-keys: |
           ${{ matrix.os }}-
