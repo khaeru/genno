@@ -1,5 +1,5 @@
 aggregate:
-- _quantities: ["X::"]
+- _quantities: [ "X::", "Y::", "Z::" ]
   _tag: agg
   _dim: a
 
