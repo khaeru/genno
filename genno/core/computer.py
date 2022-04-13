@@ -7,6 +7,7 @@ from operator import itemgetter
 from pathlib import Path
 from types import ModuleType
 from typing import (
+    Any,
     Callable,
     Hashable,
     Iterable,
@@ -14,6 +15,7 @@ from typing import (
     Mapping,
     MutableSequence,
     Optional,
+    Sequence,
     Tuple,
     Union,
     cast,
@@ -22,6 +24,7 @@ from warnings import warn
 
 import dask
 import pint
+import xarray as xr
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
 
@@ -564,7 +567,15 @@ class Computer:
 
         return keys[0]
 
-    def aggregate(self, qty, tag, dims_or_groups, weights=None, keep=True, sums=False):
+    def aggregate(
+        self,
+        qty: KeyLike,
+        tag: str,
+        dims_or_groups: Union[Mapping, str, Sequence[str]],
+        weights: Optional[xr.DataArray] = None,
+        keep: bool = True,
+        sums: bool = False,
+    ):
         """Add a computation that aggregates *qty*.
 
         Parameters
@@ -596,7 +607,12 @@ class Computer:
                 raise NotImplementedError("aggregate() along >1 dimension")
 
             key = Key.from_str_or_key(qty, tag=tag)
-            comp = (computations.aggregate, qty, dask.core.quote(groups), keep)
+            comp: Tuple[Any, ...] = (
+                computations.aggregate,
+                qty,
+                dask.core.quote(groups),
+                keep,
+            )
         else:
             dims = dims_or_groups
             if isinstance(dims, str):
