@@ -462,6 +462,11 @@ def product(*quantities):
     return result
 
 
+#: Identical to :func:`product`, but using a name aligned with the Python standard
+#: library, e.g. in :mod:`operator`.
+#:
+#: .. note:: In the future, this will be the canonical name, and :func:`product` will be
+#:    deprecated and possibly removed.
 mul = product
 
 
@@ -470,7 +475,7 @@ def relabel(
     labels: Mapping[Hashable, Mapping] = None,
     **dim_labels: Mapping,
 ) -> Quantity:
-    """Relabel dimensions.
+    """Replace specific labels along dimensions of `qty`.
 
     Parameters
     ----------
@@ -526,7 +531,10 @@ def rename_dims(
     new_name_or_name_dict: Union[Hashable, Mapping[Hashable, Hashable]] = None,
     **names: Hashable,
 ) -> Quantity:
-    """Like :meth:`xarray.DataArray.rename`."""
+    """Rename the dimensions of `qty`.
+
+    Like :meth:`xarray.DataArray.rename`.
+    """
     return qty.rename(new_name_or_name_dict, **names)
 
 
@@ -558,7 +566,11 @@ def ratio(numerator, denominator):
     return result
 
 
-#: TODO make this the actual method name; emit DeprecationWarning if ratio() is used
+#: Identical to :func:`ratio`, but using a name aligned with the Python standard
+#: library, e.g. in :mod:`operator`.
+#:
+#: .. note:: In the future, this will be the canonical name, and :func:`ratio` will be
+#:    deprecated and possibly removed.
 div = ratio
 
 

@@ -54,6 +54,7 @@ extlinks = {
     "pull": ("https://github.com/khaeru/genno/pull/%s", "PR #"),
     "gh-user": ("https://github.com/%s", "@"),
 }
+extlinks_detect_hardcoded_links = False
 
 # -- Options for sphinx.ext.intersphinx ------------------------------------------------
 

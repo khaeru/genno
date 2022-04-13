@@ -36,7 +36,7 @@ Instead, add a :attr:`~.Key.tag` to disambiguate.
 All changes
 -----------
 
-- New :func:`computations.relabel` and :func:`computations.rename_dims` (:pull:`60`).
+- New computations :func:`.relabel` and :func:`.rename_dims` (:pull:`60`).
 - Improve perfomance for adding large number of computations to :class:`.Computer` (:pull:`60`).
 
 v1.10.0 (2022-03-31)
