@@ -17,14 +17,16 @@ class Graph(dict):
     lookups/member checks in certain special cases:
 
     .. autosummary::
-       .unsorted_key
-       .full_key
+
+       unsorted_key
+       full_key
 
     These basic features are used to provide higher-level helpers for
     :class:`.Computer`:
 
     .. autosummary::
-       .infer
+
+       infer
     """
 
     _unsorted: Dict[KeyLike, KeyLike] = dict()
@@ -105,12 +107,20 @@ class Graph(dict):
     def infer(
         self, key: Union[str, Key], dims: Iterable[str] = []
     ) -> Optional[KeyLike]:
-        """Infer complete `key_or_keys`.
+        """Infer a `key`.
 
         Parameters
         ----------
         dims : list of str, optional
             Drop all but these dimensions from the returned key(s).
+
+        Returns
+        -------
+        str
+            If `key` is not found in the Graph.
+        Key
+            `key` with either its full dimensions (cf. :meth:`full_key`) or, if `dims`
+            are given, with only these dims.
         """
         result = self.unsorted_key(key) or key
 
