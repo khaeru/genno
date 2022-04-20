@@ -229,13 +229,20 @@ def files(c: Computer, info):
 @handles("general")
 def general(c: Computer, info):
     """Handle one entry from the ``general:`` config section."""
+    # Inputs
     inputs = c.infer_keys(info.get("inputs", []))
 
     if info["comp"] == "product":
         key = c.add_product(info["key"], *inputs)
         log.info(f"Add {repr(key)} using .add_product()")
     else:
+        # The resulting key
         key = Key.from_str_or_key(info["key"])
+
+        # Infer the dimensions of the resulting key if ":*:" is given for the dims
+        if set(key.dims) == {"*"}:
+            key = Key.product(key.name, *inputs, tag=key.tag)
+            # log.debug(f"Inferred dimensions ({', '.join(key.dims)}) for '*'")
 
         # Retrieve the function for the computation
         f = c.get_comp(info["comp"])
@@ -243,7 +250,7 @@ def general(c: Computer, info):
         if f is None:
             raise ValueError(info["comp"])
 
-        log.info(f"Add {repr(key)} using {f.__name__}(...)")
+        log.info(f"Add {repr(key)} using {f.__module__}{f.__name__}(...)")
 
         kwargs = info.get("args", {})
         task = tuple([partial(f, **kwargs)] + list(inputs))
