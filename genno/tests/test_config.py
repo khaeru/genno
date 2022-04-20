@@ -25,7 +25,8 @@ def test_handlers():
 @pytest.mark.parametrize(
     "name",
     [
-        "config-aggregate.yaml",
+        "config-aggregate0.yaml",
+        "config-aggregate1.yaml",
         "config-combine.yaml",
         "config-general0.yaml",
         pytest.param(
@@ -40,10 +41,24 @@ def test_file(test_data_path, name):
     c = Computer()
 
     # Set up test contents
-    c.add(Key("X", list("abc")), None, index=True, sums=True)
-    c.add(Key("Y", list("bcd")), None, index=True, sums=True)
+    c.add(Key("X", list("abc")), None, sums=True)
+    c.add(Key("Y", list("bcd")), None, sums=True)
 
     c.configure(path=test_data_path / name)
+
+
+def test_general_infer_dims():
+    """Test dimension inference in handling "general:" config items."""
+    c = Computer()
+
+    # Set up test contents
+    c.add(Key("X", list("abcd")), None, sums=True)
+    c.add(Key("Y", list("cefg")), None, sums=True)
+
+    c.configure(general=[dict(comp="concat", key="Z:*:foo", inputs=["X", "Y"])])
+
+    # Dimensions were inferred
+    assert "Z:a-b-c-d-e-f-g:foo" in c
 
 
 def test_global(test_data_path):

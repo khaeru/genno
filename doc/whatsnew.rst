@@ -6,8 +6,42 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+Migration notes
+---------------
+
+The `index` keyword argument to :meth:`.Computer.add_single` / :meth:`.add` is deprecated (:pull:`60`) and will be removed in or after v3.0.0.
+Indexing behaviour changes slightly: :meth:`.Computer.full_key` always returns the :class:`.Key` which matches its arguments and has the *greatest number of dimensions*.
+For instance:
+
+.. code-block:: python
+
+    c.add_product("foo", "bar:a-b-c", "baz:x-y-z", sums=True)
+
+…will generate a key ``<foo:a-b-c-x-y-z>`` and all partial sums over subsets of its dimensions; ``c.full_key("foo")`` will return this key.
+
+Care should be taken to avoid adding 2+ keys with the same name, tag, **and** number of dimensions:
+
+.. code-block:: python
+
+   c.add("foo:a-b-c", ...)
+   c.add("foo:l-m-n", ...)
+   c.add("foo:x-y-z", ...)
+
+This situation is ambiguous and the behaviour of :meth:`Computer.full_key` is undefined.
+Instead, add a :attr:`~.Key.tag` to disambiguate.
+
+All changes
+-----------
+
+- :meth:`.Key.product` accepts :class:`str` arguments (:pull:`60`).
+- New class method :meth:`.Key.bare_name` (:pull:`60`).
+- Infer dimensions for e.g. ``X:*:tag`` in :ref:`config-general` configuration items (:pull:`60`).
+- Handle the `fail` argument to :meth:`.Computer.aggregate` through :ref:`config-aggregate` configuration items (:pull:`60`).
+- New computations :func:`.relabel` and :func:`.rename_dims` (:pull:`60`).
+- Improve perfomance for adding large number of computations to :class:`.Computer` (:pull:`60`).
 
 v1.10.0 (2022-03-31)
 ====================

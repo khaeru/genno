@@ -89,6 +89,10 @@ class Quantity:
     def coords(self) -> xarray.core.coordinates.DataArrayCoordinates:
         ...  # pragma: no cover
 
+    @property
+    def dims(self) -> Tuple[Hashable, ...]:
+        ...  # pragma: no cover
+
     def interp(
         self,
         coords: Mapping[Hashable, Any] = None,

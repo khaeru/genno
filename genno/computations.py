@@ -4,13 +4,15 @@
 #   default values for the corresponding methods on the Computer class.
 import logging
 from pathlib import Path
-from typing import Any, Hashable, Mapping
+from typing import Any, Hashable, Mapping, Union, cast
 
 import pandas as pd
 import pint
+from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
 from genno.core.quantity import Quantity, assert_quantity, maybe_densify
+from genno.core.sparsedataarray import SparseDataArray
 from genno.util import collect_units, filter_concat_args
 
 __all__ = [
@@ -21,12 +23,16 @@ __all__ = [
     "combine",
     "concat",
     "disaggregate_shares",
+    "div",
     "group_sum",
     "interpolate",
     "load_file",
+    "mul",
     "pow",
     "product",
     "ratio",
+    "relabel",
+    "rename_dims",
     "select",
     "sum",
     "write_report",
@@ -456,6 +462,82 @@ def product(*quantities):
     return result
 
 
+#: Identical to :func:`product`, but using a name aligned with the Python standard
+#: library, e.g. in :mod:`operator`.
+#:
+#: .. note:: In the future, this will be the canonical name, and :func:`product` will be
+#:    deprecated and possibly removed.
+mul = product
+
+
+def relabel(
+    qty: Quantity,
+    labels: Mapping[Hashable, Mapping] = None,
+    **dim_labels: Mapping,
+) -> Quantity:
+    """Replace specific labels along dimensions of `qty`.
+
+    Parameters
+    ----------
+    labels :
+        Keys are strings identifying dimensions of `qty`; values are further mappings
+        from original labels to new labels. Dimensions and labels not appearing in `qty`
+        have no effect.
+    dim_labels :
+        Mappings given as keyword arguments, where argument name is the dimension.
+
+    Raises
+    ------
+    ValueError
+        if both `labels` and `dim_labels` are given.
+    """
+    # NB pandas uses the term "levels [of a MultiIndex]"; xarray uses "coords [for a
+    # dimension]".
+    # TODO accept callables as values in `mapper`, as DataArray.assign_coords() does
+    maps = either_dict_or_kwargs(labels, dim_labels, "relabel")
+
+    # Iterate over (dim, label_map) for only dims included in `qty`
+    iter = filter(lambda kv: kv[0] in qty.dims, maps.items())
+
+    def map_labels(mapper, values):
+        """Generate the new labels for a single dimension."""
+        return list(map(lambda label: mapper.get(label, label), values))
+
+    if isinstance(qty, AttrSeries):
+        # Prepare a new index
+        idx = qty.index
+        for dim, label_map in iter:
+            # - Look up numerical index of the dimension in `idx`
+            # - Retrieve the existing levels.
+            # - Map to new levels.
+            # - Assign, creating a new index
+            idx = idx.set_levels(
+                map_labels(label_map, idx.levels[idx.names.index(dim)]), level=dim
+            )
+
+        # Assign the new index to a copy of qty
+        result = qty.copy()
+        result.index = idx
+
+        return result
+    else:
+        return cast(SparseDataArray, qty).assign_coords(
+            {dim: map_labels(m, qty.coords[dim].data) for dim, m in iter}
+        )
+
+
+def rename_dims(
+    qty: Quantity,
+    new_name_or_name_dict: Union[Hashable, Mapping[Hashable, Hashable]] = None,
+    **names: Hashable,
+) -> Quantity:
+    """Rename the dimensions of `qty`.
+
+    Like :meth:`xarray.DataArray.rename`.
+    """
+    return qty.rename(new_name_or_name_dict, **names)
+
+
 def ratio(numerator, denominator):
     """Compute the ratio `numerator` / `denominator`.
 
@@ -484,7 +566,11 @@ def ratio(numerator, denominator):
     return result
 
 
-#: TODO make this the actual method name; emit DeprecationWarning if ratio() is used
+#: Identical to :func:`ratio`, but using a name aligned with the Python standard
+#: library, e.g. in :mod:`operator`.
+#:
+#: .. note:: In the future, this will be the canonical name, and :func:`ratio` will be
+#:    deprecated and possibly removed.
 div = ratio
 
 

@@ -141,7 +141,7 @@ def test_order():
 
     # add() and describe() with dimensions in a different order. The output matches the
     # order given to add().
-    c.add("a:x-y", 1.1, index=True)
+    c.add("a:x-y", 1.1)
     assert "'a:x-y':\n- 1.1" == c.describe("a:y-x")
 
     # Opposite order
@@ -151,8 +151,8 @@ def test_order():
 
     # Now replace
     c.add("a:y-x", 1.1)
-    # Output matches order given to describe()
-    assert "'a:x-y':\n- 1.1" == c.describe("a:x-y")
+    # Output matches order given to add()
+    assert "'a:y-x':\n- 1.1" == c.describe("a:x-y")
 
     # get() works with key in either order
     assert 1.1 == c.get("a:y-x")
@@ -185,8 +185,8 @@ def test_infer_keys():
     X_key = Key("X", list("abcdef"))
     Y_key = Key("Y", list("defghi"), "tag")
 
-    c.add(X_key, None, index=True, sums=True)
-    c.add(Y_key, None, index=True)
+    c.add(X_key, None, sums=True)
+    c.add(Y_key, None)
 
     # Single key
     assert X_key == c.infer_keys("X::")
@@ -203,8 +203,8 @@ def test_infer_keys():
     )
 
     # Value with missing tag does not produce a match
-    with pytest.raises(KeyError):
-        c.infer_keys("Y::")
+    result = c.infer_keys("Y::")
+    assert isinstance(result, str) and "Y::" == result
 
 
 def test_require_compat():
@@ -268,11 +268,11 @@ def test_add0():
     # add(name, ...) where name is the name of a computation
     c.add("select", "bar", "a", indexers={"dim": ["d0", "d1", "d2"]})
 
-    # add(name, ...) with keyword arguments not recognized by the computation
-    # raises an exception
+    # add(name, ...) with keyword arguments not recognized by the computation raises an
+    # exception
     msg = "unexpected keyword argument 'bad_kwarg'"
     with pytest.raises(TypeError, match=msg):
-        c.add("select", "bar", "a", bad_kwarg="foo", index=True)
+        c.add("select", "bar", "a", bad_kwarg="foo")
 
 
 def test_add1():
@@ -289,8 +289,8 @@ def test_add_queue(caplog):
     def _product(a, b):
         return a * b
 
-    # A queue of computations to add. Only foo-1 succeeds on the first pass;
-    # only foo-2 on the second pass, etc.
+    # A queue of computations to add. Only foo-1 succeeds on the first pass; only foo-2
+    # on the second pass, etc.
     strict = dict(strict=True)
     queue = [
         (("foo-4", _product, "foo-3", 10), strict),
@@ -303,14 +303,16 @@ def test_add_queue(caplog):
     with pytest.raises(MissingKeyError, match="foo-3"):
         c.add(queue, max_tries=3, fail="raise")
 
-    # But foo-2 was successfully added on the second pass, and gives the
-    # correct result
+    # But foo-2 was successfully added on the second pass, and gives the correct result
     assert c.get("foo-2") == 42 * 10 * 10
 
     # Failures without raising an exception
     c.add(queue, max_tries=3, fail=logging.INFO)
-    assert "Failed 3 times to add:" in caplog.messages
-    assert "    with MissingKeyError('foo-3')" in caplog.messages
+    assert re.match(
+        r"Failed 3 time\(s\), discarded \(max 3\):.*with MissingKeyError\('foo-3'\)",
+        caplog.messages[0],
+        flags=re.DOTALL,
+    )
 
     queue = [((Key("bar", list("abcd")), 10), dict(sums=True))]
     added = c.add_queue(queue)
@@ -331,8 +333,8 @@ def test_apply():
 
     # A generator function that yields keys and computations
     def baz_qux(key):
-        yield key + ":baz", (_product, key, 0.5)
-        yield key + ":qux", (_product, key, 1.1)
+        yield key + " baz", (_product, key, 0.5)
+        yield key + " qux", (_product, key, 1.1)
 
     # Apply the generator to two targets
     c.apply(baz_qux, "foo")
@@ -341,21 +343,21 @@ def test_apply():
     # Four computations were added
     N += 4
     assert len(c.keys()) == N
-    assert c.get("foo:baz") == 42 * 0.5
-    assert c.get("foo:qux") == 42 * 1.1
-    assert c.get("bar:baz") == 11 * 0.5
-    assert c.get("bar:qux") == 11 * 1.1
+    assert c.get("foo baz") == 42 * 0.5
+    assert c.get("foo qux") == 42 * 1.1
+    assert c.get("bar baz") == 11 * 0.5
+    assert c.get("bar qux") == 11 * 1.1
 
     # A generator that takes two arguments
     def twoarg(key1, key2):
         yield key1 + "__" + key2, (_product, key1, key2)
 
-    c.apply(twoarg, "foo:baz", "bar:qux")
+    c.apply(twoarg, "foo baz", "bar qux")
 
     # One computation added
     N += 1
     assert len(c.keys()) == N
-    assert c.get("foo:baz__bar:qux") == 42 * 0.5 * 11 * 1.1
+    assert c.get("foo baz__bar qux") == 42 * 0.5 * 11 * 1.1
 
     # A useless generator that does nothing
     def useless():
@@ -464,7 +466,7 @@ def test_check_keys():
     assert c.check_keys("foo", "foo:bar-baz", action="return") is None
 
     # Check a lookup using the index
-    c.add("a:y-x:foo", index=True)
+    c.add("a:y-x:foo")
     assert [Key("a", "yx", "foo")] == c.check_keys("a::foo")
 
 
@@ -490,8 +492,7 @@ def test_dantzig(ureg):
     )
     new_key = c.aggregate("d:i-j", "weighted", "j", weights)
 
-    # ...produces the expected new key with the summed dimension removed and
-    # tag added
+    # ...produces the expected new key with the summed dimension removed and tag added
     assert new_key == "d:i:weighted"
 
     # ...produces the expected new value
@@ -589,25 +590,25 @@ def test_file_io(tmp_path):
     # Path to a temporary file
     p = tmp_path / "foo.txt"
 
-    # File can be added to the Computer before it is created, because the file
-    # is not read until/unless required
+    # File can be added to the Computer before it is created, because the file is not
+    # read until/unless required
     k1 = c.add_file(p)
 
     # File has the expected key
-    assert k1 == "file:foo.txt"
+    assert k1 == "file foo.txt"
 
     # Add some contents to the file
     p.write_text("Hello, world!")
 
     # The file's contents can be read through the Computer
-    assert c.get("file:foo.txt") == "Hello, world!"
+    assert c.get("file foo.txt") == "Hello, world!"
 
     # Write the resulting quantity to a different file
     p2 = tmp_path / "bar.txt"
-    c.write("file:foo.txt", p2)
+    c.write("file foo.txt", p2)
 
     # Write using a string path
-    c.write("file:foo.txt", str(p2))
+    c.write("file foo.txt", str(p2))
 
     # The Computer produces the expected output file
     assert p2.read_text() == "Hello, world!"
@@ -655,20 +656,23 @@ def test_file_formats(test_data_path, tmp_path):
 def test_full_key():
     c = Computer()
 
-    # Without index, the full key cannot be retrieved
+    # Using add() updates the index of full keys
     c.add("a:i-j-k", [])
-    with pytest.raises(KeyError, match="a"):
-        c.full_key("a")
 
-    # Using index=True adds the full key to the index
-    c.add("a:i-j-k", [], index=True)
-    assert c.full_key("a") == "a:i-j-k"
+    # Raises KeyError for a missing key
+    with pytest.raises(KeyError):
+        c.full_key("b")
 
     # The full key can be retrieved by giving only some of the indices
-    assert c.full_key("a:j") == "a:i-j-k"
+    for s in ("a", "a:", "a:j", "a:k-j-i", "a:k-i"):
+        assert "a:i-j-k" == c.full_key(s)
+
+    # index=True is deprecated
+    with pytest.warns(DeprecationWarning, match="full keys are automatically indexed"):
+        c.add("a:i-j-k", [], index=True)
 
     # Same with a tag
-    c.add("a:i-j-k:foo", [], index=True)
+    c.add("a:i-j-k:foo", [])
     # Original and tagged key can both be retrieved
     assert c.full_key("a") == "a:i-j-k"
     assert c.full_key("a::foo") == "a:i-j-k:foo"

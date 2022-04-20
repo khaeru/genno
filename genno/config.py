@@ -9,6 +9,7 @@ import yaml
 
 import genno.computations as computations
 from genno.core.computer import Computer
+from genno.core.exceptions import KeyExistsError
 from genno.core.key import Key
 from genno.util import REPLACE_UNITS
 
@@ -73,7 +74,11 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     return wrapper
 
 
-def parse_config(c: Optional[Computer], data: dict, fail):
+def parse_config(
+    c: Optional[Computer],
+    data: dict,
+    fail: Optional[Union[str, int]] = None,
+):
     # Assemble a queue of (args, kwargs) for Computer.add_queue()
     queue: List[Tuple[Tuple, Dict]] = []
 
@@ -106,8 +111,7 @@ def parse_config(c: Optional[Computer], data: dict, fail):
         if not handler:
             if section_name not in STORE:
                 log.info(
-                    f"No handler for configuration section {repr(section_name)}; "
-                    "ignored"
+                    f"No handler for configuration section '{section_name}:'; ignored"
                 )
             continue
 
@@ -134,11 +138,8 @@ def parse_config(c: Optional[Computer], data: dict, fail):
 
         # Store configuration in the graph itself
         c.graph["config"].update(data)
-    else:
-        if len(queue):
-            raise RuntimeError(
-                "Cannot apply non-global configuration without a Computer"
-            )
+    elif len(queue):
+        raise RuntimeError("Cannot apply non-global configuration without a Computer")
 
 
 @handles("aggregate")
@@ -149,12 +150,17 @@ def aggregate(c: Computer, info):
 
     quantities = c.infer_keys(info.pop("_quantities"))
     tag = info.pop("_tag")
+    fail = info.pop("_fail", None)
     groups = {info.pop("_dim"): info}
 
     for qty in quantities:
-        keys = c.aggregate(qty, tag, groups, sums=True)
-
-        log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
+        try:
+            keys = c.aggregate(qty, tag, groups, sums=True, fail=fail)
+        except KeyExistsError:
+            pass
+        else:
+            if len(keys):
+                log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
 
 
 @handles("alias")
@@ -191,7 +197,7 @@ def combine(c: Computer, info):
         [partial(computations.combine, select=select, weights=weights)] + quantities
     )
 
-    added = c.add(key, task, strict=True, index=True, sums=True)
+    added = c.add(key, task, strict=True, sums=True)
 
     log.info(f"Add {repr(key)} + {len(added)-1} partial sums")
     log.debug("    as combination of")
@@ -222,13 +228,20 @@ def files(c: Computer, info):
 @handles("general")
 def general(c: Computer, info):
     """Handle one entry from the ``general:`` config section."""
+    # Inputs
     inputs = c.infer_keys(info.get("inputs", []))
 
     if info["comp"] == "product":
         key = c.add_product(info["key"], *inputs)
         log.info(f"Add {repr(key)} using .add_product()")
     else:
+        # The resulting key
         key = Key.from_str_or_key(info["key"])
+
+        # Infer the dimensions of the resulting key if ":*:" is given for the dims
+        if set(key.dims) == {"*"}:
+            key = Key.product(key.name, *inputs, tag=key.tag)
+            # log.debug(f"Inferred dimensions ({', '.join(key.dims)}) for '*'")
 
         # Retrieve the function for the computation
         f = c.get_comp(info["comp"])
@@ -236,12 +249,12 @@ def general(c: Computer, info):
         if f is None:
             raise ValueError(info["comp"])
 
-        log.info(f"Add {repr(key)} using {f.__name__}(...)")
+        log.info(f"Add {repr(key)} using {f.__module__}{f.__name__}(...)")
 
         kwargs = info.get("args", {})
         task = tuple([partial(f, **kwargs)] + list(inputs))
 
-        added = c.add(key, task, strict=True, index=True, sums=info.get("sums", False))
+        added = c.add(key, task, strict=True, sums=info.get("sums", False))
 
         if isinstance(added, tuple):
             log.info(f"    + {len(added)-1} partial sums")

@@ -1,4 +1,5 @@
 import logging
+from collections import deque
 from functools import partial
 from importlib import import_module
 from inspect import signature
@@ -9,12 +10,13 @@ from types import ModuleType
 from typing import (
     Any,
     Callable,
-    Dict,
+    Hashable,
     Iterable,
     List,
     Mapping,
     MutableSequence,
     Optional,
+    Sequence,
     Tuple,
     Union,
     cast,
@@ -23,6 +25,7 @@ from warnings import warn
 
 import dask
 import pint
+import xarray as xr
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
 
@@ -31,6 +34,7 @@ from genno.util import partial_split
 
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
+from .graph import Graph
 from .key import Key, KeyLike
 
 log = logging.getLogger(__name__)
@@ -46,13 +50,10 @@ class Computer:
     """
 
     #: A dask-format graph (see :doc:`1 <dask:graphs>`, :doc:`2 <dask:spec>`).
-    graph: Dict[str, Any] = {"config": {}}
+    graph: Graph = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
     default_key = None
-
-    # An index of key names -> full keys.
-    _index: Dict[str, Key] = {}
 
     #: List of modules containing pre-defined computations.
     #:
@@ -62,9 +63,13 @@ class Computer:
     #: modules to this list.
     modules: MutableSequence[ModuleType] = [computations]
 
+    # Action to take on failed items on add_queue(). This is a stack; the rightmost
+    # element is current; the leftmost is the default.
+    _queue_fail: deque
+
     def __init__(self, **kwargs):
-        self.graph = {"config": {}}
-        self._index = {}
+        self.graph = Graph(config=dict())
+        self._queue_fail = deque([logging.ERROR])
         self.configure(**kwargs)
 
     def configure(
@@ -203,9 +208,10 @@ class Computer:
                     [(c, {}) for c in key.iter_sums()],
                 )
 
-                return self.add_queue(to_add)
+                return self.add_queue(to_add, fail=kwargs.get("fail"))
             else:
                 # Add a single computation (without converting to Key)
+                kwargs.pop("fail", None)
                 return self.add_single(key, *computation, **kwargs)
         else:
             # Some other kind of input
@@ -224,7 +230,7 @@ class Computer:
         self,
         queue: Iterable[Tuple[Tuple, Mapping]],
         max_tries: int = 1,
-        fail: Union[str, int] = None,
+        fail: Optional[Union[str, int]] = None,
     ) -> Tuple[KeyLike, ...]:
         """Add tasks from a list or `queue`.
 
@@ -240,60 +246,56 @@ class Computer:
             `max_tries`: "raise" an exception, or log messages on the indicated level
             and continue.
         """
+        # Determine the action (log level and/or raise exception) when queue items fail
         if isinstance(fail, str):
             # Convert a string like 'debug' to logging.DEBUG
-            fail = getattr(logging, fail.upper(), fail)
+            fail = cast(int, getattr(logging, fail.upper(), logging.ERROR))
+        elif fail is None:
+            fail = self._queue_fail[-1]  # Use the same value as an outer call.
 
-        if fail is not None:
-            pop_level = True  # Remove this value at the end of this (outer) call
-            self._queue_fail_log_level = fail
-        else:
-            # No value given: use the instance property from an outer call, else "raise"
-            fail = getattr(self, "_queue_fail_log_level", "raise")
-            pop_level = False
-
-        # Elements to retry: list of (tries, args, kwargs)
-        retry: List[Tuple[int, Tuple[Tuple, Mapping]]] = []
+        # Accumulate added keys
         added: List[KeyLike] = []
 
-        # Iterate over elements from queue, then from retry. On the first pass,
-        # count == 1; on subsequent passes, it is incremented.
-        for count, (args, kwargs) in chain(zip(repeat(1), queue), retry):
+        # Iterate over elements from queue, then any which are re-appended to be
+        # retried. On the first pass, count == 1; on subsequent passes, it is
+        # incremented.
+        _queue = deque(zip(repeat(1), queue))
+        while len(_queue):
+            count, (args, kwargs) = _queue.popleft()
+
+            def _log(level, msg: str, e: Optional[Exception] = None):
+                """Log information for debugging."""
+                log.log(
+                    level,
+                    f"{msg} (max {max_tries}):\n    ({repr(args)}, {repr(kwargs)})"
+                    + (f"\n    with {repr(e)}" if e else ""),
+                )
+
             try:
+                self._queue_fail.append(fail)
                 # Recurse
-                key_or_keys = self.add(*args, **kwargs)
+                keys = self.add(*args, **kwargs)
             except KeyError as exc:
                 # Adding failed
-
-                # Information for debugging
-                info = [
-                    f"Failed {count} times to add:",
-                    f"    ({repr(args)}, {repr(kwargs)})",
-                    f"    with {repr(exc)}",
-                ]
-
-                def _log(level):
-                    [log.log(level, i) for i in info]
-
                 if count < max_tries:
                     # This may only be due to items being out of order; retry silently
-                    retry.append((count + 1, (args, kwargs)))
-                    # _log(logging.DEBUG)  # verbose: uncomment for debugging only
+                    _queue.append((count + 1, (args, kwargs)))
+                    # verbose; uncomment for debugging only
+                    # _log(logging.DEBUG, "Failed {count} times, will retry", exc)
                 else:
-                    # More than `max_tries` failures; something has gone wrong
-                    if fail == "raise":
-                        _log(logging.ERROR)
-                        raise
-                    else:
-                        _log(fail)
+                    # Failed `max_tries` times; something has gone wrong
+                    _log(fail, f"Failed {count} time(s), discarded", exc)
+                    if fail == logging.ERROR:
+                        raise  # Also raise
             else:
-                if isinstance(key_or_keys, tuple):
-                    added.extend(key_or_keys)
-                else:
-                    added.append(key_or_keys)
-
-        if pop_level:  # End of the outer call
-            delattr(self, "_queue_fail_log_level")
+                # Succeeded; record the key(s)
+                added.extend(keys) if isinstance(keys, tuple) else added.append(keys)
+                # verbose; uncomment for debugging only
+                # if count > 1:
+                #     _log(logging.DEBUG, f"Succeeded on {count} try")
+            finally:
+                # Restore the failure action from an outer level
+                self._queue_fail.pop()
 
         return tuple(added)
 
@@ -328,30 +330,20 @@ class Computer:
             # Unpack a length-1 tuple
             computation = computation[0]
 
-        key = maybe_convert_str(key)
+        if index:
+            warn(
+                "add_single(…, index=True); full keys are automatically indexed",
+                DeprecationWarning,
+            )
 
-        if strict or index:
-            # String equivalent of `key` with all dimensions dropped, but name and tag
-            # retained, e.g. "foo::bar" for "foo:a-b:bar"; but "foo" for "foo:a-b"
-            idx = str(Key.from_str_or_key(key, drop=True)).rstrip(":")
+        key = Key.bare_name(key) or Key.from_str_or_key(key)
 
         if strict:
-            # Check the target key
-            try:
-                # Check without dim order permutations
-                assert self.check_keys(key, action="return", _permute=False) is None
-                # Check that `key` is not indexed, possibly with different dim order
-                assert self._index.get(idx, None) != key
-            except AssertionError:
-                # Key already exists in graph
-                raise KeyExistsError(key) from None
+            if key in self.graph:
+                raise KeyExistsError(key)
 
             # Check valid keys in `computation` and maybe rewrite
             computation = self._rewrite_comp(computation)
-
-        if index:
-            # Add `key` to the index
-            self._index[idx] = key
 
         # Add to the graph
         self.graph[key] = computation
@@ -460,11 +452,13 @@ class Computer:
         finally:
             self.graph["config"] = self.graph["config"][0].data
 
+    # Convenience methods for the graph and its keys
+
     def keys(self):
         """Return the keys of :attr:`graph`."""
         return self.graph.keys()
 
-    def full_key(self, name_or_key):
+    def full_key(self, name_or_key: KeyLike) -> KeyLike:
         """Return the full-dimensionality key for `name_or_key`.
 
         An quantity 'foo' with dimensions (a, c, n, q, x) is available in the Computer
@@ -473,12 +467,19 @@ class Computer:
             c.full_key("foo")
             c.full_key("foo:c")
             # etc.
+
+        Raises
+        ------
+        KeyError
+            if `name_or_key` is not in the graph.
         """
-        name = str(Key.from_str_or_key(name_or_key, drop=True)).rstrip(":")
-        return self._index[name]
+        result = self.graph.full_key(name_or_key)
+        if result is None:
+            raise KeyError(name_or_key)
+        return result
 
     def check_keys(
-        self, *keys: Union[str, Key], action="raise", _permute=True
+        self, *keys: Union[str, Key], action="raise"
     ) -> Optional[List[Union[str, Key]]]:
         """Check that `keys` are in the Computer.
 
@@ -489,31 +490,9 @@ class Computer:
         If `action` is "return" (or any other value), :class:`None` is returned on
         missing keys.
         """
-        # Sequence of graph keys, for indexing
-        # TODO cache this somehow, refresh when .graph is altered
-        all_keys = tuple(self.graph.keys())
 
         def _check(value):
-            if value in self._index:
-                # Add the full key
-                return self._index[value]
-
-            if value in self.graph:
-                # Add the key directly. Use the key from `self.graph` to preserve
-                # dimension order.
-                return all_keys[all_keys.index(value)]
-
-            # Possibly convert a string to a Key
-            value = maybe_convert_str(value)
-            if isinstance(value, str) or not _permute:
-                return None
-
-            # Try permutations of dimensions
-            for k in filter(self.graph.__contains__, value.permute_dims()):
-                result = all_keys[all_keys.index(k)]
-                return result
-
-            return None
+            return self.graph.unsorted_key(value) or self.graph.full_key(value)
 
         # Process all keys to produce more useful error messages
         result = list(map(_check, keys))
@@ -535,40 +514,42 @@ class Computer:
 
         return result
 
-    def infer_keys(self, key_or_keys, dims=[]):
+    def infer_keys(
+        self, key_or_keys: Union[KeyLike, Iterable[KeyLike]], dims: Iterable[str] = []
+    ):
         """Infer complete `key_or_keys`.
+
+        Each return value is one of:
+
+        - a :class:`Key` with either
+
+          - dimensions `dims`, if any are given, otherwise
+          - its full dimensionality (cf. :meth:`full_key`)
+
+        - :class:`str`, the same as input, if the key is not defined in the Computer.
 
         Parameters
         ----------
+        key_or_keys : str or Key or list of str or Key
         dims : list of str, optional
             Drop all but these dimensions from the returned key(s).
+
+        Returns
+        -------
+        str or Key
+            If `key_or_keys` is a single :data:`KeyLike`.
+        list of str or Key
+            If `key_or_keys` is an iterable of :data:`KeyLike`.
         """
-        single = isinstance(key_or_keys, (str, Key))
+        single = isinstance(key_or_keys, (Key, Hashable))
+        keys = [key_or_keys] if single else tuple(cast(Iterable, key_or_keys))
 
-        result = []
-
-        for k in [key_or_keys] if single else key_or_keys:
-            # Has some dimensions or tag
-            key = Key.from_str_or_key(k) if ":" in k else k
-
-            if "::" in k or key not in self or (isinstance(key, str) and dims):
-                # Find the full-dimensional key
-                key = self.full_key(key)
-
-            # Drop all but `dims`
-            if dims:
-                key = key.drop(*(set(key.dims) - set(dims)))
-
-            result.append(key)
+        result = list(map(partial(self.graph.infer, dims=dims), keys))
 
         return result[0] if single else tuple(result)
 
-    def __contains__(self, name):
-        # First check using hash (fast), then using comparison (slower) for same key
-        # with dimensions in different order
-        return name in self.graph or any(
-            map(self.graph.__contains__, Key.from_str_or_key(name).permute_dims())
-        )
+    def __contains__(self, item):
+        return self.graph.__contains__(item)
 
     # Convenience methods
     def add_product(self, key, *quantities, sums=True):
@@ -599,11 +580,20 @@ class Computer:
         key = Key.product(key.name, *base_keys, tag=key.tag)
 
         # Add the basic product to the graph and index
-        keys = self.add(key, computations.product, *base_keys, sums=sums, index=True)
+        keys = self.add(key, computations.product, *base_keys, sums=sums)
 
         return keys[0]
 
-    def aggregate(self, qty, tag, dims_or_groups, weights=None, keep=True, sums=False):
+    def aggregate(
+        self,
+        qty: KeyLike,
+        tag: str,
+        dims_or_groups: Union[Mapping, str, Sequence[str]],
+        weights: Optional[xr.DataArray] = None,
+        keep: bool = True,
+        sums: bool = False,
+        fail: Union[str, int] = None,
+    ):
         """Add a computation that aggregates *qty*.
 
         Parameters
@@ -621,6 +611,8 @@ class Computer:
             Passed to :meth:`computations.aggregate <genno.computations.aggregate>`.
         sums : bool, optional
             Passed to :meth:`add`.
+        fail : str or int, optional
+            Passed to :meth:`add_queue` via :meth:`add`.
 
         Returns
         -------
@@ -635,7 +627,12 @@ class Computer:
                 raise NotImplementedError("aggregate() along >1 dimension")
 
             key = Key.from_str_or_key(qty, tag=tag)
-            comp = (computations.aggregate, qty, dask.core.quote(groups), keep)
+            comp: Tuple[Any, ...] = (
+                computations.aggregate,
+                qty,
+                dask.core.quote(groups),
+                keep,
+            )
         else:
             dims = dims_or_groups
             if isinstance(dims, str):
@@ -644,7 +641,7 @@ class Computer:
             key = Key.from_str_or_key(qty, drop=dims, tag=tag)
             comp = (partial(computations.sum, dimensions=dims), qty, weights)
 
-        return self.add(key, comp, strict=True, index=True, sums=sums)
+        return self.add(key, comp, strict=True, sums=sums, fail=fail)
 
     add_aggregate = aggregate
 
@@ -675,12 +672,12 @@ class Computer:
 
         # Get the method
         if isinstance(method, str):
+            name = f"disaggregate_{method}"
             try:
-                method = getattr(computations, "disaggregate_{}".format(method))
+                method = getattr(computations, name)
             except AttributeError:
-                raise ValueError(
-                    "No disaggregation method 'disaggregate_{}'".format(method)
-                )
+                raise ValueError(f"No disaggregation method '{name}'")
+
         if not callable(method):
             raise TypeError(method)
 
@@ -718,7 +715,7 @@ class Computer:
         genno.computations.load_file
         """
         path = Path(path)
-        key = key if key else "file:{}".format(path.name)
+        key = key if key else "file {}".format(path.name)
         return self.add(
             key, (partial(self.get_comp("load_file"), path, **kwargs),), strict=True
         )
@@ -738,6 +735,7 @@ class Computer:
         str
             Description of computations.
         """
+        # TODO accept a list of keys, like get()
         if key is None:
             # Sort with 'all' at the end
             key = tuple(
@@ -836,12 +834,3 @@ class Computer:
 
     # Use convert_pyam as a helper for computations.as_pyam
     add_as_pyam = convert_pyam
-
-
-def maybe_convert_str(key):
-    """Maybe convert `key` into a Key object.
-
-    Allow a string like "foo" with no dimensions or tag to remain as-is.
-    """
-    _key = Key.from_str_or_key(key)
-    return _key if (_key.dims or _key.tag) else key

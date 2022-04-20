@@ -1,10 +1,13 @@
 import re
 from functools import partial
-from itertools import chain, compress, permutations
+from itertools import chain, compress
 from typing import Callable, Generator, Hashable, Iterable, Optional, Tuple, Union
 
 #: Regular expression for valid key strings.
 EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
+
+#: Regular expression for non-keylike strings.
+BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
 
 
 class Key:
@@ -21,13 +24,21 @@ class Key:
         self._hash = hash(self._str)
 
     @classmethod
+    def bare_name(cls, value) -> Optional[str]:
+        """If `value` is a bare name (no dims or tags), return it; else :obj:`None`."""
+        if not isinstance(value, str):
+            return None
+        match = BARE_STR.match(value)
+        return match.group("name") if match else None
+
+    @classmethod
     def from_str_or_key(
         cls,
-        value: Union[str, "Key"],
+        value: Union["Key", Hashable],
         drop: Union[Iterable[str], bool] = [],
         append: Iterable[str] = [],
         tag: Optional[str] = None,
-    ):
+    ) -> "Key":
         """Return a new Key from *value*.
 
         Parameters
@@ -47,7 +58,9 @@ class Key:
         :class:`Key`
         """
         # Determine the base Key
-        if isinstance(value, str):
+        if isinstance(value, cls):
+            base = value
+        elif isinstance(value, str):
             # Parse a string
             match = EXPR.match(value)
             if match is None:
@@ -58,8 +71,6 @@ class Key:
                 dims=[] if not groups["dims"] else groups["dims"].split("-"),
                 tag=groups["tag"],
             )
-        elif isinstance(value, cls):
-            base = value
         else:
             raise TypeError(type(value))
 
@@ -92,7 +103,7 @@ class Key:
             Name for the new Key. The names of *keys* are discarded.
         """
         # Iterable of dimension names from all keys, in order, with repetitions
-        dims = chain(*[k.dims for k in keys])
+        dims = chain(*map(lambda k: cls.from_str_or_key(k).dims, keys))
 
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
@@ -113,9 +124,9 @@ class Key:
 
     def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
-        if isinstance(other, str):
+        try:
             other = Key.from_str_or_key(other)
-        elif not isinstance(other, Key):
+        except TypeError:
             return False
 
         return (
@@ -187,19 +198,6 @@ class Key:
                 partial(computations.sum, dimensions=others, weights=None),
                 self,
             )
-
-    def permute_dims(self) -> Generator["Key", None, None]:
-        """Generate variants of the Key with dimensions in all possible orders.
-
-        Examples
-        --------
-        >>> k = Key("A", "xyz")
-        >>> list(k.permute_dims())
-        [<A:x-y-z>, <A:x-z-y>, <A:y-x-z>, <A:y-z-x>, <A:z-x-y>, <A:z-y-x>]
-        """
-        yield from map(
-            partial(Key, self._name, tag=self._tag), permutations(self._dims)
-        )
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.

@@ -1,7 +1,7 @@
 import logging
 import warnings
 from functools import partial
-from typing import Any, Hashable, Iterable, List, Mapping, Union
+from typing import Any, Hashable, Iterable, List, Mapping, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -73,6 +73,9 @@ class AttrSeries(pd.Series, Quantity):
 
         data, name = Quantity._single_column_df(data, name)
 
+        if data is None:
+            kwargs["dtype"] = float
+
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
         pd.Series.__init__(self, data, *args, name=name, **kwargs)
 
@@ -140,7 +143,7 @@ class AttrSeries(pd.Series, Quantity):
         )
 
     @property
-    def dims(self):
+    def dims(self) -> Tuple[Hashable, ...]:
         """Like :attr:`xarray.DataArray.dims`."""
         return tuple(filter(None, self.index.names))
 
@@ -281,12 +284,17 @@ class AttrSeries(pd.Series, Quantity):
             attrs=self.attrs,
         ).sel(coords)
 
-    def rename(self, new_name_or_name_dict):
+    def rename(
+        self,
+        new_name_or_name_dict: Union[Hashable, Mapping[Hashable, Hashable]] = None,
+        **names: Hashable,
+    ):
         """Like :meth:`xarray.DataArray.rename`."""
-        # TODO add **names kwargs
-        if isinstance(new_name_or_name_dict, dict):
-            return self.rename_axis(index=new_name_or_name_dict)
+        if new_name_or_name_dict is None or isinstance(new_name_or_name_dict, Mapping):
+            index = either_dict_or_kwargs(new_name_or_name_dict, names, "rename")
+            return self.rename_axis(index=index)
         else:
+            assert 0 == len(names)
             return super().rename(new_name_or_name_dict)
 
     def sel(self, indexers=None, drop=False, **indexers_kwargs):

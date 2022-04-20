@@ -93,7 +93,7 @@ def add_test_data(c: Computer):
     )
 
     # Add, including sums and to index
-    c.add(Key("x", ("t", "y")), Quantity(x), index=True, sums=True)
+    c.add(Key("x", ("t", "y")), Quantity(x), sums=True)
 
     return t, t_foo, t_bar, x
 
@@ -143,7 +143,7 @@ def add_dantzig(c: Computer):
 
     _all = list()
     for key in _TEST_DATA.keys():
-        c.add(key, (partial(get_test_quantity, key),), index=True, sums=True)
+        c.add(key, (partial(get_test_quantity, key),), sums=True)
         _all.append(key)
 
     c.add("all", sorted(_all))

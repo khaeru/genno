@@ -1,7 +1,8 @@
 aggregate:
-- _quantities: ["X::"]
+- _quantities: [ "X::", "Y::", "Z::" ]
   _tag: agg
   _dim: a
+  _fail: warning
 
   baz123: [baz1, baz2, baz3]
   baz13: [baz1, baz3]

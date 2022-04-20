@@ -23,15 +23,20 @@ jobs:
         python-version:
         - "3.7"  # Earliest version supported by genno; matches xarray/setup.cfg
         - "3.8"
-        - "3.9"  # Latest testable on GitHub Actions
+        - "3.9"
+        - "3.10" # Latest release / latest supported by genno / testable on GHA
 
-        # For new releases or development versions of Python, compiled binary
-        # wheels may not be available for some dependencies, e.g. llvmlite,
+        # For fresh releases and development versions of Python, compiled
+        # binary wheels are not available for some dependencies, e.g. llvmlite,
         # numba, numpy, and/or pandas. Compiling these on the job runner
         # requires a more elaborate build environment, currently out of scope
         # for genno. Exclude these versions from CI.
-        # - "3.10"  # Latest Python release / latest supported by genno
         # - "3.11.0-alpha.2"  # Development version
+
+        exclude:
+        # JPype1 binary wheels are not available for this combination
+        - os: windows-latest
+          python-version: "3.10"
 
       fail-fast: false
 
@@ -40,7 +45,7 @@ jobs:
 
     steps:
     - name: Cancel previous runs that have not completed
-      uses: styfle/cancel-workflow-action@0.7.0
+      uses: styfle/cancel-workflow-action@0.9.1
       with:
         access_token: ${{ github.token }}
 
@@ -55,13 +60,14 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - name: Locate pip cache directory
+      id: pip-cache
+      run: echo "::set-output name=dir::$(pip cache dir)"
+
     - name: Cache Python packages
-      uses: actions/cache@v2
+      uses: actions/cache@v3
       with:
-        path: |
-          ~/.cache/pip
-          ~/Library/Caches/pip
-          ~/appdata/local/pip/cache
+        path: ${{ steps.pip-cache.outputs.dir }}
         key: ${{ matrix.os }}-py${{ matrix.python-version }}
         restore-keys: |
           ${{ matrix.os }}-
@@ -72,10 +78,14 @@ jobs:
       run: python -m pip install --upgrade pip wheel setuptools-scm
 
     - name: Install Python package and dependencies
-      # pyam-iamc (IAMconsortium/pyam#589) forces pint 0.17; override
       run: |
         pip install --editable .[docs,tests]
-        pip install --upgrade pint
+
+    - name: Specify version of pint
+      if: matrix.python-version != '3.7'
+      run: |
+        # Branch for with https://github.com/hgrecco/pint/pull/1508
+        pip install --upgrade git+https://github.com/khaeru/pint.git@issue/1498#egg=pint
 
     - name: Run test suite using pytest
       run: pytest genno --trace-config --verbose --cov-report=xml --cov-report=term --color=yes
@@ -86,4 +96,4 @@ jobs:
       run: make html
 
     - name: Upload test coverage to Codecov.io
-      uses: codecov/codecov-action@v1.2.1
+      uses: codecov/codecov-action@v2
