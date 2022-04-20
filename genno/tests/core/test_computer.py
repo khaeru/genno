@@ -268,8 +268,8 @@ def test_add0():
     # add(name, ...) where name is the name of a computation
     c.add("select", "bar", "a", indexers={"dim": ["d0", "d1", "d2"]})
 
-    # add(name, ...) with keyword arguments not recognized by the computation
-    # raises an exception
+    # add(name, ...) with keyword arguments not recognized by the computation raises an
+    # exception
     msg = "unexpected keyword argument 'bad_kwarg'"
     with pytest.raises(TypeError, match=msg):
         c.add("select", "bar", "a", bad_kwarg="foo")
@@ -289,8 +289,8 @@ def test_add_queue(caplog):
     def _product(a, b):
         return a * b
 
-    # A queue of computations to add. Only foo-1 succeeds on the first pass;
-    # only foo-2 on the second pass, etc.
+    # A queue of computations to add. Only foo-1 succeeds on the first pass; only foo-2
+    # on the second pass, etc.
     strict = dict(strict=True)
     queue = [
         (("foo-4", _product, "foo-3", 10), strict),
@@ -303,14 +303,16 @@ def test_add_queue(caplog):
     with pytest.raises(MissingKeyError, match="foo-3"):
         c.add(queue, max_tries=3, fail="raise")
 
-    # But foo-2 was successfully added on the second pass, and gives the
-    # correct result
+    # But foo-2 was successfully added on the second pass, and gives the correct result
     assert c.get("foo-2") == 42 * 10 * 10
 
     # Failures without raising an exception
     c.add(queue, max_tries=3, fail=logging.INFO)
-    assert "Failed 3 times to add:" in caplog.messages
-    assert "    with MissingKeyError('foo-3')" in caplog.messages
+    assert re.match(
+        r"Failed 3 time\(s\), discarded \(max 3\):.*with MissingKeyError\('foo-3'\)",
+        caplog.messages[0],
+        flags=re.DOTALL,
+    )
 
     queue = [((Key("bar", list("abcd")), 10), dict(sums=True))]
     added = c.add_queue(queue)
@@ -490,8 +492,7 @@ def test_dantzig(ureg):
     )
     new_key = c.aggregate("d:i-j", "weighted", "j", weights)
 
-    # ...produces the expected new key with the summed dimension removed and
-    # tag added
+    # ...produces the expected new key with the summed dimension removed and tag added
     assert new_key == "d:i:weighted"
 
     # ...produces the expected new value
@@ -589,8 +590,8 @@ def test_file_io(tmp_path):
     # Path to a temporary file
     p = tmp_path / "foo.txt"
 
-    # File can be added to the Computer before it is created, because the file
-    # is not read until/unless required
+    # File can be added to the Computer before it is created, because the file is not
+    # read until/unless required
     k1 = c.add_file(p)
 
     # File has the expected key
