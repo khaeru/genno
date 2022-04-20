@@ -139,11 +139,8 @@ def parse_config(
 
         # Store configuration in the graph itself
         c.graph["config"].update(data)
-    else:
-        if len(queue):
-            raise RuntimeError(
-                "Cannot apply non-global configuration without a Computer"
-            )
+    elif len(queue):
+        raise RuntimeError("Cannot apply non-global configuration without a Computer")
 
 
 @handles("aggregate")
