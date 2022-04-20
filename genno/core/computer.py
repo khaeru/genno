@@ -202,9 +202,10 @@ class Computer:
                     [(c, {}) for c in key.iter_sums()],
                 )
 
-                return self.add_queue(to_add)
+                return self.add_queue(to_add, fail=kwargs.get("fail"))
             else:
                 # Add a single computation (without converting to Key)
+                kwargs.pop("fail", None)
                 return self.add_single(key, *computation, **kwargs)
         else:
             # Some other kind of input
@@ -575,6 +576,7 @@ class Computer:
         weights: Optional[xr.DataArray] = None,
         keep: bool = True,
         sums: bool = False,
+        fail: Union[str, int] = None,
     ):
         """Add a computation that aggregates *qty*.
 
@@ -621,7 +623,7 @@ class Computer:
             key = Key.from_str_or_key(qty, drop=dims, tag=tag)
             comp = (partial(computations.sum, dimensions=dims), qty, weights)
 
-        return self.add(key, comp, strict=True, sums=sums)
+        return self.add(key, comp, strict=True, sums=sums, fail=fail)
 
     add_aggregate = aggregate
 

@@ -9,7 +9,7 @@ import yaml
 
 import genno.computations as computations
 from genno.core.computer import Computer
-from genno.core.exceptions import MissingKeyError
+from genno.core.exceptions import KeyExistsError
 from genno.core.key import Key
 from genno.util import REPLACE_UNITS
 
@@ -74,7 +74,11 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     return wrapper
 
 
-def parse_config(c: Optional[Computer], data: dict, fail):
+def parse_config(
+    c: Optional[Computer],
+    data: dict,
+    fail: Optional[Union[str, int]] = None,
+):
     # Assemble a queue of (args, kwargs) for Computer.add_queue()
     queue: List[Tuple[Tuple, Dict]] = []
 
@@ -150,13 +154,14 @@ def aggregate(c: Computer, info):
 
     quantities = c.infer_keys(info.pop("_quantities"))
     tag = info.pop("_tag")
+    fail = info.pop("_fail", None)
     groups = {info.pop("_dim"): info}
 
     for qty in quantities:
         try:
-            keys = c.aggregate(qty, tag, groups, sums=True)
-        except MissingKeyError:
-            pass  # aggregate() has already logged a warning
+            keys = c.aggregate(qty, tag, groups, sums=True, fail=fail)
+        except KeyExistsError:
+            pass
         else:
             log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
 
