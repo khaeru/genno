@@ -519,10 +519,27 @@ class Computer:
     ):
         """Infer complete `key_or_keys`.
 
+        Each return value is one of:
+
+        - a :class:`Key` with either
+
+          - dimensions `dims`, if any are given, otherwise
+          - its full dimensionality (cf. :meth:`full_key`)
+
+        - :class:`str`, the same as input, if the key is not defined in the Computer.
+
         Parameters
         ----------
+        key_or_keys : str or Key or list of str or Key
         dims : list of str, optional
             Drop all but these dimensions from the returned key(s).
+
+        Returns
+        -------
+        str or Key
+            If `key_or_keys` is a single :data:`KeyLike`.
+        list of str or Key
+            If `key_or_keys` is an iterable of :data:`KeyLike`.
         """
         single = isinstance(key_or_keys, (Key, Hashable))
         keys = [key_or_keys] if single else tuple(cast(Iterable, key_or_keys))
