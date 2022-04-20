@@ -21,6 +21,7 @@ def test_key():
 
     # product:
     assert Key.product("baz", k1, k2) == Key("baz", ["a", "b", "c", "d"])
+    assert Key.product("baz", str(k1), str(k2)) == Key("baz", ["a", "b", "c", "d"])
 
     # iter_sums: Number of partial sums for a 3-dimensional quantity
     assert sum(1 for a in k1.iter_sums()) == 7

@@ -103,7 +103,7 @@ class Key:
             Name for the new Key. The names of *keys* are discarded.
         """
         # Iterable of dimension names from all keys, in order, with repetitions
-        dims = chain(*[k.dims for k in keys])
+        dims = chain(*map(lambda k: cls.from_str_or_key(k).dims, keys))
 
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
