@@ -160,7 +160,8 @@ def aggregate(c: Computer, info):
         except KeyExistsError:
             pass
         else:
-            log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
+            if len(keys):
+                log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
 
 
 @handles("alias")
