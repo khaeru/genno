@@ -546,9 +546,6 @@ class Computer:
 
         result = list(map(partial(self.graph.infer, dims=dims), keys))
 
-        if None in result:
-            raise KeyError(keys[result.index(None)])
-
         return result[0] if single else tuple(result)
 
     def __contains__(self, item):
