@@ -46,6 +46,20 @@ def test_file(test_data_path, name):
     c.configure(path=test_data_path / name)
 
 
+def test_general_infer_dims():
+    """Test dimension inference in handling "general:" config items."""
+    c = Computer()
+
+    # Set up test contents
+    c.add(Key("X", list("abcd")), None, sums=True)
+    c.add(Key("Y", list("cefg")), None, sums=True)
+
+    c.configure(general=[dict(comp="concat", key="Z:*:foo", inputs=["X", "Y"])])
+
+    # Dimensions were inferred
+    assert "Z:a-b-c-d-e-f-g:foo" in c
+
+
 def test_global(test_data_path):
     configure(path=test_data_path / "config-units.yaml")
 
