@@ -344,6 +344,9 @@ Internal format for quantities
 Utilities
 =========
 
+.. automodule:: genno.core.graph
+   :members:
+
 .. automodule:: genno.util
    :members:
 
