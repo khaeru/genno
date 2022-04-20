@@ -30,12 +30,16 @@ Care should be taken to avoid adding 2+ keys with the same name, tag, **and** nu
    c.add("foo:l-m-n", ...)
    c.add("foo:x-y-z", ...)
 
-This situation is ambiguous and the behaviour of :meth:`.full_key` is undefined.
+This situation is ambiguous and the behaviour of :meth:`Computer.full_key` is undefined.
 Instead, add a :attr:`~.Key.tag` to disambiguate.
 
 All changes
 -----------
 
+- :meth:`.Key.product` accepts :class:`str` arguments (:pull:`60`).
+- New class method :meth:`.Key.bare_name` (:pull:`60`).
+- Infer dimensions for e.g. ``X:*:tag`` in :ref:`config-general` configuration items (:pull:`60`).
+- Handle the `fail` argument to :meth:`.Computer.aggregate` through :ref:`config-aggregate` configuration items (:pull:`60`).
 - New computations :func:`.relabel` and :func:`.rename_dims` (:pull:`60`).
 - Improve perfomance for adding large number of computations to :class:`.Computer` (:pull:`60`).
 

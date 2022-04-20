@@ -614,6 +614,8 @@ class Computer:
             Passed to :meth:`computations.aggregate <genno.computations.aggregate>`.
         sums : bool, optional
             Passed to :meth:`add`.
+        fail : str or int, optional
+            Passed to :meth:`add_queue` via :meth:`add`.
 
         Returns
         -------

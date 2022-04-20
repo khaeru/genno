@@ -132,6 +132,8 @@ The :func:`.handles` decorator can be used to mark a custom function that handle
 Specific sections
 =================
 
+.. _config-aggregate:
+
 ``aggregate:``
 --------------
 
@@ -149,6 +151,8 @@ Each entry contains:
    New tag to append to the keys for the aggregated quantities.
 ``_dim:`` (:class:`str`)
    Dimensions on which to aggregate.
+``_fail:`` (:class:`str` or :class:`int`)
+   Action or log level when aggregation fails; corresponds to the `fail` argument to :meth:`.Computer.aggregate`.
 
 Note the leading underscores.
 This is to distinguish these from all other keys, which are treated as group names.
@@ -285,6 +289,8 @@ If the ``path:`` key is a relative path, it is resolved relative to the director
       dims: {i: i, j_dim: j}
 
 
+.. _config-general:
+
 ``general:``
 ------------
 
@@ -301,8 +307,10 @@ Each item contains:
   E.g. if "product", then :meth:`.Computer.add_product` is called, which also automatically infers the correct dimensions for each input.
 ``key:``
    The key for the computed quantity.
+
+   If the key has the single dimension "\*" (e.g. ``key: "X:*:tag"``), then dimensions of the resulting key are inferred to be the union of the dimensions of each of the ``inputs:``, below.
 ``inputs:``
-   A list of keys to which the computation is applied.
+   A list of (1 or more) keys to which the computation is applied.
 ``args:`` (:class:`dict`, optional)
    Keyword arguments to the computation.
 ``add args:`` (:class:`dict`, optional)
