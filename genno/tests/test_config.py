@@ -25,7 +25,8 @@ def test_handlers():
 @pytest.mark.parametrize(
     "name",
     [
-        "config-aggregate.yaml",
+        "config-aggregate0.yaml",
+        "config-aggregate1.yaml",
         "config-combine.yaml",
         "config-general0.yaml",
         pytest.param(

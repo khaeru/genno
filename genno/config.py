@@ -111,8 +111,7 @@ def parse_config(
         if not handler:
             if section_name not in STORE:
                 log.info(
-                    f"No handler for configuration section {repr(section_name)}; "
-                    "ignored"
+                    f"No handler for configuration section '{section_name}:'; ignored"
                 )
             continue
 
