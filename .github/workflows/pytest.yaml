@@ -80,12 +80,8 @@ jobs:
     - name: Install Python package and dependencies
       run: |
         pip install --editable .[docs,tests]
-
-    - name: Specify version of pint
-      if: matrix.python-version != '3.7'
-      run: |
-        # Branch for with https://github.com/hgrecco/pint/pull/1508
-        pip install --upgrade git+https://github.com/khaeru/pint.git@issue/1498#egg=pint
+        # pyam-iamc (IAMconsortium/pyam#651) forces pint < 0.19; override
+        pip install --upgrade pint
 
     - name: Run test suite using pytest
       run: pytest genno --trace-config --verbose --cov-report=xml --cov-report=term --color=yes
