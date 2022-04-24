@@ -78,9 +78,9 @@ jobs:
       run: python -m pip install --upgrade pip wheel setuptools-scm
 
     - name: Install Python package and dependencies
-      # pyam-iamc (IAMconsortium/pyam#589) forces pint 0.17; override
       run: |
         pip install --editable .[docs,tests]
+        # pyam-iamc (IAMconsortium/pyam#651) forces pint < 0.19; override
         pip install --upgrade pint
 
     - name: Run test suite using pytest
