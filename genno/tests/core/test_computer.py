@@ -209,11 +209,22 @@ def test_infer_keys():
 
 def test_require_compat():
     c = Computer()
+    assert 1 == len(c.modules)
+
     with pytest.raises(
         ModuleNotFoundError,
         match="No module named '_test', required by genno.compat._test",
     ):
         c.require_compat("_test")
+
+    # Other forms
+    c.require_compat("genno.compat.pyam.computations")
+    assert 2 == len(c.modules)
+
+    import genno.compat.pyam.computations as mod
+
+    c.require_compat(mod)
+    assert 2 == len(c.modules)
 
 
 def test_add0():
