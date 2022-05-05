@@ -61,7 +61,7 @@ class Computer:
     #: :mod:`genno.computations`. :meth:`require_compat` appends additional modules,
     #: e.g. #: :mod:`.compat.pyam.computations`, to this list. User code may also add
     #: modules to this list.
-    modules: MutableSequence[ModuleType] = [computations]
+    modules: MutableSequence[ModuleType] = []
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
     # element is current; the leftmost is the default.
@@ -69,6 +69,7 @@ class Computer:
 
     def __init__(self, **kwargs):
         self.graph = Graph(config=dict())
+        self.modules = [computations]
         self._queue_fail = deque([logging.ERROR])
         self.configure(**kwargs)
 
@@ -127,26 +128,60 @@ class Computer:
                 return None  # `name` is not a string; can't be the name of a function
         return None
 
-    def require_compat(self, pkg: str):
-        """Load computations from ``genno.compat.{pkg}`` for use with :func:`.get_comp`.
+    def require_compat(self, pkg: Union[str, ModuleType]):
+        """Register computations from :mod:`genno.compat`/others for :func:`.get_comp`.
 
         The specified module is appended to :attr:`modules`.
+
+        Parameters
+        ----------
+        pkg : str or module
+            One of:
+
+            - the name of a package (e.g. "plotnine"), corresponding to a submodule of
+              :mod:`genno.compat`, e.g. :mod:`genno.compat.plotnine`.
+              ``genno.compat.{pkg}.computations`` is added.
+            - the name of an arbitary module, e.g. "foo.bar"
+            - a previously imported module.
 
         Raises
         ------
         ModuleNotFoundError
             If the required packages are missing.
 
-        See also
+        Examples
         --------
-        .get_comp
+        Computations packaged with genno for compatibility:
+
+        >>> c = Computer()
+        >>> c.require_compat("pyam")
+
+        Computations in another module, using the module name:
+
+        >>> c.require_compat("ixmp.reporting.computations")
+
+        or using imported module:
+
+        >>> import ixmp.reporting.computations as mod
+        >>> c.require_compat(mod)
+
         """
-        name = f"genno.compat.{pkg}"
-        if not getattr(import_module(name), f"HAS_{pkg.upper()}"):
-            raise ModuleNotFoundError(
-                f"No module named '{pkg}', required by genno.compat.{pkg}"
-            )
-        self.modules = list(self.modules) + [import_module(f"{name}.computations")]
+        if isinstance(pkg, ModuleType):
+            mod = pkg
+        elif "." in pkg:
+            mod = import_module(pkg)
+        else:
+            name = f"genno.compat.{pkg}"
+            # Check the upstream/third-party package is available
+            if not getattr(import_module(name), f"HAS_{pkg.upper()}"):
+                raise ModuleNotFoundError(
+                    f"No module named '{pkg}', required by genno.compat.{pkg}"
+                )
+            mod = import_module(f"{name}.computations")
+
+        # Don't duplicate
+        if mod not in self.modules:
+            self.modules.append(mod)
 
     def add(self, data, *args, **kwargs):
         """General-purpose method to add computations.

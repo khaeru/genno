@@ -6,8 +6,10 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- :meth:`.require_compat` can handle arbitrary module names and module objects (:pull:`63`).
 
 v1.11.0 (2022-04-20)
 ====================
