@@ -856,11 +856,11 @@ class Computer:
 
         keys = []
         for qty in quantities:
-            # Key for the input quantity
+            # Key for the input quantity, e.g. foo:x-y-z
             key = Key.from_str_or_key(qty)
 
-            # Key for the task
-            keys.append(":".join([key.name, tag]))
+            # Key for the task/output, e.g. foo::iamc
+            keys.append(Key(key.name, tag=tag))
 
             # Add the task and store the key
             self.add_single(keys[-1], (comp, "scenario", key))
