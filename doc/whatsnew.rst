@@ -9,7 +9,16 @@ What's new
 Next release
 ============
 
-- :meth:`.require_compat` can handle arbitrary module names and module objects (:pull:`63`).
+- New computation :func:`.index_to` (:pull:`65`).
+- :ref:`config-general` configuration items are more flexible (:pull:`65`).
+
+  - ``comp: null`` or omitted allows to specify a simple collection of other computations.
+  - A bare string ``key:`` is left as-is; only keys with (a) dimension(s) and/or tag are parsed to :class:`.Key`.
+
+- :func:`.repr` of :class:`.Quantity` displays its units (:pull:`65`).
+- Bug fix: :meth:`.Computer.convert_pyam` handles its `tag` argument correctly, generating keys like ``foo:x-y-z:iamc`` or ``bar::iamc`` when applied to existing keys like ``foo:x-y-z`` or ``bar`` (:pull:`65`).
+  Previously the generated keys would be e.g. ``bar:iamc``, which incorrectly treats "iamc" as a (sole) dimension rather than a tag.
+- :meth:`.Computer.require_compat` can handle arbitrary module names as strings, as well as module objects (:pull:`63`).
 
 v1.11.0 (2022-04-20)
 ====================

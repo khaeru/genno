@@ -142,7 +142,7 @@ class Computer:
               :mod:`genno.compat`, e.g. :mod:`genno.compat.plotnine`.
               ``genno.compat.{pkg}.computations`` is added.
             - the name of an arbitary module, e.g. "foo.bar"
-            - a previously imported module.
+            - a previously imported module object.
 
         Raises
         ------
