@@ -8,16 +8,23 @@ Before releasing, check:
 
 Address any failures before releasing.
 
-1. Edit :file:`doc/whatsnew.rst`.
+1. Create a new branch::
+
+    $ git branch release/vX.Y.Z.
+
+2. Edit :file:`doc/whatsnew.rst`.
    Comment the heading "Next release", then insert another heading below it, at the same level, with the version number and date.
-   Make a commit with a message like "Mark vX.Y.Z in doc/whatsnew".
+   Commit this change with a message like::
 
-2. Tag the release candidate version, i.e. with a ``rcN`` suffix, and push::
+    $ git commit -m "Mark vX.Y.Z in doc/whatsnew".
 
-    $ git tag v1.2.3rc1
-    $ git push --tags origin main
+3. Tag the release candidate version, i.e. with a ``rcN`` suffix, and push::
 
-3. Check:
+    $ git tag vX.Y.Zrc1
+    $ git push --tags origin release/vX.Y.Z
+
+4. Open a PR with the title “Release vX.Y.Z” using this branch.
+   Check:
 
    - at https://github.com/khaeru/genno/actions/workflows/publish.yaml that the workflow completes: the package builds successfully and is published to TestPyPI.
    - at https://test.pypi.org/project/genno/ that:
@@ -25,16 +32,22 @@ Address any failures before releasing.
       - The package can be downloaded, installed and run.
       - The README is rendered correctly.
 
+   - that all other continuous integration (CI) workflows pass.
+
    Address any warnings or errors that appear.
-   If needed, make a new commit and go back to step (2), incrementing the rc number.
+   If needed, make (an) additional commit(s) and go back to step (3), incrementing the rc number.
 
-4. (optional) Tag the release itself and push::
+5. Merge the PR using the ‘rebase and merge’ method.
 
-    $ git tag v1.2.3
+6. (optional) Switch back to the ``main`` branch; tag the release itself (*without* an rc number), and push::
+
+    $ git checkout main
+    $ git pull --fast-forward
+    $ git tag vX.Y.Z
     $ git push --tags origin main
 
-   This step (but *not* step (2)) can also be performed directly on GitHub; see (5), next.
+   This step (but *not* step (3)) can also be performed directly on GitHub; see (7), next.
 
-5. Visit https://github.com/khaeru/genno/releases and mark the new release: either using the pushed tag from (4), or by creating the tag and release simultaneously.
+7. Visit https://github.com/khaeru/genno/releases and mark the new release: either using the pushed tag from (6), or by creating the tag and release simultaneously.
 
-6. Check at https://github.com/khaeru/genno/actions/workflows/publish.yaml and https://pypi.org/project/genno/ that the distributions are published.
+8. Check at https://github.com/khaeru/genno/actions/workflows/publish.yaml and https://pypi.org/project/genno/ that the distributions are published.
