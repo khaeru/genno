@@ -212,6 +212,7 @@ def test_group_sum(ureg):
 
 def test_index_to():
     q = random_qty(dict(x=3, y=5))
+    q.name = "Foo"
 
     exp = q / q.sel(x="x0")
     exp.units = ""
@@ -219,6 +220,7 @@ def test_index_to():
     # Called with a mapping
     result = computations.index_to(q, dict(x="x0"))
     assert_qty_equal(exp, result)
+    assert exp.name == result.name
 
     # Called with two positional arguments
     result = computations.index_to(q, "x", "x0")

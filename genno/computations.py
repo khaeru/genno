@@ -444,7 +444,6 @@ def index_to(
         label = qty.coords[dim][0].item()
         log.info(f"Normalize quantity {qty.name} on {dim}={label}")
 
-    # TODO check name passes through
     return div(qty, qty.sel({dim: label}))
 
 
