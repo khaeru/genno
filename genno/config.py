@@ -2,7 +2,7 @@ import logging
 from copy import copy
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
 
 import pint
 import yaml
@@ -236,10 +236,11 @@ def general(c: Computer, info):
         log.info(f"Add {repr(key)} using .add_product()")
     else:
         # The resulting key
-        key = Key.from_str_or_key(info["key"])
+        key = info["key"]
+        key = key if Key.bare_name(key) else Key.from_str_or_key(key)
 
         # Infer the dimensions of the resulting key if ":*:" is given for the dims
-        if set(key.dims) == {"*"}:
+        if set(getattr(key, "dims", {})) == {"*"}:
             key = Key.product(key.name, *inputs, tag=key.tag)
             # log.debug(f"Inferred dimensions ({', '.join(key.dims)}) for '*'")
 
