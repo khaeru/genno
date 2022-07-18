@@ -39,7 +39,7 @@ class Quantity:
 
     @property
     def name(self) -> Hashable:
-        ...
+        ...  # pragma: no cover
 
     @property
     def units(self):
