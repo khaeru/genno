@@ -305,6 +305,9 @@ Each item contains:
   Refers to the name of a computation that is available in the namespace of :mod:`genno.computations`, or custom computations registered by compatibility modules or third-party packages.
   See :meth:`Computer.add` and :meth:`Computer.get_comp`.
   E.g. if "product", then :meth:`.Computer.add_product` is called, which also automatically infers the correct dimensions for each input.
+
+  If omitted, :data:`None`, or YAML ``null``, no specific callable is used, but instead ``key:`` is configured to retrieve a simple :class:`list`` of the ``inputs:``.
+  In this case, ``args:`` are ignored.
 ``key:``
    The key for the computed quantity.
 

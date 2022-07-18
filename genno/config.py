@@ -243,18 +243,23 @@ def general(c: Computer, info):
             key = Key.product(key.name, *inputs, tag=key.tag)
             # log.debug(f"Inferred dimensions ({', '.join(key.dims)}) for '*'")
 
-        # Retrieve the function for the computation
-        f = c.get_comp(info["comp"])
+        # If info["comp"] is None, the task is a list that collects other keys
+        _seq: Type = list
+        task = []
 
-        if f is None:
-            raise ValueError(info["comp"])
+        if info["comp"] is not None:
+            _seq = tuple  # Task is a computation
+            # Retrieve the function for the computation
+            f = c.get_comp(info["comp"])
+            if f is None:
+                raise ValueError(info["comp"])
+            task = [partial(f, **info.get("args", {}))]
 
-        log.info(f"Add {repr(key)} using {f.__module__}{f.__name__}(...)")
+            log.info(f"Add {repr(key)} using {f.__module__}.{f.__name__}(…)")
 
-        kwargs = info.get("args", {})
-        task = tuple([partial(f, **kwargs)] + list(inputs))
+        task.extend(inputs)
 
-        added = c.add(key, task, strict=True, sums=info.get("sums", False))
+        added = c.add(key, _seq(task), strict=True, sums=info.get("sums", False))
 
         if isinstance(added, tuple):
             log.info(f"    + {len(added)-1} partial sums")
@@ -265,7 +270,7 @@ def report(c: Computer, info):
     """Handle one entry from the ``report:`` config section."""
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
-    # Concatenate pyam data structures
+    # Concatenatqe pyam data structures
     c.add(info["key"], tuple([c.get_comp("concat")] + info["members"]), strict=True)
 
 
