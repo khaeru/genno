@@ -299,6 +299,7 @@ Computations
       disaggregate_shares
       div
       group_sum
+      index_to
       interpolate
       mul
       pow

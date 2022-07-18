@@ -25,6 +25,7 @@ __all__ = [
     "disaggregate_shares",
     "div",
     "group_sum",
+    "index_to",
     "interpolate",
     "load_file",
     "mul",
@@ -411,19 +412,21 @@ def index_to(
 ) -> Quantity:
     """Compute an index of `qty` against certain of its values.
 
+    If the label is not provided, :func:`index_to` uses the label in the first position
+    along the identified dimension.
+
     Parameters
     ----------
-    qty : genno.core.Quantity
+    qty : :class:`~genno.Quantity`
     dim_or_selector : str or mapping
         If a string, the ID of the dimension to index along.
         If a mapping, it must have only one element, mapping a dimension ID to a label.
     label : Hashable
-        Required if `dim_or_selector` is a string. Label to select along the dimension.
+        Label to select along the dimension, required if `dim_or_selector` is a string.
     Raises
     ------
     TypeError
-        if `dim_or_selector` is a mapping with length != 1, or if `dim_or_selector` is
-        a string but `label` is omitted.
+        if `dim_or_selector` is a mapping with length != 1.
     """
     if isinstance(dim_or_selector, Mapping):
         if len(dim_or_selector) != 1:
