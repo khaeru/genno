@@ -38,6 +38,10 @@ class Quantity:
         return cls._get_class().from_series(series, sparse)
 
     @property
+    def name(self) -> Hashable:
+        ...
+
+    @property
     def units(self):
         """Retrieve or set the units of the Quantity.
 
