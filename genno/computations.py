@@ -1,10 +1,10 @@
 """Elementary computations for genno."""
 # Notes:
-# - To avoid ambiguity, computations should not have default arguments. Define
-#   default values for the corresponding methods on the Computer class.
+# - To avoid ambiguity, computations should not have default arguments. Define default
+#   values for the corresponding methods on the Computer class.
 import logging
 from pathlib import Path
-from typing import Any, Hashable, Mapping, Union, cast
+from typing import Any, Hashable, Mapping, Optional, Union, cast
 
 import pandas as pd
 import pint
@@ -25,6 +25,7 @@ __all__ = [
     "disaggregate_shares",
     "div",
     "group_sum",
+    "index_to",
     "interpolate",
     "load_file",
     "mul",
@@ -90,7 +91,7 @@ def add(*quantities, fill_value=0.0):
     return result
 
 
-def aggregate(quantity, groups, keep):
+def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
     """Aggregate *quantity* by *groups*.
 
     Parameters
@@ -129,7 +130,9 @@ def aggregate(quantity, groups, keep):
             values.append(agg)
 
         # Reassemble to a single dataarray
-        quantity = concat(*values, dim=dim)
+        quantity = concat(
+            *values, **({} if isinstance(quantity, AttrSeries) else {"dim": dim})
+        )
 
     # Preserve attrs
     quantity.attrs = attrs
@@ -400,6 +403,48 @@ def load_file(path, dims={}, units=None, name=None):
     else:
         # Default
         return open(path).read()
+
+
+def index_to(
+    qty: Quantity,
+    dim_or_selector: Union[str, Mapping],
+    label: Optional[Hashable] = None,
+) -> Quantity:
+    """Compute an index of `qty` against certain of its values.
+
+    If the label is not provided, :func:`index_to` uses the label in the first position
+    along the identified dimension.
+
+    Parameters
+    ----------
+    qty : :class:`~genno.Quantity`
+    dim_or_selector : str or mapping
+        If a string, the ID of the dimension to index along.
+        If a mapping, it must have only one element, mapping a dimension ID to a label.
+    label : Hashable
+        Label to select along the dimension, required if `dim_or_selector` is a string.
+    Raises
+    ------
+    TypeError
+        if `dim_or_selector` is a mapping with length != 1.
+    """
+    if isinstance(dim_or_selector, Mapping):
+        if len(dim_or_selector) != 1:
+            raise TypeError(
+                f"Got {dim_or_selector}; expected a mapping from 1 key to 1 value"
+            )
+        dim, label = dict(dim_or_selector).popitem()
+    else:
+        # Unwrap dask.core.literals
+        dim = getattr(dim_or_selector, "data", dim_or_selector)
+        label = getattr(label, "data", label)
+
+    if label is None:
+        # Choose a label on which to normalize
+        label = qty.coords[dim][0].item()
+        log.info(f"Normalize quantity {qty.name} on {dim}={label}")
+
+    return div(qty, qty.sel({dim: label}))
 
 
 def pow(a, b):

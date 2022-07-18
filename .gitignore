@@ -21,3 +21,6 @@ myfunc2-*.pkl
 doc/*.svg
 doc/.ipynb_checkpoints
 doc/_build
+
+# Editor/IDE-specific files
+/.vscode

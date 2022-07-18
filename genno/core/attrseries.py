@@ -82,6 +82,9 @@ class AttrSeries(pd.Series, Quantity):
         # Update the attrs after initialization
         self.attrs.update(attrs)
 
+    def __repr__(self):
+        return super().__repr__() + f", units: {self.units}"
+
     @classmethod
     def from_series(cls, series, sparse=None):
         """Like :meth:`xarray.DataArray.from_series`."""

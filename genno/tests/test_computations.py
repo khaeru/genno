@@ -210,6 +210,37 @@ def test_group_sum(ureg):
     assert 2 == len(result)
 
 
+def test_index_to():
+    q = random_qty(dict(x=3, y=5))
+    q.name = "Foo"
+
+    exp = q / q.sel(x="x0")
+    exp.units = ""
+
+    # Called with a mapping
+    result = computations.index_to(q, dict(x="x0"))
+    assert_qty_equal(exp, result)
+    assert exp.name == result.name
+
+    # Called with two positional arguments
+    result = computations.index_to(q, "x", "x0")
+    assert_qty_equal(exp, result)
+
+    # Default first index selected if 'None' is given
+    result = computations.index_to(q, "x")
+    assert_qty_equal(exp, result)
+
+    result = computations.index_to(q, dict(x=None))
+    assert_qty_equal(exp, result)
+
+    # Invalid calls
+    with pytest.raises(TypeError, match="expected a mapping from 1 key to 1 value"):
+        computations.index_to(q, dict(x="x0", y="y0"))  # Length != 1
+
+    with pytest.raises(KeyError):
+        computations.index_to(q, dict(x="x99"))  # Mapping to something invalid
+
+
 @pytest.mark.parametrize(
     "shape",
     [
