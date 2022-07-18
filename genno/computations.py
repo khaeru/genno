@@ -402,6 +402,45 @@ def load_file(path, dims={}, units=None, name=None):
         return open(path).read()
 
 
+def index_to(
+    qty: Quantity,
+    dim_or_selector: Union[str, Mapping],
+    label: Optional[Hashable] = None,
+) -> Quantity:
+    """Compute an index of `qty` against certain of its values.
+
+    Parameters
+    ----------
+    qty : genno.core.Quantity
+    dim_or_selector : str or mapping
+        If a string, the ID of the dimension to index along.
+        If a mapping, it must have only one element, mapping a dimension ID to a label.
+    label : Hashable
+        Required if `dim_or_selector` is a string. Label to select along the dimension.
+    Raises
+    ------
+    TypeError
+        if `dim_or_selector` is a mapping with length != 1, or if `dim_or_selector` is
+        a string but `label` is omitted.
+    """
+    if isinstance(dim_or_selector, Mapping):
+        selector = dim_or_selector
+    else:
+        # Unwrap a dask.core.literal
+        dim = getattr(dim_or_selector, "data", dim_or_selector)
+        if label is None:
+            # Choose a label on which to normalize
+            label = qty.coords[dim][0].item()
+            log.info(f"Normalize quantity {qty.name} on {dim_or_selector}={label}")
+        selector = {dim: label}
+
+    if len(selector) != 1 or [None] == selector.values():
+        raise TypeError(f"Got {selector}; expected a mapping from 1 key to 1 value")
+
+    # TODO check name passes through
+    return div(qty, qty.sel(selector))
+
+
 def pow(a, b):
     """Compute `a` raised to the power of `b`.
 
