@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.12.0 (2022-07-18)
+====================
 
 - New computation :func:`.index_to` (:pull:`65`).
 - :ref:`config-general` configuration items are more flexible (:pull:`65`).
