@@ -132,7 +132,7 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     key2 = c.convert_pyam(ACT, rename=rename, collapse=add_tm)
 
     # Keys of added node(s) are returned
-    assert ACT.name + ":iamc" == key2
+    assert ACT.name + "::iamc" == key2
 
     caplog.clear()
 
