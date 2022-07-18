@@ -1,10 +1,10 @@
 """Elementary computations for genno."""
 # Notes:
-# - To avoid ambiguity, computations should not have default arguments. Define
-#   default values for the corresponding methods on the Computer class.
+# - To avoid ambiguity, computations should not have default arguments. Define default
+#   values for the corresponding methods on the Computer class.
 import logging
 from pathlib import Path
-from typing import Any, Hashable, Mapping, Union, cast
+from typing import Any, Hashable, Mapping, Optional, Union, cast
 
 import pandas as pd
 import pint
@@ -90,7 +90,7 @@ def add(*quantities, fill_value=0.0):
     return result
 
 
-def aggregate(quantity, groups, keep):
+def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
     """Aggregate *quantity* by *groups*.
 
     Parameters
@@ -129,7 +129,9 @@ def aggregate(quantity, groups, keep):
             values.append(agg)
 
         # Reassemble to a single dataarray
-        quantity = concat(*values, dim=dim)
+        quantity = concat(
+            *values, **({} if isinstance(quantity, AttrSeries) else {"dim": dim})
+        )
 
     # Preserve attrs
     quantity.attrs = attrs
