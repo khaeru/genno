@@ -426,21 +426,23 @@ def index_to(
         a string but `label` is omitted.
     """
     if isinstance(dim_or_selector, Mapping):
-        selector = dim_or_selector
+        if len(dim_or_selector) != 1:
+            raise TypeError(
+                f"Got {dim_or_selector}; expected a mapping from 1 key to 1 value"
+            )
+        dim, label = dict(dim_or_selector).popitem()
     else:
-        # Unwrap a dask.core.literal
+        # Unwrap dask.core.literals
         dim = getattr(dim_or_selector, "data", dim_or_selector)
-        if label is None:
-            # Choose a label on which to normalize
-            label = qty.coords[dim][0].item()
-            log.info(f"Normalize quantity {qty.name} on {dim_or_selector}={label}")
-        selector = {dim: label}
+        label = getattr(label, "data", label)
 
-    if len(selector) != 1 or [None] == selector.values():
-        raise TypeError(f"Got {selector}; expected a mapping from 1 key to 1 value")
+    if label is None:
+        # Choose a label on which to normalize
+        label = qty.coords[dim][0].item()
+        log.info(f"Normalize quantity {qty.name} on {dim}={label}")
 
     # TODO check name passes through
-    return div(qty, qty.sel(selector))
+    return div(qty, qty.sel({dim: label}))
 
 
 def pow(a, b):
