@@ -34,8 +34,7 @@ class Plot(ABC):
         missing = tuple(filter(lambda arg: isinstance(arg, str), args))
         if len(missing):
             log.error(
-                f"Missing input(s) {repr(missing)} to plot {repr(self.basename)}; no "
-                "output"
+                f"Missing input(s) {missing!r} to plot {self.basename!r}; no output"
             )
             return
 
@@ -44,9 +43,9 @@ class Plot(ABC):
             lambda arg: arg
             if not isinstance(arg, Quantity)
             else arg.to_series()
-            .rename(arg.name)
+            .rename(arg.name or "value")
             .reset_index()
-            .assign(unit=arg.attrs.get("_unit", "")),
+            .assign(unit=f"{arg.units:~}"),
             args,
         )
 
@@ -54,8 +53,8 @@ class Plot(ABC):
 
         if not plot_or_plots:
             log.info(
-                f"{self.__class__.__name__}.generate() returned {repr(plot_or_plots)}; "
-                "no output"
+                f"{self.__class__.__name__}.generate() returned {plot_or_plots!r}; no "
+                "output"
             )
             return
 
