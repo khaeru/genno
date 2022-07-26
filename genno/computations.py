@@ -3,6 +3,7 @@
 # - To avoid ambiguity, computations should not have default arguments. Define default
 #   values for the corresponding methods on the Computer class.
 import logging
+import re
 from pathlib import Path
 from typing import Any, Hashable, Mapping, Optional, Union, cast
 
@@ -354,46 +355,8 @@ def load_file(path, dims={}, units=None, name=None):
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
     # TODO strip leading/trailing whitespace from column names
-    # TODO read units from header
     if path.suffix == ".csv":
-        data = pd.read_csv(path, comment="#", skipinitialspace=True)
-
-        # Index columns
-        index_columns = data.columns.tolist()
-        index_columns.remove("value")
-
-        try:
-            # Retrieve the unit column from the file
-            units_col = data.pop("unit").unique()
-            index_columns.remove("unit")
-        except KeyError:
-            pass  # No such column; use None or argument value
-        else:
-            # Use a unique value for units of the quantity
-            if len(units_col) > 1:
-                raise ValueError(
-                    f"Cannot load {path} with non-unique units {repr(units_col)}"
-                )
-            elif units and units not in units_col:
-                raise ValueError(
-                    f"Explicit units {units} do not match {units_col[0]} in {path}"
-                )
-            units = units_col[0]
-
-        if len(dims):
-            # Convert a list, set, etc. to a dict
-            dims = dims if isinstance(dims, Mapping) else {d: d for d in dims}
-
-            # - Drop columns not mentioned in *dims*
-            # - Rename columns according to *dims*
-            data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
-                columns=dims
-            )
-
-            index_columns = list(data.columns)
-            index_columns.pop(index_columns.index("value"))
-
-        return Quantity(data.set_index(index_columns)["value"], units=units, name=name)
+        return _load_file_csv(path, dims, units, name)
     elif path.suffix in (".xls", ".xlsx"):
         # TODO define expected Excel data input format
         raise NotImplementedError  # pragma: no cover
@@ -403,6 +366,74 @@ def load_file(path, dims={}, units=None, name=None):
     else:
         # Default
         return open(path).read()
+
+
+UNITS_RE = re.compile(r"# Unit: (.*)\s+")
+
+
+def _load_file_csv(path, dims={}, units=None, name=None):
+    # Peek at the header, if any, and match a units expression
+    header_units = None
+    with open(path, "r") as f:
+        for line in f:
+            if not line.startswith("#"):
+                break
+            match = UNITS_RE.fullmatch(line)
+            if match is None:
+                continue
+            header_units = match.group(1)
+            break
+
+    if header_units:
+        if units:
+            log.warning(f"Replace {header_units!r} from file with {units!r}")
+        else:
+            units = header_units
+
+    # Read the data
+    data = pd.read_csv(path, comment="#", skipinitialspace=True)
+
+    # Index columns
+    index_columns = data.columns.tolist()
+    index_columns.remove("value")
+
+    try:
+        # Retrieve the unit column from the file
+        units_col = data.pop("unit").unique()
+        index_columns.remove("unit")
+    except KeyError:
+        pass  # No such column; use None or argument value
+    else:
+        # Use a unique value for units of the quantity
+        if len(units_col) > 1:
+            raise ValueError(
+                f"Cannot load {path} with non-unique units {repr(units_col)}"
+            )
+        elif units and units not in units_col:
+            raise ValueError(
+                f"Explicit units {units} do not match {units_col[0]} in {path}"
+            )
+        units = units_col[0]
+
+    if len(dims):
+        # Convert a list, set, etc. to a dict
+        dims = dims if isinstance(dims, Mapping) else {d: d for d in dims}
+
+        # - Drop columns not mentioned in *dims*
+        # - Rename columns according to *dims*
+        data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
+            columns=dims
+        )
+
+        index_columns = list(data.columns)
+        index_columns.pop(index_columns.index("value"))
+
+    unit_qty = pint.get_application_registry()(units)
+    units, factor = unit_qty.units, unit_qty.magnitude
+
+    return Quantity(
+        factor * data.set_index(index_columns)["value"], units=units, name=name
+    )
 
 
 def index_to(
