@@ -374,7 +374,7 @@ UNITS_RE = re.compile(r"# Unit: (.*)\s+")
 def _load_file_csv(path, dims={}, units=None, name=None):
     # Peek at the header, if any, and match a units expression
     header_units = None
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         for line in f:
             if not line.startswith("#"):
                 break
