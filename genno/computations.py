@@ -10,7 +10,7 @@ import pandas as pd
 import pint
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.attrseries import AttrSeries
+from genno.core.attrseries import AttrSeries, _multiindex_of
 from genno.core.quantity import Quantity, assert_quantity, maybe_densify
 from genno.core.sparsedataarray import SparseDataArray
 from genno.util import collect_units, filter_concat_args
@@ -550,7 +550,7 @@ def relabel(
 
     if isinstance(qty, AttrSeries):
         # Prepare a new index
-        idx = qty.index
+        idx = _multiindex_of(qty)
         for dim, label_map in iter:
             # - Look up numerical index of the dimension in `idx`
             # - Retrieve the existing levels.
