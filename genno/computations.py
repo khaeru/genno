@@ -659,10 +659,11 @@ def sum(quantity, weights=None, dimensions=None):
         weights, w_total = 1, 1
     else:
         w_total = weights.sum(dim=dimensions)
+        if 0 == len(w_total.dims):
+            w_total = w_total.item()
 
     result = (quantity * weights).sum(dim=dimensions) / w_total
-    result.attrs["_unit"] = collect_units(quantity)[0]
-
+    result.units = collect_units(quantity)[0]
     return result
 
 
