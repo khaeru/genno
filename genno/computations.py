@@ -5,7 +5,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Hashable, Mapping, Optional, Union, cast
+from typing import Any, Collection, Hashable, Mapping, Optional, Union, cast
 
 import pandas as pd
 import pint
@@ -14,7 +14,7 @@ from xarray.core.utils import either_dict_or_kwargs
 from genno.core.attrseries import AttrSeries, _multiindex_of
 from genno.core.quantity import Quantity, assert_quantity, maybe_densify
 from genno.core.sparsedataarray import SparseDataArray
-from genno.util import collect_units, filter_concat_args
+from genno.util import UnitLike, collect_units, filter_concat_args
 
 __all__ = [
     "add",
@@ -328,7 +328,12 @@ def interpolate(
     return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
-def load_file(path, dims={}, units=None, name=None):
+def load_file(
+    path: Path,
+    dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
+    units: UnitLike = None,
+    name: Optional[str] = None,
+) -> Any:
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
 
     Some file formats are automatically converted into objects for direct use in genno
@@ -368,27 +373,26 @@ def load_file(path, dims={}, units=None, name=None):
         return open(path).read()
 
 
-UNITS_RE = re.compile(r"# Unit: (.*)\s+")
+UNITS_RE = re.compile(r"# Units?: (.*)\s+")
 
 
-def _load_file_csv(path, dims={}, units=None, name=None):
+def _load_file_csv(
+    path: Path,
+    dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
+    units: UnitLike = None,
+    name: Optional[str] = None,
+) -> Quantity:
     # Peek at the header, if any, and match a units expression
-    header_units = None
     with open(path, "r", encoding="utf-8") as f:
-        for line in f:
-            if not line.startswith("#"):
+        for line, match in map(lambda l: (l, UNITS_RE.fullmatch(l)), f):
+            if match:
+                if units:
+                    log.warning(f"Replace {match.group(1)!r} from file with {units!r}")
+                else:
+                    units = match.group(1)
                 break
-            match = UNITS_RE.fullmatch(line)
-            if match is None:
-                continue
-            header_units = match.group(1)
-            break
-
-    if header_units:
-        if units:
-            log.warning(f"Replace {header_units!r} from file with {units!r}")
-        else:
-            units = header_units
+            elif not line.startswith("#"):
+                break  # Give up at first non-commented line
 
     # Read the data
     data = pd.read_csv(path, comment="#", skipinitialspace=True)
@@ -415,7 +419,7 @@ def _load_file_csv(path, dims={}, units=None, name=None):
             )
         units = units_col[0]
 
-    if len(dims):
+    if dims:
         # Convert a list, set, etc. to a dict
         dims = dims if isinstance(dims, Mapping) else {d: d for d in dims}
 
@@ -428,11 +432,18 @@ def _load_file_csv(path, dims={}, units=None, name=None):
         index_columns = list(data.columns)
         index_columns.pop(index_columns.index("value"))
 
-    unit_qty = pint.get_application_registry()(units)
-    units, factor = unit_qty.units, unit_qty.magnitude
+    # Prepare a Quantity object with the (bare) units and any conversion factor
+    registry = pint.get_application_registry()
+    units = units or "1.0 dimensionless"
+    if isinstance(units, str):
+        uq = registry(units)
+    elif isinstance(units, pint.Unit):
+        uq = registry.Quantity(1.0, units)
+    else:
+        uq = units
 
     return Quantity(
-        factor * data.set_index(index_columns)["value"], units=units, name=name
+        uq.magnitude * data.set_index(index_columns)["value"], units=uq.units, name=name
     )
 
 

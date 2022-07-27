@@ -1,0 +1,13 @@
+# This file has a header with units
+#
+# Units: 0.1 km
+#
+# It also has spaces trailing commas
+
+i,         j,        foo, value
+seattle,   new-york, foo, 25
+seattle,   chicago,  foo, 17
+seattle,   topeka,   foo, 18
+san-diego, new-york, foo, 25
+san-diego, chicago,  foo, 18
+san-diego, topeka,   foo, 14

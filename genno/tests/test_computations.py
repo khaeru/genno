@@ -303,11 +303,22 @@ def test_interpolate(caplog, shape):
     "name, kwargs",
     [
         ("input0.csv", dict(units="km")),
+        # Dimensions as a container, without mapping
+        ("input0.csv", dict(dims=["i", "j"], units="km")),
+        #
         # Map a dimension name from the file to a different one in the quantity; ignore
         # dimension "foo"
         ("input1.csv", dict(dims=dict(i="i", j_dim="j"))),
-        # Dimensions as a container, without mapping
-        ("input0.csv", dict(dims=["i", "j"], units="km")),
+        ("input2.csv", dict(dims=["i", "j"])),
+        ("input2.csv", dict(dims=["i", "j"], units="km")),  # Logs a warning
+        # Exceptions
+        pytest.param(
+            "input1.csv",
+            dict(dims=dict(i="i", j_dim="j"), units="kg"),
+            marks=pytest.mark.xfail(
+                raises=ValueError, reason="Explicit units 'kg' do not match 'km'…"
+            ),
+        ),
         pytest.param(
             "load_file-invalid.csv",
             dict(),
@@ -318,11 +329,11 @@ def test_interpolate(caplog, shape):
     ],
 )
 def test_load_file(test_data_path, ureg, name, kwargs):
-    # TODO test name= parameter
-    qty = computations.load_file(test_data_path / name, **kwargs)
+    qty = computations.load_file(test_data_path / name, name="baz", **kwargs)
 
     assert ("i", "j") == qty.dims
-    assert ureg.kilometre == qty.attrs["_unit"]
+    assert ureg.kilometre == qty.units
+    assert "baz" == qty.name
 
 
 def test_pow(ureg):
