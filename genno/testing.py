@@ -248,7 +248,7 @@ def assert_qty_equal(
         try:
             a = a.sort_index().dropna()
             b = b.sort_index().dropna()
-        except TypeError:
+        except TypeError:  # pragma: no cover
             pass
         assert_series_equal(a, b, check_dtype=False, **kwargs)
     else:

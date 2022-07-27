@@ -303,6 +303,8 @@ def test_interpolate(caplog, shape):
     "name, kwargs",
     [
         ("input0.csv", dict(units="km")),
+        # Units kwarg as a pint.Quantity
+        ("input0.csv", dict(units=pint.get_application_registry()("1.0 km"))),
         # Dimensions as a container, without mapping
         ("input0.csv", dict(dims=["i", "j"], units="km")),
         #
