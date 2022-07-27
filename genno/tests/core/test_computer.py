@@ -510,7 +510,7 @@ def test_dantzig(ureg):
     obs = c.get(new_key)
     d_ij = c.get("d:i-j")
     exp = Quantity(
-        (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]),
+        (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]).item(),
         attrs=d_ij.attrs,
     )
 
