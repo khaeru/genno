@@ -25,6 +25,7 @@ REPLACE_UNITS = {
     "%": "percent",
 }
 
+# For use in type hints
 UnitLike = Union[str, pint.Unit, pint.Quantity]
 
 
