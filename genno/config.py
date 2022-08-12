@@ -231,7 +231,7 @@ def general(c: Computer, info):
     # Inputs
     inputs = c.infer_keys(info.get("inputs", []))
 
-    if info["comp"] == "product":
+    if info["comp"] in ("mul", "product"):
         key = c.add_product(info["key"], *inputs)
         log.info(f"Add {repr(key)} using .add_product()")
     else:

@@ -70,6 +70,9 @@ class Quantity:
     def __len__(self) -> int:
         ...  # pragma: no cover
 
+    def __mul__(self, other) -> "Quantity":
+        ...  # pragma: no cover
+
     def __radd__(self, other):
         ...  # pragma: no cover
 

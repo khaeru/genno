@@ -296,6 +296,40 @@ def disaggregate_shares(quantity, shares):
     return result
 
 
+def div(numerator, denominator):
+    """Compute the ratio `numerator` / `denominator`.
+
+    Parameters
+    ----------
+    numerator : .Quantity
+    denominator : .Quantity
+    """
+    # Handle units
+    u_num, u_denom = collect_units(numerator, denominator)
+
+    if isinstance(numerator, AttrSeries):
+        result = numerator / denominator.align_levels(numerator)
+    else:
+        result = numerator / denominator
+
+    # This shouldn't be necessary; would instead prefer:
+    # result.attrs["_unit"] = u_num / u_denom
+    # … but is necessary to avoid an issue when the operands are different Unit classes
+    ureg = pint.get_application_registry()
+    result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
+
+    if isinstance(result, AttrSeries):
+        result.dropna(inplace=True)
+
+    return result
+
+
+#: Alias of :func:`mul`, for backwards compatibility.
+#:
+#: .. note:: This may be deprecated and possibly removed in a future version.
+ratio = div
+
+
 def group_sum(qty, group, sum):
     """Group by dimension *group*, then sum across dimension *sum*.
 
@@ -527,7 +561,7 @@ def pow(a, b):
     return result
 
 
-def product(*quantities):
+def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
     # Iterator over (quantity, unit) tuples
     items = zip(quantities, collect_units(*quantities))
@@ -549,12 +583,10 @@ def product(*quantities):
     return result
 
 
-#: Identical to :func:`product`, but using a name aligned with the Python standard
-#: library, e.g. in :mod:`operator`.
+#: Alias of :func:`mul`, for backwards compatibility.
 #:
-#: .. note:: In the future, this will be the canonical name, and :func:`product` will be
-#:    deprecated and possibly removed.
-mul = product
+#: .. note:: This may be deprecated and possibly removed in a future version.
+product = mul
 
 
 def relabel(
@@ -623,42 +655,6 @@ def rename_dims(
     Like :meth:`xarray.DataArray.rename`.
     """
     return qty.rename(new_name_or_name_dict, **names)
-
-
-def ratio(numerator, denominator):
-    """Compute the ratio `numerator` / `denominator`.
-
-    Parameters
-    ----------
-    numerator : .Quantity
-    denominator : .Quantity
-    """
-    # Handle units
-    u_num, u_denom = collect_units(numerator, denominator)
-
-    if isinstance(numerator, AttrSeries):
-        result = numerator / denominator.align_levels(numerator)
-    else:
-        result = numerator / denominator
-
-    # This shouldn't be necessary; would instead prefer:
-    # result.attrs["_unit"] = u_num / u_denom
-    # … but is necessary to avoid an issue when the operands are different Unit classes
-    ureg = pint.get_application_registry()
-    result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
-
-    if isinstance(result, AttrSeries):
-        result.dropna(inplace=True)
-
-    return result
-
-
-#: Identical to :func:`ratio`, but using a name aligned with the Python standard
-#: library, e.g. in :mod:`operator`.
-#:
-#: .. note:: In the future, this will be the canonical name, and :func:`ratio` will be
-#:    deprecated and possibly removed.
-div = ratio
 
 
 def select(qty, indexers, inverse=False):

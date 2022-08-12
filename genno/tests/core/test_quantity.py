@@ -259,7 +259,7 @@ class TestQuantity:
         keys = add_large_data(c, num_params=10)
 
         # Add a task to compute the product, i.e. requires all the q_*
-        c.add("bigmem", tuple([computations.product] + keys))
+        c.add("bigmem", tuple([computations.mul] + keys))
 
         # One quantity fits in memory
         c.get(keys[0])

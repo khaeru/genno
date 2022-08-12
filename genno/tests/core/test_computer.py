@@ -264,7 +264,7 @@ def test_add0():
     # add(..., strict=True) checks str or Key arguments
     g = Key("g", "hi")
     with pytest.raises(MissingKeyError, match=msg("b", g)):
-        c.add("foo", (computations.product, "a", "b", g), strict=True)
+        c.add("foo", (computations.mul, "a", "b", g), strict=True)
 
     # aggregate() and disaggregate() call add(), which raises the exception
     with pytest.raises(MissingKeyError, match=msg(g)):
@@ -711,7 +711,7 @@ def test_units(ureg):
     assert c.get("power").attrs["_unit"] == ureg.parse_units("MJ/hour")
 
     # Product of dimensioned and dimensionless quantities keeps the former
-    c.add("energy2", (computations.product, "energy:x", "efficiency"))
+    c.add("energy2", (computations.mul, "energy:x", "efficiency"))
     assert c.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
 
 
