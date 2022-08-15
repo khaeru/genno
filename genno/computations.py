@@ -3,17 +3,18 @@
 # - To avoid ambiguity, computations should not have default arguments. Define default
 #   values for the corresponding methods on the Computer class.
 import logging
+import re
 from pathlib import Path
-from typing import Any, Hashable, Mapping, Optional, Union, cast
+from typing import Any, Collection, Hashable, Mapping, Optional, Union, cast
 
 import pandas as pd
 import pint
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.attrseries import AttrSeries
+from genno.core.attrseries import AttrSeries, _multiindex_of
 from genno.core.quantity import Quantity, assert_quantity, maybe_densify
 from genno.core.sparsedataarray import SparseDataArray
-from genno.util import collect_units, filter_concat_args
+from genno.util import UnitLike, collect_units, filter_concat_args
 
 __all__ = [
     "add",
@@ -295,6 +296,40 @@ def disaggregate_shares(quantity, shares):
     return result
 
 
+def div(numerator, denominator):
+    """Compute the ratio `numerator` / `denominator`.
+
+    Parameters
+    ----------
+    numerator : .Quantity
+    denominator : .Quantity
+    """
+    # Handle units
+    u_num, u_denom = collect_units(numerator, denominator)
+
+    if isinstance(numerator, AttrSeries):
+        result = numerator / denominator.align_levels(numerator)
+    else:
+        result = numerator / denominator
+
+    # This shouldn't be necessary; would instead prefer:
+    # result.attrs["_unit"] = u_num / u_denom
+    # … but is necessary to avoid an issue when the operands are different Unit classes
+    ureg = pint.get_application_registry()
+    result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
+
+    if isinstance(result, AttrSeries):
+        result.dropna(inplace=True)
+
+    return result
+
+
+#: Alias of :func:`mul`, for backwards compatibility.
+#:
+#: .. note:: This may be deprecated and possibly removed in a future version.
+ratio = div
+
+
 def group_sum(qty, group, sum):
     """Group by dimension *group*, then sum across dimension *sum*.
 
@@ -327,7 +362,12 @@ def interpolate(
     return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
-def load_file(path, dims={}, units=None, name=None):
+def load_file(
+    path: Path,
+    dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
+    units: UnitLike = None,
+    name: Optional[str] = None,
+) -> Any:
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
 
     Some file formats are automatically converted into objects for direct use in genno
@@ -354,46 +394,8 @@ def load_file(path, dims={}, units=None, name=None):
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
     # TODO strip leading/trailing whitespace from column names
-    # TODO read units from header
     if path.suffix == ".csv":
-        data = pd.read_csv(path, comment="#", skipinitialspace=True)
-
-        # Index columns
-        index_columns = data.columns.tolist()
-        index_columns.remove("value")
-
-        try:
-            # Retrieve the unit column from the file
-            units_col = data.pop("unit").unique()
-            index_columns.remove("unit")
-        except KeyError:
-            pass  # No such column; use None or argument value
-        else:
-            # Use a unique value for units of the quantity
-            if len(units_col) > 1:
-                raise ValueError(
-                    f"Cannot load {path} with non-unique units {repr(units_col)}"
-                )
-            elif units and units not in units_col:
-                raise ValueError(
-                    f"Explicit units {units} do not match {units_col[0]} in {path}"
-                )
-            units = units_col[0]
-
-        if len(dims):
-            # Convert a list, set, etc. to a dict
-            dims = dims if isinstance(dims, Mapping) else {d: d for d in dims}
-
-            # - Drop columns not mentioned in *dims*
-            # - Rename columns according to *dims*
-            data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
-                columns=dims
-            )
-
-            index_columns = list(data.columns)
-            index_columns.pop(index_columns.index("value"))
-
-        return Quantity(data.set_index(index_columns)["value"], units=units, name=name)
+        return _load_file_csv(path, dims, units, name)
     elif path.suffix in (".xls", ".xlsx"):
         # TODO define expected Excel data input format
         raise NotImplementedError  # pragma: no cover
@@ -403,6 +405,80 @@ def load_file(path, dims={}, units=None, name=None):
     else:
         # Default
         return open(path).read()
+
+
+UNITS_RE = re.compile(r"# Units?: (.*)\s+")
+
+
+def _load_file_csv(
+    path: Path,
+    dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
+    units: UnitLike = None,
+    name: Optional[str] = None,
+) -> Quantity:
+    # Peek at the header, if any, and match a units expression
+    with open(path, "r", encoding="utf-8") as f:
+        for line, match in map(lambda l: (l, UNITS_RE.fullmatch(l)), f):
+            if match:
+                if units:
+                    log.warning(f"Replace {match.group(1)!r} from file with {units!r}")
+                else:
+                    units = match.group(1)
+                break
+            elif not line.startswith("#"):
+                break  # Give up at first non-commented line
+
+    # Read the data
+    data = pd.read_csv(path, comment="#", skipinitialspace=True)
+
+    # Index columns
+    index_columns = data.columns.tolist()
+    index_columns.remove("value")
+
+    try:
+        # Retrieve the unit column from the file
+        units_col = data.pop("unit").unique()
+        index_columns.remove("unit")
+    except KeyError:
+        pass  # No such column; use None or argument value
+    else:
+        # Use a unique value for units of the quantity
+        if len(units_col) > 1:
+            raise ValueError(
+                f"Cannot load {path} with non-unique units {repr(units_col)}"
+            )
+        elif units and units not in units_col:
+            raise ValueError(
+                f"Explicit units {units} do not match {units_col[0]} in {path}"
+            )
+        units = units_col[0]
+
+    if dims:
+        # Convert a list, set, etc. to a dict
+        dims = dims if isinstance(dims, Mapping) else {d: d for d in dims}
+
+        # - Drop columns not mentioned in *dims*
+        # - Rename columns according to *dims*
+        data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
+            columns=dims
+        )
+
+        index_columns = list(data.columns)
+        index_columns.pop(index_columns.index("value"))
+
+    # Prepare a Quantity object with the (bare) units and any conversion factor
+    registry = pint.get_application_registry()
+    units = units or "1.0 dimensionless"
+    if isinstance(units, str):
+        uq = registry(units)
+    elif isinstance(units, pint.Unit):
+        uq = registry.Quantity(1.0, units)
+    else:
+        uq = units
+
+    return Quantity(
+        uq.magnitude * data.set_index(index_columns)["value"], units=uq.units, name=name
+    )
 
 
 def index_to(
@@ -485,7 +561,7 @@ def pow(a, b):
     return result
 
 
-def product(*quantities):
+def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
     # Iterator over (quantity, unit) tuples
     items = zip(quantities, collect_units(*quantities))
@@ -507,12 +583,10 @@ def product(*quantities):
     return result
 
 
-#: Identical to :func:`product`, but using a name aligned with the Python standard
-#: library, e.g. in :mod:`operator`.
+#: Alias of :func:`mul`, for backwards compatibility.
 #:
-#: .. note:: In the future, this will be the canonical name, and :func:`product` will be
-#:    deprecated and possibly removed.
-mul = product
+#: .. note:: This may be deprecated and possibly removed in a future version.
+product = mul
 
 
 def relabel(
@@ -550,7 +624,7 @@ def relabel(
 
     if isinstance(qty, AttrSeries):
         # Prepare a new index
-        idx = qty.index
+        idx = _multiindex_of(qty)
         for dim, label_map in iter:
             # - Look up numerical index of the dimension in `idx`
             # - Retrieve the existing levels.
@@ -581,42 +655,6 @@ def rename_dims(
     Like :meth:`xarray.DataArray.rename`.
     """
     return qty.rename(new_name_or_name_dict, **names)
-
-
-def ratio(numerator, denominator):
-    """Compute the ratio `numerator` / `denominator`.
-
-    Parameters
-    ----------
-    numerator : .Quantity
-    denominator : .Quantity
-    """
-    # Handle units
-    u_num, u_denom = collect_units(numerator, denominator)
-
-    if isinstance(numerator, AttrSeries):
-        result = numerator / denominator.align_levels(numerator)
-    else:
-        result = numerator / denominator
-
-    # This shouldn't be necessary; would instead prefer:
-    # result.attrs["_unit"] = u_num / u_denom
-    # … but is necessary to avoid an issue when the operands are different Unit classes
-    ureg = pint.get_application_registry()
-    result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
-
-    if isinstance(result, AttrSeries):
-        result.dropna(inplace=True)
-
-    return result
-
-
-#: Identical to :func:`ratio`, but using a name aligned with the Python standard
-#: library, e.g. in :mod:`operator`.
-#:
-#: .. note:: In the future, this will be the canonical name, and :func:`ratio` will be
-#:    deprecated and possibly removed.
-div = ratio
 
 
 def select(qty, indexers, inverse=False):
@@ -659,10 +697,11 @@ def sum(quantity, weights=None, dimensions=None):
         weights, w_total = 1, 1
     else:
         w_total = weights.sum(dim=dimensions)
+        if 0 == len(w_total.dims):
+            w_total = w_total.item()
 
     result = (quantity * weights).sum(dim=dimensions) / w_total
-    result.attrs["_unit"] = collect_units(quantity)[0]
-
+    result.units = collect_units(quantity)[0]
     return result
 
 

@@ -83,6 +83,9 @@ jobs:
         # pyam-iamc (IAMconsortium/pyam#651) forces pint < 0.19; override
         pip install --upgrade pint
 
+    - name: TEMPORARY downgrade xarray pending khaeru/genno#67
+      run: pip install xarray!=2022.6.0
+
     - name: Run test suite using pytest
       run: pytest genno --trace-config --verbose --cov-report=xml --cov-report=term --color=yes
 

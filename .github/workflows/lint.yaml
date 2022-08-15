@@ -44,5 +44,5 @@ jobs:
     - name: Check typing with mypy
       # Also install packages that provide type hints
       run: |
-        pip install mypy ixmp pytest types-PyYAML xarray
+        pip install mypy ixmp pytest types-PyYAML "xarray!=2022.6.0"
         mypy .

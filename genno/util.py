@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Iterable
+from typing import Iterable, Union
 
 import pandas as pd
 import pint
@@ -24,6 +24,9 @@ log = logging.getLogger(__name__)
 REPLACE_UNITS = {
     "%": "percent",
 }
+
+# For use in type hints
+UnitLike = Union[str, pint.Unit, pint.Quantity]
 
 
 def clean_units(input_string):

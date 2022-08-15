@@ -6,8 +6,14 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- 1-dimensional quantities are handled in :func:`.relabel` and as weights in :func:`.sum` (:pull:`68`).
+- :func:`.load_file` will read a header comment like ``# Units: kg / s`` and apply the indicated units to the resulting quantity (:pull:`68`).
+- :func:`.div` and :func:`.mul` become the canonical names, matching :mod:`.operator` and other parts of the Python standard library (:pull:`68`).
+  :func:`.ratio` and :func:`.product` are retained as aliases, for compatibility.
+- Ensure data passed to :meth:`.Plot.generate` has a "value" column; use short units format by default (:pull:`68`).
 
 v1.12.0 (2022-07-18)
 ====================
