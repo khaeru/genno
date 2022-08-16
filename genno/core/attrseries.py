@@ -1,7 +1,18 @@
 import logging
 import warnings
 from functools import partial
-from typing import Any, Hashable, Iterable, List, Mapping, Tuple, Union
+from typing import (
+    Any,
+    Hashable,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -161,12 +172,7 @@ class AttrSeries(pd.Series, Quantity):
 
         return self.droplevel(names)
 
-    def expand_dims(
-        self,
-        dim: Union[None, Mapping[Hashable, Any]] = None,
-        axis=None,
-        **dim_kwargs: Any,
-    ):
+    def expand_dims(self, dim=None, axis=None, **dim_kwargs: Any) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.expand_dims`."""
         dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
         if axis is not None:
@@ -419,16 +425,22 @@ class AttrSeries(pd.Series, Quantity):
             attrs=self.attrs,
         )
 
-    def sum(self, *args, **kwargs):
+    def sum(
+        self,
+        dim: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        # Signature from xarray.DataArray
+        # *,
+        # skipna: bool | None = None,
+        # min_count: int | None = None,
+        keep_attrs: Optional[bool] = None,
+        **kwargs: Any,
+    ) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.sum`."""
-        obj = super()
+        obj = cast(pd.Series, super())
         attrs = None
 
-        try:
-            dim = kwargs.pop("dim")
-        except KeyError:
-            dim = list(args)
-            args = tuple()
+        if not isinstance(dim, Sequence):
+            dim = () if dim is None else (dim,)
 
         if len(dim) in (0, len(self.index.names)):
             bad_dims = set(dim) - set(self.index.names)
@@ -445,7 +457,7 @@ class AttrSeries(pd.Series, Quantity):
             # Result will be DataFrame; re-attach attrs when converted to AttrSeries
             attrs = self.attrs
 
-        return AttrSeries(obj.sum(*args, **kwargs), attrs=attrs)
+        return AttrSeries(obj.sum(**kwargs), attrs=attrs)
 
     def squeeze(self, dim=None, *args, **kwargs):
         """Like :meth:`xarray.DataArray.squeeze`."""
