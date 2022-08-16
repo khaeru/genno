@@ -42,11 +42,11 @@ class Quantity:
     @property
     def name(self) -> Optional[Hashable]:
         """The name of this quantity."""
-        return self._name
+        return self._name  # pragma: no cover
 
     @name.setter
     def name(self, value: Optional[Hashable]) -> None:
-        self._name = value
+        self._name = value  # pragma: no cover
 
     @property
     def units(self):
