@@ -647,7 +647,7 @@ def relabel(
 
 def rename_dims(
     qty: Quantity,
-    new_name_or_name_dict: Union[Hashable, Mapping[Hashable, Hashable]] = None,
+    new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
     **names: Hashable,
 ) -> Quantity:
     """Rename the dimensions of `qty`.

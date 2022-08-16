@@ -1,5 +1,5 @@
 from functools import update_wrapper
-from typing import Any, Dict, Hashable, Mapping, Tuple, Union
+from typing import Any, Dict, Hashable, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -21,6 +21,8 @@ class Quantity:
     # To silence a warning in xarray
     __slots__: Tuple[str, ...] = tuple()
 
+    _name: Optional[Hashable]
+
     def __new__(cls, *args, **kwargs):
         # Use _get_class() to retrieve either AttrSeries or SparseDataArray
         return object.__new__(Quantity._get_class(cls))
@@ -38,8 +40,13 @@ class Quantity:
         return cls._get_class().from_series(series, sparse)
 
     @property
-    def name(self) -> Hashable:
-        ...  # pragma: no cover
+    def name(self) -> Optional[Hashable]:
+        """The name of this quantity."""
+        return self._name
+
+    @name.setter
+    def name(self, value: Optional[Hashable]) -> None:
+        self._name = value
 
     @property
     def units(self):
@@ -100,6 +107,21 @@ class Quantity:
     def dims(self) -> Tuple[Hashable, ...]:
         ...  # pragma: no cover
 
+    def assign_coords(
+        self,
+        coords: Optional[Mapping[Any, Any]] = None,
+        **coords_kwargs: Any,
+    ) -> "Quantity":
+        ...  # pragma: no cover
+
+    def expand_dims(
+        self,
+        dim=None,
+        axis=None,
+        **dim_kwargs: Any,
+    ):  # NB "Quantity" here offends mypy
+        ...  # pragma: no cover
+
     def interp(
         self,
         coords: Mapping[Hashable, Any] = None,
@@ -136,6 +158,18 @@ class Quantity:
         fill_value: Any = None,
         **shifts_kwargs: int,
     ):  # NB "Quantity" here offends mypy
+        ...  # pragma: no cover
+
+    def sum(
+        self,
+        dim: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        # Signature from xarray.DataArray
+        # *,
+        # skipna: bool | None = None,
+        # min_count: int | None = None,
+        keep_attrs: Optional[bool] = None,
+        **kwargs: Any,
+    ) -> "Quantity":
         ...  # pragma: no cover
 
     def to_numpy(self) -> np.ndarray:
