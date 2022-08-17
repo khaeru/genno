@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.13.0 (2022-08-17)
+====================
 
 - 1-dimensional quantities are handled in :func:`.relabel` and as weights in :func:`.sum` (:pull:`68`).
 - :func:`.load_file` will read a header comment like ``# Units: kg / s`` and apply the indicated units to the resulting quantity (:pull:`68`).

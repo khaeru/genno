@@ -10,7 +10,7 @@ Address any failures before releasing.
 
 1. Create a new branch::
 
-    $ git branch release/vX.Y.Z.
+    $ git checkout -b release/X.Y.Z.
 
 2. Edit :file:`doc/whatsnew.rst`.
    Comment the heading "Next release", then insert another heading below it, at the same level, with the version number and date.
@@ -21,7 +21,7 @@ Address any failures before releasing.
 3. Tag the release candidate version, i.e. with a ``rcN`` suffix, and push::
 
     $ git tag vX.Y.Zrc1
-    $ git push --tags origin release/vX.Y.Z
+    $ git push --tags origin release/X.Y.Z
 
 4. Open a PR with the title “Release vX.Y.Z” using this branch.
    Check:
