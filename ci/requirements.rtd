@@ -1,0 +1,2 @@
+# TEMPORARY limit matplotlib pending has2k1/plotnine#619
+matplotlib < 3.6.0
