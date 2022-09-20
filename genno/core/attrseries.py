@@ -436,28 +436,27 @@ class AttrSeries(pd.Series, Quantity):
         **kwargs: Any,
     ) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.sum`."""
-        obj = cast(pd.Series, super())
-        attrs = None
+        if dim is None or isinstance(dim, Hashable):
+            dim = tuple(filter(None, (dim,)))
 
-        if not isinstance(dim, Sequence):
-            dim = () if dim is None else (dim,)
+        # Check dimensions
+        bad_dims = set(dim) - set(self.index.names)
+        if bad_dims:
+            raise ValueError(
+                f"{bad_dims} not found in array dimensions {self.index.names}"
+            )
 
+        # Create the object on which to .sum()
         if len(dim) in (0, len(self.index.names)):
-            bad_dims = set(dim) - set(self.index.names)
-            if bad_dims:
-                raise ValueError(
-                    f"{bad_dims} not found in array dimensions {self.index.names}"
-                )
-            # Simple sum
-            kwargs = {}
+            obj = cast(pd.Series, super())
         else:
-            # Pivot and sum across columns
-            obj = self.unstack(dim)
-            kwargs["axis"] = 1
-            # Result will be DataFrame; re-attach attrs when converted to AttrSeries
-            attrs = self.attrs
+            # Group on dimensions other than `dim`
+            obj = self.groupby(
+                list(filter(lambda d: d not in dim, self.index.names)),  # type: ignore
+                observed=True,
+            )
 
-        return AttrSeries(obj.sum(**kwargs), attrs=attrs)
+        return AttrSeries(obj.sum(**kwargs), attrs=self.attrs)
 
     def squeeze(self, dim=None, *args, **kwargs):
         """Like :meth:`xarray.DataArray.squeeze`."""
