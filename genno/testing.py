@@ -70,7 +70,7 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
 
         # Fill labels
         for d in dims:
-            df.loc[:, d] = pd.Categorical.from_codes(
+            df[d] = pd.Categorical.from_codes(
                 rng.integers(0, len(dtypes[d].categories), N_data), dtype=dtypes[d]
             )
 
