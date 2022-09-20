@@ -112,15 +112,21 @@ def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
         Same dimensionality as `quantity`.
 
     """
-    attrs = quantity.attrs.copy()
+    result = quantity
 
     for dim, dim_groups in groups.items():
         # Optionally keep the original values
-        values = [quantity] if keep else []
+        values = [result] if keep else []
 
         # Aggregate each group
         for group, members in dim_groups.items():
-            agg = quantity.sel({dim: members}).sum(dim=dim).expand_dims({dim: [group]})
+            if group in values[0].coords[dim]:
+                log.warning(
+                    f"{dim}={group!r} is already present in quantity {quantity.name!r} "
+                    "with keep=True"
+                )
+
+            agg = result.sel({dim: members}).sum(dim=dim).expand_dims({dim: [group]})
 
             if isinstance(agg, AttrSeries):
                 # .transpose() is necessary for AttrSeries
@@ -131,14 +137,15 @@ def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
             values.append(agg)
 
         # Reassemble to a single dataarray
-        quantity = concat(
+        result = concat(
             *values, **({} if isinstance(quantity, AttrSeries) else {"dim": dim})
         )
 
     # Preserve attrs
-    quantity.attrs = attrs
+    result.attrs = quantity.attrs
+    result.name = quantity.name
 
-    return quantity
+    return result
 
 
 def apply_units(qty, units, quiet=False):
