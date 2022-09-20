@@ -2,7 +2,9 @@
 import pandas as pd
 import pytest
 
+from genno import Computer
 from genno.core.attrseries import AttrSeries
+from genno.testing import add_large_data
 
 
 @pytest.fixture
@@ -58,6 +60,34 @@ def test_sum(foo, bar):
     # Sum with wrong dim raises ValueError
     with pytest.raises(ValueError):
         bar.sum("b")
+
+    # Index with duplicate entries
+    _baz = pd.DataFrame(
+        [
+            ["a1", "b1", "c1", 1.0],
+            ["a1", "b1", "c1", 2.0],
+            ["a2", "b2", "c3", 3.0],
+            ["a2", "b2", "c4", 4.0],
+            ["a3", "b3", "c5", 5.0],
+        ],
+        columns=["a", "b", "c", "value"],
+    )
+    # Fails with v1.13.0 AttrSeries.sum() using unstack()
+    AttrSeries(_baz.set_index(["a", "b", "c"])["value"]).sum(dim="c")
+
+
+@pytest.mark.skip
+def test_sum_large(N_data=1e7):  # pragma: no cover
+    """Test :meth:`.AttrSeries.sum` for large, sparse data."""
+    # Create a single large AttrSeries
+    c = Computer()
+    add_large_data(c, 1, N_dims=11, N_data=N_data)
+    qty = c.get("q_00")
+
+    # Compute a sum()
+    result = qty.sum(dim=["j", "k"])
+    # print(result)  # DEBUG
+    del result
 
 
 def test_others(foo, bar):
