@@ -108,10 +108,15 @@ class Quantity:
         ...  # pragma: no cover
 
     def assign_coords(
-        self,
-        coords: Optional[Mapping[Any, Any]] = None,
-        **coords_kwargs: Any,
+        self, coords: Optional[Mapping[Any, Any]] = None, **coords_kwargs: Any
     ) -> "Quantity":
+        ...  # pragma: no cover
+
+    def copy(
+        self,
+        deep: bool = True,
+        data: Any = None,
+    ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
     def expand_dims(

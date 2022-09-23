@@ -148,8 +148,13 @@ def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
     return result
 
 
-def apply_units(qty, units, quiet=False):
-    """Simply apply *units* to *qty*.
+def _unit_args(qty, units):
+    result = [pint.get_application_registry(), qty.attrs.get("_unit", None)]
+    return *result, getattr(result[1], "dimensionality", {}), result[0].Unit(units)
+
+
+def apply_units(qty: Quantity, units: UnitLike, quiet=False) -> Quantity:
+    """Apply *units* to *qty*.
 
     Logs on level ``WARNING`` if *qty* already has existing units.
 
@@ -161,28 +166,77 @@ def apply_units(qty, units, quiet=False):
     quiet : bool, optional
         If :obj:`True` log on level ``DEBUG``.
     """
-    registry = pint.get_application_registry()
-
-    existing = qty.attrs.get("_unit", None)
-    existing_dims = getattr(existing, "dimensionality", {})
-    new_units = registry.Unit(units)
+    registry, existing, existing_dims, new_units = _unit_args(qty, units)
 
     if len(existing_dims):
         # Some existing dimensions: log a message either way
         if existing_dims == new_units.dimensionality:
             log.debug(f"Convert '{existing}' to '{new_units}'")
             # NB use a factor because pint.Quantity cannot wrap AttrSeries
-            factor = registry.Quantity(1.0, existing).to(new_units).magnitude
-            result = qty * factor
+            result = qty * registry.Quantity(1.0, existing).to(new_units).magnitude
         else:
-            msg = f"Replace '{existing}' with incompatible '{new_units}'"
-            log.warning(msg)
+            log.warning(f"Replace '{existing}' with incompatible '{new_units}'")
             result = qty.copy()
     else:
         # No units, or dimensionless
         result = qty.copy()
 
-    result.attrs["_unit"] = new_units
+    result.units = new_units
+
+    return result
+
+
+def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
+    """Set the `units` of `qty` without changing magnitudes.
+
+    Logs on level ``INFO`` if `qty` has existing units.
+
+    Parameters
+    ----------
+    qty : .Quantity
+    units : str or pint.Unit
+        Units to apply to *qty*
+    """
+    registry, existing, existing_dims, new_units = _unit_args(qty, units)
+
+    if len(existing_dims):
+        msg = f"Replace '{existing}' with '{new_units}'"
+        # Some existing dimensions: log a message either way
+        if existing_dims == new_units.dimensionality:
+            # NB use a factor because pint.Quantity cannot wrap AttrSeries
+            if registry.Quantity(1.0, existing).to(new_units).magnitude != 1.0:
+                log.info(f"{msg} without altering magnitudes")
+        else:
+            log.info(f"{msg} with different dimensionality")
+
+    result = qty.copy()
+    result.units = new_units
+
+    return result
+
+
+def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
+    """Convert `qty` from its current units to `units`.
+
+    Raises
+    ------
+    ValueError
+        if `units` does not match the dimensionality of the current units of
+
+    """
+    registry, existing, existing_dims, new_units = _unit_args(qty, units)
+
+    try:
+        # NB use a factor because pint.Quantity cannot wrap AttrSeries
+        factor = registry.Quantity(1.0, existing).to(new_units).magnitude
+    except pint.DimensionalityError:
+        raise ValueError(
+            f"Existing dimensionality {existing_dims!r} cannot be converted to {units} "
+            f"with dimensionality {new_units.dimensionality!r}"
+        ) from None
+
+    result = qty * factor
+    result.units = new_units
 
     return result
 
@@ -642,7 +696,7 @@ def relabel(
             )
 
         # Assign the new index to a copy of qty
-        result = qty.copy()
+        result = cast(AttrSeries, qty.copy())
         result.index = idx
 
         return result
