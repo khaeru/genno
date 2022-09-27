@@ -49,13 +49,13 @@ def test_add(data, operands, size):
         xr.DataArray(
             np.random.rand(len(t_foo), len(y)), coords=[t_foo, y], dims=["t", "y"]
         ),
-        units=x.attrs["_unit"],
+        units=x.units,
     )
     b = Quantity(
         xr.DataArray(
             np.random.rand(len(t_bar), len(y)), coords=[t_bar, y], dims=["t", "y"]
         ),
-        units=x.attrs["_unit"],
+        units=x.units,
     )
 
     c.add("a:t-y", a)
@@ -265,7 +265,7 @@ def test_div(func, ureg):
 
     result = func(A, B)
     assert ("x", "y", "z") == result.dims
-    assert ureg.Unit("km / hour") == result.attrs["_unit"]
+    assert ureg.Unit("km / hour") == result.units
 
 
 def test_group_sum(ureg):
@@ -461,7 +461,7 @@ def test_pow(ureg):
     result = computations.pow(A, 2)
 
     # Expected units
-    assert ureg.kg**2 == result.attrs["_unit"]
+    assert ureg.kg**2 == result.units
 
     # 2D ** 1D
     B = random_qty(dict(y=3))
@@ -473,7 +473,7 @@ def test_pow(ureg):
         A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item()
         == result.sel(x="x1", y="y1").item()
     )
-    assert ureg.dimensionless == result.attrs["_unit"]
+    assert ureg.dimensionless == result.units
 
     # 2D ** 1D with units
     C = random_qty(dict(y=3), units="km")
