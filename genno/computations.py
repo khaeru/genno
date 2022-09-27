@@ -120,7 +120,7 @@ def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
 
         # Aggregate each group
         for group, members in dim_groups.items():
-            if group in values[0].coords[dim]:
+            if keep and group in values[0].coords[dim]:
                 log.warning(
                     f"{dim}={group!r} is already present in quantity {quantity.name!r} "
                     "with keep=True"
