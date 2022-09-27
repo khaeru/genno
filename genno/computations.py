@@ -20,9 +20,11 @@ __all__ = [
     "add",
     "aggregate",
     "apply_units",
+    "assign_units",
     "broadcast_map",
     "combine",
     "concat",
+    "convert_units",
     "disaggregate_shares",
     "div",
     "group_sum",
@@ -153,18 +155,25 @@ def _unit_args(qty, units):
     return *result, getattr(result[1], "dimensionality", {}), result[0].Unit(units)
 
 
-def apply_units(qty: Quantity, units: UnitLike, quiet=False) -> Quantity:
+def apply_units(qty: Quantity, units: UnitLike) -> Quantity:
     """Apply `units` to `qty`.
 
-    Logs on level ``WARNING`` if *qty* already has existing units.
+    If `qty` has existing units…
+
+    - …with compatible dimensionality to `units`, the magnitudes are adjusted, i.e.
+      behaves like :func:`convert_units`.
+    - …with incompatible dimensionality to `units`, the units attribute is overwritten
+      and magnitudes are not changed, i.e. like :func:`assign_units`, with a log message
+      on level ``WARNING``.
+
+    To avoid ambiguities between the two cases, use :func:`convert_units` or
+    :func:`assign_units` instead.
 
     Parameters
     ----------
-    qty : .Quantity
+    qty : Quantity
     units : str or pint.Unit
-        Units to apply to *qty*
-    quiet : bool, optional
-        If :obj:`True` log on level ``DEBUG``.
+        Units to apply to `qty`.
     """
     registry, existing, existing_dims, new_units = _unit_args(qty, units)
 
@@ -193,9 +202,9 @@ def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
 
     Parameters
     ----------
-    qty : .Quantity
+    qty : Quantity
     units : str or pint.Unit
-        Units to apply to *qty*
+        Units to assign to `qty`.
     """
     registry, existing, existing_dims, new_units = _unit_args(qty, units)
 
@@ -216,13 +225,18 @@ def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
 
 
 def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
-    """Convert `qty` from its current units to `units`.
+    """Convert magnitude of `qty` from its current units to `units`.
+
+    Parameters
+    ----------
+    qty : Quantity
+    units : str or pint.Unit
+        Units to assign to `qty`.
 
     Raises
     ------
     ValueError
-        if `units` does not match the dimensionality of the current units of
-
+        if `units` does not match the dimensionality of the current units of `qty`.
     """
     registry, existing, existing_dims, new_units = _unit_args(qty, units)
 
