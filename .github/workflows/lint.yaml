@@ -13,22 +13,26 @@ jobs:
     continue-on-error: true
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v2
-      # Uncomment and set this to match the "Latest version testable on GitHub
-      # Actions" in pytest.yaml, if that is not the default used by setup-python
-      # with:
-      #   python-version: "3.9"
+    - uses: actions/setup-python@v4
+      with:
+        # If the "Latest version testable on GitHub Actions" in pytest.yaml
+        # is not the latest 3.x stable version, adjust here to match:
+        python-version: "3.x"
+
+    - name: Upgrade pip, wheel, setuptools-scm
+      id: pip
+      run: |
+        python -m pip install --upgrade pip wheel setuptools-scm
+        # Locate pip cache directory
+        echo "::set-output name=cache-dir::$(pip cache dir)"
 
     - name: Cache Python packages
       uses: actions/cache@v3
       with:
-        path: ~/.cache/pip
+        path: ${{ steps.pip.outputs.cache-dir }}
         key: lint-${{ runner.os }}
-
-    - name: Upgrade pip, wheel, setuptools-scm
-      run: python -m pip install --upgrade pip wheel setuptools-scm
 
     - name: Check "black" code style
       run: |

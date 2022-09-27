@@ -264,6 +264,12 @@ class TestQuantity:
         # One quantity fits in memory
         c.get(keys[0])
 
+        if Quantity._get_class() is SparseDataArray:
+            pytest.xfail(
+                reason='"IndexError: Only one-dimensional iterable indices supported." '
+                "in sparse._coo.indexing"
+            )
+
         # All quantities can be multiplied without raising MemoryError
         result = c.get("bigmem")
 

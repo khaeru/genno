@@ -1,5 +1,6 @@
 import logging
 import re
+from contextlib import nullcontext
 from functools import partial
 
 import numpy as np
@@ -49,13 +50,13 @@ def test_add(data, operands, size):
         xr.DataArray(
             np.random.rand(len(t_foo), len(y)), coords=[t_foo, y], dims=["t", "y"]
         ),
-        units=x.attrs["_unit"],
+        units=x.units,
     )
     b = Quantity(
         xr.DataArray(
             np.random.rand(len(t_bar), len(y)), coords=[t_bar, y], dims=["t", "y"]
         ),
-        units=x.attrs["_unit"],
+        units=x.units,
     )
 
     c.add("a:t-y", a)
@@ -83,11 +84,27 @@ def test_add_units():
 
 
 @pytest.mark.parametrize("keep", (True, False))
-def test_aggregate(data, keep):
+def test_aggregate(caplog, data, keep):
     *_, t_foo, t_bar, x = data
 
-    computations.aggregate(x, dict(t=dict(foo=t_foo, bar=t_bar)), keep)
-    # TODO expand with assertions
+    x.name = "x"
+    t_groups = dict(foo=t_foo, bar=t_bar)
+
+    result = computations.aggregate(x, dict(t=t_groups), keep)
+
+    # Result has the expected dimensions
+    assert set(t_groups) | (set(t_foo + t_bar) if keep else set()) == set(
+        result.coords["t"].data
+    )
+
+    # Now with a group ID that duplicates one of the existing index names
+    t_groups[t_foo[0]] = t_foo[:1]
+    with (
+        assert_logs(caplog, f"t='{t_foo[0]}' is already present in quantity 'x'")
+        if keep
+        else nullcontext()
+    ):
+        result = computations.aggregate(x, dict(t=t_groups), keep)
 
 
 def test_apply_units(data, caplog):
@@ -101,7 +118,7 @@ def test_apply_units(data, caplog):
         caplog, "Replace 'kilogram' with incompatible 'liter'", at_level=logging.DEBUG
     ):
         result = computations.apply_units(x, "litres")
-    assert result.attrs["_unit"] == registry.Unit("litre")
+    assert result.units == registry.Unit("litre")
     # No change in values
     assert_series_equal(result.to_series(), x.to_series())
 
@@ -110,18 +127,78 @@ def test_apply_units(data, caplog):
         caplog, "Convert 'kilogram' to 'metric_ton'", at_level=logging.DEBUG
     ):
         result = computations.apply_units(x, "tonne")
-    assert result.attrs["_unit"] == registry.Unit("tonne")
+    assert result.units == registry.Unit("tonne")
     assert_series_equal(result.to_series(), x.to_series() * 0.001)
 
     # Remove unit
-    x.attrs["_unit"] = registry.Unit("dimensionless")
+    x.units = registry.Unit("dimensionless")
 
     caplog.clear()
     result = computations.apply_units(x, "kg")
     # Nothing logged when _unit attr is missing
     assert len(caplog.messages) == 0
-    assert result.attrs["_unit"] == registry.Unit("kg")
+    assert result.units == registry.Unit("kg")
     assert_series_equal(result.to_series(), x.to_series())
+
+
+def test_assign_units(data, caplog):
+    # Unpack
+    *_, x = data
+
+    registry = pint.get_application_registry()
+
+    # Brute-force replacement with incompatible units
+    with assert_logs(
+        caplog,
+        "Replace 'kilogram' with 'liter' with different dimensionality",
+        at_level=logging.INFO,
+    ):
+        result = computations.assign_units(x, "litres")
+    assert result.units == registry.Unit("litre")
+    # No change in values
+    assert_series_equal(result.to_series(), x.to_series())
+
+    # Compatible units: magnitudes are not changed
+    with assert_logs(
+        caplog,
+        "Replace 'kilogram' with 'metric_ton' without altering magnitudes",
+        at_level=logging.INFO,
+    ):
+        result = computations.assign_units(x, "tonne")
+    assert result.units == registry.Unit("tonne")
+    assert_series_equal(result.to_series(), x.to_series())
+
+    # Remove unit
+    x.units = registry.Unit("dimensionless")
+
+    caplog.clear()
+    result = computations.assign_units(x, "kg")
+    # Nothing logged when _unit attr is missing
+    assert len(caplog.messages) == 0
+    assert result.units == registry.Unit("kg")
+    assert_series_equal(result.to_series(), x.to_series())
+
+
+def test_convert_units(data, caplog):
+    # Unpack
+    *_, x = data
+
+    registry = pint.get_application_registry()
+
+    # Brute-force replacement with incompatible units
+    with pytest.raises(ValueError, match="cannot be converted to"):
+        result = computations.convert_units(x, "litres")
+
+    # Compatible units: magnitudes are also converted
+    result = computations.convert_units(x, "tonne")
+    assert registry.Unit("tonne") == result.units
+    assert_series_equal(result.to_series(), x.to_series() * 0.001)
+
+    # Remove unit
+    x.units = registry.Unit("dimensionless")
+
+    with pytest.raises(ValueError, match="cannot be converted to"):
+        result = computations.convert_units(x, "kg")
 
 
 @pytest.mark.parametrize(
@@ -205,7 +282,7 @@ def test_div(func, ureg):
 
     result = func(A, B)
     assert ("x", "y", "z") == result.dims
-    assert ureg.Unit("km / hour") == result.attrs["_unit"]
+    assert ureg.Unit("km / hour") == result.units
 
 
 def test_group_sum(ureg):
@@ -401,7 +478,7 @@ def test_pow(ureg):
     result = computations.pow(A, 2)
 
     # Expected units
-    assert ureg.kg**2 == result.attrs["_unit"]
+    assert ureg.kg**2 == result.units
 
     # 2D ** 1D
     B = random_qty(dict(y=3))
@@ -413,7 +490,7 @@ def test_pow(ureg):
         A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item()
         == result.sel(x="x1", y="y1").item()
     )
-    assert ureg.dimensionless == result.attrs["_unit"]
+    assert ureg.dimensionless == result.units
 
     # 2D ** 1D with units
     C = random_qty(dict(y=3), units="km")

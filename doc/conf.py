@@ -41,18 +41,13 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # builtin themes.
 html_theme = "sphinx_rtd_theme"
 
-# Add any paths that contain custom static files (such as style sheets) here, relative
-# to this directory. They are copied after the builtin static files, so a file named
-# "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
-
 
 # -- Options for sphinx.ext.extlinks ---------------------------------------------------
 
 extlinks = {
-    "issue": ("https://github.com/khaeru/genno/issues/%s", "#"),
-    "pull": ("https://github.com/khaeru/genno/pull/%s", "PR #"),
-    "gh-user": ("https://github.com/%s", "@"),
+    "issue": ("https://github.com/khaeru/genno/issues/%s", "#%s"),
+    "pull": ("https://github.com/khaeru/genno/pull/%s", "PR #%s"),
+    "gh-user": ("https://github.com/%s", "@%s"),
 }
 extlinks_detect_hardcoded_links = False
 

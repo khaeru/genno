@@ -12,13 +12,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
-    - uses: actions/setup-python@v2
-      # Uncomment and set this to match the "Latest version testable on GitHub
-      # Actions" in pytest.yaml, if that is not the default used by setup-python
-      # with:
-      #   python-version: "3.9"
+    - uses: actions/setup-python@v4
+      with:
+        # If the "Latest version testable on GitHub Actions" in pytest.yaml
+        # is not the latest 3.x stable version, adjust here to match:
+        python-version: "3.x"
 
     - name: Cache Python packages
       uses: actions/cache@v3

@@ -6,8 +6,13 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Add new computations :func:`.assign_units` and :func:`.convert_units`.
+  These have simpler behaviour than :func:`.apply_units` and should be preferred in most situations (:pull:`72`).
+- Following pandas (v1.4.0, released 2022-01-22) and xarray (v0.21.0, released 2022-01-27), support for Python 3.7 is dropped (:pull:`72`).
+  genno supports and is tested on Python 3.8 and newer.
 
 v1.13.0 (2022-08-17)
 ====================

@@ -2,7 +2,7 @@ import contextlib
 import logging
 from copy import copy
 from functools import partial
-from itertools import chain, zip_longest
+from itertools import chain
 from typing import Dict
 
 import numpy as np
@@ -19,7 +19,7 @@ from genno import Computer, Key, Quantity
 log = logging.getLogger(__name__)
 
 
-def add_large_data(c: Computer, num_params, N_dims=6):
+def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
     """Add nodes to `c` that return large-ish data.
 
     The result is a matrix wherein the Cartesian product of all the keys is very large—
@@ -28,8 +28,9 @@ def add_large_data(c: Computer, num_params, N_dims=6):
     by :class:`np.array`.
     """
     # Dimensions and their lengths (Fibonacci numbers)
-    dims = "abcdefg"[:N_dims]
-    sizes = [233, 377, 610, 987, 1597, 2584, 4181][:N_dims]
+    dims = "abcdefghijk"[:N_dims]
+    sizes = [233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657][:N_dims]
+    N_data = max(int(N_data), sizes[-1])
 
     # commented; for debugging
     # # Output something like "True: 2584 values / 2.182437e+17 = 1.184e-12% full"
@@ -43,21 +44,38 @@ def add_large_data(c: Computer, num_params, N_dims=6):
     #     + f": {max(sizes)} values / {total:3e} = {100 * max(sizes) / total:.3e}% full"
     # )
 
-    # Names like f_0000 ... f_1596 along each dimension
-    coords = []
+    # Names like f_00000 ... f_01596 along each dimension
+    dtypes = {"value": float}
     for d, N in zip(dims, sizes):
-        coords.append([f"{d}_{i:04d}" for i in range(N)])
+        categories = [f"{d}_{i:05d}" for i in range(N)]
         # Add to Computer
-        c.add(d, quote(coords[-1]))
+        c.add(d, quote(categories))
+        # Create a categorical dtype
+        dtypes[d] = pd.CategoricalDtype(categories)
+
+    # Random generator
+    rng = np.random.default_rng()
 
     def get_large_quantity(name):
         """Make a DataFrame containing each label in *coords* ≥ 1 time."""
-        values = list(zip_longest(*coords, np.random.rand(max(sizes))))
-        log.info(f"{len(values)} values")
+        log.info(f"{N_data} values")
+
+        # Allocate memory for the data frame using the given data types
+        df = pd.DataFrame(
+            index=pd.RangeIndex(N_data), columns=list(dims) + ["value"]
+        ).astype(dtypes)
+
+        # Fill values
+        df.loc[:, "value"] = rng.random(N_data)
+
+        # Fill labels
+        for d in dims:
+            df[d] = pd.Categorical.from_codes(
+                rng.integers(0, len(dtypes[d].categories), N_data), dtype=dtypes[d]
+            )
+
         return Quantity(
-            pd.DataFrame(values, columns=list(dims) + ["value"])
-            .ffill()
-            .set_index(list(dims)),
+            df.set_index(list(dims)),
             units=pint.get_application_registry().kilogram,
             name=name,
         )
@@ -173,6 +191,8 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
     at_level : int, optional
         Messages must appear on 'genno' or a sub-logger with at least this level.
     """
+    __tracebackhide__ = True
+
     # Wrap a string in a list
     expected = (
         [message_or_messages]
