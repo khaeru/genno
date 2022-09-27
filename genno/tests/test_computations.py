@@ -101,7 +101,7 @@ def test_apply_units(data, caplog):
         caplog, "Replace 'kilogram' with incompatible 'liter'", at_level=logging.DEBUG
     ):
         result = computations.apply_units(x, "litres")
-    assert result.attrs["_unit"] == registry.Unit("litre")
+    assert result.units == registry.Unit("litre")
     # No change in values
     assert_series_equal(result.to_series(), x.to_series())
 
@@ -110,18 +110,78 @@ def test_apply_units(data, caplog):
         caplog, "Convert 'kilogram' to 'metric_ton'", at_level=logging.DEBUG
     ):
         result = computations.apply_units(x, "tonne")
-    assert result.attrs["_unit"] == registry.Unit("tonne")
+    assert result.units == registry.Unit("tonne")
     assert_series_equal(result.to_series(), x.to_series() * 0.001)
 
     # Remove unit
-    x.attrs["_unit"] = registry.Unit("dimensionless")
+    x.units = registry.Unit("dimensionless")
 
     caplog.clear()
     result = computations.apply_units(x, "kg")
     # Nothing logged when _unit attr is missing
     assert len(caplog.messages) == 0
-    assert result.attrs["_unit"] == registry.Unit("kg")
+    assert result.units == registry.Unit("kg")
     assert_series_equal(result.to_series(), x.to_series())
+
+
+def test_assign_units(data, caplog):
+    # Unpack
+    *_, x = data
+
+    registry = pint.get_application_registry()
+
+    # Brute-force replacement with incompatible units
+    with assert_logs(
+        caplog,
+        "Replace 'kilogram' with 'liter' with different dimensionality",
+        at_level=logging.INFO,
+    ):
+        result = computations.assign_units(x, "litres")
+    assert result.units == registry.Unit("litre")
+    # No change in values
+    assert_series_equal(result.to_series(), x.to_series())
+
+    # Compatible units: magnitudes are not changed
+    with assert_logs(
+        caplog,
+        "Replace 'kilogram' with 'metric_ton' without altering magnitudes",
+        at_level=logging.INFO,
+    ):
+        result = computations.assign_units(x, "tonne")
+    assert result.units == registry.Unit("tonne")
+    assert_series_equal(result.to_series(), x.to_series())
+
+    # Remove unit
+    x.units = registry.Unit("dimensionless")
+
+    caplog.clear()
+    result = computations.assign_units(x, "kg")
+    # Nothing logged when _unit attr is missing
+    assert len(caplog.messages) == 0
+    assert result.units == registry.Unit("kg")
+    assert_series_equal(result.to_series(), x.to_series())
+
+
+def test_convert_units(data, caplog):
+    # Unpack
+    *_, x = data
+
+    registry = pint.get_application_registry()
+
+    # Brute-force replacement with incompatible units
+    with pytest.raises(ValueError, match="cannot be converted to"):
+        result = computations.convert_units(x, "litres")
+
+    # Compatible units: magnitudes are also converted
+    result = computations.convert_units(x, "tonne")
+    assert registry.Unit("tonne") == result.units
+    assert_series_equal(result.to_series(), x.to_series() * 0.001)
+
+    # Remove unit
+    x.units = registry.Unit("dimensionless")
+
+    with pytest.raises(ValueError, match="cannot be converted to"):
+        result = computations.convert_units(x, "kg")
 
 
 @pytest.mark.parametrize(
