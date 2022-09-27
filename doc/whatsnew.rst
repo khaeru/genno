@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.14.0 (2022-09-27)
+====================
 
 - Add new computations :func:`.assign_units` and :func:`.convert_units`.
   These have simpler behaviour than :func:`.apply_units` and should be preferred in most situations (:pull:`72`).

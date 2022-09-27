@@ -3,9 +3,9 @@ version: 2
 python:
   version: 3.8
   install:
-  - requirements: ci/requirements.rtd
   - method: pip
     path: .
     extra_requirements:
     - docs
     - tests
+  - requirements: ci/requirements.rtd
