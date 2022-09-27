@@ -1,5 +1,6 @@
 import logging
 import re
+from contextlib import nullcontext
 from functools import partial
 
 import numpy as np
@@ -83,11 +84,27 @@ def test_add_units():
 
 
 @pytest.mark.parametrize("keep", (True, False))
-def test_aggregate(data, keep):
+def test_aggregate(caplog, data, keep):
     *_, t_foo, t_bar, x = data
 
-    computations.aggregate(x, dict(t=dict(foo=t_foo, bar=t_bar)), keep)
-    # TODO expand with assertions
+    x.name = "x"
+    t_groups = dict(foo=t_foo, bar=t_bar)
+
+    result = computations.aggregate(x, dict(t=t_groups), keep)
+
+    # Result has the expected dimensions
+    assert set(t_groups) | (set(t_foo + t_bar) if keep else set()) == set(
+        result.coords["t"].data
+    )
+
+    # Now with a group ID that duplicates one of the existing index names
+    t_groups[t_foo[0]] = t_foo[:1]
+    with (
+        assert_logs(caplog, f"t='{t_foo[0]}' is already present in quantity 'x'")
+        if keep
+        else nullcontext()
+    ):
+        result = computations.aggregate(x, dict(t=t_groups), keep)
 
 
 def test_apply_units(data, caplog):
