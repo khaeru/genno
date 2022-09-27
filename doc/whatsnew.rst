@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Following pandas (v1.4.0, released 2022-01-22) and xarray (v0.21.0, released 2022-01-27), support for Python 3.7 is dropped.
+  genno supports and is tested on Python 3.8 and newer.
 
 v1.13.0 (2022-08-17)
 ====================

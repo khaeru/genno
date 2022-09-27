@@ -21,8 +21,7 @@ jobs:
         - ubuntu-latest
         - windows-latest
         python-version:
-        - "3.7"  # Earliest version supported by genno; matches xarray/setup.cfg
-        - "3.8"
+        - "3.8"  # Earliest version supported by genno; matches xarray/setup.cfg
         - "3.9"
         - "3.10" # Latest release / latest supported by genno / testable on GHA
 
