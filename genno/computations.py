@@ -154,7 +154,7 @@ def _unit_args(qty, units):
 
 
 def apply_units(qty: Quantity, units: UnitLike, quiet=False) -> Quantity:
-    """Apply *units* to *qty*.
+    """Apply `units` to `qty`.
 
     Logs on level ``WARNING`` if *qty* already has existing units.
 

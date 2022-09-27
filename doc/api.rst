@@ -317,7 +317,9 @@ Computations
 
    .. autosummary::
       apply_units
+      assign_units
       concat
+      convert_units
       relabel
       rename_dims
       select
