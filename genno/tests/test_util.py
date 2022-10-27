@@ -46,7 +46,12 @@ def test_filter_concat_args(caplog):
     assert len(result) == 1
 
 
-msg = "unit '{}' cannot be parsed; contains invalid character(s) '{}'"
+msg = (
+    # pint < 0.20
+    "unit '{}' cannot be parsed; contains invalid character(s) '{}'",
+    # pint >= 0.20
+    "Cannot define '{}' (UnitDefinition): is not a valid unit name",
+)
 
 
 @pytest.mark.parametrize(
@@ -60,9 +65,9 @@ msg = "unit '{}' cannot be parsed; contains invalid character(s) '{}'"
         # Dimensionless
         ([], "dimensionless"),
         # Invalid characters, alone or with prefix
-        (["_?"], (ValueError, re.escape(msg.format("_?", "?")))),
-        (["E$"], (ValueError, re.escape(msg.format("E$", "$")))),
-        (["kg-km"], (ValueError, re.escape(msg.format("kg-km", "-")))),
+        (["_?"], (ValueError, re.escape(msg[1].format("_?", "?")))),
+        (["E$"], (ValueError, re.escape(msg[1].format("E$", "$")))),
+        (["kg-km"], (ValueError, re.escape(msg[0].format("kg-km", "-")))),
     ),
     ids=lambda argvalue: repr(argvalue),
 )
