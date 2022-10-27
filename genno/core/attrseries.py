@@ -1,18 +1,7 @@
 import logging
 import warnings
 from functools import partial
-from typing import (
-    Any,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Hashable, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -21,6 +10,7 @@ import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity
+from genno.core.types import Dims
 
 log = logging.getLogger(__name__)
 
@@ -427,15 +417,18 @@ class AttrSeries(pd.Series, Quantity):
 
     def sum(
         self,
-        dim: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        dim: Dims = None,
         # Signature from xarray.DataArray
         # *,
-        # skipna: bool | None = None,
-        # min_count: int | None = None,
+        skipna: Optional[bool] = None,
+        min_count: Optional[int] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
     ) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.sum`."""
+        if skipna is not None or min_count is not None:
+            raise NotImplementedError
+
         if dim is None or isinstance(dim, Hashable):
             dim = tuple(filter(None, (dim,)))
 
