@@ -82,6 +82,9 @@ def test_sum(foo, bar):
     # Fails with v1.13.0 AttrSeries.sum() using unstack()
     AttrSeries(_baz.set_index(["a", "b", "c"])["value"]).sum(dim="c")
 
+    with pytest.raises(NotImplementedError):
+        bar.sum("a", skipna=False)
+
 
 @pytest.mark.skip
 def test_sum_large(N_data=1e7):  # pragma: no cover

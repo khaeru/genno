@@ -46,12 +46,7 @@ def test_filter_concat_args(caplog):
     assert len(result) == 1
 
 
-msg = (
-    # pint < 0.20
-    "unit '{}' cannot be parsed; contains invalid character(s) '{}'",
-    # pint >= 0.20
-    "Cannot define '{}' (UnitDefinition): is not a valid unit name",
-)
+msg = "unit '{}' cannot be parsed; contains invalid character(s) '{}'"
 
 
 @pytest.mark.parametrize(
@@ -65,13 +60,13 @@ msg = (
         # Dimensionless
         ([], "dimensionless"),
         # Invalid characters, alone or with prefix
-        (["_?"], (ValueError, re.escape(msg[1].format("_?", "?")))),
-        (["E$"], (ValueError, re.escape(msg[1].format("E$", "$")))),
-        (["kg-km"], (ValueError, re.escape(msg[0].format("kg-km", "-")))),
+        (["_?"], (ValueError, re.escape(msg.format("_?", "?")))),
+        (["E$"], (ValueError, re.escape(msg.format("E$", "$")))),
+        (["kg-km"], (ValueError, re.escape(msg.format("kg-km", "-")))),
     ),
     ids=lambda argvalue: repr(argvalue),
 )
-def test_parse_units(ureg, input, expected):
+def test_parse_units0(ureg, input, expected):
     if isinstance(expected, str):
         # Expected to work
         result = parse_units(input, ureg)
@@ -80,6 +75,14 @@ def test_parse_units(ureg, input, expected):
         # Expected to raise an exception
         with pytest.raises(expected[0], match=expected[1]):
             parse_units(pd.Series(input))
+
+
+def test_parse_units1(ureg, caplog):
+    """Multiple attempts to (re)define new units."""
+    parse_units("JPY")
+    parse_units("GBP/JPY")
+    with pytest.raises(ValueError):
+        parse_units("GBP/JPY/$?")
 
 
 @pytest.mark.parametrize(
