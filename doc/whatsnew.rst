@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.14.1 (2022-10-28)
+====================
 
 - Fix :meth:`~.AttrSeries.cumprod` for 1-dimensional :class:`.AttrSeries` (:pull:`74`).
 - Adjust for compatibility with pint 0.20 (released 2022-10-25) (:pull:`74`).
