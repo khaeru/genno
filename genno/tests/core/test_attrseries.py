@@ -15,7 +15,14 @@ def foo():
 
 @pytest.fixture
 def bar():
+    """A 1-dimensional quantity."""
     yield AttrSeries([0, 1], index=pd.Index(["a1", "a2"], name="a"))
+
+
+def test_cumprod(bar):
+    """AttrSeries.cumprod works with 1-dimensional quantities."""
+    result = (1.1 + bar).cumprod("a")
+    assert ("a",) == result.dims
 
 
 def test_interp(foo):
