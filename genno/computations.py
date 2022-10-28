@@ -9,6 +9,7 @@ from typing import Any, Collection, Hashable, Mapping, Optional, Union, cast
 
 import pandas as pd
 import pint
+from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries, _multiindex_of
@@ -420,7 +421,7 @@ def group_sum(qty, group, sum):
 def interpolate(
     qty: Quantity,
     coords: Mapping[Hashable, Any] = None,
-    method: str = "linear",
+    method: InterpOptions = "linear",
     assume_sorted: bool = True,
     kwargs: Mapping[str, Any] = None,
     **coords_kwargs: Any,

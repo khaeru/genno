@@ -66,7 +66,7 @@ msg = "unit '{}' cannot be parsed; contains invalid character(s) '{}'"
     ),
     ids=lambda argvalue: repr(argvalue),
 )
-def test_parse_units(ureg, input, expected):
+def test_parse_units0(ureg, input, expected):
     if isinstance(expected, str):
         # Expected to work
         result = parse_units(input, ureg)
@@ -75,6 +75,14 @@ def test_parse_units(ureg, input, expected):
         # Expected to raise an exception
         with pytest.raises(expected[0], match=expected[1]):
             parse_units(pd.Series(input))
+
+
+def test_parse_units1(ureg, caplog):
+    """Multiple attempts to (re)define new units."""
+    parse_units("JPY")
+    parse_units("GBP/JPY")
+    with pytest.raises(ValueError):
+        parse_units("GBP/JPY/$?")
 
 
 @pytest.mark.parametrize(

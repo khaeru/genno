@@ -1,10 +1,13 @@
 from functools import update_wrapper
-from typing import Any, Dict, Hashable, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Hashable, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import pint
 import xarray
+from xarray.core.types import InterpOptions
+
+from .types import Dims
 
 #: Name of the class used to implement :class:`.Quantity`.
 CLASS = "AttrSeries"
@@ -108,8 +111,10 @@ class Quantity:
         ...  # pragma: no cover
 
     def assign_coords(
-        self, coords: Optional[Mapping[Any, Any]] = None, **coords_kwargs: Any
-    ) -> "Quantity":
+        self,
+        coords: Optional[Mapping[Any, Any]] = None,
+        **coords_kwargs: Any,
+    ):
         ...  # pragma: no cover
 
     def copy(
@@ -129,9 +134,9 @@ class Quantity:
 
     def interp(
         self,
-        coords: Mapping[Hashable, Any] = None,
-        method: str = "linear",
-        assume_sorted: bool = True,
+        coords: Mapping[Any, Any] = None,
+        method: InterpOptions = "linear",
+        assume_sorted: bool = False,
         kwargs: Mapping[str, Any] = None,
         **coords_kwargs: Any,
     ):
@@ -167,14 +172,14 @@ class Quantity:
 
     def sum(
         self,
-        dim: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        dim: Dims = None,
         # Signature from xarray.DataArray
-        # *,
-        # skipna: bool | None = None,
-        # min_count: int | None = None,
+        *,
+        skipna: Optional[bool] = None,
+        min_count: Optional[int] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
-    ) -> "Quantity":
+    ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
     def to_numpy(self) -> np.ndarray:

@@ -134,10 +134,10 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
 
             # Try to parse again
             return registry.Unit(unit)
-        except (pint.UndefinedUnitError, pint.RedefinitionError):
-            # define() failed
+        except pint.PintError:
+            # registry.define() failed somehow
             raise invalid(unit)
-    except (AttributeError, TypeError):
+    except (AttributeError, TypeError, pint.PintError):
         # Unit contains a character like '-' that throws off pint
         # NB this 'except' clause must be *after* UndefinedUnitError, since that is a
         #    subclass of AttributeError.

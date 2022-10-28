@@ -286,7 +286,7 @@ def units(c: Computer, info):
         registry.define(defs)
     except KeyError:
         pass
-    except pint.DefinitionSyntaxError as e:
+    except (TypeError, pint.DefinitionSyntaxError, pint.RedefinitionError) as e:
         log.warning(e)
     else:
         log.info(f"Apply global unit definitions {defs}")

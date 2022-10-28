@@ -1,18 +1,7 @@
 import logging
 import warnings
 from functools import partial
-from typing import (
-    Any,
-    Hashable,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Hashable, Iterable, List, Mapping, Optional, Tuple, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -21,6 +10,7 @@ import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity
+from genno.core.types import Dims
 
 log = logging.getLogger(__name__)
 
@@ -147,14 +137,12 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.cumprod`."""
         if axis:
             log.info(f"{self.__class__.__name__}.cumprod(…, axis=…) is ignored")
+        if skipna is None:
+            skipna = self.dtype == float
 
-        return self.__class__(
-            self.unstack(dim)
-            .cumprod(axis=1, skipna=skipna, **kwargs)
-            .stack()
-            .reorder_levels(self.dims),
-            attrs=self.attrs,
-        )
+        # Group on dimensions other than `dim`
+        result = self._maybe_groupby(dim).cumprod(skipna=skipna, **kwargs)
+        return AttrSeries(result, attrs=self.attrs)
 
     @property
     def dims(self) -> Tuple[Hashable, ...]:
@@ -427,15 +415,18 @@ class AttrSeries(pd.Series, Quantity):
 
     def sum(
         self,
-        dim: Optional[Union[Hashable, Sequence[Hashable]]] = None,
+        dim: Dims = None,
         # Signature from xarray.DataArray
         # *,
-        # skipna: bool | None = None,
-        # min_count: int | None = None,
+        skipna: Optional[bool] = None,
+        min_count: Optional[int] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
     ) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.sum`."""
+        if skipna is not None or min_count is not None:
+            raise NotImplementedError
+
         if dim is None or isinstance(dim, Hashable):
             dim = tuple(filter(None, (dim,)))
 
@@ -447,16 +438,7 @@ class AttrSeries(pd.Series, Quantity):
             )
 
         # Create the object on which to .sum()
-        if len(dim) in (0, len(self.index.names)):
-            obj = cast(pd.Series, super())
-        else:
-            # Group on dimensions other than `dim`
-            obj = self.groupby(
-                list(filter(lambda d: d not in dim, self.index.names)),  # type: ignore
-                observed=True,
-            )
-
-        return AttrSeries(obj.sum(**kwargs), attrs=self.attrs)
+        return AttrSeries(self._maybe_groupby(dim).sum(**kwargs), attrs=self.attrs)
 
     def squeeze(self, dim=None, *args, **kwargs):
         """Like :meth:`xarray.DataArray.squeeze`."""
@@ -554,3 +536,18 @@ class AttrSeries(pd.Series, Quantity):
 
         # Reorder, if that would do anything
         return result.reorder_levels(order) if len(order) > 1 else result
+
+    def _maybe_groupby(self, dim):
+        """Return an object for operations along dimension(s) `dim`.
+
+        If `dim` is a subset of :attr:`dims`, returns a SeriesGroupBy object along the
+        other dimensions.
+        """
+        if len(set(dim)) in (0, len(self.index.names)):
+            return cast(pd.Series, super())
+        else:
+            # Group on dimensions other than `dim`
+            return self.groupby(
+                list(filter(lambda d: d not in dim, self.index.names)),  # type: ignore
+                observed=True,
+            )
