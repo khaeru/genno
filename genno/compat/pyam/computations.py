@@ -106,7 +106,7 @@ def write_report(obj, path: Union[str, Path]) -> None:
     if path.suffix == ".csv":
         obj.to_csv(path)
     elif path.suffix == ".xlsx":
-        obj.to_excel(path, merge_cells=False)
+        obj.to_excel(path)
     else:
         raise ValueError(
             f"pyam.IamDataFrame can be written to .csv or .xlsx, not {path.suffix}"
