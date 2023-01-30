@@ -134,10 +134,10 @@ class Quantity:
 
     def interp(
         self,
-        coords: Mapping[Any, Any] = None,
+        coords: Optional[Mapping[Any, Any]] = None,
         method: InterpOptions = "linear",
         assume_sorted: bool = False,
-        kwargs: Mapping[str, Any] = None,
+        kwargs: Optional[Mapping[str, Any]] = None,
         **coords_kwargs: Any,
     ):
         ...  # pragma: no cover
@@ -154,8 +154,8 @@ class Quantity:
 
     def sel(
         self,
-        indexers: Mapping[Any, Any] = None,
-        method: str = None,
+        indexers: Optional[Mapping[Any, Any]] = None,
+        method: Optional[str] = None,
         tolerance=None,
         drop: bool = False,
         **indexers_kwargs: Any,
@@ -164,7 +164,7 @@ class Quantity:
 
     def shift(
         self,
-        shifts: Mapping[Hashable, int] = None,
+        shifts: Optional[Mapping[Hashable, int]] = None,
         fill_value: Any = None,
         **shifts_kwargs: int,
     ):  # NB "Quantity" here offends mypy

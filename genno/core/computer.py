@@ -74,7 +74,10 @@ class Computer:
         self.configure(**kwargs)
 
     def configure(
-        self, path: Union[Path, str] = None, fail: Union[str, int] = "raise", **config
+        self,
+        path: Optional[Union[Path, str]] = None,
+        fail: Union[str, int] = "raise",
+        **config,
     ):
         """Configure the Computer.
 
@@ -627,7 +630,7 @@ class Computer:
         weights: Optional[xr.DataArray] = None,
         keep: bool = True,
         sums: bool = False,
-        fail: Union[str, int] = None,
+        fail: Optional[Union[str, int]] = None,
     ):
         """Add a computation that aggregates *qty*.
 

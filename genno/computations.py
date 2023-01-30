@@ -420,10 +420,10 @@ def group_sum(qty, group, sum):
 @maybe_densify
 def interpolate(
     qty: Quantity,
-    coords: Mapping[Hashable, Any] = None,
+    coords: Optional[Mapping[Hashable, Any]] = None,
     method: InterpOptions = "linear",
     assume_sorted: bool = True,
-    kwargs: Mapping[str, Any] = None,
+    kwargs: Optional[Mapping[str, Any]] = None,
     **coords_kwargs: Any,
 ) -> Quantity:
     """Interpolate `qty`.
@@ -667,7 +667,7 @@ product = mul
 
 def relabel(
     qty: Quantity,
-    labels: Mapping[Hashable, Mapping] = None,
+    labels: Optional[Mapping[Hashable, Mapping]] = None,
     **dim_labels: Mapping,
 ) -> Quantity:
     """Replace specific labels along dimensions of `qty`.
