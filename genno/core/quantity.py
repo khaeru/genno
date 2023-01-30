@@ -77,10 +77,10 @@ class Quantity:
         self.attrs["_unit"] = pint.get_application_registry().Unit(value)
 
     # Type hints for mypy in downstream applications
-    def __len__(self) -> int:
+    def __len__(self) -> int:  # type: ignore [empty-body]
         ...  # pragma: no cover
 
-    def __mul__(self, other) -> "Quantity":
+    def __mul__(self, other) -> "Quantity":  # type: ignore [empty-body]
         ...  # pragma: no cover
 
     def __radd__(self, other):
@@ -95,19 +95,21 @@ class Quantity:
     def __rtruediv__(self, other):
         ...  # pragma: no cover
 
-    def __truediv__(self, other) -> "Quantity":
+    def __truediv__(self, other) -> "Quantity":  # type: ignore [empty-body]
         ...  # pragma: no cover
 
     @property
-    def attrs(self) -> Dict[Any, Any]:
+    def attrs(self) -> Dict[Any, Any]:  # type: ignore [empty-body]
         ...  # pragma: no cover
 
     @property
-    def coords(self) -> xarray.core.coordinates.DataArrayCoordinates:
+    def coords(  # type: ignore [empty-body]
+        self,
+    ) -> xarray.core.coordinates.DataArrayCoordinates:
         ...  # pragma: no cover
 
     @property
-    def dims(self) -> Tuple[Hashable, ...]:
+    def dims(self) -> Tuple[Hashable, ...]:  # type: ignore [empty-body]
         ...  # pragma: no cover
 
     def assign_coords(
@@ -152,7 +154,7 @@ class Quantity:
     ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
-    def sel(
+    def sel(  # type: ignore [empty-body]
         self,
         indexers: Optional[Mapping[Any, Any]] = None,
         method: Optional[str] = None,
@@ -182,7 +184,7 @@ class Quantity:
     ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
-    def to_numpy(self) -> np.ndarray:
+    def to_numpy(self) -> np.ndarray:  # type: ignore [empty-body]
         ...  # pragma: no cover
 
     # Internal methods
