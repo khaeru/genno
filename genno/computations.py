@@ -494,7 +494,7 @@ def _load_file_csv(
 ) -> Quantity:
     # Peek at the header, if any, and match a units expression
     with open(path, "r", encoding="utf-8") as f:
-        for line, match in map(lambda l: (l, UNITS_RE.fullmatch(l)), f):
+        for line, match in map(lambda li: (li, UNITS_RE.fullmatch(li)), f):
             if match:
                 if units:
                     log.warning(f"Replace {match.group(1)!r} from file with {units!r}")
@@ -749,7 +749,7 @@ def select(qty, indexers, inverse=False):
         new_indexers = {}
         for dim, labels in indexers.items():
             new_indexers[dim] = list(
-                filter(lambda l: l not in labels, qty.coords[dim].data)
+                filter(lambda lab: lab not in labels, qty.coords[dim].data)
             )
         indexers = new_indexers
 
