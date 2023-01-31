@@ -22,7 +22,7 @@ HANDLERS: Dict[str, Any] = {}
 STORE = set(["cache_path", "cache_skip"])
 
 
-def configure(path: Union[Path, str] = None, **config):
+def configure(path: Optional[Union[Path, str]] = None, **config):
     """Configure :mod:`genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and

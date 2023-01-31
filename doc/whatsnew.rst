@@ -6,8 +6,10 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Adjust for compatibility with pyam 1.7 (released 2022-12-19) (:pull:`78`).
 
 v1.14.1 (2022-10-28)
 ====================

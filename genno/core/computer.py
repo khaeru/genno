@@ -74,7 +74,10 @@ class Computer:
         self.configure(**kwargs)
 
     def configure(
-        self, path: Union[Path, str] = None, fail: Union[str, int] = "raise", **config
+        self,
+        path: Optional[Union[Path, str]] = None,
+        fail: Union[str, int] = "raise",
+        **config,
     ):
         """Configure the Computer.
 
@@ -627,7 +630,7 @@ class Computer:
         weights: Optional[xr.DataArray] = None,
         keep: bool = True,
         sums: bool = False,
-        fail: Union[str, int] = None,
+        fail: Optional[Union[str, int]] = None,
     ):
         """Add a computation that aggregates *qty*.
 
@@ -784,13 +787,19 @@ class Computer:
             print(result, end="\n")
         return result
 
+    def __dask_keys__(self):
+        return self.graph.keys()
+
+    def __dask_graph__(self):
+        return self.graph
+
     def visualize(self, filename, **kwargs):
         """Generate an image describing the Computer structure.
 
         This is a shorthand for :meth:`dask.visualize`. Requires
         `graphviz <https://pypi.org/project/graphviz/>`__.
         """
-        return dask.visualize(self.graph, filename=filename, **kwargs)
+        return dask.visualize(self, filename=filename, traverse=False, **kwargs)
 
     def write(self, key, path):
         """Write the result of `key` to the file `path`."""

@@ -113,7 +113,7 @@ class AttrSeries(pd.Series, Quantity):
         # Return a new object with the new index
         return self.set_axis(new_idx)
 
-    def bfill(self, dim: Hashable, limit: int = None):
+    def bfill(self, dim: Hashable, limit: Optional[int] = None):
         """Like :meth:`xarray.DataArray.bfill`."""
         return self.__class__(
             self.unstack(dim)
@@ -172,7 +172,7 @@ class AttrSeries(pd.Series, Quantity):
 
         return result
 
-    def ffill(self, dim: Hashable, limit: int = None):
+    def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Like :meth:`xarray.DataArray.ffill`."""
         return self.__class__(
             self.unstack(dim)
@@ -192,10 +192,10 @@ class AttrSeries(pd.Series, Quantity):
 
     def interp(
         self,
-        coords: Mapping[Hashable, Any] = None,
+        coords: Optional[Mapping[Hashable, Any]] = None,
         method: str = "linear",
         assume_sorted: bool = True,
-        kwargs: Mapping[str, Any] = None,
+        kwargs: Optional[Mapping[str, Any]] = None,
         **coords_kwargs: Any,
     ):
         """Like :meth:`xarray.DataArray.interp`.
@@ -393,7 +393,7 @@ class AttrSeries(pd.Series, Quantity):
 
     def shift(
         self,
-        shifts: Mapping[Hashable, int] = None,
+        shifts: Optional[Mapping[Hashable, int]] = None,
         fill_value: Any = None,
         **shifts_kwargs: int,
     ):
@@ -475,7 +475,7 @@ class AttrSeries(pd.Series, Quantity):
         return self.reorder_levels(dims)
 
     def to_dataframe(
-        self, name: Hashable = None, dim_order: List[Hashable] = None
+        self, name: Hashable = None, dim_order: Optional[List[Hashable]] = None
     ) -> pd.DataFrame:
         """Like :meth:`xarray.DataArray.to_dataframe`."""
         if dim_order is not None:

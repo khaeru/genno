@@ -101,9 +101,9 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         coords: Union[Sequence[Tuple], Mapping[Hashable, Any], None] = None,
         dims: Union[Hashable, Sequence[Hashable], None] = None,
         name: Hashable = None,
-        attrs: Mapping = None,
+        attrs: Optional[Mapping] = None,
         # internal parameters
-        indexes: Dict[Hashable, pd.Index] = None,
+        indexes: Optional[Dict[Hashable, pd.Index]] = None,
         fastpath: bool = False,
         **kwargs,
     ):
@@ -158,7 +158,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         # Call the parent method always with sparse=True, then re-wrap
         return xr.DataArray.from_series(obj, sparse=True)._sda.convert()
 
-    def ffill(self, dim: Hashable, limit: int = None):
+    def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
         return self._sda.dense_super.ffill(dim, limit)._sda.convert()
 
@@ -178,8 +178,8 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
 
     def sel(
         self,
-        indexers: Mapping[Any, Any] = None,
-        method: str = None,
+        indexers: Optional[Mapping[Any, Any]] = None,
+        method: Optional[str] = None,
         tolerance=None,
         drop: bool = False,
         **indexers_kwargs: Any,
@@ -205,7 +205,9 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
             )
 
     def to_dataframe(
-        self, name: Optional[Hashable] = None, dim_order: Sequence[Hashable] = None
+        self,
+        name: Optional[Hashable] = None,
+        dim_order: Optional[Sequence[Hashable]] = None,
     ) -> pd.DataFrame:
         """Convert this array and its coords into a :class:`~xarray.DataFrame`.
 
