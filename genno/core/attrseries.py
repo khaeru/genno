@@ -115,12 +115,13 @@ class AttrSeries(pd.Series, Quantity):
 
     def bfill(self, dim: Hashable, limit: Optional[int] = None):
         """Like :meth:`xarray.DataArray.bfill`."""
-        return self.__class__(
+        # TODO this likely does not work for 1-D quantities due to unstack(); test and
+        #      if needed use _maybe_groupby()
+        return self._replace(
             self.unstack(dim)
             .fillna(method="bfill", axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
-            attrs=self.attrs,
         )
 
     @property
@@ -144,7 +145,7 @@ class AttrSeries(pd.Series, Quantity):
 
         # Group on dimensions other than `dim`
         result = self._maybe_groupby(dim).cumprod(skipna=skipna, **kwargs)
-        return AttrSeries(result, attrs=self.attrs)
+        return self._replace(result)
 
     @property
     def dims(self) -> Tuple[Hashable, ...]:
@@ -176,12 +177,13 @@ class AttrSeries(pd.Series, Quantity):
 
     def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Like :meth:`xarray.DataArray.ffill`."""
-        return self.__class__(
+        # TODO this likely does not work for 1-D quantities due to unstack(); test and
+        #      if needed use _maybe_groupby()
+        return self._replace(
             self.unstack(dim)
             .fillna(method="ffill", axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
-            attrs=self.attrs,
         )
 
     def item(self, *args):
@@ -278,10 +280,7 @@ class AttrSeries(pd.Series, Quantity):
 
         # - Restore dimension order and attributes.
         # - Select only the desired `coords`.
-        return AttrSeries(
-            pd.concat(result).reorder_levels(dims),
-            attrs=self.attrs,
-        ).sel(coords)
+        return self._replace(pd.concat(result).reorder_levels(dims)).sel(coords)
 
     def rename(
         self,
@@ -391,7 +390,7 @@ class AttrSeries(pd.Series, Quantity):
                 data = data.droplevel(list(to_drop & set(data.index.names)))
 
         # Return
-        return AttrSeries(data, attrs=self.attrs)
+        return self._replace(data)
 
     def shift(
         self,
@@ -407,7 +406,7 @@ class AttrSeries(pd.Series, Quantity):
             result = result._maybe_groupby(dim).shift(
                 periods=periods, fill_value=fill_value
             )
-        return self.__class__(result, attrs=self.attrs)
+        return self._replace(result)
 
     def sum(
         self,
@@ -434,7 +433,7 @@ class AttrSeries(pd.Series, Quantity):
             )
 
         # Create the object on which to .sum()
-        return AttrSeries(self._maybe_groupby(dim).sum(**kwargs), attrs=self.attrs)
+        return self._replace(self._maybe_groupby(dim).sum(**kwargs))
 
     def squeeze(self, dim=None, *args, **kwargs):
         """Like :meth:`xarray.DataArray.squeeze`."""
@@ -547,3 +546,7 @@ class AttrSeries(pd.Series, Quantity):
                 list(filter(lambda d: d not in dim, self.index.names)),  # type: ignore
                 observed=True,
             )
+
+    def _replace(self, data) -> "AttrSeries":
+        """Shorthand to preserve attrs."""
+        return self.__class__(data, attrs=self.attrs)
