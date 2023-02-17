@@ -139,6 +139,8 @@ class AttrSeries(pd.Series, Quantity):
             log.info(f"{self.__class__.__name__}.cumprod(…, axis=…) is ignored")
         if skipna is None:
             skipna = self.dtype == float
+        if dim in (None, "..."):
+            dim = self.dims
 
         # Group on dimensions other than `dim`
         result = self._maybe_groupby(dim).cumprod(skipna=skipna, **kwargs)
