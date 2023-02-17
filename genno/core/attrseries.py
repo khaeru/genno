@@ -401,19 +401,13 @@ class AttrSeries(pd.Series, Quantity):
     ):
         """Like :meth:`xarray.DataArray.shift`."""
         shifts = either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
-        if len(shifts) > 1:
-            raise NotImplementedError(
-                f"{self.__class__.__name__}.shift() with > 1 dimension"
-            )
 
-        dim, periods = next(iter(shifts.items()))
-        return self.__class__(
-            self.unstack(dim)
-            .shift(periods=periods, axis=1, fill_value=fill_value)
-            .stack()
-            .reorder_levels(self.dims),
-            attrs=self.attrs,
-        )
+        result = self
+        for dim, periods in shifts.items():
+            result = result._maybe_groupby(dim).shift(
+                periods=periods, fill_value=fill_value
+            )
+        return self.__class__(result, attrs=self.attrs)
 
     def sum(
         self,
