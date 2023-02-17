@@ -549,4 +549,4 @@ class AttrSeries(pd.Series, Quantity):
 
     def _replace(self, data) -> "AttrSeries":
         """Shorthand to preserve attrs."""
-        return self.__class__(data, attrs=self.attrs)
+        return self.__class__(data, name=self.name, attrs=self.attrs)
