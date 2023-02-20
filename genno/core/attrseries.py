@@ -486,17 +486,22 @@ class AttrSeries(pd.Series, Quantity):
     # Internal methods
 
     def align_levels(self, other):
-        """Work around https://github.com/pandas-dev/pandas/issues/25760.
+        """Return a copy of `self` with common levels in the same order as `other`.
 
-        Return a copy of `self` with common levels in the same order as `other`.
+        Work-around for https://github.com/pandas-dev/pandas/issues/25760.
         """
+        # TODO test for possible removal, since the upstream bug appears closed
+
         # If other.index is a (1D) Index object, convert to a MultiIndex with 1 level so
         # .levels[…] can be used, below. See also Quantity._single_column_df()
         other_index = _multiindex_of(other)
 
+        # other.index.names, excluding 'None'
+        other_names = list(filter(None, other_index.names))
+
         # Lists of common dimensions, and dimensions on `other` missing from `self`.
         common, missing = [], []
-        for (i, n) in enumerate(other_index.names):
+        for (i, n) in enumerate(other_names):
             if n in self.index.names:
                 common.append(n)
             else:
@@ -517,16 +522,14 @@ class AttrSeries(pd.Series, Quantity):
                 result = result.droplevel(-1)
 
             # Reordering starts with the dimensions of `other`
-            order = list(other_index.names)
+            order = other_names
         else:
             # Some common dimensions exist; no need to broadcast, only reorder
             order = common
 
         # Append the dimensions of `self`
         order.extend(
-            filter(
-                lambda n: n is not None and n not in other_index.names, self.index.names
-            )
+            filter(lambda n: n is not None and n not in other_names, self.index.names)
         )
 
         # Reorder, if that would do anything
