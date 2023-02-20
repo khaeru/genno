@@ -496,6 +496,7 @@ class Computer:
         else:
             return result
         finally:
+            # Unwrap config from protection applied above
             self.graph["config"] = self.graph["config"][0].data
 
     # Convenience methods for the graph and its keys
