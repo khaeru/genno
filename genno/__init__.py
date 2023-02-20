@@ -7,6 +7,8 @@ warnings.filterwarnings(
     module="numba.core",
 )
 
+from dask.core import quote  # noqa: E402
+
 from .config import configure  # noqa: E402
 from .core.computer import Computer  # noqa: E402
 from .core.exceptions import (  # noqa: E402
@@ -25,4 +27,5 @@ __all__ = [
     "MissingKeyError",
     "Quantity",
     "configure",
+    "quote",
 ]
