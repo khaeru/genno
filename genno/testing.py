@@ -14,9 +14,31 @@ from dask.core import quote
 from pandas.testing import assert_series_equal
 
 import genno.core.quantity
-from genno import Computer, Key, Quantity
+from genno import ComputationError, Computer, Key, Quantity
 
 log = logging.getLogger(__name__)
+
+
+def pytest_runtest_makereport(item, call):
+    """Pytest hook to unwrap :class:`genno.ComputationError`.
+
+    This allows to "xfail" tests more precisely on the underlying exception, rather than
+    the ComputationError which wraps it.
+    """
+    if call.when == "call" and getattr(call.excinfo, "type", None) is ComputationError:
+        # Retrieve the Exception wrapped by ComputationError
+        e = call.excinfo.value.args[0]
+        # Look for an "xfail" marker whose raises= class(es) match `e`
+        for mark in filter(
+            lambda m: m.name == "xfail" and isinstance(e, m.kwargs.get("raises", ())),
+            item.iter_markers(),
+        ):
+            # Change the ExceptionInfo describe `e`, which will match this mark
+            # and produce an "xfail" report
+            call.excinfo = pytest.ExceptionInfo(excinfo=(type(e), e, e.__traceback__))
+
+            # Generate and return the report
+            return pytest.TestReport.from_item_and_call(item, call)
 
 
 def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
