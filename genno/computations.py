@@ -372,6 +372,22 @@ def disaggregate_shares(quantity, shares):
     return result
 
 
+def possible_scalar(value) -> Quantity:
+    """Convert `value`, possibly a scalar, to :class:`Quantity`."""
+    if isinstance(value, float):
+        return Quantity(value)
+    else:
+        return value
+
+
+def unwrap_scalar(qty: Quantity) -> Any:
+    """Unwrap `qty` to a scalar, if it is one."""
+    if len(qty.dims):
+        return qty
+    else:
+        return qty.item()
+
+
 def div(numerator, denominator):
     """Compute the ratio `numerator` / `denominator`.
 
@@ -380,11 +396,12 @@ def div(numerator, denominator):
     numerator : .Quantity
     denominator : .Quantity
     """
+    numerator = possible_scalar(numerator)
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
     if isinstance(numerator, AttrSeries):
-        result = numerator / denominator.align_levels(numerator)
+        result = unwrap_scalar(numerator) / denominator.align_levels(numerator)
     else:
         result = numerator / denominator
 
