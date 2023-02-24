@@ -501,7 +501,7 @@ class AttrSeries(pd.Series, Quantity):
 
         # Lists of common dimensions, and dimensions on `other` missing from `self`.
         common, missing = [], []
-        for (i, n) in enumerate(other_names):
+        for i, n in enumerate(other_names):
             if n in self.index.names:
                 common.append(n)
             else:
