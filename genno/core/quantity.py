@@ -1,5 +1,5 @@
 from functools import update_wrapper
-from typing import Any, Dict, Hashable, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, Iterable, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -124,6 +124,14 @@ class Quantity:
         deep: bool = True,
         data: Any = None,
     ):  # NB "Quantity" here offends mypy
+        ...  # pragma: no cover
+
+    def drop_vars(
+        self,
+        names: Hashable | Iterable[Hashable],
+        *,
+        errors="raise",
+    ):
         ...  # pragma: no cover
 
     def expand_dims(

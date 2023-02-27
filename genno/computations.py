@@ -5,7 +5,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Collection, Hashable, Mapping, Optional, Union, cast
+from typing import Any, Collection, Hashable, Iterable, Mapping, Optional, Union, cast
 
 import pandas as pd
 import pint
@@ -28,6 +28,7 @@ __all__ = [
     "convert_units",
     "disaggregate_shares",
     "div",
+    "drop_vars",
     "group_sum",
     "index_to",
     "interpolate",
@@ -370,6 +371,15 @@ def disaggregate_shares(quantity, shares):
     result = quantity * shares
     result.attrs["_unit"] = collect_units(quantity)[0]
     return result
+
+
+def drop_vars(
+    qty: Quantity,
+    names: Hashable | Iterable[Hashable],
+    *,
+    errors="raise",
+) -> Quantity:
+    return qty.drop_vars(names)
 
 
 def possible_scalar(value) -> Quantity:
