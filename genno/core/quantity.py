@@ -192,6 +192,9 @@ class Quantity:
     ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
+    def round(self, *args, **kwargs):
+        ...  # pragma: no cover
+
     def to_numpy(self) -> np.ndarray:  # type: ignore [empty-body]
         ...  # pragma: no cover
 

@@ -574,6 +574,24 @@ def test_rename_dims(data):
         assert ("s", "z") == result.dims and all(t == result.coords["s"])  # As above
 
 
+def test_round(data):
+    # Unpack
+    *_, x = data
+
+    # Up to 36 unique random values in `x`
+    assert 2 < len(x.to_series().unique()) <= 36
+
+    # round() runs
+    result0 = computations.round(x)
+
+    # Only 0 or 1
+    assert {0.0, 1.0} >= set(result0.to_series().unique())
+
+    # round to 1 decimal place
+    result1 = computations.round(x, 1)
+    assert 0 <= len(result1.to_series().unique()) <= 11
+
+
 def test_select(data):
     # Unpack
     *_, t_foo, t_bar, x = data

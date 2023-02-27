@@ -39,6 +39,7 @@ __all__ = [
     "ratio",
     "relabel",
     "rename_dims",
+    "round",
     "select",
     "sum",
     "write_report",
@@ -758,6 +759,11 @@ def rename_dims(
     Like :meth:`xarray.DataArray.rename`.
     """
     return qty.rename(new_name_or_name_dict, **names)
+
+
+def round(qty: Quantity, *args, **kwargs) -> Quantity:
+    """Like :meth:`xarray.DataArray.round`."""
+    return qty.round(*args, **kwargs)
 
 
 def select(qty, indexers, inverse=False):
