@@ -128,7 +128,7 @@ class Quantity:
 
     def drop_vars(
         self,
-        names: Hashable | Iterable[Hashable],
+        names: Union[Hashable, Iterable[Hashable]],
         *,
         errors="raise",
     ):

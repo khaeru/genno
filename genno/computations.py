@@ -376,7 +376,7 @@ def disaggregate_shares(quantity, shares):
 
 def drop_vars(
     qty: Quantity,
-    names: Hashable | Iterable[Hashable],
+    names: Union[Hashable, Iterable[Hashable]],
     *,
     errors="raise",
 ) -> Quantity:
