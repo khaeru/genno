@@ -380,6 +380,10 @@ def drop_vars(
     *,
     errors="raise",
 ) -> Quantity:
+    """Return a Quantity with dropped variables (coordinates).
+
+    Like :meth:`xarray.DataArray.drop_vars`.
+    """
     return qty.drop_vars(names)
 
 
