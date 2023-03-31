@@ -1,0 +1,89 @@
+[build-system]
+requires = ["build", "setuptools-scm"]
+
+[project]
+dynamic = ["version"]
+name = "genno"
+description = "Efficient, transparent calculation on N-D data"
+authors = [
+  {name = "genno contributors"}
+]
+maintainers = [
+  {name = "Paul Natsuo Kishimoto", email = "mail@paul.kishimoto.name"}
+]
+readme = "README.rst"
+classifiers = [
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Scientific/Engineering :: Information Analysis",
+]
+requires-python = ">=3.8"
+dependencies = [
+  "dask [array] >= 2.14",
+  "pandas >= 1.0",
+  "pint",
+  "PyYAML",
+  "setuptools >= 41",
+  "sparse >= 0.12",
+  # 2022.6.0 is affected by pydata/xarray#6822
+  "xarray >= 0.17, != 2022.6.0",
+]
+
+[project.optional-dependencies]
+# Graphviz, for Computer.describe()
+graphviz = ["graphviz"]
+docs = [
+  "IPython",
+  "sphinx_rtd_theme",
+]
+# Specific packages for which compatibility is provided
+plotnine = ["plotnine"]
+pyam = ["pyam-iamc"]
+# All compat packages together
+compat = [
+  "genno[plotnine]",
+  "genno[pyam]",
+]
+tests = [
+  "genno[compat]",
+  "genno[graphviz]",
+  "ixmp[tests]",
+  "bottleneck",
+  "pytest",
+  "pytest-cov",
+]
+
+[project.urls]
+homepage = "https://github.com/khaeru/genno"
+repository = "https://github.com/khaeru/genno"
+documentation = "https://genno.rtfd.io/en/stable/"
+
+[tool.isort]
+profile = "black"
+
+[[tool.mypy.overrides]]
+# Packages/modules for which no type hints are available
+module = [
+  "dask.*",
+  "pandas.*",
+  "plotnine.*",
+  "pyam.*",
+  "scipy.*",
+  "sparse.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=genno --cov-report="
+
+[tool.setuptools.packages]
+find = {}
+
+[tool.setuptools_scm]
