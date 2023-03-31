@@ -58,6 +58,7 @@ tests = [
   "bottleneck",
   "pytest",
   "pytest-cov",
+  "pytest-xdist",
 ]
 
 [project.urls]

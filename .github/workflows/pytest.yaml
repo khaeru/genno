@@ -64,7 +64,7 @@ jobs:
       run: pip install .[docs,tests]
 
     - name: Run test suite using pytest
-      run: pytest genno --trace-config --verbose --cov-report=xml --cov-report=term --color=yes
+      run: pytest genno --trace-config --color=yes --verbose --cov-report=xml --cov-report=term --numprocesses auto
 
     - name: Test documentation build using Sphinx
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
