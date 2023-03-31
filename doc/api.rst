@@ -337,6 +337,16 @@ Internal format for quantities
 
 .. automodule:: genno.core.attrseries
    :members:
+   :exclude-members: AttrSeries
+
+.. autoclass:: AttrSeries
+   :members:
+
+   .. py:attribute:: name
+
+      The name of this Quantity.
+
+      Like :attr:`.xarray.DataArray.name`.
 
 .. currentmodule:: genno.core.sparsedataarray
 

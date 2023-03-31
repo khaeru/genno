@@ -9,6 +9,21 @@ What's new
 Next release
 ============
 
+- :func:`.dask.core.quote` is now re-exported by :mod:`genno` for convenience (:pull:`79`):
+
+  .. code-block:: python
+
+     from genno import quote
+
+- Add new computations :func:`.drop_vars`, :func:`.round` (:pull:`79`).
+- Improve existing computation :func:`.div` to accept a scalar numerator. (:pull:`79`):
+- Improve :class:`.AttrSeries` (:pull:`79`):
+
+  - Handle ``dim=None`` in :meth:`~.AttrSeries.cumprod`.
+  - Handle 1-D quantities in :meth:`~.AttrSeries.shift`.
+  - Preserve :attr:`.AttrSeries.name` in more operations.
+
+- :meth:`.Computer.configure` can accept a :class:`dict` instead of keyword arguments (:pull:`79`).
 - Adjust for compatibility with pyam 1.7 (released 2022-12-19) (:pull:`78`).
 
 v1.14.1 (2022-10-28)
