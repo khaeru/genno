@@ -2,11 +2,29 @@ import re
 
 from ixmp.testing import get_cell_output, run_notebook
 
-from genno import ComputationError
+from genno import ComputationError, Computer
 from genno.testing import assert_logs
 
 
-def test_computationerror(caplog):
+def test_computationerror():
+    """ComputationError._format() works in the context of a failed computation."""
+    c = Computer()
+
+    def func(x):
+        return "a" + x
+
+    c.add("test", func, 1.0)
+
+    try:
+        c.get("test")
+    except ComputationError as e:
+        r = str(e)
+
+    assert re.match("computing 'test' using.*TypeError", r, flags=re.DOTALL)
+
+
+def test_computationerror_format(caplog):
+    """Test failures in ComputationError._format."""
     ce_none = ComputationError(None)
 
     msg = (
