@@ -34,7 +34,7 @@ class Quantity:
         """Like :meth:`xarray.DataArray.to_series`."""
         # Provided only for type-checking in other packages. AttrSeries implements;
         # SparseDataArray uses the xr.DataArray method.
-        return NotImplemented
+        return NotImplemented  # pragma: no cover
 
     @classmethod
     def from_series(cls, series, sparse=True):
