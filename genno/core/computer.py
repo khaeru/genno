@@ -100,8 +100,14 @@ class Computer:
             Passed to :meth:`.add_queue`. If not "raise", then log messages are
             generated for config handlers that fail. The Computer may be only partially
             configured.
-        **config :
-            Configuration keys/sections and values.
+        config :
+            Configuration keys/sections and values, as a mapping. Use this if any of
+            the keys/sections are not valid Python names, e.g. contain "-" or " ".
+
+        Other parameters
+        ----------------
+        **config_kw :
+            Configuration keys/sections and values, as keyword arguments.
         """
         from genno.config import parse_config
 

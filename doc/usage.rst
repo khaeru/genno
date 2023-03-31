@@ -158,8 +158,11 @@ This callable can be:
 - a numerical *calculation* operating on one or more Quantities;
 - more generally, a *computation*, including other actions like transforming data formats, reading and writing files, writing plots, etc.
 
-Other elements in the task
-For a complete description of tasks, see :doc:`dask:spec`.
+Other elements in the task tuple are passed, in the same order, as positional arguments to the callable.
+
+.. note::
+   :mod:`genno` relies on the :mod:`dask` implementation of task graphs.
+   For a complete description of tasks, see the :doc:`dask:spec` in the dask documentation.
 
 Every node has a unique *label*, describing the results of its task.
 These labels can be :class:`.Key` (if the task produces a Quantity), :py:class:`str` (most other cases) or generally any other hashable object.
