@@ -1,5 +1,6 @@
 """Tests of AttrSeries in particular."""
 import pandas as pd
+import pandas.testing as pdt
 import pytest
 
 from genno import Computer
@@ -21,8 +22,12 @@ def bar():
 
 def test_cumprod(bar):
     """AttrSeries.cumprod works with 1-dimensional quantities."""
-    result = (1.1 + bar).cumprod("a")
-    assert ("a",) == result.dims
+    result0 = (1.1 + bar).cumprod("a")
+    assert ("a",) == result0.dims
+
+    # Same result with dim=None
+    result1 = (1.1 + bar).cumprod()
+    pdt.assert_series_equal(result0, result1)
 
 
 def test_interp(foo):

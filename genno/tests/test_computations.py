@@ -285,6 +285,26 @@ def test_div(func, ureg):
     assert ureg.Unit("km / hour") == result.units
 
 
+def test_div_scalar(data, ureg):
+    """:func:`.div` handles scalar numerator."""
+
+    *_, x = data
+
+    result = computations.div(2.0, x)
+    assert ("t", "y") == result.dims
+    assert_qty_equal(
+        2.0 / x.sel(t="foo1", y=2000), result.sel(t="foo1", y=2000), check_attrs=False
+    )
+
+
+def test_drop_vars(data):
+    # Unpack
+    *_, x = data
+
+    result = computations.drop_vars(x, "t")
+    assert set(x.dims) == {"t"} | set(result.dims)
+
+
 def test_group_sum(ureg):
     a = "a1 a2".split()
     b = "b1 b2 b3".split()
