@@ -115,12 +115,13 @@ class AttrSeries(pd.Series, Quantity):
 
     def bfill(self, dim: Hashable, limit: Optional[int] = None):
         """Like :meth:`xarray.DataArray.bfill`."""
-        return self.__class__(
+        # TODO this likely does not work for 1-D quantities due to unstack(); test and
+        #      if needed use _maybe_groupby()
+        return self._replace(
             self.unstack(dim)
             .fillna(method="bfill", axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
-            attrs=self.attrs,
         )
 
     @property
@@ -139,10 +140,12 @@ class AttrSeries(pd.Series, Quantity):
             log.info(f"{self.__class__.__name__}.cumprod(…, axis=…) is ignored")
         if skipna is None:
             skipna = self.dtype == float
+        if dim in (None, "..."):
+            dim = self.dims
 
         # Group on dimensions other than `dim`
         result = self._maybe_groupby(dim).cumprod(skipna=skipna, **kwargs)
-        return AttrSeries(result, attrs=self.attrs)
+        return self._replace(result)
 
     @property
     def dims(self) -> Tuple[Hashable, ...]:
@@ -174,12 +177,13 @@ class AttrSeries(pd.Series, Quantity):
 
     def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Like :meth:`xarray.DataArray.ffill`."""
-        return self.__class__(
+        # TODO this likely does not work for 1-D quantities due to unstack(); test and
+        #      if needed use _maybe_groupby()
+        return self._replace(
             self.unstack(dim)
             .fillna(method="ffill", axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
-            attrs=self.attrs,
         )
 
     def item(self, *args):
@@ -276,10 +280,7 @@ class AttrSeries(pd.Series, Quantity):
 
         # - Restore dimension order and attributes.
         # - Select only the desired `coords`.
-        return AttrSeries(
-            pd.concat(result).reorder_levels(dims),
-            attrs=self.attrs,
-        ).sel(coords)
+        return self._replace(pd.concat(result).reorder_levels(dims)).sel(coords)
 
     def rename(
         self,
@@ -389,7 +390,7 @@ class AttrSeries(pd.Series, Quantity):
                 data = data.droplevel(list(to_drop & set(data.index.names)))
 
         # Return
-        return AttrSeries(data, attrs=self.attrs)
+        return self._replace(data)
 
     def shift(
         self,
@@ -399,19 +400,13 @@ class AttrSeries(pd.Series, Quantity):
     ):
         """Like :meth:`xarray.DataArray.shift`."""
         shifts = either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
-        if len(shifts) > 1:
-            raise NotImplementedError(
-                f"{self.__class__.__name__}.shift() with > 1 dimension"
-            )
 
-        dim, periods = next(iter(shifts.items()))
-        return self.__class__(
-            self.unstack(dim)
-            .shift(periods=periods, axis=1, fill_value=fill_value)
-            .stack()
-            .reorder_levels(self.dims),
-            attrs=self.attrs,
-        )
+        result = self
+        for dim, periods in shifts.items():
+            result = result._maybe_groupby(dim).shift(
+                periods=periods, fill_value=fill_value
+            )
+        return self._replace(result)
 
     def sum(
         self,
@@ -438,7 +433,7 @@ class AttrSeries(pd.Series, Quantity):
             )
 
         # Create the object on which to .sum()
-        return AttrSeries(self._maybe_groupby(dim).sum(**kwargs), attrs=self.attrs)
+        return self._replace(self._maybe_groupby(dim).sum(**kwargs))
 
     def squeeze(self, dim=None, *args, **kwargs):
         """Like :meth:`xarray.DataArray.squeeze`."""
@@ -491,17 +486,22 @@ class AttrSeries(pd.Series, Quantity):
     # Internal methods
 
     def align_levels(self, other):
-        """Work around https://github.com/pandas-dev/pandas/issues/25760.
+        """Return a copy of `self` with common levels in the same order as `other`.
 
-        Return a copy of `self` with common levels in the same order as `other`.
+        Work-around for https://github.com/pandas-dev/pandas/issues/25760.
         """
+        # TODO test for possible removal, since the upstream bug appears closed
+
         # If other.index is a (1D) Index object, convert to a MultiIndex with 1 level so
         # .levels[…] can be used, below. See also Quantity._single_column_df()
         other_index = _multiindex_of(other)
 
+        # other.index.names, excluding 'None'
+        other_names = list(filter(None, other_index.names))
+
         # Lists of common dimensions, and dimensions on `other` missing from `self`.
         common, missing = [], []
-        for (i, n) in enumerate(other_index.names):
+        for i, n in enumerate(other_names):
             if n in self.index.names:
                 common.append(n)
             else:
@@ -522,16 +522,14 @@ class AttrSeries(pd.Series, Quantity):
                 result = result.droplevel(-1)
 
             # Reordering starts with the dimensions of `other`
-            order = list(other_index.names)
+            order = other_names
         else:
             # Some common dimensions exist; no need to broadcast, only reorder
             order = common
 
         # Append the dimensions of `self`
         order.extend(
-            filter(
-                lambda n: n is not None and n not in other_index.names, self.index.names
-            )
+            filter(lambda n: n is not None and n not in other_names, self.index.names)
         )
 
         # Reorder, if that would do anything
@@ -551,3 +549,7 @@ class AttrSeries(pd.Series, Quantity):
                 list(filter(lambda d: d not in dim, self.index.names)),  # type: ignore
                 observed=True,
             )
+
+    def _replace(self, data) -> "AttrSeries":
+        """Shorthand to preserve attrs."""
+        return self.__class__(data, name=self.name, attrs=self.attrs)

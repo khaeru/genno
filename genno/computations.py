@@ -5,7 +5,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import Any, Collection, Hashable, Mapping, Optional, Union, cast
+from typing import Any, Collection, Hashable, Iterable, Mapping, Optional, Union, cast
 
 import pandas as pd
 import pint
@@ -28,6 +28,7 @@ __all__ = [
     "convert_units",
     "disaggregate_shares",
     "div",
+    "drop_vars",
     "group_sum",
     "index_to",
     "interpolate",
@@ -38,6 +39,7 @@ __all__ = [
     "ratio",
     "relabel",
     "rename_dims",
+    "round",
     "select",
     "sum",
     "write_report",
@@ -372,6 +374,35 @@ def disaggregate_shares(quantity, shares):
     return result
 
 
+def drop_vars(
+    qty: Quantity,
+    names: Union[Hashable, Iterable[Hashable]],
+    *,
+    errors="raise",
+) -> Quantity:
+    """Return a Quantity with dropped variables (coordinates).
+
+    Like :meth:`xarray.DataArray.drop_vars`.
+    """
+    return qty.drop_vars(names)
+
+
+def possible_scalar(value) -> Quantity:
+    """Convert `value`, possibly a scalar, to :class:`Quantity`."""
+    if isinstance(value, float):
+        return Quantity(value)
+    else:
+        return value
+
+
+def unwrap_scalar(qty: Quantity) -> Any:
+    """Unwrap `qty` to a scalar, if it is one."""
+    if len(qty.dims):
+        return qty
+    else:
+        return qty.item()
+
+
 def div(numerator, denominator):
     """Compute the ratio `numerator` / `denominator`.
 
@@ -380,11 +411,12 @@ def div(numerator, denominator):
     numerator : .Quantity
     denominator : .Quantity
     """
+    numerator = possible_scalar(numerator)
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
     if isinstance(numerator, AttrSeries):
-        result = numerator / denominator.align_levels(numerator)
+        result = unwrap_scalar(numerator) / denominator.align_levels(numerator)
     else:
         result = numerator / denominator
 
@@ -731,6 +763,11 @@ def rename_dims(
     Like :meth:`xarray.DataArray.rename`.
     """
     return qty.rename(new_name_or_name_dict, **names)
+
+
+def round(qty: Quantity, *args, **kwargs) -> Quantity:
+    """Like :meth:`xarray.DataArray.round`."""
+    return qty.round(*args, **kwargs)
 
 
 def select(qty, indexers, inverse=False):

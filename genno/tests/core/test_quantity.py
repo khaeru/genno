@@ -246,9 +246,8 @@ class TestQuantity:
         r2 = tri.shift(y=2)
         assert r2.loc["x2", "y4"] == tri.loc["x2", "y2"]
 
-        with pytest.raises(NotImplementedError):
-            # AttrSeries only
-            tri.shift(x=1, y=2)
+        r3 = tri.shift(x=1, y=2)
+        assert r3.loc["x2", "y4"] == tri.loc["x1", "y2"]
 
     def test_size(self):
         """Stress-test reporting of large, sparse quantities."""

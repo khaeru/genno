@@ -14,6 +14,7 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    MutableMapping,
     MutableSequence,
     Optional,
     Sequence,
@@ -28,6 +29,7 @@ import pint
 import xarray as xr
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
+from xarray.core.utils import either_dict_or_kwargs
 
 from genno import caching, computations
 from genno.util import partial_split
@@ -77,7 +79,8 @@ class Computer:
         self,
         path: Optional[Union[Path, str]] = None,
         fail: Union[str, int] = "raise",
-        **config,
+        config: Optional[Mapping[str, Any]] = None,
+        **config_kw,
     ):
         """Configure the Computer.
 
@@ -97,14 +100,25 @@ class Computer:
             Passed to :meth:`.add_queue`. If not "raise", then log messages are
             generated for config handlers that fail. The Computer may be only partially
             configured.
-        **config :
-            Configuration keys/sections and values.
-        """
+        config :
+            Configuration keys/sections and values, as a mapping. Use this if any of
+            the keys/sections are not valid Python names, e.g. contain "-" or " ".
 
+        Other parameters
+        ----------------
+        **config_kw :
+            Configuration keys/sections and values, as keyword arguments.
+        """
         from genno.config import parse_config
+
+        config = {
+            str(k): v
+            for k, v in either_dict_or_kwargs(config, config_kw, "configure").items()
+        }
 
         # Maybe load from a path
         if path:
+            assert isinstance(config, MutableMapping)
             config["path"] = Path(path)
 
         parse_config(self, data=config, fail=fail)
@@ -488,6 +502,7 @@ class Computer:
         else:
             return result
         finally:
+            # Unwrap config from protection applied above
             self.graph["config"] = self.graph["config"][0].data
 
     # Convenience methods for the graph and its keys

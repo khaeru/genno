@@ -2,7 +2,18 @@ import logging
 from copy import copy
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import pint
 import yaml
@@ -76,7 +87,7 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
 
 def parse_config(
     c: Optional[Computer],
-    data: dict,
+    data: MutableMapping[str, Any],
     fail: Optional[Union[str, int]] = None,
 ):
     # Assemble a queue of (args, kwargs) for Computer.add_queue()

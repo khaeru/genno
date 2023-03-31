@@ -1,5 +1,5 @@
 from functools import update_wrapper
-from typing import Any, Dict, Hashable, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, Hashable, Iterable, Mapping, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -34,6 +34,7 @@ class Quantity:
         """Like :meth:`xarray.DataArray.to_series`."""
         # Provided only for type-checking in other packages. AttrSeries implements;
         # SparseDataArray uses the xr.DataArray method.
+        return NotImplemented  # pragma: no cover
 
     @classmethod
     def from_series(cls, series, sparse=True):
@@ -126,6 +127,14 @@ class Quantity:
     ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
+    def drop_vars(
+        self,
+        names: Union[Hashable, Iterable[Hashable]],
+        *,
+        errors="raise",
+    ):
+        ...  # pragma: no cover
+
     def expand_dims(
         self,
         dim=None,
@@ -182,6 +191,9 @@ class Quantity:
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
     ):  # NB "Quantity" here offends mypy
+        ...  # pragma: no cover
+
+    def round(self, *args, **kwargs):
         ...  # pragma: no cover
 
     def to_numpy(self) -> np.ndarray:  # type: ignore [empty-body]

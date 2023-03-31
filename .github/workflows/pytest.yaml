@@ -8,6 +8,10 @@ on:
   schedule:
   - cron: "0 5 * * *"
 
+# Cancel previous runs that have not completed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 env:
   depth: 100  # Depth of history to clone, for setuptools-scm
@@ -38,11 +42,6 @@ jobs:
     name: ${{ matrix.os }}-py${{ matrix.python-version }}
 
     steps:
-    - name: Cancel previous runs that have not completed
-      uses: styfle/cancel-workflow-action@0.11.0
-      with:
-        access_token: ${{ github.token }}
-
     - uses: actions/checkout@v3
       with:
         fetch-depth: ${{ env.depth }}
@@ -53,35 +52,23 @@ jobs:
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
+        cache: pip
+        cache-dependency-path: "**/pyproject.toml"
 
-    - name: Upgrade pip, wheel, setuptools-scm
-      shell: bash
-      run: |
-        python -m pip install --upgrade pip wheel setuptools-scm
-        # Locate pip cache directory
-        echo "pip-cache-dir=$(pip cache dir)" >> $GITHUB_ENV
-
-    - name: Cache Python packages
-      uses: actions/cache@v3
-      with:
-        path: ${{ env.pip-cache-dir }}
-        key: ${{ matrix.os }}-py${{ matrix.python-version }}
-        restore-keys: |
-          ${{ matrix.os }}-
+    - name: Upgrade pip, wheel
+      run: python -m pip install --upgrade pip wheel
 
     - uses: ts-graphviz/setup-graphviz@v1
 
-    - name: Install Python package and dependencies
-      run: |
-        pip install --editable .[docs,tests]
+    - name: Install the Python package and dependencies
+      run: pip install .[docs,tests]
 
     - name: Run test suite using pytest
-      run: pytest genno --trace-config --verbose --cov-report=xml --cov-report=term --color=yes
+      run: pytest genno --trace-config --color=yes --verbose --cov-report=xml --cov-report=term --numprocesses auto
 
     - name: Test documentation build using Sphinx
       if: ${{ startsWith(matrix.os, 'ubuntu') }}
-      working-directory: doc
-      run: make html
+      run: make -C doc html
 
     - name: Upload test coverage to Codecov.io
       uses: codecov/codecov-action@v3
