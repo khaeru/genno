@@ -6,8 +6,11 @@ What's new
    :backlinks: none
    :depth: 1
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.15.0 (2023-04-02)
+====================
 
 - :func:`.dask.core.quote` is now re-exported by :mod:`genno` for convenience (:pull:`79`):
 
