@@ -48,7 +48,7 @@ Packages that extend :mod:`genno` include:
 License
 =======
 
-Copyright © 2018–2022 genno contributors.
+Copyright © 2018–2023 genno contributors.
 
 Licensed under the GNU General Public License, version 3.0.
 
