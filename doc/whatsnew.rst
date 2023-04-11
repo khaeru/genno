@@ -6,8 +6,10 @@ What's new
    :backlinks: none
    :depth: 1
 
-.. Next release
-.. ============
+Next release
+============
+
+- Adjust :meth:`.AttrSeries.interp` for compatibility with pandas 2.0.0 (released 2023-04-03) (:pull:`81`).
 
 v1.15.0 (2023-04-02)
 ====================
