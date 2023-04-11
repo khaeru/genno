@@ -55,9 +55,6 @@ jobs:
         cache: pip
         cache-dependency-path: "**/pyproject.toml"
 
-    - name: Upgrade pip, wheel
-      run: python -m pip install --upgrade pip wheel
-
     - uses: ts-graphviz/setup-graphviz@v1
 
     - name: Install the Python package and dependencies
