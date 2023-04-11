@@ -233,8 +233,8 @@ class AttrSeries(pd.Series, Quantity):
 
         def join(base, item):
             """Rejoin a full key for the MultiIndex in the correct order."""
-            # Wrap a scalar `base`
-            base = [base] if len(other_dims) < 2 else base
+            # Wrap a scalar `base` (only occurs with len(other_dims) == 1; pandas < 2.0)
+            base = list(base) if isinstance(base, tuple) else [base]
             return [
                 (base[other_dims.index(d)] if d in other_dims else item) for d in dims
             ]
