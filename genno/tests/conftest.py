@@ -17,7 +17,10 @@ def ureg():
     registry = pint.get_application_registry()
 
     # Used by .compat.ixmp, .compat.pyam
-    registry.define("USD = [USD]")
-    registry.define("case = [case]")
+    for name in ("USD", "case"):
+        try:
+            registry.define(f"{name} = [{name}]")
+        except pint.RedefinitionError:
+            pass
 
     yield registry
