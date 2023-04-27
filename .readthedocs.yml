@@ -8,4 +8,3 @@ python:
     extra_requirements:
     - docs
     - tests
-  - requirements: ci/requirements.rtd
