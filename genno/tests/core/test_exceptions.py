@@ -1,9 +1,8 @@
 import re
 
-from ixmp.testing import get_cell_output, run_notebook
-
 from genno import ComputationError, Computer
 from genno.testing import assert_logs
+from genno.testing.jupyter import get_cell_output, run_notebook
 
 
 def test_computationerror():
