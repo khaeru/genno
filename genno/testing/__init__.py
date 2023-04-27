@@ -15,6 +15,7 @@ from pandas.testing import assert_series_equal
 
 import genno.core.quantity
 from genno import ComputationError, Computer, Key, Quantity
+from genno.core.sparsedataarray import HAS_SPARSE
 
 log = logging.getLogger(__name__)
 
@@ -370,12 +371,15 @@ def assert_units(qty: Quantity, exp: str) -> None:
     ).dimensionless, f"Units '{qty.units:~}'; expected {repr(exp)}"
 
 
-@pytest.fixture(params=["AttrSeries", "SparseDataArray"])
+@pytest.fixture(params=[(True, "AttrSeries"), (HAS_SPARSE, "SparseDataArray")])
 def parametrize_quantity_class(request):
     """Fixture to run tests twice, for both Quantity implementations."""
+    if not request.param[0]:
+        pytest.skip(reason="`sparse` not available → can't test SparseDataArray")
+
     pre = genno.core.quantity.CLASS
 
-    genno.core.quantity.CLASS = request.param
+    genno.core.quantity.CLASS = request.param[1]
     yield
 
     genno.core.quantity.CLASS = pre

@@ -2,7 +2,13 @@ from typing import Any, Dict, Hashable, Mapping, Optional, Sequence, Tuple, Unio
 
 import numpy as np
 import pandas as pd
-import sparse
+
+try:
+    import sparse
+
+    HAS_SPARSE = True
+except ImportError:
+    HAS_SPARSE = False
 import xarray as xr
 from xarray.core import dtypes
 from xarray.core.utils import either_dict_or_kwargs
