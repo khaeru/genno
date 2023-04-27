@@ -13,7 +13,7 @@ import pint
 
 try:
     PintError: Type[Exception] = pint.PintError
-    ApplicationRegistry = pint.ApplicationRegistry
+    ApplicationRegistry: Type = pint.ApplicationRegistry
 except AttributeError:
     # Older versions of pint, e.g. 0.17
     PintError = type("PintError", (Exception,), {})

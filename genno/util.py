@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Iterable, Union
+from typing import Iterable, Mapping, Type, Union
 
 import pandas as pd
 import pint
@@ -110,7 +110,8 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
         chars = "".join(filter("-?$".__contains__, unit))
         msg = f"unit {unit!r} cannot be parsed; contains invalid character(s) {chars!r}"
         # Use the original class of `exc`, mapped in some cases
-        return_cls = {TypeError: ValueError}.get(type(exc), type(exc))
+        cls_map: Mapping[Type[Exception], Type[Exception]] = {TypeError: ValueError}
+        return_cls = cls_map.get(type(exc), type(exc))
         return return_cls(msg)
 
     # Parse units
