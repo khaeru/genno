@@ -17,7 +17,7 @@ def test_handlers():
         import_module("ixmp")
     except ImportError:
         pass
-    else:
+    else:  # pragma: no cover
         third_party_handlers += 2
 
     # Expected config handlers are available

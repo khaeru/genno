@@ -1,4 +1,7 @@
-"""Testing Juypter notebooks."""
+"""Testing Juypter notebooks.
+
+Copied 2023-04-27 from the corresponding module in ixmp.
+"""
 import os
 import sys
 from warnings import warn
@@ -111,7 +114,7 @@ def get_cell_output(nb, name_or_index, kind="data"):
     """
     if isinstance(name_or_index, int):
         cell = nb.cells[name_or_index]
-    else:
+    else:  # pragma: no cover
         for i, _cell in enumerate(nb.cells):
             try:
                 if _cell.metadata.jupyter.name == name_or_index:
