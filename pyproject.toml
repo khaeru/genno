@@ -54,6 +54,8 @@ compat = [
 tests = [
   "genno[compat,graphviz]",
   "bottleneck",
+  "jupyter",
+  "nbclient",
   "pytest",
   "pytest-cov",
   "pytest-xdist",
