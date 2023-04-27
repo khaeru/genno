@@ -13,9 +13,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-env:
-  depth: 100  # Depth of history to clone, for setuptools-scm
-
 jobs:
   pytest:
     strategy:
@@ -47,9 +44,6 @@ jobs:
       with:
         fetch-depth: ${{ env.depth }}
 
-    - name: Fetch tags (for setuptools-scm)
-      run: git fetch --tags --depth=${{ env.depth }}
-
     - uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
@@ -68,7 +62,7 @@ jobs:
       run: pytest genno --trace-config --color=yes --verbose --cov-report=xml --cov-report=term --numprocesses auto
 
     - name: Test documentation build using Sphinx
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      if: startsWith(matrix.os, 'ubuntu')
       run: make -C doc html
 
     - name: Upload test coverage to Codecov.io
