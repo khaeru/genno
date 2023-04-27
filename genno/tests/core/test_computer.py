@@ -17,6 +17,7 @@ from genno import (
     Quantity,
     computations,
 )
+from genno.compat.pint import ApplicationRegistry
 from genno.core.attrseries import AttrSeries
 from genno.testing import (
     add_dantzig,
@@ -694,12 +695,7 @@ def test_units(ureg):
     c = Computer()
 
     # One of the two classes may be referenced
-    classes = [pint.UnitRegistry]
-    try:
-        classes.append(pint.ApplicationRegistry)
-    except AttributeError:
-        pass  # Older versions of pint, e.g. 0.17
-    assert isinstance(c.unit_registry, tuple(classes))
+    assert isinstance(c.unit_registry, (pint.UnitRegistry, ApplicationRegistry))
 
     # Create some dummy data
     dims = dict(coords=["a b c".split()], dims=["x"])
