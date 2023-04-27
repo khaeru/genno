@@ -276,8 +276,7 @@ def broadcast_map(quantity, map, rename={}, strict=False):
     strict : bool, optional
         Require that each element of ``d2`` is mapped from exactly 1 element of ``d1``.
     """
-    # NB int() is for AttrSeries
-    if strict and int(map.sum()) != len(map.coords[map.dims[1]]):
+    if strict and int(map.sum().item()) != len(map.coords[map.dims[1]]):
         raise ValueError("invalid map")
 
     return product(quantity, map).sum(map.dims[0]).rename(rename)
