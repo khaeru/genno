@@ -694,7 +694,12 @@ def test_units(ureg):
     c = Computer()
 
     # One of the two classes may be referenced
-    assert isinstance(c.unit_registry, (pint.UnitRegistry, pint.ApplicationRegistry))
+    classes = [pint.UnitRegistry]
+    try:
+        classes.append(pint.ApplicationRegistry)
+    except AttributeError:
+        pass  # Older versions of pint, e.g. 0.17
+    assert isinstance(c.unit_registry, tuple(classes))
 
     # Create some dummy data
     dims = dict(coords=["a b c".split()], dims=["x"])

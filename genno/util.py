@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Iterable, Union
+from typing import Iterable, Type, Union
 
 import pandas as pd
 import pint
@@ -10,6 +10,12 @@ from dask.core import literal
 from .core.key import Key
 
 log = logging.getLogger(__name__)
+
+
+try:
+    PintError: Type[Exception] = pint.PintError
+except AttributeError:  # Older versions of pint, e.g. 0.17
+    PintError = type("PintError", (Exception,), {})
 
 
 #: Replacements to apply to Quantity units before parsing by
@@ -134,10 +140,10 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
 
             # Try to parse again
             return registry.Unit(unit)
-        except pint.PintError:
+        except PintError:
             # registry.define() failed somehow
             raise invalid(unit)
-    except (AttributeError, TypeError, pint.PintError):
+    except (AttributeError, TypeError, PintError):
         # Unit contains a character like '-' that throws off pint
         # NB this 'except' clause must be *after* UndefinedUnitError, since that is a
         #    subclass of AttributeError.
