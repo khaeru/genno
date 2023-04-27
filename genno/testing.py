@@ -35,7 +35,9 @@ def pytest_runtest_makereport(item, call):
         ):
             # Change the ExceptionInfo describe `e`, which will match this mark
             # and produce an "xfail" report
-            call.excinfo = pytest.ExceptionInfo(excinfo=(type(e), e, e.__traceback__))
+            call.excinfo = pytest.ExceptionInfo(
+                excinfo=(type(e), e, e.__traceback__), _ispytest=True
+            )
 
             # Generate and return the report
             return pytest.TestReport.from_item_and_call(item, call)
