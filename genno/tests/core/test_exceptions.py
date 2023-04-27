@@ -39,11 +39,11 @@ EXPECTED = re.compile(
 
 \(<function fail at \w+>,\)
 
-Use Computer.describe\(...\) to trace the computation.
+Use Computer.describe\(...\) to trace the computation\.
 
 Computation traceback:
-  File "(<ipython-input-\d*-\w+>|[^"]*\.py)", line 4, in fail
-    'x' \+ 3.4  # Raises TypeError
+  File ".*", line 4, in fail
+    'x' \+ 3.4  # Raises TypeError(\n.*)?
 TypeError: can only concatenate str \(not "float"\) to str.*"""
 )
 
