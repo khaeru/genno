@@ -31,7 +31,6 @@ dependencies = [
   "pint",
   "PyYAML",
   "setuptools >= 41",
-  "sparse >= 0.12",
   # 2022.6.0 is affected by pydata/xarray#6822
   "xarray >= 0.17, != 2022.6.0",
 ]
@@ -52,13 +51,15 @@ compat = [
   "genno[pyam]",
 ]
 tests = [
-  "genno[compat]",
-  "genno[graphviz]",
+  "genno[compat,graphviz]",
   "ixmp[tests]",
   "bottleneck",
   "pytest",
   "pytest-cov",
   "pytest-xdist",
+]
+sparse = [
+  "sparse >= 0.12",
 ]
 
 [project.urls]
