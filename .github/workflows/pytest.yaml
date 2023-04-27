@@ -58,10 +58,7 @@ jobs:
     - uses: ts-graphviz/setup-graphviz@v1
 
     - name: Install the Python package and dependencies
-      # TEMPORARY install ixmp from `main` branch pending iiasa/ixmp#477
-      run: |
-        pip install "ixmp @ git+https://github.com/iiasa/ixmp.git@main"
-        pip install --upgrade --upgrade-strategy=eager .[docs,tests${{ matrix.python.extras }}]
+      run: pip install --upgrade --upgrade-strategy=eager .[docs,tests${{ matrix.python.extras }}]
 
     - name: Run test suite using pytest
       run: pytest genno --trace-config --color=yes --verbose --cov-report=xml --cov-report=term --numprocesses auto
