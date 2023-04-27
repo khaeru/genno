@@ -27,14 +27,15 @@ jobs:
         python-version:
         - "3.8"  # Earliest version supported by genno; matches xarray/setup.cfg
         - "3.9"
-        - "3.10" # Latest release / latest supported by genno / testable on GHA
+        - "3.10"
+        - "3.11" # Latest release / latest supported by genno / testable on GHA
 
         # For fresh releases and development versions of Python, compiled
         # binary wheels are not available for some dependencies, e.g. llvmlite,
         # numba, numpy, and/or pandas. Compiling these on the job runner
         # requires a more elaborate build environment, currently out of scope
         # for genno. Exclude these versions from CI.
-        # - "3.11.0-alpha.2"  # Development version
+        # - "3.12.0-alpha.2"  # Development version
 
       fail-fast: false
 
