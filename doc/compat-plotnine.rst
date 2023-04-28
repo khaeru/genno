@@ -7,6 +7,12 @@ Plotnine (:mod:`.compat.plotnine`)
 
 To use :class:`.Plot`:
 
+.. ipython:: python
+   :suppress:
+
+   import matplotlib
+   matplotlib.use("svg")
+
 .. ipython::
 
    In [1]:    from pathlib import Path
@@ -55,7 +61,7 @@ To use :class:`.Plot`:
    .. ipython::
 
       In [1]: c.get("plot")
-      Out[1]: ./test.svg
+      Out[1]: PosixPath("plotnine-demo.svg")
 
    .. image:: ./plotnine-demo.svg
       :alt: Demonstration output from genno.compat.plotnine.
