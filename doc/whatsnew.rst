@@ -1,15 +1,23 @@
 What's new
 **********
 
-.. contents::
-   :local:
-   :backlinks: none
-   :depth: 1
-
 Next release
 ============
 
+- genno supports and is tested on Python 3.11 (:pull:`83`).
+- Update dependencies (:pull:`83`):
+
+  - General: :mod:`importlib_resources` (the independent backport of :mod:`importlib.resources`) is added for Python 3.9 and earlier.
+  - ``genno[sparse]``: new set of optional dependencies, including :mod:`sparse`.
+    Install this set in order to use :class:`.SparseDataArray` for :class:`.Quantity`.
+
+    Note that sparse depends on :mod:`numba`, and thus :mod:`llvmlite`, and both of these package can lag new Python versions by several months.
+    For example, as of this release, they do not yet support Python 3.11, and thus :mod:`sparse` and :class:`genno.SparseDataArray` can only be used with Python 3.10 and earlier.
+  - ``genno[tests]``: :mod:`ixmp` is removed; :mod:`jupyter` and :mod:`nbclient` are added.
+    Testing utilities in :mod:`genno.testing.jupyter` are duplicated from :mod:`ixmp.testing.jupyter`.
+
 - Adjust :meth:`.AttrSeries.interp` for compatibility with pandas 2.0.0 (released 2023-04-03) (:pull:`81`).
+
 
 v1.15.0 (2023-04-02)
 ====================
