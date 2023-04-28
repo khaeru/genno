@@ -9,6 +9,7 @@ import pint
 import pytest
 import xarray as xr
 from dask.core import quote
+from numpy.testing import assert_allclose
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
@@ -506,9 +507,9 @@ def test_pow(ureg):
     result = computations.pow(A, B)
 
     # Expected values
-    assert (
-        A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item()
-        == result.sel(x="x1", y="y1").item()
+    assert_allclose(
+        A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item(),
+        result.sel(x="x1", y="y1").item(),
     )
     assert ureg.dimensionless == result.units
 
