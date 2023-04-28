@@ -1,6 +1,6 @@
 import contextlib
-import importlib.resources
 import logging
+import sys
 from copy import copy
 from functools import partial
 from itertools import chain
@@ -19,6 +19,12 @@ from genno import ComputationError, Computer, Key, Quantity
 from genno.core.sparsedataarray import HAS_SPARSE
 
 log = logging.getLogger(__name__)
+
+if sys.version_info.minor >= 10:
+    import importlib.resources as importlib_resources
+else:
+    # Use the backport to get identical behaviour
+    import importlib_resources  # type: ignore [no-redef]
 
 # Pytest hooks
 
@@ -409,7 +415,7 @@ def random_qty(shape: Dict[str, int], **kwargs):
 @pytest.fixture(scope="session")
 def test_data_path():
     """Path to the directory containing test data."""
-    return importlib.resources.files("genno.tests.data")
+    return importlib_resources.files("genno.tests.data")
 
 
 @pytest.fixture(scope="session")
