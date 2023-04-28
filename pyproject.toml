@@ -42,7 +42,7 @@ dependencies = [
 graphviz = ["graphviz"]
 docs = [
   "IPython",
-  "sphinx_rtd_theme",
+  "sphinx-book-theme",
 ]
 # Specific packages for which compatibility is provided
 plotnine = ["plotnine"]
