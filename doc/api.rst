@@ -3,10 +3,6 @@ API reference
 
 .. currentmodule:: genno
 
-.. contents::
-   :local:
-   :depth: 3
-
 Top-level classes and functions
 ===============================
 

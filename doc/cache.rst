@@ -1,10 +1,6 @@
 Caching
 *******
 
-.. contents::
-   :local:
-   :backlinks: none
-
 Basics
 ======
 

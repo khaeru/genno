@@ -6,11 +6,6 @@ Configuration
 As shown in :ref:`Concepts and usage <describe-tasks>`, a :class:`.Computer` can be populated programmatically.
 :mod:`genno` can also read a simple **configuration format** in which settings and tasks are specified.
 
-.. contents::
-   :local:
-   :depth: 2
-   :backlinks: none
-
 Overview
 ========
 
