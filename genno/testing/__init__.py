@@ -433,7 +433,10 @@ def ureg():
     yield registry
 
 
-@pytest.fixture(params=[(True, "AttrSeries"), (HAS_SPARSE, "SparseDataArray")])
+@pytest.fixture(
+    params=[(True, "AttrSeries"), (HAS_SPARSE, "SparseDataArray")],
+    ids=["attrseries", "sparsedataarray"],
+)
 def parametrize_quantity_class(request):
     """Fixture to run tests twice, for both Quantity implementations."""
     if not request.param[0]:
