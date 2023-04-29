@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.16.0 (2023-04-29)
+====================
 
 - genno supports and is tested on Python 3.11 (:pull:`83`).
 - Update dependencies (:pull:`83`):
