@@ -4,10 +4,6 @@ Concepts and usage
 This page introduces the essential concepts of :mod:`genno` and demonstrates basic usage.
 Click on the names of classes and methods to access complete descriptions in the :doc:`api`.
 
-.. contents::
-   :local:
-   :backlinks: none
-
 Quantity
 ========
 

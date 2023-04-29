@@ -13,9 +13,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
-env:
-  depth: 100  # Depth of history to clone, for setuptools-scm
-
 jobs:
   pytest:
     strategy:
@@ -24,50 +21,50 @@ jobs:
         - macos-latest
         - ubuntu-latest
         - windows-latest
-        python-version:
-        - "3.8"  # Earliest version supported by genno; matches xarray/setup.cfg
-        - "3.9"
-        - "3.10" # Latest release / latest supported by genno / testable on GHA
 
-        # For fresh releases and development versions of Python, compiled
-        # binary wheels are not available for some dependencies, e.g. llvmlite,
-        # numba, numpy, and/or pandas. Compiling these on the job runner
-        # requires a more elaborate build environment, currently out of scope
-        # for genno. Exclude these versions from CI.
-        # - "3.11.0-alpha.2"  # Development version
+        python:
+        # llvmlite (thus numba, thus sparse) usually lags the latest Python
+        # release. Only test SparseDataArray where possible.
+        # Earliest version supported by genno; matches xarray/setup.cfg
+        - {version: "3.8", extras: ",sparse"}
+        - {version: "3.9", extras: ",sparse"}
+        - {version: "3.10", extras: ",sparse"}
+        # Latest release / latest supported by genno / testable on GHA
+        - {version: "3.11", extras: ""}
+
+        # For fresh releases and development versions of Python, compiled binary
+        # wheels are not available for some dependencies, e.g. numpy, pandas.
+        # Compiling these on the job runner requires a more elaborate build
+        # environment, currently out of scope for genno. Exclude these versions
+        # from CI.
+        # - {version: "3.12.0-alpha.2", extras: ""}  # Development version
 
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
-    name: ${{ matrix.os }}-py${{ matrix.python-version }}
+    name: ${{ matrix.os }}-py${{ matrix.python.version }}
 
     steps:
     - uses: actions/checkout@v3
       with:
         fetch-depth: ${{ env.depth }}
 
-    - name: Fetch tags (for setuptools-scm)
-      run: git fetch --tags --depth=${{ env.depth }}
-
     - uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: ${{ matrix.python.version }}
         cache: pip
         cache-dependency-path: "**/pyproject.toml"
 
     - uses: ts-graphviz/setup-graphviz@v1
 
     - name: Install the Python package and dependencies
-      # TEMPORARY install ixmp from `main` branch pending iiasa/ixmp#477
-      run: |
-        pip install "ixmp @ git+https://github.com/iiasa/ixmp.git@main"
-        pip install --upgrade --upgrade-strategy=eager .[docs,tests]
+      run: pip install --upgrade --upgrade-strategy=eager .[docs,tests${{ matrix.python.extras }}]
 
     - name: Run test suite using pytest
       run: pytest genno --trace-config --color=yes --verbose --cov-report=xml --cov-report=term --numprocesses auto
 
     - name: Test documentation build using Sphinx
-      if: ${{ startsWith(matrix.os, 'ubuntu') }}
+      if: startsWith(matrix.os, 'ubuntu')
       run: make -C doc html
 
     - name: Upload test coverage to Codecov.io

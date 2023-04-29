@@ -1,9 +1,8 @@
 import re
 
-from ixmp.testing import get_cell_output, run_notebook
-
 from genno import ComputationError, Computer
 from genno.testing import assert_logs
+from genno.testing.jupyter import get_cell_output, run_notebook
 
 
 def test_computationerror():
@@ -40,11 +39,11 @@ EXPECTED = re.compile(
 
 \(<function fail at \w+>,\)
 
-Use Computer.describe\(...\) to trace the computation.
+Use Computer.describe\(...\) to trace the computation\.
 
 Computation traceback:
-  File "(<ipython-input-\d*-\w+>|[^"]*\.py)", line 4, in fail
-    'x' \+ 3.4  # Raises TypeError
+  File ".*", line 4, in fail
+    'x' \+ 3.4  # Raises TypeError(\n.*)?
 TypeError: can only concatenate str \(not "float"\) to str.*"""
 )
 

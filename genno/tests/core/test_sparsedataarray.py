@@ -5,8 +5,13 @@ from xarray.testing import assert_equal as assert_xr_equal
 
 from genno import Computer
 from genno.core.quantity import Quantity
-from genno.core.sparsedataarray import SparseDataArray
+from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
 from genno.testing import add_test_data, random_qty
+
+pytestmark = pytest.mark.skipif(
+    condition=not HAS_SPARSE,
+    reason="`sparse` not available → can't test SparseDataArray",
+)
 
 
 def test_sda_accessor():

@@ -1,12 +1,13 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Iterable, Union
+from typing import Iterable, Mapping, Type, Union
 
 import pandas as pd
 import pint
 from dask.core import literal
 
+from .compat.pint import PintError
 from .core.key import Key
 
 log = logging.getLogger(__name__)
@@ -104,13 +105,14 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
         # `units_series` is length 0 → no data → dimensionless
         unit = registry.dimensionless
 
-    # Helper method to return an intelligible exception
-    def invalid(unit):
-        chars = "".join(c for c in "-?$" if c in unit)
-        return ValueError(
-            f"unit {repr(unit)} cannot be parsed; contains invalid character(s) "
-            f"{repr(chars)}"
-        )
+    def invalid(unit: str, exc: Exception) -> Exception:
+        """Helper method to return an intelligible exception."""
+        chars = "".join(filter("-?$".__contains__, unit))
+        msg = f"unit {unit!r} cannot be parsed; contains invalid character(s) {chars!r}"
+        # Use the original class of `exc`, mapped in some cases
+        cls_map: Mapping[Type[Exception], Type[Exception]] = {TypeError: ValueError}
+        return_cls = cls_map.get(type(exc), type(exc))
+        return return_cls(msg)
 
     # Parse units
     try:
@@ -134,14 +136,14 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
 
             # Try to parse again
             return registry.Unit(unit)
-        except pint.PintError:
+        except PintError as e:
             # registry.define() failed somehow
-            raise invalid(unit)
-    except (AttributeError, TypeError, pint.PintError):
+            raise invalid(unit, e)
+    except (AttributeError, TypeError, PintError) as e:
         # Unit contains a character like '-' that throws off pint
         # NB this 'except' clause must be *after* UndefinedUnitError, since that is a
         #    subclass of AttributeError.
-        raise invalid(unit)
+        raise invalid(unit, e)
 
 
 def partial_split(func, kwargs):

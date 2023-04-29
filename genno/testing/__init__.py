@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import sys
 from copy import copy
 from functools import partial
 from itertools import chain
@@ -15,8 +16,17 @@ from pandas.testing import assert_series_equal
 
 import genno.core.quantity
 from genno import ComputationError, Computer, Key, Quantity
+from genno.core.sparsedataarray import HAS_SPARSE
 
 log = logging.getLogger(__name__)
+
+if sys.version_info.minor >= 10:
+    import importlib.resources as importlib_resources
+else:
+    # Use the backport to get identical behaviour
+    import importlib_resources  # type: ignore [no-redef]
+
+# Pytest hooks
 
 
 def pytest_runtest_makereport(item, call):
@@ -35,7 +45,9 @@ def pytest_runtest_makereport(item, call):
         ):
             # Change the ExceptionInfo describe `e`, which will match this mark
             # and produce an "xfail" report
-            call.excinfo = pytest.ExceptionInfo(excinfo=(type(e), e, e.__traceback__))
+            call.excinfo = pytest.ExceptionInfo(
+                excinfo=(type(e), e, e.__traceback__), _ispytest=True
+            )
 
             # Generate and return the report
             return pytest.TestReport.from_item_and_call(item, call)
@@ -368,27 +380,6 @@ def assert_units(qty: Quantity, exp: str) -> None:
     ).dimensionless, f"Units '{qty.units:~}'; expected {repr(exp)}"
 
 
-@pytest.fixture(params=["AttrSeries", "SparseDataArray"])
-def parametrize_quantity_class(request):
-    """Fixture to run tests twice, for both Quantity implementations."""
-    pre = genno.core.quantity.CLASS
-
-    genno.core.quantity.CLASS = request.param
-    yield
-
-    genno.core.quantity.CLASS = pre
-
-
-@pytest.fixture(scope="function")
-def quantity_is_sparsedataarray(request):
-    pre = copy(genno.core.quantity.CLASS)
-
-    genno.core.quantity.CLASS = "SparseDataArray"
-    yield
-
-    genno.core.quantity.CLASS = pre
-
-
 def random_qty(shape: Dict[str, int], **kwargs):
     """Return a Quantity with `shape` and random contents.
 
@@ -416,3 +407,54 @@ def random_qty(shape: Dict[str, int], **kwargs):
         ),
         **kwargs,
     )
+
+
+# Fixtures
+
+
+@pytest.fixture(scope="session")
+def test_data_path():
+    """Path to the directory containing test data."""
+    return importlib_resources.files("genno.tests.data")
+
+
+@pytest.fixture(scope="session")
+def ureg():
+    """Application-wide units registry."""
+    registry = pint.get_application_registry()
+
+    # Used by .compat.ixmp, .compat.pyam
+    for name in ("USD", "case"):
+        try:
+            registry.define(f"{name} = [{name}]")
+        except pint.RedefinitionError:  # pragma: no cover
+            pass
+
+    yield registry
+
+
+@pytest.fixture(
+    params=[(True, "AttrSeries"), (HAS_SPARSE, "SparseDataArray")],
+    ids=["attrseries", "sparsedataarray"],
+)
+def parametrize_quantity_class(request):
+    """Fixture to run tests twice, for both Quantity implementations."""
+    if not request.param[0]:
+        pytest.skip(reason="`sparse` not available → can't test SparseDataArray")
+
+    pre = genno.core.quantity.CLASS
+
+    genno.core.quantity.CLASS = request.param[1]
+    yield
+
+    genno.core.quantity.CLASS = pre
+
+
+@pytest.fixture(scope="function")
+def quantity_is_sparsedataarray(request):
+    pre = copy(genno.core.quantity.CLASS)
+
+    genno.core.quantity.CLASS = "SparseDataArray"
+    yield
+
+    genno.core.quantity.CLASS = pre

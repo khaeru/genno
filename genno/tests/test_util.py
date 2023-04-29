@@ -1,6 +1,7 @@
 import re
 
 import pandas as pd
+import pint
 import pytest
 from dask.core import quote
 
@@ -60,8 +61,10 @@ msg = "unit '{}' cannot be parsed; contains invalid character(s) '{}'"
         # Dimensionless
         ([], "dimensionless"),
         # Invalid characters, alone or with prefix
-        (["_?"], (ValueError, re.escape(msg.format("_?", "?")))),
-        (["E$"], (ValueError, re.escape(msg.format("E$", "$")))),
+        # NB match=re.escape(msg.format("_?", "?") in pint 0.20, but varies in pint 0.17
+        (["_?"], ((ValueError, pint.UndefinedUnitError), None)),
+        # NB match=re.escape(msg.format("E$", "$") in pint 0.20, but varies in pint 0.17
+        (["E$"], ((ValueError, pint.UndefinedUnitError), None)),
         (["kg-km"], (ValueError, re.escape(msg.format("kg-km", "-")))),
     ),
     ids=lambda argvalue: repr(argvalue),
@@ -81,7 +84,7 @@ def test_parse_units1(ureg, caplog):
     """Multiple attempts to (re)define new units."""
     parse_units("JPY")
     parse_units("GBP/JPY")
-    with pytest.raises(ValueError):
+    with pytest.raises(pint.DefinitionSyntaxError):
         parse_units("GBP/JPY/$?")
 
 

@@ -1,5 +1,6 @@
 import logging
 import re
+from importlib import import_module
 
 import pytest
 
@@ -7,15 +8,20 @@ from genno import Computer, Key, configure
 from genno.compat.pyam import HAS_PYAM
 from genno.config import HANDLERS, handles
 
-# NB ixmp is currently used in the genno test suite: ixmp.testing.run_notebook is
-#    imported by test_exceptions.py. This in turn cases ixmp to register its own
-#    handlers: 2 new, and 1 overriding the built-in one for "units:".
-THIRD_PARTY_HANDLERS = 2
-
 
 def test_handlers():
+    # Account for handlers in packages modules that may be installed in the user's
+    # testing environment
+    third_party_handlers = 0
+    try:
+        import_module("ixmp")
+    except ImportError:
+        pass
+    else:  # pragma: no cover
+        third_party_handlers += 2
+
     # Expected config handlers are available
-    assert 8 + (1 * HAS_PYAM) + THIRD_PARTY_HANDLERS == len(HANDLERS)
+    assert 8 + (1 * HAS_PYAM) + third_party_handlers == len(HANDLERS)
 
     # Handlers are all callable
     for key, func in HANDLERS.items():

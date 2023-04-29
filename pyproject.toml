@@ -21,17 +21,18 @@ classifiers = [
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
 requires-python = ">=3.8"
 dependencies = [
   "dask [array] >= 2.14",
+  "importlib_resources; python_version < '3.10'",
   "pandas >= 1.0",
   "pint",
   "PyYAML",
   "setuptools >= 41",
-  "sparse >= 0.12",
   # 2022.6.0 is affected by pydata/xarray#6822
   "xarray >= 0.17, != 2022.6.0",
 ]
@@ -41,7 +42,7 @@ dependencies = [
 graphviz = ["graphviz"]
 docs = [
   "IPython",
-  "sphinx_rtd_theme",
+  "sphinx-book-theme",
 ]
 # Specific packages for which compatibility is provided
 plotnine = ["plotnine"]
@@ -52,13 +53,17 @@ compat = [
   "genno[pyam]",
 ]
 tests = [
-  "genno[compat]",
-  "genno[graphviz]",
-  "ixmp[tests]",
+  "genno[compat,graphviz]",
   "bottleneck",
+  "ipython <= 8.12; python_version <= '3.8'",
+  "jupyter",
+  "nbclient",
   "pytest",
   "pytest-cov",
   "pytest-xdist",
+]
+sparse = [
+  "sparse >= 0.12",
 ]
 
 [project.urls]

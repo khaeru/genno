@@ -39,8 +39,17 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for a list of
 # builtin themes.
-html_theme = "sphinx_rtd_theme"
+html_theme = "sphinx_book_theme"
 
+html_theme_options = dict(
+    path_to_docs="doc",
+    repository_url="https://github.com/khaeru/genno",
+    show_navbar_depth=2,
+    use_edit_page_button=True,
+    use_issues_button=True,
+    use_repository_button=True,
+    use_source_button=True,
+)
 
 # -- Options for sphinx.ext.extlinks ---------------------------------------------------
 
