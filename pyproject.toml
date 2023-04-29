@@ -55,6 +55,7 @@ compat = [
 tests = [
   "genno[compat,graphviz]",
   "bottleneck",
+  "ipython <= 8.12; python_version <= '3.8'",
   "jupyter",
   "nbclient",
   "pytest",
