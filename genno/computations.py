@@ -3,6 +3,7 @@
 # - To avoid ambiguity, computations should not have default arguments. Define default
 #   values for the corresponding methods on the Computer class.
 import logging
+import operator
 import re
 from pathlib import Path
 from typing import Any, Collection, Hashable, Iterable, Mapping, Optional, Union, cast
@@ -770,26 +771,29 @@ def round(qty: Quantity, *args, **kwargs) -> Quantity:
 
 
 def select(qty, indexers, inverse=False):
-    """Select from *qty* based on *indexers*.
+    """Select from `qty` based on `indexers`.
 
     Parameters
     ----------
     qty : .Quantity
     indexers : dict (str -> list of str)
-        Elements to be selected from *qty*. Mapping from dimension names to labels
-        along each dimension.
+        Elements to be selected from `qty`. Mapping from dimension names to coords along
+        the respective dimension of `qty`. Values not appearing in the dimension coords
+        are silently ignored.
     inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
     """
-    if inverse:
-        new_indexers = {}
-        for dim, labels in indexers.items():
-            new_indexers[dim] = list(
-                filter(lambda lab: lab not in labels, qty.coords[dim].data)
-            )
-        indexers = new_indexers
+    # Predicate for containment
+    op = operator.not_ if inverse else operator.truth
 
-    return qty.sel(indexers)
+    # Use only the values from `indexers` (not) appearing in `qty.coords`
+    coords = qty.coords
+    new_indexers = {
+        dim: list(filter(lambda x: op(x in labels), coords[dim].data))
+        for dim, labels in indexers.items()
+    }
+
+    return qty.sel(new_indexers)
 
 
 def sum(quantity, weights=None, dimensions=None):
