@@ -617,13 +617,15 @@ def test_select(data):
     # Unpack
     *_, t_foo, t_bar, x = data
 
+    N_y = 6
+
     x = Quantity(x)
-    assert x.size == 6 * 6
+    assert x.size == 6 * N_y
 
     # Selection with inverse=False
     indexers = {"t": t_foo[0:1] + t_bar[0:1]}
     result_0 = computations.select(x, indexers=indexers)
-    assert result_0.size == 2 * 6
+    assert result_0.size == 2 * N_y
 
     # Single indexer along one dimension results in 1D data
     indexers["y"] = [2010]
@@ -632,4 +634,8 @@ def test_select(data):
 
     # Selection with inverse=True
     result_2 = computations.select(x, indexers=indexers, inverse=True)
-    assert result_2.size == 4 * 5
+    assert result_2.size == 4 * (N_y - 1)
+
+    # Select with labels that do not appear in the data
+    result_3 = computations.select(x, indexers={"t": t_foo + ["MISSING"]})
+    assert result_3.size == len(t_foo) * N_y
