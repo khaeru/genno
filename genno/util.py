@@ -155,9 +155,9 @@ def partial_split(func, kwargs):
     par_names = signature(func).parameters
     func_args, extra = {}, {}
     for name, value in kwargs.items():
-        if (
-            name in par_names
-            and par_names[name].kind == Parameter.POSITIONAL_OR_KEYWORD
+        if name in par_names and par_names[name].kind in (
+            Parameter.POSITIONAL_OR_KEYWORD,
+            Parameter.KEYWORD_ONLY,
         ):
             func_args[name] = value
         else:
