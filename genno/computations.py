@@ -770,7 +770,13 @@ def round(qty: Quantity, *args, **kwargs) -> Quantity:
     return qty.round(*args, **kwargs)
 
 
-def select(qty, indexers, inverse=False):
+def select(
+    qty: Quantity,
+    indexers: Mapping[Hashable, Iterable[Hashable]],
+    *,
+    inverse: bool = False,
+    drop: bool = False,
+) -> Quantity:
     """Select from `qty` based on `indexers`.
 
     Parameters
@@ -793,7 +799,7 @@ def select(qty, indexers, inverse=False):
         for dim, labels in indexers.items()
     }
 
-    return qty.sel(new_indexers)
+    return qty.sel(new_indexers, drop=drop)
 
 
 def sum(quantity, weights=None, dimensions=None):

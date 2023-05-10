@@ -295,7 +295,7 @@ class AttrSeries(pd.Series, Quantity):
             assert 0 == len(names)
             return super().rename(new_name_or_name_dict)
 
-    def sel(self, indexers=None, drop=False, **indexers_kwargs):
+    def sel(self, indexers=None, drop: bool = False, **indexers_kwargs):
         """Like :meth:`xarray.DataArray.sel`."""
         indexers = either_dict_or_kwargs(indexers, indexers_kwargs, "sel")
 
