@@ -5,6 +5,7 @@
 import logging
 import operator
 import re
+from itertools import chain
 from pathlib import Path
 from typing import Any, Collection, Hashable, Iterable, Mapping, Optional, Union, cast
 
@@ -781,23 +782,32 @@ def select(
 
     Parameters
     ----------
-    qty : .Quantity
-    indexers : dict (str -> list of str)
+    indexers : dict (str -> xarray.DataArray or list of str)
         Elements to be selected from `qty`. Mapping from dimension names to coords along
-        the respective dimension of `qty`. Values not appearing in the dimension coords
-        are silently ignored.
+        the respective dimension of `qty`, or to xarray-style indexers. Values not
+        appearing in the dimension coords are silently ignored.
     inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
     """
-    # Predicate for containment
-    op = operator.not_ if inverse else operator.truth
+    # Identify the type of the first value in `indexers`
+    _t = type(next(chain(iter(indexers.values()), [None])))
 
-    # Use only the values from `indexers` (not) appearing in `qty.coords`
-    coords = qty.coords
-    new_indexers = {
-        dim: list(filter(lambda x: op(x in labels), coords[dim].data))
-        for dim, labels in indexers.items()
-    }
+    if _t is xr.DataArray:
+        if inverse:
+            raise NotImplementedError("select(…, inverse=True) with DataArray indexers")
+
+        # Pass through
+        new_indexers = indexers
+    else:
+        # Predicate for containment
+        op = operator.not_ if inverse else operator.truth
+
+        # Use only the values from `indexers` (not) appearing in `qty.coords`
+        coords = qty.coords
+        new_indexers = {
+            dim: list(filter(lambda x: op(x in labels), coords[dim].data))
+            for dim, labels in indexers.items()
+        }
 
     return qty.sel(new_indexers, drop=drop)
 
