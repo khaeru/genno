@@ -48,6 +48,14 @@ def test_sel(bar):
     assert result.iloc[0] == 1
 
 
+def test_sel_not_implemented(bar):
+    with pytest.raises(NotImplementedError):
+        bar.sel(a="a2", method="bfill")
+
+    with pytest.raises(NotImplementedError):
+        bar.sel(a="a2", tolerance=0.01)
+
+
 def test_squeeze(foo):
     assert foo.sel(a="a1").squeeze().dims == ("b",)
     assert foo.sel(a="a2", b="b1").squeeze().values == 2
