@@ -162,7 +162,7 @@ class Quantity:
         squeeze: bool = True,
         restore_coord_dims: bool = False,
     ):
-        ...
+        ...  # pragma: no cover
 
     def interp(
         self,
@@ -222,7 +222,7 @@ class Quantity:
         name: Optional[Hashable] = None,
         dim_order: Optional[Sequence[Hashable]] = None,
     ) -> pd.DataFrame:
-        ...
+        ...  # pragma: no cover
 
     def to_numpy(self) -> np.ndarray:  # type: ignore [empty-body]
         ...  # pragma: no cover
