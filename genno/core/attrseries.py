@@ -1,7 +1,17 @@
 import logging
 import warnings
 from functools import partial
-from typing import Any, Hashable, Iterable, List, Mapping, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Hashable,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -298,8 +308,20 @@ class AttrSeries(pd.Series, Quantity):
             assert 0 == len(names)
             return super().rename(new_name_or_name_dict)
 
-    def sel(self, indexers=None, drop: bool = False, **indexers_kwargs):
+    def sel(
+        self,
+        indexers: Optional[Mapping[Any, Any]] = None,
+        method: Optional[str] = None,
+        tolerance=None,
+        drop: bool = False,
+        **indexers_kwargs: Any,
+    ):
         """Like :meth:`xarray.DataArray.sel`."""
+        if method is not None:
+            raise NotImplementedError(f"AttrSeries.sel(…, method={method!r})")
+        if tolerance is not None:
+            raise NotImplementedError(f"AttrSeries.sel(…, tolerance={tolerance!r})")
+
         indexers = either_dict_or_kwargs(indexers, indexers_kwargs, "sel")
 
         if len(indexers) == 1:
@@ -340,10 +362,10 @@ class AttrSeries(pd.Series, Quantity):
             idx = ds.coords.to_index()
 
             # Dimensions to drop on sliced data to avoid duplicated dimensions
-            drop = list(dims_indexed - dims_drop)
+            drop_slice = list(dims_indexed - dims_drop)
 
             # Dictionary of Series to concatenate
-            data = {}
+            series = {}
 
             # Iterate over labels in the new dimension
             for label in idx:
@@ -351,15 +373,17 @@ class AttrSeries(pd.Series, Quantity):
                 loc_ds = ds.sel({idx.name: label})
 
                 # Assemble a key with one element for each dimension
-                seq = [loc_ds.get(d) for d in self.dims]
+                seq0 = [loc_ds.get(d) for d in self.dims]
                 # Replace None from .get() with slice(None) or unpack a single value
-                seq = [slice(None) if item is None else item.item() for item in seq]
+                seq1 = [slice(None) if item is None else item.item() for item in seq0]
 
                 # Use the key to retrieve 1+ integer locations; slice; store
-                data[label] = self.iloc[self.index.get_locs(seq)].droplevel(drop)
+                series[label] = self.iloc[self.index.get_locs(seq1)].droplevel(
+                    drop_slice
+                )
 
             # Rejoin to a single data frame; drop the source levels
-            data = pd.concat(data, names=[idx.name]).droplevel(list(dims_drop))
+            data = pd.concat(series, names=[idx.name]).droplevel(list(dims_drop))
         else:
             # Other indexers
 
@@ -388,7 +412,7 @@ class AttrSeries(pd.Series, Quantity):
                 data = self.loc[tuple(idx)]
 
             # Only drop if not returning a scalar value
-            if not np.isscalar(data):
+            if isinstance(data, pd.Series):
                 # Drop levels where a single value was selected
                 data = data.droplevel(list(to_drop & set(data.index.names)))
 
@@ -473,7 +497,9 @@ class AttrSeries(pd.Series, Quantity):
         return self.reorder_levels(dims)
 
     def to_dataframe(
-        self, name: Hashable = None, dim_order: Optional[List[Hashable]] = None
+        self,
+        name: Optional[Hashable] = None,
+        dim_order: Optional[Sequence[Hashable]] = None,
     ) -> pd.DataFrame:
         """Like :meth:`xarray.DataArray.to_dataframe`."""
         if dim_order is not None:
