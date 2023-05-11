@@ -1,5 +1,15 @@
 from functools import update_wrapper
-from typing import Any, Dict, Hashable, Iterable, Mapping, Optional, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Hashable,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 import pandas as pd
@@ -84,6 +94,9 @@ class Quantity:
     def __mul__(self, other) -> "Quantity":  # type: ignore [empty-body]
         ...  # pragma: no cover
 
+    def __pow__(self, other) -> "Quantity":  # type: ignore [empty-body]
+        ...  # pragma: no cover
+
     def __radd__(self, other):
         ...  # pragma: no cover
 
@@ -143,6 +156,14 @@ class Quantity:
     ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
+    def groupby(
+        self,
+        group,
+        squeeze: bool = True,
+        restore_coord_dims: bool = False,
+    ):
+        ...
+
     def interp(
         self,
         coords: Optional[Mapping[Any, Any]] = None,
@@ -195,6 +216,13 @@ class Quantity:
 
     def round(self, *args, **kwargs):
         ...  # pragma: no cover
+
+    def to_dataframe(
+        self,
+        name: Optional[Hashable] = None,
+        dim_order: Optional[Sequence[Hashable]] = None,
+    ) -> pd.DataFrame:
+        ...
 
     def to_numpy(self) -> np.ndarray:  # type: ignore [empty-body]
         ...  # pragma: no cover
