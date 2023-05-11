@@ -391,7 +391,7 @@ def drop_vars(
 
 def possible_scalar(value) -> Quantity:
     """Convert `value`, possibly a scalar, to :class:`Quantity`."""
-    if isinstance(value, float):
+    if isinstance(value, (float, np.number)):
         return Quantity(value)
     else:
         return value
