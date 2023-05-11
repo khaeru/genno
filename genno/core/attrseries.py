@@ -519,7 +519,7 @@ class AttrSeries(pd.Series, Quantity):
                     {dim: other_index.levels[i] for i, dim in missing}
                 )
 
-            if len(self) == len(self.index.names) == 1:
+            if len(self) == len(self.index.names) == 1 and len(result.dims) > 0:
                 # concat() of scalars (= length-1 pd.Series) results in an innermost
                 # index level filled with int(0); discard this
                 result = result.droplevel(-1)
