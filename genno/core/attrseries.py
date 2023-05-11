@@ -171,7 +171,10 @@ class AttrSeries(pd.Series, Quantity):
 
         result = self
         for name, values in reversed(list(dim.items())):
-            result = pd.concat([result] * len(values), keys=values, names=[name])
+            N = len(values)
+            if N == 0:  # Dimension without labels
+                N, values = 1, [None]
+            result = pd.concat([result] * N, keys=values, names=[name])
 
         return result
 
