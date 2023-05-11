@@ -639,3 +639,18 @@ def test_select(data):
     # Select with labels that do not appear in the data
     result_3 = computations.select(x, indexers={"t": t_foo + ["MISSING"]})
     assert result_3.size == len(t_foo) * N_y
+
+    # Select with xarray indexers
+    indexers = {
+        "t": xr.DataArray(
+            t_foo, dims="new_dim", coords={"new_dim": ["d1", "d2", "d3"]}
+        ),
+        "y": xr.DataArray(
+            [2000, 2010, 2020], dims="new_dim", coords={"new_dim": ["d1", "d2", "d3"]}
+        ),
+    }
+    result_4 = computations.select(x, indexers)
+    assert ("new_dim",) == result_4.dims
+
+    with pytest.raises(NotImplementedError):
+        computations.select(x, indexers, inverse=True)
