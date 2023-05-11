@@ -6,6 +6,7 @@ import logging
 import operator
 import re
 from itertools import chain
+from os import PathLike
 from pathlib import Path
 from typing import Any, Collection, Hashable, Iterable, Mapping, Optional, Union, cast
 
@@ -837,7 +838,7 @@ def sum(quantity, weights=None, dimensions=None):
     return result
 
 
-def write_report(quantity, path):
+def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:
     """Write a quantity to a file.
 
     Parameters
@@ -852,4 +853,4 @@ def write_report(quantity, path):
     elif path.suffix == ".xlsx":
         quantity.to_dataframe().to_excel(path, merge_cells=False)
     else:
-        path.write_text(quantity)
+        path.write_text(quantity)  # type: ignore

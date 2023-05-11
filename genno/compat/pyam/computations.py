@@ -1,4 +1,5 @@
 import logging
+from os import PathLike
 from pathlib import Path
 from typing import Callable, Collection, Optional, Union
 
@@ -91,7 +92,7 @@ def concat(*args, **kwargs):
         return genno.computations.concat(*args, **kwargs)
 
 
-def write_report(obj, path: Union[str, Path]) -> None:
+def write_report(obj, path: Union[str, PathLike]) -> None:
     """Write  obj` to the file at `path`.
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",
