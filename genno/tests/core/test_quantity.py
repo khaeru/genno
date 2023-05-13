@@ -3,6 +3,7 @@ import logging
 import operator
 import re
 
+import numpy as np
 import pandas as pd
 import pint
 import pytest
@@ -12,12 +13,13 @@ from pytest import param
 
 from genno import Computer, Quantity, computations
 from genno.core.attrseries import AttrSeries
-from genno.core.quantity import assert_quantity
+from genno.core.quantity import assert_quantity, possible_scalar, unwrap_scalar
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import add_large_data, assert_qty_allclose, assert_qty_equal
 
+pytsetmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
-@pytest.mark.usefixtures("parametrize_quantity_class")
+
 class TestQuantity:
     """Tests of Quantity."""
 
@@ -192,6 +194,17 @@ class TestQuantity:
         q0 = a.expand_dims({"phase": ["liquid"]})
         assert ("phase", "p") == q0.dims
 
+        # New dimension(s) without labels
+        q1 = a.expand_dims({"phase": []})
+        assert ("phase", "p") == q1.dims
+        assert 2 == q1.size
+        assert (1, 2) == q1.shape
+
+        # NB this behaviour differs slightly from xr.DataArray.expand_dims()
+        # da = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
+        # assert (0, 2) == da.expand_dims({"phase": []}).shape  # Different result
+        # assert (1, 2) == da.expand_dims(["phase"]).shape  # Same result
+
         # Multiple labels
         q1 = a.expand_dims({"phase": ["liquid", "solid"]})
         assert ("phase", "p") == q1.dims
@@ -319,3 +332,21 @@ class TestQuantity:
 
         assert (2,) == result.shape
         assert a.dtype == result.dtype
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        2,
+        np.int64(2),
+        1.1,
+        np.float64(1.1),
+        pytest.param([0.1, 2.3], marks=pytest.mark.xfail(raises=AssertionError)),
+    ],
+)
+def test_possible_scalar(value):
+    tmp = possible_scalar(value)
+    assert isinstance(tmp, Quantity), type(tmp)
+    assert tuple() == tmp.dims
+
+    assert value == unwrap_scalar(tmp)

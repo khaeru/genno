@@ -1,5 +1,16 @@
 from functools import update_wrapper
-from typing import Any, Dict, Hashable, Iterable, Mapping, Optional, Tuple, Union
+from numbers import Number
+from typing import (
+    Any,
+    Dict,
+    Hashable,
+    Iterable,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 import pandas as pd
@@ -84,6 +95,9 @@ class Quantity:
     def __mul__(self, other) -> "Quantity":  # type: ignore [empty-body]
         ...  # pragma: no cover
 
+    def __pow__(self, other) -> "Quantity":  # type: ignore [empty-body]
+        ...  # pragma: no cover
+
     def __radd__(self, other):
         ...  # pragma: no cover
 
@@ -143,6 +157,14 @@ class Quantity:
     ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
+    def groupby(
+        self,
+        group,
+        squeeze: bool = True,
+        restore_coord_dims: bool = False,
+    ):
+        ...  # pragma: no cover
+
     def interp(
         self,
         coords: Optional[Mapping[Any, Any]] = None,
@@ -194,6 +216,13 @@ class Quantity:
         ...  # pragma: no cover
 
     def round(self, *args, **kwargs):
+        ...  # pragma: no cover
+
+    def to_dataframe(
+        self,
+        name: Optional[Hashable] = None,
+        dim_order: Optional[Sequence[Hashable]] = None,
+    ) -> pd.DataFrame:
         ...  # pragma: no cover
 
     def to_numpy(self) -> np.ndarray:  # type: ignore [empty-body]
@@ -290,3 +319,13 @@ def maybe_densify(func):
     update_wrapper(wrapped, func)
 
     return wrapped
+
+
+def possible_scalar(value) -> Quantity:
+    """Convert `value`, possibly a scalar, to :class:`Quantity`."""
+    return Quantity(value) if isinstance(value, Number) else value
+
+
+def unwrap_scalar(qty: Quantity) -> Any:
+    """Unwrap `qty` to a scalar, if it is one."""
+    return qty if len(qty.dims) else qty.item()

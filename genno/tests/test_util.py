@@ -12,6 +12,7 @@ from genno.util import (
     collect_units,
     filter_concat_args,
     parse_units,
+    partial_split,
     unquote,
 )
 
@@ -86,6 +87,24 @@ def test_parse_units1(ureg, caplog):
     parse_units("GBP/JPY")
     with pytest.raises(pint.DefinitionSyntaxError):
         parse_units("GBP/JPY/$?")
+
+
+def test_partial_split():
+    # Function with ordinary arguments
+    def func1(arg1, arg2, foo=-1, bar=-1):
+        pass  # pragma: no cover
+
+    # Function with keyword-only arguments
+    def func2(arg1, arg2, *, foo, bar):
+        pass  # pragma: no cover
+
+    kwargs = dict(arg1=0, foo=1, bar=2, baz=3)
+
+    _, extra = partial_split(func1, kwargs)
+    assert {"baz"} == set(extra.keys())
+
+    _, extra = partial_split(func2, kwargs)
+    assert {"baz"} == set(extra.keys())
 
 
 @pytest.mark.parametrize(

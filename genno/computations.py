@@ -3,9 +3,22 @@
 # - To avoid ambiguity, computations should not have default arguments. Define default
 #   values for the corresponding methods on the Computer class.
 import logging
+import operator
 import re
+from itertools import chain
+from os import PathLike
 from pathlib import Path
-from typing import Any, Collection, Hashable, Iterable, Mapping, Optional, Union, cast
+from typing import (
+    Any,
+    Collection,
+    Hashable,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Union,
+    cast,
+)
 
 import pandas as pd
 import pint
@@ -13,7 +26,13 @@ from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries, _multiindex_of
-from genno.core.quantity import Quantity, assert_quantity, maybe_densify
+from genno.core.quantity import (
+    Quantity,
+    assert_quantity,
+    maybe_densify,
+    possible_scalar,
+    unwrap_scalar,
+)
 from genno.core.sparsedataarray import SparseDataArray
 from genno.util import UnitLike, collect_units, filter_concat_args
 
@@ -54,7 +73,7 @@ log = logging.getLogger(__name__)
 xr.set_options(keep_attrs=True)
 
 
-def add(*quantities, fill_value=0.0):
+def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
     """Sum across multiple `quantities`.
 
     Raises
@@ -72,17 +91,17 @@ def add(*quantities, fill_value=0.0):
 
     if isinstance(quantities[0], AttrSeries):
         # map() returns an iterable
-        quantities = iter(quantities)
+        q_iter = iter(quantities)
     else:
         # Use xarray's built-in broadcasting, return to Quantity class
-        quantities = map(Quantity, xr.broadcast(*quantities))
+        q_iter = map(Quantity, xr.broadcast(*cast(xr.DataArray, quantities)))
 
     # Initialize result values with first entry
-    result = next(quantities)
+    result = next(q_iter)
     ref_unit = collect_units(result)[0]
 
     # Iterate over remaining entries
-    for q in quantities:
+    for q in q_iter:
         u = collect_units(q)[0]
         if not u.is_compatible_with(ref_unit):
             raise ValueError(f"Units '{ref_unit:~}' and '{u:~}' are incompatible")
@@ -90,19 +109,22 @@ def add(*quantities, fill_value=0.0):
         factor = u.from_(1.0, strict=False).to(ref_unit).magnitude
 
         if isinstance(q, AttrSeries):
-            result = result.add(factor * q, fill_value=fill_value).dropna()
+            result = (
+                cast(AttrSeries, result).add(factor * q, fill_value=fill_value).dropna()
+            )
         else:
             result = result + factor * q
 
     return result
 
 
-def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
+def aggregate(
+    quantity: Quantity, groups: Mapping[str, Mapping], keep: bool
+) -> Quantity:
     """Aggregate *quantity* by *groups*.
 
     Parameters
     ----------
-    quantity : :class:`Quantity <genno.utils.Quantity>`
     groups: dict of dict
         Top-level keys are the names of dimensions in `quantity`. Second-level keys are
         group names; second-level values are lists of labels along the dimension to sum
@@ -147,7 +169,7 @@ def aggregate(quantity, groups: Mapping[Hashable, Mapping], keep: bool):
         )
 
     # Preserve attrs
-    result.attrs = quantity.attrs
+    result.attrs.update(quantity.attrs)
     result.name = quantity.name
 
     return result
@@ -174,7 +196,6 @@ def apply_units(qty: Quantity, units: UnitLike) -> Quantity:
 
     Parameters
     ----------
-    qty : Quantity
     units : str or pint.Unit
         Units to apply to `qty`.
     """
@@ -205,7 +226,6 @@ def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
 
     Parameters
     ----------
-    qty : Quantity
     units : str or pint.Unit
         Units to assign to `qty`.
     """
@@ -227,38 +247,9 @@ def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
     return result
 
 
-def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
-    """Convert magnitude of `qty` from its current units to `units`.
-
-    Parameters
-    ----------
-    qty : Quantity
-    units : str or pint.Unit
-        Units to assign to `qty`.
-
-    Raises
-    ------
-    ValueError
-        if `units` does not match the dimensionality of the current units of `qty`.
-    """
-    registry, existing, existing_dims, new_units = _unit_args(qty, units)
-
-    try:
-        # NB use a factor because pint.Quantity cannot wrap AttrSeries
-        factor = registry.Quantity(1.0, existing).to(new_units).magnitude
-    except pint.DimensionalityError:
-        raise ValueError(
-            f"Existing dimensionality {existing_dims!r} cannot be converted to {units} "
-            f"with dimensionality {new_units.dimensionality!r}"
-        ) from None
-
-    result = qty * factor
-    result.units = new_units
-
-    return result
-
-
-def broadcast_map(quantity, map, rename={}, strict=False):
+def broadcast_map(
+    quantity: Quantity, map: Quantity, rename: Mapping = {}, strict: bool = False
+) -> Quantity:
     """Broadcast `quantity` using a `map`.
 
     The `map` must be a 2-dimensional Quantity with dimensions (``d1``, ``d2``), such as
@@ -279,10 +270,14 @@ def broadcast_map(quantity, map, rename={}, strict=False):
     if strict and int(map.sum().item()) != len(map.coords[map.dims[1]]):
         raise ValueError("invalid map")
 
-    return product(quantity, map).sum(map.dims[0]).rename(rename)
+    return product(quantity, map).sum([map.dims[0]]).rename(rename)
 
 
-def combine(*quantities, select=None, weights=None):  # noqa: F811
+def combine(
+    *quantities: Quantity,
+    select: Optional[List[Mapping]] = None,
+    weights: Optional[List[float]] = None,
+) -> Quantity:  # noqa: F811
     """Sum distinct *quantities* by *weights*.
 
     Parameters
@@ -302,7 +297,8 @@ def combine(*quantities, select=None, weights=None):  # noqa: F811
         If the *quantities* have mismatched units.
     """
     # Handle arguments
-    select = select or len(quantities) * [{}]
+    if select is None:
+        select = [{}] * len(quantities)
     weights = weights or len(quantities) * [1.0]
 
     # Check units
@@ -334,14 +330,14 @@ def combine(*quantities, select=None, weights=None):  # noqa: F811
     return result
 
 
-def concat(*objs, **kwargs):
+def concat(*objs: Quantity, **kwargs) -> Quantity:
     """Concatenate Quantity `objs`.
 
     Any strings included amongst `objs` are discarded, with a logged warning; these
     usually indicate that a quantity is referenced which is not in the Computer.
     """
-    objs = filter_concat_args(objs)
-    if Quantity._get_class() is AttrSeries:
+    objs = tuple(filter_concat_args(objs))
+    if isinstance(objs[0], AttrSeries):
         try:
             # Retrieve a "dim" keyword argument
             dim = kwargs.pop("dim")
@@ -357,52 +353,59 @@ def concat(*objs, **kwargs):
                 log.warning(f"Ignore concat(…, dim={repr(dim)})")
 
         # Ensure objects have aligned dimensions
-        _objs = [next(objs)]
-        _objs.extend(map(lambda o: o.align_levels(_objs[0]), objs))
+        _objs = [objs[0]]
+        _objs.extend(
+            map(lambda o: cast(AttrSeries, o).align_levels(_objs[0]), objs[1:])
+        )
 
         return pd.concat(_objs, **kwargs)
     else:
         # Correct fill-values
-        return xr.concat(objs, **kwargs)._sda.convert()
+        # NB mypy here cannot tell that the returned DataArray has an accessor ._sda
+        return xr.concat(
+            cast(xr.DataArray, objs),
+            **kwargs,
+        )._sda.convert()  # type: ignore[attr-defined]
 
 
-def disaggregate_shares(quantity, shares):
+def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
+    """Convert magnitude of `qty` from its current units to `units`.
+
+    Parameters
+    ----------
+    units : str or pint.Unit
+        Units to assign to `qty`.
+
+    Raises
+    ------
+    ValueError
+        if `units` does not match the dimensionality of the current units of `qty`.
+    """
+    registry, existing, existing_dims, new_units = _unit_args(qty, units)
+
+    try:
+        # NB use a factor because pint.Quantity cannot wrap AttrSeries
+        factor = registry.Quantity(1.0, existing).to(new_units).magnitude
+    except pint.DimensionalityError:
+        raise ValueError(
+            f"Existing dimensionality {existing_dims!r} cannot be converted to {units} "
+            f"with dimensionality {new_units.dimensionality!r}"
+        ) from None
+
+    result = qty * factor
+    result.units = new_units
+
+    return result
+
+
+def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
     """Disaggregate *quantity* by *shares*."""
     result = quantity * shares
     result.attrs["_unit"] = collect_units(quantity)[0]
     return result
 
 
-def drop_vars(
-    qty: Quantity,
-    names: Union[Hashable, Iterable[Hashable]],
-    *,
-    errors="raise",
-) -> Quantity:
-    """Return a Quantity with dropped variables (coordinates).
-
-    Like :meth:`xarray.DataArray.drop_vars`.
-    """
-    return qty.drop_vars(names)
-
-
-def possible_scalar(value) -> Quantity:
-    """Convert `value`, possibly a scalar, to :class:`Quantity`."""
-    if isinstance(value, float):
-        return Quantity(value)
-    else:
-        return value
-
-
-def unwrap_scalar(qty: Quantity) -> Any:
-    """Unwrap `qty` to a scalar, if it is one."""
-    if len(qty.dims):
-        return qty
-    else:
-        return qty.item()
-
-
-def div(numerator, denominator):
+def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     """Compute the ratio `numerator` / `denominator`.
 
     Parameters
@@ -411,11 +414,15 @@ def div(numerator, denominator):
     denominator : .Quantity
     """
     numerator = possible_scalar(numerator)
+    denominator = possible_scalar(denominator)
+
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
     if isinstance(numerator, AttrSeries):
-        result = unwrap_scalar(numerator) / denominator.align_levels(numerator)
+        result = unwrap_scalar(numerator) / cast(AttrSeries, denominator).align_levels(
+            numerator
+        )
     else:
         result = numerator / denominator
 
@@ -431,13 +438,26 @@ def div(numerator, denominator):
     return result
 
 
-#: Alias of :func:`mul`, for backwards compatibility.
+#: Alias of :func:`div`, for backwards compatibility.
 #:
 #: .. note:: This may be deprecated and possibly removed in a future version.
 ratio = div
 
 
-def group_sum(qty, group, sum):
+def drop_vars(
+    qty: Quantity,
+    names: Union[Hashable, Iterable[Hashable]],
+    *,
+    errors="raise",
+) -> Quantity:
+    """Return a Quantity with dropped variables (coordinates).
+
+    Like :meth:`xarray.DataArray.drop_vars`.
+    """
+    return qty.drop_vars(names)
+
+
+def group_sum(qty: Quantity, group: str, sum: str) -> Quantity:
     """Group by dimension *group*, then sum across dimension *sum*.
 
     The result drops the latter dimension.
@@ -446,6 +466,48 @@ def group_sum(qty, group, sum):
         *[values.sum(dim=[sum]) for _, values in qty.groupby(group)],
         dim=group,
     )
+
+
+def index_to(
+    qty: Quantity,
+    dim_or_selector: Union[str, Mapping],
+    label: Optional[Hashable] = None,
+) -> Quantity:
+    """Compute an index of `qty` against certain of its values.
+
+    If the label is not provided, :func:`index_to` uses the label in the first position
+    along the identified dimension.
+
+    Parameters
+    ----------
+    qty : :class:`~genno.Quantity`
+    dim_or_selector : str or mapping
+        If a string, the ID of the dimension to index along.
+        If a mapping, it must have only one element, mapping a dimension ID to a label.
+    label : Hashable
+        Label to select along the dimension, required if `dim_or_selector` is a string.
+    Raises
+    ------
+    TypeError
+        if `dim_or_selector` is a mapping with length != 1.
+    """
+    if isinstance(dim_or_selector, Mapping):
+        if len(dim_or_selector) != 1:
+            raise TypeError(
+                f"Got {dim_or_selector}; expected a mapping from 1 key to 1 value"
+            )
+        dim, label = dict(dim_or_selector).popitem()
+    else:
+        # Unwrap dask.core.literals
+        dim = getattr(dim_or_selector, "data", dim_or_selector)
+        label = getattr(label, "data", label)
+
+    if label is None:
+        # Choose a label on which to normalize
+        label = qty.coords[dim][0].item()
+        log.info(f"Normalize quantity {qty.name} on {dim}={label}")
+
+    return div(qty, qty.sel({dim: label}))
 
 
 @maybe_densify
@@ -588,86 +650,6 @@ def _load_file_csv(
     )
 
 
-def index_to(
-    qty: Quantity,
-    dim_or_selector: Union[str, Mapping],
-    label: Optional[Hashable] = None,
-) -> Quantity:
-    """Compute an index of `qty` against certain of its values.
-
-    If the label is not provided, :func:`index_to` uses the label in the first position
-    along the identified dimension.
-
-    Parameters
-    ----------
-    qty : :class:`~genno.Quantity`
-    dim_or_selector : str or mapping
-        If a string, the ID of the dimension to index along.
-        If a mapping, it must have only one element, mapping a dimension ID to a label.
-    label : Hashable
-        Label to select along the dimension, required if `dim_or_selector` is a string.
-    Raises
-    ------
-    TypeError
-        if `dim_or_selector` is a mapping with length != 1.
-    """
-    if isinstance(dim_or_selector, Mapping):
-        if len(dim_or_selector) != 1:
-            raise TypeError(
-                f"Got {dim_or_selector}; expected a mapping from 1 key to 1 value"
-            )
-        dim, label = dict(dim_or_selector).popitem()
-    else:
-        # Unwrap dask.core.literals
-        dim = getattr(dim_or_selector, "data", dim_or_selector)
-        label = getattr(label, "data", label)
-
-    if label is None:
-        # Choose a label on which to normalize
-        label = qty.coords[dim][0].item()
-        log.info(f"Normalize quantity {qty.name} on {dim}={label}")
-
-    return div(qty, qty.sel({dim: label}))
-
-
-def pow(a, b):
-    """Compute `a` raised to the power of `b`.
-
-    .. todo:: Provide units on the result in the special case where `b` is a Quantity
-       but all its values are the same :class:`int`.
-
-    Returns
-    -------
-    .Quantity
-        If `b` is :class:`int`, then the quantity has the units of `a` raised to this
-        power; e.g. "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
-        units, so the returned quantity is dimensionless.
-    """
-    if isinstance(b, int):
-        unit_exponent = b
-        b = Quantity(float(b))
-    else:
-        unit_exponent = 0
-
-    u_a, u_b = collect_units(a, b)
-
-    if not u_b.dimensionless:
-        raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
-
-    if isinstance(a, AttrSeries):
-        result = a ** b.align_levels(a)
-    else:
-        result = a**b
-
-    result.attrs["_unit"] = (
-        a.attrs["_unit"] ** unit_exponent
-        if unit_exponent
-        else pint.get_application_registry().dimensionless
-    )
-
-    return result
-
-
 def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
     # Iterator over (quantity, unit) tuples
@@ -694,6 +676,44 @@ def mul(*quantities: Quantity) -> Quantity:
 #:
 #: .. note:: This may be deprecated and possibly removed in a future version.
 product = mul
+
+
+def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
+    """Compute `a` raised to the power of `b`.
+
+    .. todo:: Provide units on the result in the special case where `b` is a Quantity
+       but all its values are the same :class:`int`.
+
+    Returns
+    -------
+    .Quantity
+        If `b` is :class:`int`, then the quantity has the units of `a` raised to this
+        power; e.g. "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
+        units, so the returned quantity is dimensionless.
+    """
+    if isinstance(b, int):
+        unit_exponent = b
+        b = Quantity(float(b))
+    else:
+        unit_exponent = 0
+
+    u_a, u_b = collect_units(a, b)
+
+    if not u_b.dimensionless:
+        raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
+
+    if isinstance(a, AttrSeries):
+        result = a ** cast(AttrSeries, b).align_levels(a)
+    else:
+        result = a**b
+
+    result.attrs["_unit"] = (
+        a.attrs["_unit"] ** unit_exponent
+        if unit_exponent
+        else pint.get_application_registry().dimensionless
+    )
+
+    return result
 
 
 def relabel(
@@ -769,35 +789,56 @@ def round(qty: Quantity, *args, **kwargs) -> Quantity:
     return qty.round(*args, **kwargs)
 
 
-def select(qty, indexers, inverse=False):
-    """Select from *qty* based on *indexers*.
+def select(
+    qty: Quantity,
+    indexers: Mapping[Hashable, Iterable[Hashable]],
+    *,
+    inverse: bool = False,
+    drop: bool = False,
+) -> Quantity:
+    """Select from `qty` based on `indexers`.
 
     Parameters
     ----------
-    qty : .Quantity
-    indexers : dict (str -> list of str)
-        Elements to be selected from *qty*. Mapping from dimension names to labels
-        along each dimension.
+    indexers : dict (str -> xarray.DataArray or list of str)
+        Elements to be selected from `qty`. Mapping from dimension names to coords along
+        the respective dimension of `qty`, or to xarray-style indexers. Values not
+        appearing in the dimension coords are silently ignored.
     inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
     """
-    if inverse:
-        new_indexers = {}
-        for dim, labels in indexers.items():
-            new_indexers[dim] = list(
-                filter(lambda lab: lab not in labels, qty.coords[dim].data)
-            )
-        indexers = new_indexers
+    # Identify the type of the first value in `indexers`
+    _t = type(next(chain(iter(indexers.values()), [None])))
 
-    return qty.sel(indexers)
+    if _t is xr.DataArray:
+        if inverse:
+            raise NotImplementedError("select(…, inverse=True) with DataArray indexers")
+
+        # Pass through
+        new_indexers = indexers
+    else:
+        # Predicate for containment
+        op = operator.not_ if inverse else operator.truth
+
+        # Use only the values from `indexers` (not) appearing in `qty.coords`
+        coords = qty.coords
+        new_indexers = {
+            dim: list(filter(lambda x: op(x in labels), coords[dim].data))
+            for dim, labels in indexers.items()
+        }
+
+    return qty.sel(new_indexers, drop=drop)
 
 
-def sum(quantity, weights=None, dimensions=None):
+def sum(
+    quantity: Quantity,
+    weights: Optional[Quantity] = None,
+    dimensions: Optional[List[str]] = None,
+) -> Quantity:
     """Sum *quantity* over *dimensions*, with optional *weights*.
 
     Parameters
     ----------
-    quantity : .Quantity
     weights : .Quantity, optional
         If *dimensions* is given, *weights* must have at least these
         dimensions. Otherwise, any dimensions are valid.
@@ -806,18 +847,18 @@ def sum(quantity, weights=None, dimensions=None):
         dimensions.
     """
     if weights is None:
-        weights, w_total = 1, 1
+        _w = Quantity(1.0)
+        w_total = Quantity(1.0)
     else:
+        _w = weights
         w_total = weights.sum(dim=dimensions)
         if 0 == len(w_total.dims):
             w_total = w_total.item()
 
-    result = (quantity * weights).sum(dim=dimensions) / w_total
-    result.units = collect_units(quantity)[0]
-    return result
+    return div(mul(quantity, _w).sum(dim=dimensions), w_total)
 
 
-def write_report(quantity, path):
+def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:
     """Write a quantity to a file.
 
     Parameters
@@ -832,4 +873,4 @@ def write_report(quantity, path):
     elif path.suffix == ".xlsx":
         quantity.to_dataframe().to_excel(path, merge_cells=False)
     else:
-        path.write_text(quantity)
+        path.write_text(quantity)  # type: ignore

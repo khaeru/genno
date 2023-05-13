@@ -18,7 +18,6 @@ from genno import (
     computations,
 )
 from genno.compat.pint import ApplicationRegistry
-from genno.core.attrseries import AttrSeries
 from genno.testing import (
     add_dantzig,
     add_test_data,
@@ -494,8 +493,8 @@ def test_dantzig(ureg):
 
     # Summation across all dimensions results a 1-element Quantity
     d = c.get("d:")
-    assert d.shape == ((1,) if Quantity._get_class() is AttrSeries else tuple())
-    assert d.size == 1
+    assert tuple() == d.shape
+    assert 1 == d.size
     assert np.isclose(d.values, 11.7)
 
     # Weighted sum
