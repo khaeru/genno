@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Iterable, Mapping, Type, Union
+from typing import Callable, Iterable, Mapping, Tuple, Type, Union
 
 import pandas as pd
 import pint
@@ -146,19 +146,21 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
         raise invalid(unit, e)
 
 
-def partial_split(func, kwargs):
+def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, Mapping]:
     """Forgiving version of :func:`functools.partial`.
 
-    Returns a partial object and leftover kwargs not applicable to `func`.
+    Returns a :class:`partial` object and leftover kwargs not applicable to `func`.
     """
-    # Names of parameters to
+    # Names of parameters to `func`
     par_names = signature(func).parameters
+
     func_args, extra = {}, {}
     for name, value in kwargs.items():
         if name in par_names and par_names[name].kind in (
             Parameter.POSITIONAL_OR_KEYWORD,
             Parameter.KEYWORD_ONLY,
         ):
+            # A keyword argument of `func`
             func_args[name] = value
         else:
             extra[name] = value
