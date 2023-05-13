@@ -21,6 +21,33 @@ class TestAttrSeries:
         """A 1-dimensional quantity."""
         yield AttrSeries([0, 1], index=pd.Index(["a1", "a2"], name="a"))
 
+    def test_align_levels(self, foo, bar):
+        # Scalar vs scalar
+        q = AttrSeries(0.1)
+        other = AttrSeries(2.2)
+        result = q.align_levels(other)
+        assert tuple() == result.dims
+
+        # Scalar to 1D: broadcasts to 1D
+        result = q.align_levels(bar)
+        assert ("a",) == result.dims
+        assert 1 == len(result.unique())
+
+        # Scalar to 2D:
+        result = q.align_levels(foo)
+        assert ("a", "b") == result.dims
+        assert 1 == len(result.unique())
+
+        # 1D to scalar
+        result = bar.align_levels(q)
+        assert ("a",) == result.dims
+
+        # 2D vs. 2D; same dimensions, different order
+        idx = pd.MultiIndex.from_product([["b1", "b2"], ["a1", "a2"]], names=["b", "a"])
+        q = AttrSeries([3, 2, 1, 0], index=idx)
+        assert ("b", "a") == q.dims
+        assert ("a", "b") == q.align_levels(foo).dims
+
     def test_cumprod(self, bar):
         """AttrSeries.cumprod works with 1-dimensional quantities."""
         result0 = (1.1 + bar).cumprod("a")
