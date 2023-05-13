@@ -194,6 +194,17 @@ class TestQuantity:
         q0 = a.expand_dims({"phase": ["liquid"]})
         assert ("phase", "p") == q0.dims
 
+        # New dimension(s) without labels
+        q1 = a.expand_dims({"phase": []})
+        assert ("phase", "p") == q1.dims
+        assert 2 == q1.size
+        assert (1, 2) == q1.shape
+
+        # NB this behaviour differs slightly from xr.DataArray.expand_dims()
+        # da = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
+        # assert (0, 2) == da.expand_dims({"phase": []}).shape  # Different result
+        # assert (1, 2) == da.expand_dims(["phase"]).shape  # Same result
+
         # Multiple labels
         q1 = a.expand_dims({"phase": ["liquid", "solid"]})
         assert ("phase", "p") == q1.dims
