@@ -7,6 +7,9 @@ What's new
 - Bug fix: :func:`.select` raised :class:`.KeyError` if the indexers contained values not appearing in the coords of the :class:`.Quantity` (:pull:`85`).
   This occurred with pandas 2.x, but not with earlier versions.
   The documentation now states explicitly that extraneous values are silently ignored.
+- All :mod:`.computations` are type hinted for the benefit of downstream code (:pull:`85`).
+- Implement :attr:`.AttrSeries.shape` (:pull:`85`).
+- Bug fix: :meth:`.Computer.add` now correctly handles positional-only keyword arguments to computations that specify these (:pull:`85`).
 
 v1.16.0 (2023-04-29)
 ====================

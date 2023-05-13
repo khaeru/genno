@@ -164,6 +164,7 @@ class AttrSeries(pd.Series, Quantity):
 
     @property
     def shape(self) -> Tuple[int, ...]:
+        """Like :attr:`xarray.DataArray.shape`."""
         idx = _multiindex_of(self).remove_unused_levels()
         return tuple(len(idx.levels[i]) for i in map(idx.names.index, self.dims))
 
