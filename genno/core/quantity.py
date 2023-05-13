@@ -1,4 +1,5 @@
 from functools import update_wrapper
+from numbers import Number
 from typing import (
     Any,
     Dict,
@@ -322,7 +323,7 @@ def maybe_densify(func):
 
 def possible_scalar(value) -> Quantity:
     """Convert `value`, possibly a scalar, to :class:`Quantity`."""
-    return Quantity(value) if isinstance(value, (float, np.number)) else value
+    return Quantity(value) if isinstance(value, Number) else value
 
 
 def unwrap_scalar(qty: Quantity) -> Any:
