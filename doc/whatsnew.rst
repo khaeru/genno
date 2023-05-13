@@ -1,8 +1,8 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
 
 - Bug fix: :func:`.select` raised :class:`.KeyError` if the indexers contained values not appearing in the coords of the :class:`.Quantity` (:pull:`85`).
   This occurred with pandas 2.x, but not with earlier versions.
