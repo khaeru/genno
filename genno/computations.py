@@ -20,14 +20,19 @@ from typing import (
     cast,
 )
 
-import numpy as np
 import pandas as pd
 import pint
 from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries, _multiindex_of
-from genno.core.quantity import Quantity, assert_quantity, maybe_densify
+from genno.core.quantity import (
+    Quantity,
+    assert_quantity,
+    maybe_densify,
+    possible_scalar,
+    unwrap_scalar,
+)
 from genno.core.sparsedataarray import SparseDataArray
 from genno.util import UnitLike, collect_units, filter_concat_args
 
@@ -242,36 +247,6 @@ def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
     return result
 
 
-def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
-    """Convert magnitude of `qty` from its current units to `units`.
-
-    Parameters
-    ----------
-    units : str or pint.Unit
-        Units to assign to `qty`.
-
-    Raises
-    ------
-    ValueError
-        if `units` does not match the dimensionality of the current units of `qty`.
-    """
-    registry, existing, existing_dims, new_units = _unit_args(qty, units)
-
-    try:
-        # NB use a factor because pint.Quantity cannot wrap AttrSeries
-        factor = registry.Quantity(1.0, existing).to(new_units).magnitude
-    except pint.DimensionalityError:
-        raise ValueError(
-            f"Existing dimensionality {existing_dims!r} cannot be converted to {units} "
-            f"with dimensionality {new_units.dimensionality!r}"
-        ) from None
-
-    result = qty * factor
-    result.units = new_units
-
-    return result
-
-
 def broadcast_map(
     quantity: Quantity, map: Quantity, rename: Mapping = {}, strict: bool = False
 ) -> Quantity:
@@ -393,40 +368,41 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
         )._sda.convert()  # type: ignore[attr-defined]
 
 
+def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
+    """Convert magnitude of `qty` from its current units to `units`.
+
+    Parameters
+    ----------
+    units : str or pint.Unit
+        Units to assign to `qty`.
+
+    Raises
+    ------
+    ValueError
+        if `units` does not match the dimensionality of the current units of `qty`.
+    """
+    registry, existing, existing_dims, new_units = _unit_args(qty, units)
+
+    try:
+        # NB use a factor because pint.Quantity cannot wrap AttrSeries
+        factor = registry.Quantity(1.0, existing).to(new_units).magnitude
+    except pint.DimensionalityError:
+        raise ValueError(
+            f"Existing dimensionality {existing_dims!r} cannot be converted to {units} "
+            f"with dimensionality {new_units.dimensionality!r}"
+        ) from None
+
+    result = qty * factor
+    result.units = new_units
+
+    return result
+
+
 def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
     """Disaggregate *quantity* by *shares*."""
     result = quantity * shares
     result.attrs["_unit"] = collect_units(quantity)[0]
     return result
-
-
-def drop_vars(
-    qty: Quantity,
-    names: Union[Hashable, Iterable[Hashable]],
-    *,
-    errors="raise",
-) -> Quantity:
-    """Return a Quantity with dropped variables (coordinates).
-
-    Like :meth:`xarray.DataArray.drop_vars`.
-    """
-    return qty.drop_vars(names)
-
-
-def possible_scalar(value) -> Quantity:
-    """Convert `value`, possibly a scalar, to :class:`Quantity`."""
-    if isinstance(value, (float, np.number)):
-        return Quantity(value)
-    else:
-        return value
-
-
-def unwrap_scalar(qty: Quantity) -> Any:
-    """Unwrap `qty` to a scalar, if it is one."""
-    if len(qty.dims):
-        return qty
-    else:
-        return qty.item()
 
 
 def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
@@ -462,10 +438,23 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     return result
 
 
-#: Alias of :func:`mul`, for backwards compatibility.
+#: Alias of :func:`div`, for backwards compatibility.
 #:
 #: .. note:: This may be deprecated and possibly removed in a future version.
 ratio = div
+
+
+def drop_vars(
+    qty: Quantity,
+    names: Union[Hashable, Iterable[Hashable]],
+    *,
+    errors="raise",
+) -> Quantity:
+    """Return a Quantity with dropped variables (coordinates).
+
+    Like :meth:`xarray.DataArray.drop_vars`.
+    """
+    return qty.drop_vars(names)
 
 
 def group_sum(qty: Quantity, group: str, sum: str) -> Quantity:
@@ -477,6 +466,48 @@ def group_sum(qty: Quantity, group: str, sum: str) -> Quantity:
         *[values.sum(dim=[sum]) for _, values in qty.groupby(group)],
         dim=group,
     )
+
+
+def index_to(
+    qty: Quantity,
+    dim_or_selector: Union[str, Mapping],
+    label: Optional[Hashable] = None,
+) -> Quantity:
+    """Compute an index of `qty` against certain of its values.
+
+    If the label is not provided, :func:`index_to` uses the label in the first position
+    along the identified dimension.
+
+    Parameters
+    ----------
+    qty : :class:`~genno.Quantity`
+    dim_or_selector : str or mapping
+        If a string, the ID of the dimension to index along.
+        If a mapping, it must have only one element, mapping a dimension ID to a label.
+    label : Hashable
+        Label to select along the dimension, required if `dim_or_selector` is a string.
+    Raises
+    ------
+    TypeError
+        if `dim_or_selector` is a mapping with length != 1.
+    """
+    if isinstance(dim_or_selector, Mapping):
+        if len(dim_or_selector) != 1:
+            raise TypeError(
+                f"Got {dim_or_selector}; expected a mapping from 1 key to 1 value"
+            )
+        dim, label = dict(dim_or_selector).popitem()
+    else:
+        # Unwrap dask.core.literals
+        dim = getattr(dim_or_selector, "data", dim_or_selector)
+        label = getattr(label, "data", label)
+
+    if label is None:
+        # Choose a label on which to normalize
+        label = qty.coords[dim][0].item()
+        log.info(f"Normalize quantity {qty.name} on {dim}={label}")
+
+    return div(qty, qty.sel({dim: label}))
 
 
 @maybe_densify
@@ -619,46 +650,32 @@ def _load_file_csv(
     )
 
 
-def index_to(
-    qty: Quantity,
-    dim_or_selector: Union[str, Mapping],
-    label: Optional[Hashable] = None,
-) -> Quantity:
-    """Compute an index of `qty` against certain of its values.
+def mul(*quantities: Quantity) -> Quantity:
+    """Compute the product of any number of *quantities*."""
+    # Iterator over (quantity, unit) tuples
+    items = zip(quantities, collect_units(*quantities))
 
-    If the label is not provided, :func:`index_to` uses the label in the first position
-    along the identified dimension.
+    # Initialize result values with first entry
+    result, u_result = next(items)
 
-    Parameters
-    ----------
-    qty : :class:`~genno.Quantity`
-    dim_or_selector : str or mapping
-        If a string, the ID of the dimension to index along.
-        If a mapping, it must have only one element, mapping a dimension ID to a label.
-    label : Hashable
-        Label to select along the dimension, required if `dim_or_selector` is a string.
-    Raises
-    ------
-    TypeError
-        if `dim_or_selector` is a mapping with length != 1.
-    """
-    if isinstance(dim_or_selector, Mapping):
-        if len(dim_or_selector) != 1:
-            raise TypeError(
-                f"Got {dim_or_selector}; expected a mapping from 1 key to 1 value"
-            )
-        dim, label = dict(dim_or_selector).popitem()
-    else:
-        # Unwrap dask.core.literals
-        dim = getattr(dim_or_selector, "data", dim_or_selector)
-        label = getattr(label, "data", label)
+    # Iterate over remaining entries
+    for q, u in items:
+        if isinstance(q, AttrSeries):
+            # Work around pandas-dev/pandas#25760; see attrseries.py
+            result = (result * q.align_levels(result)).dropna()
+        else:
+            result = result * q
+        u_result *= u
 
-    if label is None:
-        # Choose a label on which to normalize
-        label = qty.coords[dim][0].item()
-        log.info(f"Normalize quantity {qty.name} on {dim}={label}")
+    result.attrs["_unit"] = u_result
 
-    return div(qty, qty.sel({dim: label}))
+    return result
+
+
+#: Alias of :func:`mul`, for backwards compatibility.
+#:
+#: .. note:: This may be deprecated and possibly removed in a future version.
+product = mul
 
 
 def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
@@ -697,34 +714,6 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     )
 
     return result
-
-
-def mul(*quantities: Quantity) -> Quantity:
-    """Compute the product of any number of *quantities*."""
-    # Iterator over (quantity, unit) tuples
-    items = zip(quantities, collect_units(*quantities))
-
-    # Initialize result values with first entry
-    result, u_result = next(items)
-
-    # Iterate over remaining entries
-    for q, u in items:
-        if isinstance(q, AttrSeries):
-            # Work around pandas-dev/pandas#25760; see attrseries.py
-            result = (result * q.align_levels(result)).dropna()
-        else:
-            result = result * q
-        u_result *= u
-
-    result.attrs["_unit"] = u_result
-
-    return result
-
-
-#: Alias of :func:`mul`, for backwards compatibility.
-#:
-#: .. note:: This may be deprecated and possibly removed in a future version.
-product = mul
 
 
 def relabel(

@@ -318,3 +318,13 @@ def maybe_densify(func):
     update_wrapper(wrapped, func)
 
     return wrapped
+
+
+def possible_scalar(value) -> Quantity:
+    """Convert `value`, possibly a scalar, to :class:`Quantity`."""
+    return Quantity(value) if isinstance(value, (float, np.number)) else value
+
+
+def unwrap_scalar(qty: Quantity) -> Any:
+    """Unwrap `qty` to a scalar, if it is one."""
+    return qty if len(qty.dims) else qty.item()
