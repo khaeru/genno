@@ -10,14 +10,12 @@ from genno.testing import add_large_data
 
 class TestAttrSeries:
     @pytest.fixture
-    @staticmethod
-    def foo():
+    def foo(self):
         idx = pd.MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]], names=["a", "b"])
         yield AttrSeries([0, 1, 2, 3], index=idx)
 
     @pytest.fixture
-    @staticmethod
-    def bar():
+    def bar(self):
         """A 1-dimensional quantity."""
         yield AttrSeries([0, 1], index=pd.Index(["a1", "a2"], name="a"))
 
