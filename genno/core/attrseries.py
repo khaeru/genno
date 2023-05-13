@@ -162,6 +162,11 @@ class AttrSeries(pd.Series, Quantity):
         """Like :attr:`xarray.DataArray.dims`."""
         return tuple(filter(None, self.index.names))
 
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        idx = _multiindex_of(self).remove_unused_levels()
+        return tuple(len(idx.levels[i]) for i in map(idx.names.index, self.dims))
+
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
