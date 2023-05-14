@@ -5,6 +5,7 @@
 import logging
 import operator
 import re
+from functools import reduce
 from itertools import chain
 from os import PathLike
 from pathlib import Path
@@ -656,20 +657,9 @@ def _load_file_csv(
 
 def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
-    # Iterator over (quantity, unit) tuples
-    items = zip(quantities, collect_units(*quantities))
 
-    # Initialize result values with first entry
-    result, u_result = next(items)
-
-    # Iterate over remaining entries
-    for q, u in items:
-        if isinstance(q, AttrSeries):
-            # Work around pandas-dev/pandas#25760; see attrseries.py
-            result = (result * q.align_levels(result)).dropna()
-        else:
-            result = result * q
-        u_result *= u
+    result = reduce(operator.mul, quantities)
+    u_result = reduce(operator.mul, collect_units(*quantities))
 
     result.units = u_result
 
