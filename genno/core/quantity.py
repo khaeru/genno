@@ -1,51 +1,29 @@
 from functools import update_wrapper
 from numbers import Number
-from typing import (
-    Any,
-    Dict,
-    Hashable,
-    Iterable,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Hashable, Optional
 
-import numpy as np
 import pandas as pd
 import pint
-import xarray
-from xarray.core.types import InterpOptions
 
-from .types import Dims
+from genno.compat.xarray import DataArrayLike
 
 #: Name of the class used to implement :class:`.Quantity`.
 CLASS = "AttrSeries"
 # CLASS = "SparseDataArray"
 
 
-class Quantity:
+class Quantity(DataArrayLike["Quantity"]):
     """A sparse data structure that behaves like :class:`xarray.DataArray`.
 
     Depending on the value of :data:`CLASS`, Quantity is either :class:`.AttrSeries` or
     :class:`SparseDataArray`.
     """
 
-    # To silence a warning in xarray
-    __slots__: Tuple[str, ...] = tuple()
-
     _name: Optional[Hashable]
 
     def __new__(cls, *args, **kwargs):
         # Use _get_class() to retrieve either AttrSeries or SparseDataArray
         return object.__new__(Quantity._get_class(cls))
-
-    def to_series(self) -> pd.Series:
-        """Like :meth:`xarray.DataArray.to_series`."""
-        # Provided only for type-checking in other packages. AttrSeries implements;
-        # SparseDataArray uses the xr.DataArray method.
-        return NotImplemented  # pragma: no cover
 
     @classmethod
     def from_series(cls, series, sparse=True):
@@ -87,170 +65,6 @@ class Quantity:
     @units.setter
     def units(self, value):
         self.attrs["_unit"] = pint.get_application_registry().Unit(value)
-
-    # Type hints for mypy in downstream applications
-    def __len__(self) -> int:  # type: ignore [empty-body]
-        ...  # pragma: no cover
-
-    def __mul__(self, other) -> "Quantity":  # type: ignore [empty-body]
-        ...  # pragma: no cover
-
-    def __pow__(self, other) -> "Quantity":  # type: ignore [empty-body]
-        ...  # pragma: no cover
-
-    def __radd__(self, other):
-        ...  # pragma: no cover
-
-    def __rmul__(self, other):
-        ...  # pragma: no cover
-
-    def __rsub__(self, other):
-        ...  # pragma: no cover
-
-    def __rtruediv__(self, other):
-        ...  # pragma: no cover
-
-    def __truediv__(self, other) -> "Quantity":  # type: ignore [empty-body]
-        ...  # pragma: no cover
-
-    @property
-    def attrs(self) -> Dict[Any, Any]:  # type: ignore [empty-body]
-        ...  # pragma: no cover
-
-    @property
-    def coords(  # type: ignore [empty-body]
-        self,
-    ) -> xarray.core.coordinates.DataArrayCoordinates:
-        ...  # pragma: no cover
-
-    @property
-    def dims(self) -> Tuple[Hashable, ...]:  # type: ignore [empty-body]
-        ...  # pragma: no cover
-
-    def assign_coords(
-        self,
-        coords: Optional[Mapping[Any, Any]] = None,
-        **coords_kwargs: Any,
-    ):
-        ...  # pragma: no cover
-
-    def bfill(  # type: ignore [empty-body]
-        self,
-        dim: Hashable,
-        limit: Optional[int] = None,
-    ) -> "Quantity":
-        ...  # pragma: no cover
-
-    def copy(
-        self,
-        deep: bool = True,
-        data: Any = None,
-    ):  # NB "Quantity" here offends mypy
-        ...  # pragma: no cover
-
-    def cumprod(  # type: ignore [empty-body]
-        self,
-        dim: Dims = None,
-        *,
-        skipna: Optional[bool] = None,
-        keep_attrs: Optional[bool] = None,
-        **kwargs: Any,
-    ):  # NB "Quantity" here offends mypy
-        ...  # pragma: no cover
-
-    def drop_vars(
-        self,
-        names: Union[Hashable, Iterable[Hashable]],
-        *,
-        errors="raise",
-    ):
-        ...  # pragma: no cover
-
-    def expand_dims(
-        self,
-        dim=None,
-        axis=None,
-        **dim_kwargs: Any,
-    ):  # NB "Quantity" here offends mypy
-        ...  # pragma: no cover
-
-    def ffill(  # type: ignore [empty-body]
-        self,
-        dim: Hashable,
-        limit: Optional[int] = None,
-    ) -> "Quantity":
-        ...  # pragma: no cover
-
-    def groupby(
-        self,
-        group,
-        squeeze: bool = True,
-        restore_coord_dims: bool = False,
-    ):
-        ...  # pragma: no cover
-
-    def interp(
-        self,
-        coords: Optional[Mapping[Any, Any]] = None,
-        method: InterpOptions = "linear",
-        assume_sorted: bool = False,
-        kwargs: Optional[Mapping[str, Any]] = None,
-        **coords_kwargs: Any,
-    ):
-        ...  # pragma: no cover
-
-    def item(self, *args):
-        ...  # pragma: no cover
-
-    def rename(
-        self,
-        new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
-        **names: Hashable,
-    ):  # NB "Quantity" here offends mypy
-        ...  # pragma: no cover
-
-    def sel(  # type: ignore [empty-body]
-        self,
-        indexers: Optional[Mapping[Any, Any]] = None,
-        method: Optional[str] = None,
-        tolerance=None,
-        drop: bool = False,
-        **indexers_kwargs: Any,
-    ) -> "Quantity":
-        ...  # pragma: no cover
-
-    def shift(
-        self,
-        shifts: Optional[Mapping[Hashable, int]] = None,
-        fill_value: Any = None,
-        **shifts_kwargs: int,
-    ):  # NB "Quantity" here offends mypy
-        ...  # pragma: no cover
-
-    def sum(
-        self,
-        dim: Dims = None,
-        # Signature from xarray.DataArray
-        *,
-        skipna: Optional[bool] = None,
-        min_count: Optional[int] = None,
-        keep_attrs: Optional[bool] = None,
-        **kwargs: Any,
-    ):  # NB "Quantity" here offends mypy
-        ...  # pragma: no cover
-
-    def round(self, *args, **kwargs):
-        ...  # pragma: no cover
-
-    def to_dataframe(
-        self,
-        name: Optional[Hashable] = None,
-        dim_order: Optional[Sequence[Hashable]] = None,
-    ) -> pd.DataFrame:
-        ...  # pragma: no cover
-
-    def to_numpy(self) -> np.ndarray:  # type: ignore [empty-body]
-        ...  # pragma: no cover
 
     # Internal methods
 
