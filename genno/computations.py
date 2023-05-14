@@ -359,7 +359,7 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
         # Ensure objects have aligned dimensions
         _objs = [objs[0]]
         _objs.extend(
-            map(lambda o: cast(AttrSeries, o).align_levels(_objs[0]), objs[1:])
+            map(lambda o: cast(AttrSeries, o).align_levels(_objs[0])[1], objs[1:])
         )
 
         return pd.concat(_objs, **kwargs)
@@ -755,7 +755,7 @@ def relabel(
 
     if isinstance(qty, AttrSeries):
         # Prepare a new index
-        idx = _multiindex_of(qty)
+        idx = qty.index.copy()
         for dim, label_map in iter:
             # - Look up numerical index of the dimension in `idx`
             # - Retrieve the existing levels.
@@ -766,10 +766,7 @@ def relabel(
             )
 
         # Assign the new index to a copy of qty
-        result = cast(AttrSeries, qty.copy())
-        result.index = idx
-
-        return result
+        return qty.set_axis(idx)
     else:
         return cast(SparseDataArray, qty).assign_coords(
             {dim: map_labels(m, qty.coords[dim].data) for dim, m in iter}
