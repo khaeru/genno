@@ -254,12 +254,8 @@ class Quantity:
 
             # Unpack a single column; use its name if not overridden by `name`
             return data.iloc[:, 0], (name or data.columns[0])
-        # NB would prefer to do this, but pandas has several bugs for MultiIndex with
-        #    only 1 level
-        # elif (
-        #     isinstance(data, pd.Series) and not isinstance(data.index, pd.MultiIndex)
-        # ):
-        #     return data.set_axis(pd.MultiIndex.from_product([data.index])), name
+        elif isinstance(data, pd.Series) and not isinstance(data.index, pd.MultiIndex):
+            return data.set_axis(pd.MultiIndex.from_product([data.index])), name
         else:
             return data, name
 
