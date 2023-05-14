@@ -26,13 +26,12 @@ import pint
 from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.attrseries import AttrSeries, _multiindex_of
+from genno.core.attrseries import AttrSeries
 from genno.core.quantity import (
     Quantity,
     assert_quantity,
     maybe_densify,
     possible_scalar,
-    unwrap_scalar,
 )
 from genno.core.sparsedataarray import SparseDataArray
 from genno.util import UnitLike, collect_units, filter_concat_args
