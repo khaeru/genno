@@ -1,6 +1,7 @@
 import logging
 import warnings
 from functools import partial
+from itertools import tee
 from typing import (
     Any,
     Hashable,
@@ -527,56 +528,51 @@ class AttrSeries(pd.Series, Quantity):
         return self
 
     # Internal methods
+    def align_levels(
+        self, other: "AttrSeries"
+    ) -> Tuple[Sequence[Hashable], "AttrSeries"]:
+        """Return a copy of `self` with ≥1 dimension(s) in the same order as `other`.
 
-    def align_levels(self, other):
-        """Return a copy of `self` with common levels in the same order as `other`.
-
-        Work-around for https://github.com/pandas-dev/pandas/issues/25760.
+        Work-around for https://github.com/pandas-dev/pandas/issues/25760 and other
+        limitations of :class:`pandas.Series`.
         """
-        # TODO test for possible removal, since the upstream bug appears closed
-
-        # If other.index is a (1D) Index object, convert to a MultiIndex with 1 level so
-        # .levels[…] can be used, below. See also Quantity._single_column_df()
-        other_index = _multiindex_of(other)
-
-        # other.index.names, excluding 'None'
-        other_names = list(filter(None, other_index.names))
+        # Union of dimensions of `self` and `other`; initially just other
+        d_union = list(other.dims)
 
         # Lists of common dimensions, and dimensions on `other` missing from `self`.
-        common, missing = [], []
-        for i, n in enumerate(other_names):
-            if n in self.index.names:
-                common.append(n)
+        d_common = []  # Common dimensions of `self` and `other`
+        d_other_only = []  # (dimension, index) of `other` missing from `self`
+        for i, d in enumerate(d_union):
+            if d in self.index.names:
+                d_common.append(d)
             else:
-                missing.append((i, n))
+                d_other_only.append((d, i))
 
         result = self
-        if len(common) == 0:
-            # No common dimensions
-            if len(missing):
-                # Broadcast over missing dimensions
-                result = result.expand_dims(
-                    {dim: other_index.levels[i] for i, dim in missing}
-                )
+        d_result = []  # Order of dimensions on the result
 
-            if len(self) == len(self.index.names) == 1 and len(result.dims) > 0:
-                # concat() of scalars (= length-1 pd.Series) results in an innermost
-                # index level filled with int(0); discard this
-                result = result.droplevel(-1)
-
-            # Reordering starts with the dimensions of `other`
-            order = other_names
+        if len(d_common) == 0:
+            # No common dimensions between `other` and `self`
+            if len(d_other_only):
+                # …but `other` is ≥1D
+                # Broadcast the result over the final missing dimension of `other`
+                d, i = d_other_only[-1]
+                result = result.expand_dims({d: other.index.levels[i]})
+                # Reordering starts with this dimension
+                d_result.append(d)
+            elif not result.dims:
+                # Both `self` and `other` are scalar
+                d_result.append(None)
         else:
             # Some common dimensions exist; no need to broadcast, only reorder
-            order = common
+            d_result.extend(d_common)
 
         # Append the dimensions of `self`
-        order.extend(
-            filter(lambda n: n is not None and n not in other_names, self.index.names)
-        )
+        i1, i2 = tee(filter(lambda n: n not in other.dims, self.dims), 2)
+        d_union.extend(i1)
+        d_result.extend(i2)
 
-        # Reorder, if that would do anything
-        return result.reorder_levels(order) if len(order) > 1 else result
+        return d_union or [None], result.reorder_levels(d_result or [None])
 
     def _maybe_groupby(self, dim):
         """Return an object for operations along dimension(s) `dim`.
