@@ -12,7 +12,7 @@ class TestAttrSeries:
     @pytest.fixture
     def foo(self):
         idx = pd.MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]], names=["a", "b"])
-        yield AttrSeries([0, 1, 2, 3], index=idx)
+        yield AttrSeries([0, 1, 2, 3], index=idx, name="Foo")
 
     @pytest.fixture
     def bar(self):
@@ -23,28 +23,29 @@ class TestAttrSeries:
         # Scalar vs scalar
         q = AttrSeries(0.1)
         other = AttrSeries(2.2)
-        result = q.align_levels(other)
+        _, result = q.align_levels(other)
         assert tuple() == result.dims
 
         # Scalar to 1D: broadcasts to 1D
-        result = q.align_levels(bar)
+        _, result = q.align_levels(bar)
         assert ("a",) == result.dims
         assert 1 == len(result.unique())
 
         # Scalar to 2D:
-        result = q.align_levels(foo)
-        assert ("a", "b") == result.dims
+        _, result = q.align_levels(foo)
+        assert ("b",) == result.dims
         assert 1 == len(result.unique())
 
         # 1D to scalar
-        result = bar.align_levels(q)
+        _, result = bar.align_levels(q)
         assert ("a",) == result.dims
 
         # 2D vs. 2D; same dimensions, different order
         idx = pd.MultiIndex.from_product([["b1", "b2"], ["a1", "a2"]], names=["b", "a"])
         q = AttrSeries([3, 2, 1, 0], index=idx)
         assert ("b", "a") == q.dims
-        assert ("a", "b") == q.align_levels(foo).dims
+        _, result = q.align_levels(foo)
+        assert ("a", "b") == result.dims
 
     def test_cumprod(self, bar):
         """AttrSeries.cumprod works with 1-dimensional quantities."""
