@@ -92,6 +92,7 @@ def test_aggregate(caplog, data, keep):
     t_groups = dict(foo=t_foo, bar=t_bar)
 
     result = computations.aggregate(x, dict(t=t_groups), keep)
+    assert result.name == x.name and result.units == x.units  # Pass through
 
     # Result has the expected dimensions
     assert set(t_groups) | (set(t_foo + t_bar) if keep else set()) == set(
@@ -122,6 +123,7 @@ def test_apply_units(data, caplog):
     assert result.units == registry.Unit("litre")
     # No change in values
     assert_series_equal(result.to_series(), x.to_series())
+    assert result.name == x.name  # Pass through
 
     # Compatible units: magnitudes are also converted
     with assert_logs(
@@ -158,6 +160,7 @@ def test_assign_units(data, caplog):
     assert result.units == registry.Unit("litre")
     # No change in values
     assert_series_equal(result.to_series(), x.to_series())
+    assert result.name == x.name  # Pass through
 
     # Compatible units: magnitudes are not changed
     with assert_logs(
@@ -193,7 +196,10 @@ def test_convert_units(data, caplog):
     # Compatible units: magnitudes are also converted
     result = computations.convert_units(x, "tonne")
     assert registry.Unit("tonne") == result.units
-    assert_series_equal(result.to_series(), x.to_series() * 0.001)
+    assert_series_equal(
+        result.to_series(), (x.to_series() * 0.001).rename("Quantity X")
+    )
+    assert result.name == x.name  # Pass through
 
     # Remove unit
     x.units = registry.Unit("dimensionless")
@@ -303,6 +309,7 @@ def test_drop_vars(data):
     *_, x = data
 
     result = computations.drop_vars(x, "t")
+    assert result.name == x.name and result.units == x.units  # Pass through
     assert set(x.dims) == {"t"} | set(result.dims)
 
 
@@ -312,19 +319,22 @@ def test_group_sum(ureg):
     X = Quantity(
         xr.DataArray(np.random.rand(2, 3), coords=[("a", a), ("b", b)]),
         units=ureg.kg,
+        name="Foo",
     )
 
     result = computations.group_sum(X, "a", "b")
+    assert result.name == X.name and result.units == X.units  # Pass through
     assert ("a",) == result.dims
     assert 2 == len(result)
 
 
-def test_index_to():
+def test_index_to(ureg):
     q = random_qty(dict(x=3, y=5))
     q.name = "Foo"
+    q.units = ureg.kg
 
     exp = q / q.sel(x="x0")
-    exp.units = ""
+    exp.units = ""  # Indexed values are dimensionless
 
     # Called with a mapping
     result = computations.index_to(q, dict(x="x0"))
@@ -361,15 +371,16 @@ def test_index_to():
         dict(y=3, z=2, x=3),
     ],
 )
-def test_interpolate(caplog, shape):
+def test_interpolate(caplog, ureg, shape):
     """Test :func:`.interpolate`."""
     # Generate a random quantity with one dimension indexed by integers
-    q = random_qty(shape)
+    q = random_qty(shape, name="Foo", units=ureg.kg)
     x = [2020, 2030, 2040]
     q = q.assign_coords({"x": x})
 
     # Linear interpolation of 1 point
     result = computations.interpolate(q, dict(x=2025), assume_sorted=False)
+    assert result.name == q.name and result.units == q.units  # Pass through
     assert "interpolate(…, assume_sorted=False) ignored" in caplog.messages
 
     # Result has the expected class, dimensions, and values
@@ -543,6 +554,7 @@ def test_relabel(data):
     # Can be called with a dictionary
     result = computations.relabel(x, args)
     check(result)
+    assert result.name == x.name and result.units == x.units  # Pass through
 
     # Can be added and used through Computer
 
@@ -568,6 +580,7 @@ def test_rename_dims(data):
     # Can be called with a dictionary
     args = {"t": "s", "y": "z"}
     result = computations.rename_dims(x, args)
+    assert result.name == x.name and result.units == x.units  # Pass through
     assert ("s", "z") == result.dims  # Quantity has renamed dimensions
     assert all(t == result.coords["s"])  # Renamed dimension contain original labels
 
@@ -604,6 +617,7 @@ def test_round(data):
 
     # round() runs
     result0 = computations.round(x)
+    assert result0.name == x.name and result0.units == x.units
 
     # Only 0 or 1
     assert {0.0, 1.0} >= set(result0.to_series().unique())
@@ -626,6 +640,7 @@ def test_select(data):
     indexers = {"t": t_foo[0:1] + t_bar[0:1]}
     result_0 = computations.select(x, indexers=indexers)
     assert result_0.size == 2 * N_y
+    assert result_0.name == x.name and result_0.units == x.units  # Pass through
 
     # Single indexer along one dimension results in 1D data
     indexers["y"] = [2010]
