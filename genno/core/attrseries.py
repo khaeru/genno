@@ -25,13 +25,7 @@ from genno.core.types import Dims
 log = logging.getLogger(__name__)
 
 
-def _multiindex_of(obj: pd.Series):
-    """Return ``obj.index``; if this is not a :class:`pandas.MultiIndex`, convert."""
-    return (
-        obj.index
-        if isinstance(obj.index, pd.MultiIndex)
-        else pd.MultiIndex.from_product([obj.index])
-    )
+
 
 
 class AttrSeries(pd.Series, Quantity):
@@ -111,12 +105,10 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.assign_coords`."""
         coords = either_dict_or_kwargs(coords, coord_kwargs, "assign_coords")
 
-        idx = _multiindex_of(self)
-
         # Construct a new index
-        new_idx = idx.copy()
+        new_idx = self.index.copy()
         for dim, values in coords.items():
-            expected_len = len(idx.levels[idx.names.index(dim)])
+            expected_len = len(self.index.levels[self.index.names.index(dim)])
             if expected_len != len(values):
                 raise ValueError(
                     f"conflicting sizes for dimension {repr(dim)}: length "
@@ -171,7 +163,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def shape(self) -> Tuple[int, ...]:
         """Like :attr:`xarray.DataArray.shape`."""
-        idx = _multiindex_of(self).remove_unused_levels()
+        idx = self.index.remove_unused_levels()
         return tuple(len(idx.levels[i]) for i in map(idx.names.index, self.dims))
 
     def drop(self, label):
@@ -270,8 +262,13 @@ class AttrSeries(pd.Series, Quantity):
             # Wrap a scalar `base` (only occurs with len(other_dims) == 1; pandas < 2.0)
             base = list(base) if isinstance(base, tuple) else [base]
             return [
-                (base[other_dims.index(d)] if d in other_dims else item) for d in dims
+                (base[other_dims.index(d)] if d in other_dims else item[0])
+                for d in dims
             ]
+
+        def _flat_index(obj: AttrSeries):
+            """Unpack a 1-D MultiIndex from an AttrSeries."""
+            return [v[0] for v in obj.index]
 
         # Group by `dim` so that each level appears ≤ 1 time in `group_series`
         result = []
@@ -281,8 +278,8 @@ class AttrSeries(pd.Series, Quantity):
             # group_series.reindex(…, level=dim)
 
             # A 1-D index for `dim` with the union of existing and new coords
-            idx = pd.Index(
-                sorted(set(group_series.index.get_level_values(dim)).union(levels))
+            idx = pd.MultiIndex.from_product(
+                [sorted(set(group_series.index.get_level_values(dim)).union(levels))]
             )
 
             # Reassemble full MultiIndex with the new coords added along `dim`
@@ -298,18 +295,17 @@ class AttrSeries(pd.Series, Quantity):
             # Location of existing values
             x = s.notna()
 
-            # - Create an interpolator from the non-NaN values.
+            # Create an interpolator from the existing values
+            i = interp1d(_flat_index(s[x]), s[x], kind=method, **kwargs)
+
             # - Apply it to the missing indices.
             # - Reconstruct a Series with these indices.
             # - Use this Series to fill the NaNs in `s`.
             # - Restore the full MultiIndex.
             result.append(
-                s.fillna(
-                    pd.Series(
-                        interp1d(s[x].index, s[x], kind=method, **kwargs)(s[~x].index),
-                        index=s[~x].index,
-                    )
-                ).set_axis(full_idx)
+                s.fillna(pd.Series(i(_flat_index(s[~x])), index=s[~x].index)).set_axis(
+                    full_idx
+                )
             )
 
         # - Restore dimension order and attributes.
@@ -487,13 +483,10 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.squeeze`."""
         assert kwargs.pop("drop", True)
 
-        try:
-            idx = self.index.remove_unused_levels()
-        except AttributeError:
-            return self
+        idx = self.index.remove_unused_levels()
 
         to_drop = []
-        for i, name in enumerate(idx.names):
+        for i, name in enumerate(filter(None, idx.names)):
             if dim and name != dim:
                 continue
             elif len(idx.levels[i]) > 1:
