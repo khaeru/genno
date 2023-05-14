@@ -198,6 +198,15 @@ class AttrSeries(pd.Series, Quantity):
                 N, values = 1, [None]
             result = pd.concat([result] * N, keys=values, names=[name])
 
+        # Ensure `result` is multiindexed
+        try:
+            i = result.index.names.index(None)
+        except ValueError:
+            pass
+        else:
+            assert 2 == len(result.index.names)
+            result.index = pd.MultiIndex.from_product([result.index.droplevel(i)])
+
         return result
 
     def ffill(self, dim: Hashable, limit: Optional[int] = None):
