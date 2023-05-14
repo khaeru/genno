@@ -55,6 +55,11 @@ class TestAttrSeries:
         result1 = (1.1 + bar).cumprod()
         pdt.assert_series_equal(result0, result1)
 
+    def test_expand_dims(self, foo):
+        # Name passes through expand_dims
+        result = foo.expand_dims(c=["c1", "c2"])
+        assert result.name == foo.name
+
     def test_interp(self, foo):
         with pytest.raises(NotImplementedError):
             foo.interp(coords=dict(a=["a1", "a1.5", "a2"], b=["b1", "b1.5", "b2"]))
@@ -130,7 +135,7 @@ class TestAttrSeries:
             bar.item()
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="Slow, for benchmarking only")
 def test_sum_large(N_data=1e7):  # pragma: no cover
     """Test :meth:`.AttrSeries.sum` for large, sparse data."""
     # Create a single large AttrSeries
