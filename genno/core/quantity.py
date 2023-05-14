@@ -134,10 +134,27 @@ class Quantity:
     ):
         ...  # pragma: no cover
 
+    def bfill(  # type: ignore [empty-body]
+        self,
+        dim: Hashable,
+        limit: Optional[int] = None,
+    ) -> "Quantity":
+        ...  # pragma: no cover
+
     def copy(
         self,
         deep: bool = True,
         data: Any = None,
+    ):  # NB "Quantity" here offends mypy
+        ...  # pragma: no cover
+
+    def cumprod(  # type: ignore [empty-body]
+        self,
+        dim: Dims = None,
+        *,
+        skipna: Optional[bool] = None,
+        keep_attrs: Optional[bool] = None,
+        **kwargs: Any,
     ):  # NB "Quantity" here offends mypy
         ...  # pragma: no cover
 
@@ -155,6 +172,13 @@ class Quantity:
         axis=None,
         **dim_kwargs: Any,
     ):  # NB "Quantity" here offends mypy
+        ...  # pragma: no cover
+
+    def ffill(  # type: ignore [empty-body]
+        self,
+        dim: Hashable,
+        limit: Optional[int] = None,
+    ) -> "Quantity":
         ...  # pragma: no cover
 
     def groupby(
