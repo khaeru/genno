@@ -475,26 +475,36 @@ def test_mul0(func):
 
 @pytest.mark.parametrize("func", [computations.mul, computations.product])
 @pytest.mark.parametrize(
-    "dims, exp_size",
+    "dims, exp_dims, exp_shape",
     (
-        # Some overlapping dimensions
-        ((dict(a=2, b=2, c=2, d=2), dict(b=2, c=2, d=2, e=2, f=2)), 2**6),
+        # Scalar × scalar
+        (({}, {}), tuple(), tuple()),
+        # Scalar × 1D
+        (({}, dict(a=2)), ("a",), (2,)),
+        # 1D × scalar
+        ((dict(a=2), {}), ("a",), (2,)),
         # 1D with disjoint dimensions ** 3 = 3D
-        ((dict(a=2), dict(b=2), dict(c=2)), 2**3),
+        ((dict(a=2), dict(b=2), dict(c=2)), tuple("abc"), (2, 2, 2)),
         # 2D × scalar × scalar = 2D
-        ((dict(a=2, b=2), dict(), dict()), 4),
+        ((dict(a=2, b=2), {}, {}), tuple("ab"), (2, 2)),
         # scalar × 1D × scalar = 1D
-        # XFAIL for AttrSeries, XPASS for SparseDataArray
-        pytest.param((dict(), dict(a=2), dict()), 2, marks=pytest.mark.xfail),
+        (({}, dict(a=2), {}), tuple("a"), (2,)),
+        # 4D × 5D, with some overlapping dimensions
+        (
+            (dict(a=2, b=2, c=2, d=2), dict(b=2, c=2, d=2, e=2, f=2)),
+            tuple("abcdef"),
+            (2, 2, 2, 2, 2, 2),
+        ),
     ),
 )
-def test_mul1(func, dims, exp_size):
+def test_mul1(func, dims, exp_dims, exp_shape):
     """Product of quantities with disjoint and overlapping dimensions."""
     quantities = [random_qty(d) for d in dims]
 
     result = func(*quantities)
 
-    assert exp_size == result.size
+    assert exp_dims == result.dims
+    assert exp_shape == result.shape
 
 
 def test_pow(ureg):
