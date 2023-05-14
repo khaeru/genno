@@ -368,13 +368,9 @@ class AttrSeries(pd.Series, Quantity):
         if len(indexers) == 1:
             level, key = list(indexers.items())[0]
             if isinstance(key, str) and not drop:
-                if isinstance(self.index, pd.MultiIndex):
-                    # When using .loc[] to select 1 label on 1 level, pandas drops the
-                    # level. Use .xs() to avoid this behaviour unless drop=True
-                    return AttrSeries(self.xs(key, level=level, drop_level=False))
-                else:
-                    # No MultiIndex; use .loc with a slice to avoid returning scalar
-                    return self.loc[slice(key, key)]
+                # When using .loc[] to select 1 label on 1 level, pandas drops the
+                # level. Use .xs() to avoid this behaviour unless drop=True
+                return AttrSeries(self.xs(key, level=level, drop_level=False))
 
         if len(indexers) and all(
             isinstance(i, xr.DataArray) for i in indexers.values()
