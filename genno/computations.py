@@ -424,21 +424,13 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
-    if isinstance(numerator, AttrSeries):
-        result = unwrap_scalar(numerator) / cast(AttrSeries, denominator).align_levels(
-            numerator
-        )
-    else:
-        result = numerator / denominator
+    result = numerator / denominator
 
     # This shouldn't be necessary; would instead prefer:
     # result.units = u_num / u_denom
     # … but is necessary to avoid an issue when the operands are different Unit classes
     ureg = pint.get_application_registry()
-    result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
-
-    if isinstance(result, AttrSeries):
-        result.dropna(inplace=True)
+    result.units = ureg.Unit(u_num) / ureg.Unit(u_denom)
 
     return result
 
