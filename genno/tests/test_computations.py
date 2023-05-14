@@ -669,3 +669,13 @@ def test_select(data):
 
     with pytest.raises(NotImplementedError):
         computations.select(x, indexers, inverse=True)
+
+
+@pytest.mark.parametrize("dimensions", (["t"], ["y"], ["t", "y"]))
+def test_sum(data, dimensions):
+    *_, t_foo, t_bar, x = data
+
+    # Function runs
+    result = computations.sum(x, dimensions=dimensions)
+
+    assert result.name == x.name and result.units == x.units  # Pass through
