@@ -90,6 +90,12 @@ class AttrSeries(pd.Series, Quantity):
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
         pd.Series.__init__(self, data, *args, name=name, **kwargs)
 
+        # Ensure a MultiIndex
+        try:
+            self.index.levels
+        except AttributeError:
+            self.index = pd.MultiIndex.from_product([self.index])
+
         # Update the attrs after initialization
         self.attrs.update(attrs)
 
