@@ -20,13 +20,30 @@ import pandas.core.indexes.base as ibase
 import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.quantity import Quantity
+from genno.core.quantity import Quantity, possible_scalar
 from genno.core.types import Dims
 
 log = logging.getLogger(__name__)
 
 
+def _binop(name: str, swap: bool = False):
+    def method(self, other):
+        other = possible_scalar(other)
 
+        # For __r*__ methods
+        a, b = (other, self) if swap else (self, other)
+
+        # Ensure both operands are multi-indexed, and have at least 1 common dim
+        if a.dims:
+            left = a
+            order, right = b.align_levels(left)
+        else:
+            right = b
+            order, left = a.align_levels(right)
+
+        return getattr(left, name)(right).dropna().reorder_levels(order)
+
+    return method
 
 
 class AttrSeries(pd.Series, Quantity):
@@ -93,6 +110,12 @@ class AttrSeries(pd.Series, Quantity):
 
         # Update the attrs after initialization
         self.attrs.update(attrs)
+
+    # Binary operations
+    __mul__ = _binop("mul")
+    __pow__ = _binop("pow")
+    __rtruediv__ = _binop("div", swap=True)
+    __truediv__ = _binop("div")
 
     def __repr__(self):
         return super().__repr__() + f", units: {self.units}"
