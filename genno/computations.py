@@ -688,10 +688,7 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     if not u_b.dimensionless:
         raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
 
-    if isinstance(a, AttrSeries):
-        result = a ** cast(AttrSeries, b).align_levels(a)
-    else:
-        result = a**b
+    result = a**b
 
     result.units = (
         a.units**unit_exponent
