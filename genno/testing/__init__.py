@@ -142,6 +142,7 @@ def add_test_data(c: Computer):
     x = Quantity(
         xr.DataArray(np.random.rand(len(t), len(y)), coords=[("t", t), ("y", y)]),
         units=ureg.kg,
+        name="Quantity X",
     )
 
     # Add, including sums and to index
