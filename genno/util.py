@@ -52,9 +52,10 @@ def collect_units(*args):
             log.debug(f"{arg} lacks units; assume dimensionless")
             unit = registry.dimensionless
 
-        arg.attrs["_unit"] = registry.Unit(unit)
+        # Convert a possible string or other expression to a pint.Unit object
+        arg.units = registry.Unit(unit)
 
-    return tuple(arg.attrs["_unit"] for arg in args)
+    return tuple(arg.units for arg in args)
 
 
 def filter_concat_args(args):

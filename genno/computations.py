@@ -329,7 +329,7 @@ def combine(
         args.append(weight * temp)
 
     result = add(*args)
-    result.attrs["_unit"] = units
+    result.units = units
 
     return result
 
@@ -405,7 +405,7 @@ def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
 def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
     """Disaggregate *quantity* by *shares*."""
     result = quantity * shares
-    result.attrs["_unit"] = collect_units(quantity)[0]
+    result.units = collect_units(quantity)[0]
     return result
 
 
@@ -431,7 +431,7 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
         result = numerator / denominator
 
     # This shouldn't be necessary; would instead prefer:
-    # result.attrs["_unit"] = u_num / u_denom
+    # result.units = u_num / u_denom
     # … but is necessary to avoid an issue when the operands are different Unit classes
     ureg = pint.get_application_registry()
     result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
@@ -671,7 +671,7 @@ def mul(*quantities: Quantity) -> Quantity:
             result = result * q
         u_result *= u
 
-    result.attrs["_unit"] = u_result
+    result.units = u_result
 
     return result
 
@@ -711,8 +711,8 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     else:
         result = a**b
 
-    result.attrs["_unit"] = (
-        a.attrs["_unit"] ** unit_exponent
+    result.units = (
+        a.units**unit_exponent
         if unit_exponent
         else pint.get_application_registry().dimensionless
     )

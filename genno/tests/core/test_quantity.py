@@ -162,12 +162,12 @@ class TestQuantity:
         """Making a Quantity another produces a distinct attrs dictionary."""
         assert 0 == len(a.attrs)
 
-        a.attrs["_unit"] = pint.Unit("km")
+        a.units = pint.Unit("km")
 
         b = Quantity(a, units="kg")
-        assert pint.Unit("kg") == b.attrs["_unit"]
+        assert pint.Unit("kg") == b.units
 
-        assert pint.Unit("km") == a.attrs["_unit"]
+        assert pint.Unit("km") == a.units
 
     def test_cumprod(self, caplog, tri):
         """Test Quantity.cumprod()."""
