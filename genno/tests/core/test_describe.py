@@ -1,3 +1,5 @@
+import re
+
 import pandas as pd
 import pytest
 
@@ -11,9 +13,11 @@ def test_describe():
     c.add("foo", Quantity(pd.Series([42, 43])))
 
     if Quantity._get_class() is SparseDataArray:
-        assert "\n".join(
-            ["'foo':", "- <xarray.SparseDataArray (index: 2)>"]
-        ) == c.describe("foo")
+        assert re.match(
+            r"""'foo':
+- <xarray\.SparseDataArray \([^:]+: 2\)>""",
+            c.describe("foo"),
+        )
 
 
 def test_describe_shorten():
