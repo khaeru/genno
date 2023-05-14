@@ -73,6 +73,14 @@ log = logging.getLogger(__name__)
 xr.set_options(keep_attrs=True)
 
 
+def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
+    if "name" in items:
+        target.name = source.name
+    if "attrs" in items:
+        target.attrs.update(source.attrs)
+    return target
+
+
 def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
     """Sum across multiple `quantities`.
 
@@ -168,11 +176,7 @@ def aggregate(
             *values, **({} if isinstance(quantity, AttrSeries) else {"dim": dim})
         )
 
-    # Preserve attrs
-    result.attrs.update(quantity.attrs)
-    result.name = quantity.name
-
-    return result
+    return _preserve("name attrs", result, quantity)
 
 
 def _unit_args(qty, units):
@@ -395,7 +399,7 @@ def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
     result = qty * factor
     result.units = new_units
 
-    return result
+    return _preserve("name", result, qty)
 
 
 def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
@@ -855,7 +859,9 @@ def sum(
         if 0 == len(w_total.dims):
             w_total = w_total.item()
 
-    return div(mul(quantity, _w).sum(dim=dimensions), w_total)
+    return _preserve(
+        "name", div(mul(quantity, _w).sum(dim=dimensions), w_total), quantity
+    )
 
 
 def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:
