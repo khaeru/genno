@@ -512,6 +512,7 @@ def test_dantzig(ureg):
     exp = Quantity(
         (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]).item(),
         attrs=d_ij.attrs,
+        name="d",
     )
 
     assert_qty_equal(exp, obs)
