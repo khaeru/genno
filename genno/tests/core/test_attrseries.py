@@ -83,6 +83,10 @@ class TestAttrSeries:
         with pytest.raises(NotImplementedError):
             bar.sel(a="a2", tolerance=0.01)
 
+    def test_shift(self, foo):
+        foo.shift(a=1)
+        foo.shift(b=1)
+
     def test_squeeze(self, foo):
         assert foo.sel(a="a1").squeeze().dims == ("b",)
         assert foo.sel(a="a2", b="b1").squeeze().values == 2
