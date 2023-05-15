@@ -16,7 +16,7 @@ from typing import (
     cast,
 )
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from _typeshed import SupportsRichComparisonT
 
 import numpy as np

@@ -47,7 +47,7 @@ class TestAttrSeries:
         _, result = q.align_levels(foo)
         assert ("a", "b") == result.dims
 
-    def test_cumprod(self, bar):
+    def test_cumprod(self, foo, bar):
         """AttrSeries.cumprod works with 1-dimensional quantities."""
         result0 = (1.1 + bar).cumprod("a")
         assert ("a",) == result0.dims
@@ -55,6 +55,10 @@ class TestAttrSeries:
         # Same result with dim=None
         result1 = (1.1 + bar).cumprod()
         pdt.assert_series_equal(result0, result1)
+
+        # But not with ≥1D
+        with pytest.raises(NotImplementedError):
+            foo.cumprod()
 
     def test_expand_dims(self, foo):
         # Name passes through expand_dims
