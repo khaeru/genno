@@ -184,8 +184,6 @@ Top-level classes and functions
           keys = rep.convert_pyam(ACT, 'ya', collapse=m_t, drop=['t', 'm'])
 
 
-
-
 .. autoclass:: genno.Key
    :members:
 
@@ -348,6 +346,10 @@ Internal format for quantities
 
 .. automodule:: genno.core.sparsedataarray
    :members: SparseDataArray, SparseAccessor
+
+.. currentmodule:: genno.compat.xarray
+
+.. autoclass:: DataArrayLike
 
 
 Utilities

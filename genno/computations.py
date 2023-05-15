@@ -5,6 +5,7 @@
 import logging
 import operator
 import re
+from functools import reduce
 from itertools import chain
 from os import PathLike
 from pathlib import Path
@@ -25,13 +26,12 @@ import pint
 from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.attrseries import AttrSeries, _multiindex_of
+from genno.core.attrseries import AttrSeries
 from genno.core.quantity import (
     Quantity,
     assert_quantity,
     maybe_densify,
     possible_scalar,
-    unwrap_scalar,
 )
 from genno.core.sparsedataarray import SparseDataArray
 from genno.util import UnitLike, collect_units, filter_concat_args
@@ -71,6 +71,14 @@ log = logging.getLogger(__name__)
 
 # Carry unit attributes automatically
 xr.set_options(keep_attrs=True)
+
+
+def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
+    if "name" in items:
+        target.name = source.name
+    if "attrs" in items:
+        target.attrs.update(source.attrs)
+    return target
 
 
 def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
@@ -168,11 +176,7 @@ def aggregate(
             *values, **({} if isinstance(quantity, AttrSeries) else {"dim": dim})
         )
 
-    # Preserve attrs
-    result.attrs.update(quantity.attrs)
-    result.name = quantity.name
-
-    return result
+    return _preserve("name attrs", result, quantity)
 
 
 def _unit_args(qty, units):
@@ -325,7 +329,7 @@ def combine(
         args.append(weight * temp)
 
     result = add(*args)
-    result.attrs["_unit"] = units
+    result.units = units
 
     return result
 
@@ -355,7 +359,7 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
         # Ensure objects have aligned dimensions
         _objs = [objs[0]]
         _objs.extend(
-            map(lambda o: cast(AttrSeries, o).align_levels(_objs[0]), objs[1:])
+            map(lambda o: cast(AttrSeries, o).align_levels(_objs[0])[1], objs[1:])
         )
 
         return pd.concat(_objs, **kwargs)
@@ -395,13 +399,13 @@ def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
     result = qty * factor
     result.units = new_units
 
-    return result
+    return _preserve("name", result, qty)
 
 
 def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
     """Disaggregate *quantity* by *shares*."""
     result = quantity * shares
-    result.attrs["_unit"] = collect_units(quantity)[0]
+    result.units = collect_units(quantity)[0]
     return result
 
 
@@ -419,21 +423,13 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     # Handle units
     u_num, u_denom = collect_units(numerator, denominator)
 
-    if isinstance(numerator, AttrSeries):
-        result = unwrap_scalar(numerator) / cast(AttrSeries, denominator).align_levels(
-            numerator
-        )
-    else:
-        result = numerator / denominator
+    result = numerator / denominator
 
     # This shouldn't be necessary; would instead prefer:
-    # result.attrs["_unit"] = u_num / u_denom
+    # result.units = u_num / u_denom
     # … but is necessary to avoid an issue when the operands are different Unit classes
     ureg = pint.get_application_registry()
-    result.attrs["_unit"] = ureg.Unit(u_num) / ureg.Unit(u_denom)
-
-    if isinstance(result, AttrSeries):
-        result.dropna(inplace=True)
+    result.units = ureg.Unit(u_num) / ureg.Unit(u_denom)
 
     return result
 
@@ -652,22 +648,11 @@ def _load_file_csv(
 
 def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
-    # Iterator over (quantity, unit) tuples
-    items = zip(quantities, collect_units(*quantities))
 
-    # Initialize result values with first entry
-    result, u_result = next(items)
+    result = reduce(operator.mul, quantities)
+    u_result = reduce(operator.mul, collect_units(*quantities))
 
-    # Iterate over remaining entries
-    for q, u in items:
-        if isinstance(q, AttrSeries):
-            # Work around pandas-dev/pandas#25760; see attrseries.py
-            result = (result * q.align_levels(result)).dropna()
-        else:
-            result = result * q
-        u_result *= u
-
-    result.attrs["_unit"] = u_result
+    result.units = u_result
 
     return result
 
@@ -702,13 +687,10 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     if not u_b.dimensionless:
         raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
 
-    if isinstance(a, AttrSeries):
-        result = a ** cast(AttrSeries, b).align_levels(a)
-    else:
-        result = a**b
+    result = a**b
 
-    result.attrs["_unit"] = (
-        a.attrs["_unit"] ** unit_exponent
+    result.units = (
+        a.units**unit_exponent
         if unit_exponent
         else pint.get_application_registry().dimensionless
     )
@@ -751,7 +733,7 @@ def relabel(
 
     if isinstance(qty, AttrSeries):
         # Prepare a new index
-        idx = _multiindex_of(qty)
+        idx = qty.index.copy()
         for dim, label_map in iter:
             # - Look up numerical index of the dimension in `idx`
             # - Retrieve the existing levels.
@@ -762,10 +744,7 @@ def relabel(
             )
 
         # Assign the new index to a copy of qty
-        result = cast(AttrSeries, qty.copy())
-        result.index = idx
-
-        return result
+        return qty.set_axis(idx)
     else:
         return cast(SparseDataArray, qty).assign_coords(
             {dim: map_labels(m, qty.coords[dim].data) for dim, m in iter}
@@ -855,7 +834,9 @@ def sum(
         if 0 == len(w_total.dims):
             w_total = w_total.item()
 
-    return div(mul(quantity, _w).sum(dim=dimensions), w_total)
+    return _preserve(
+        "name", div(mul(quantity, _w).sum(dim=dimensions), w_total), quantity
+    )
 
 
 def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:

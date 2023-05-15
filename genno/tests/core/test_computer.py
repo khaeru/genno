@@ -489,7 +489,7 @@ def test_dantzig(ureg):
     d_i = c.get("d:i")
 
     # Units pass through summation
-    assert d_i.attrs["_unit"] == ureg.kilometre
+    assert d_i.units == ureg.kilometre
 
     # Summation across all dimensions results a 1-element Quantity
     d = c.get("d:")
@@ -512,6 +512,7 @@ def test_dantzig(ureg):
     exp = Quantity(
         (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]).item(),
         attrs=d_ij.attrs,
+        name="d",
     )
 
     assert_qty_equal(exp, obs)
@@ -527,7 +528,7 @@ def test_dantzig(ureg):
     b_jp = c.get("b:j-p")
 
     # Units pass through disaggregation
-    assert b_jp.attrs["_unit"] == ureg.case
+    assert b_jp.units == ureg.case
 
     # Set elements are available
     assert c.get("j") == ["new-york", "chicago", "topeka"]
@@ -644,7 +645,7 @@ def test_file_formats(test_data_path, tmp_path):
     assert_qty_equal(c.get(k), c.get(k2))
 
     # Units are loaded from a column
-    assert c.get(k2).attrs["_unit"] == pint.Unit("km")
+    assert c.get(k2).units == pint.Unit("km")
 
     # Specifying units that do not match file contents → ComputationError
     c.add_file(p2, key="bad", dims=dict(i="i", j_dim="j"), units="kg")
@@ -704,15 +705,15 @@ def test_units(ureg):
 
     # Aggregation preserves units
     c.add("energy", (computations.sum, "energy:x", None, ["x"]))
-    assert c.get("energy").attrs["_unit"] == ureg.parse_units("MJ")
+    assert c.get("energy").units == ureg.parse_units("MJ")
 
     # Units are derived for a ratio of two quantities
     c.add("power", (computations.ratio, "energy:x", "time"))
-    assert c.get("power").attrs["_unit"] == ureg.parse_units("MJ/hour")
+    assert c.get("power").units == ureg.parse_units("MJ/hour")
 
     # Product of dimensioned and dimensionless quantities keeps the former
     c.add("energy2", (computations.mul, "energy:x", "efficiency"))
-    assert c.get("energy2").attrs["_unit"] == ureg.parse_units("MJ")
+    assert c.get("energy2").units == ureg.parse_units("MJ")
 
 
 @pytest.mark.parametrize("suffix", [".json", ".yaml"])

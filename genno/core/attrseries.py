@@ -1,8 +1,11 @@
 import logging
 import warnings
 from functools import partial
+from itertools import tee
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     Iterable,
     Mapping,
@@ -13,25 +16,39 @@ from typing import (
     cast,
 )
 
+if TYPE_CHECKING:  # pragma: no cover
+    from _typeshed import SupportsRichComparisonT
+
 import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.quantity import Quantity
+from genno.core.quantity import Quantity, possible_scalar
 from genno.core.types import Dims
 
 log = logging.getLogger(__name__)
 
 
-def _multiindex_of(obj: pd.Series):
-    """Return ``obj.index``; if this is not a :class:`pandas.MultiIndex`, convert."""
-    return (
-        obj.index
-        if isinstance(obj.index, pd.MultiIndex)
-        else pd.MultiIndex.from_product([obj.index])
-    )
+def _binop(name: str, swap: bool = False):
+    def method(self, other):
+        other = possible_scalar(other)
+
+        # For __r*__ methods
+        a, b = (other, self) if swap else (self, other)
+
+        # Ensure both operands are multi-indexed, and have at least 1 common dim
+        if a.dims:
+            left = a
+            order, right = b.align_levels(left)
+        else:
+            right = b
+            order, left = a.align_levels(right)
+
+        return getattr(left, name)(right).dropna().reorder_levels(order)
+
+    return method
 
 
 class AttrSeries(pd.Series, Quantity):
@@ -90,8 +107,20 @@ class AttrSeries(pd.Series, Quantity):
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
         pd.Series.__init__(self, data, *args, name=name, **kwargs)
 
+        # Ensure a MultiIndex
+        try:
+            self.index.levels
+        except AttributeError:
+            self.index = pd.MultiIndex.from_product([self.index])
+
         # Update the attrs after initialization
         self.attrs.update(attrs)
+
+    # Binary operations
+    __mul__ = _binop("mul")
+    __pow__ = _binop("pow")
+    __rtruediv__ = _binop("div", swap=True)
+    __truediv__ = _binop("div")
 
     def __repr__(self):
         return super().__repr__() + f", units: {self.units}"
@@ -105,12 +134,10 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.assign_coords`."""
         coords = either_dict_or_kwargs(coords, coord_kwargs, "assign_coords")
 
-        idx = _multiindex_of(self)
-
         # Construct a new index
-        new_idx = idx.copy()
+        new_idx = self.index.copy()
         for dim, values in coords.items():
-            expected_len = len(idx.levels[idx.names.index(dim)])
+            expected_len = len(self.index.levels[self.index.names.index(dim)])
             if expected_len != len(values):
                 raise ValueError(
                     f"conflicting sizes for dimension {repr(dim)}: length "
@@ -137,12 +164,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def coords(self):
         """Like :attr:`xarray.DataArray.coords`. Read-only."""
-        levels = (
-            self.index.levels
-            if isinstance(self.index, pd.MultiIndex)
-            else [self.index.values]
-        )
-        return xr.Dataset(None, coords=dict(zip(self.index.names, levels))).coords
+        return xr.DataArray(coords=self.index.levels, dims=self.dims).coords
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
         """Like :meth:`xarray.DataArray.cumprod`."""
@@ -151,11 +173,15 @@ class AttrSeries(pd.Series, Quantity):
         if skipna is None:
             skipna = self.dtype == float
         if dim in (None, "..."):
-            dim = self.dims
+            if len(self.dims) > 1:
+                raise NotImplementedError("cumprod() over multiple dimensions")
+            dim = self.dims[0]
 
-        # Group on dimensions other than `dim`
-        result = self._maybe_groupby(dim).cumprod(skipna=skipna, **kwargs)
-        return self._replace(result)
+        def _(s):
+            # Invoke cumprod from the parent class pd.Series
+            return super(pd.Series, s).cumprod(skipna=skipna, **kwargs)
+
+        return self._replace(self._groupby_apply(dim, sorted(self.coords[dim].data), _))
 
     @property
     def dims(self) -> Tuple[Hashable, ...]:
@@ -165,7 +191,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def shape(self) -> Tuple[int, ...]:
         """Like :attr:`xarray.DataArray.shape`."""
-        idx = _multiindex_of(self).remove_unused_levels()
+        idx = self.index.remove_unused_levels()
         return tuple(len(idx.levels[i]) for i in map(idx.names.index, self.dims))
 
     def drop(self, label):
@@ -181,6 +207,8 @@ class AttrSeries(pd.Series, Quantity):
 
     def expand_dims(self, dim=None, axis=None, **dim_kwargs: Any) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.expand_dims`."""
+        if isinstance(dim, list):
+            dim = dict.fromkeys(dim, [])
         dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
         if axis is not None:
             raise NotImplementedError  # pragma: no cover
@@ -191,6 +219,15 @@ class AttrSeries(pd.Series, Quantity):
             if N == 0:  # Dimension without labels
                 N, values = 1, [None]
             result = pd.concat([result] * N, keys=values, names=[name])
+
+        # Ensure `result` is multiindexed
+        try:
+            i = result.index.names.index(None)
+        except ValueError:
+            pass
+        else:
+            assert 2 == len(result.index.names)
+            result.index = pd.MultiIndex.from_product([result.index.droplevel(i)])
 
         return result
 
@@ -244,62 +281,27 @@ class AttrSeries(pd.Series, Quantity):
         if isinstance(levels, (int, float)):
             levels = [levels]
 
-        # Preserve order of dimensions
-        dims = self.dims
-
-        # Dimension other than `dim`
-        other_dims = list(filter(lambda d: d != dim, dims))
-
-        def join(base, item):
-            """Rejoin a full key for the MultiIndex in the correct order."""
-            # Wrap a scalar `base` (only occurs with len(other_dims) == 1; pandas < 2.0)
-            base = list(base) if isinstance(base, tuple) else [base]
-            return [
-                (base[other_dims.index(d)] if d in other_dims else item) for d in dims
-            ]
+        def _flat_index(obj: AttrSeries):
+            """Unpack a 1-D MultiIndex from an AttrSeries."""
+            return [v[0] for v in obj.index]
 
         # Group by `dim` so that each level appears ≤ 1 time in `group_series`
-        result = []
-        groups = self.groupby(other_dims) if len(other_dims) else [(None, self)]
-        for group_key, group_series in groups:
-            # Work around https://github.com/pandas-dev/pandas/issues/25460; can't do:
-            # group_series.reindex(…, level=dim)
 
-            # A 1-D index for `dim` with the union of existing and new coords
-            idx = pd.Index(
-                sorted(set(group_series.index.get_level_values(dim)).union(levels))
-            )
-
-            # Reassemble full MultiIndex with the new coords added along `dim`
-            full_idx = pd.MultiIndex.from_tuples(
-                map(partial(join, group_key), idx), names=dims
-            )
-
-            # - Reindex to insert NaNs
-            # - Replace the full index with the 1-D index
-            s = group_series.reindex(full_idx).set_axis(idx)
-
+        def _(s):
             # Work around https://github.com/pandas-dev/pandas/issues/31949
             # Location of existing values
             x = s.notna()
 
-            # - Create an interpolator from the non-NaN values.
-            # - Apply it to the missing indices.
-            # - Reconstruct a Series with these indices.
-            # - Use this Series to fill the NaNs in `s`.
-            # - Restore the full MultiIndex.
-            result.append(
-                s.fillna(
-                    pd.Series(
-                        interp1d(s[x].index, s[x], kind=method, **kwargs)(s[~x].index),
-                        index=s[~x].index,
-                    )
-                ).set_axis(full_idx)
-            )
+            # Create an interpolator from the existing values
+            i = interp1d(_flat_index(s[x]), s[x], kind=method, **kwargs)
+
+            return s.fillna(pd.Series(i(_flat_index(s[~x])), index=s[~x].index))
+
+        result = self._groupby_apply(dim, levels, _)
 
         # - Restore dimension order and attributes.
         # - Select only the desired `coords`.
-        return self._replace(pd.concat(result).reorder_levels(dims)).sel(coords)
+        return self._replace(result.reorder_levels(self.dims)).sel(coords)
 
     def rename(
         self,
@@ -333,13 +335,9 @@ class AttrSeries(pd.Series, Quantity):
         if len(indexers) == 1:
             level, key = list(indexers.items())[0]
             if isinstance(key, str) and not drop:
-                if isinstance(self.index, pd.MultiIndex):
-                    # When using .loc[] to select 1 label on 1 level, pandas drops the
-                    # level. Use .xs() to avoid this behaviour unless drop=True
-                    return AttrSeries(self.xs(key, level=level, drop_level=False))
-                else:
-                    # No MultiIndex; use .loc with a slice to avoid returning scalar
-                    return self.loc[slice(key, key)]
+                # When using .loc[] to select 1 label on 1 level, pandas drops the
+                # level. Use .xs() to avoid this behaviour unless drop=True
+                return AttrSeries(self.xs(key, level=level, drop_level=False))
 
         if len(indexers) and all(
             isinstance(i, xr.DataArray) for i in indexers.values()
@@ -434,11 +432,19 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.shift`."""
         shifts = either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
 
+        # Apply shifts one-by-one
         result = self
         for dim, periods in shifts.items():
-            result = result._maybe_groupby(dim).shift(
-                periods=periods, fill_value=fill_value
-            )
+            levels = sorted(self.coords[dim].data)
+
+            def _(s):
+                # Invoke shift from the parent class pd.Series
+                return super(AttrSeries, s).shift(
+                    periods=periods, fill_value=fill_value
+                )
+
+            result = result._groupby_apply(dim, levels, _)
+
         return self._replace(result)
 
     def sum(
@@ -472,13 +478,10 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.squeeze`."""
         assert kwargs.pop("drop", True)
 
-        try:
-            idx = self.index.remove_unused_levels()
-        except AttributeError:
-            return self
+        idx = self.index.remove_unused_levels()
 
         to_drop = []
-        for i, name in enumerate(idx.names):
+        for i, name in enumerate(filter(None, idx.names)):
             if dim and name != dim:
                 continue
             elif len(idx.levels[i]) > 1:
@@ -519,56 +522,103 @@ class AttrSeries(pd.Series, Quantity):
         return self
 
     # Internal methods
+    def align_levels(
+        self, other: "AttrSeries"
+    ) -> Tuple[Sequence[Hashable], "AttrSeries"]:
+        """Return a copy of `self` with ≥1 dimension(s) in the same order as `other`.
 
-    def align_levels(self, other):
-        """Return a copy of `self` with common levels in the same order as `other`.
-
-        Work-around for https://github.com/pandas-dev/pandas/issues/25760.
+        Work-around for https://github.com/pandas-dev/pandas/issues/25760 and other
+        limitations of :class:`pandas.Series`.
         """
-        # TODO test for possible removal, since the upstream bug appears closed
-
-        # If other.index is a (1D) Index object, convert to a MultiIndex with 1 level so
-        # .levels[…] can be used, below. See also Quantity._single_column_df()
-        other_index = _multiindex_of(other)
-
-        # other.index.names, excluding 'None'
-        other_names = list(filter(None, other_index.names))
+        # Union of dimensions of `self` and `other`; initially just other
+        d_union = list(other.dims)
 
         # Lists of common dimensions, and dimensions on `other` missing from `self`.
-        common, missing = [], []
-        for i, n in enumerate(other_names):
-            if n in self.index.names:
-                common.append(n)
+        d_common = []  # Common dimensions of `self` and `other`
+        d_other_only = []  # (dimension, index) of `other` missing from `self`
+        for i, d in enumerate(d_union):
+            if d in self.index.names:
+                d_common.append(d)
             else:
-                missing.append((i, n))
+                d_other_only.append((d, i))
 
         result = self
-        if len(common) == 0:
-            # No common dimensions
-            if len(missing):
-                # Broadcast over missing dimensions
-                result = result.expand_dims(
-                    {dim: other_index.levels[i] for i, dim in missing}
-                )
+        d_result = []  # Order of dimensions on the result
 
-            if len(self) == len(self.index.names) == 1 and len(result.dims) > 0:
-                # concat() of scalars (= length-1 pd.Series) results in an innermost
-                # index level filled with int(0); discard this
-                result = result.droplevel(-1)
-
-            # Reordering starts with the dimensions of `other`
-            order = other_names
+        if len(d_common) == 0:
+            # No common dimensions between `other` and `self`
+            if len(d_other_only):
+                # …but `other` is ≥1D
+                # Broadcast the result over the final missing dimension of `other`
+                d, i = d_other_only[-1]
+                result = result.expand_dims({d: other.index.levels[i]})
+                # Reordering starts with this dimension
+                d_result.append(d)
+            elif not result.dims:
+                # Both `self` and `other` are scalar
+                d_result.append(None)
         else:
             # Some common dimensions exist; no need to broadcast, only reorder
-            order = common
+            d_result.extend(d_common)
 
         # Append the dimensions of `self`
-        order.extend(
-            filter(lambda n: n is not None and n not in other_names, self.index.names)
-        )
+        i1, i2 = tee(filter(lambda n: n not in other.dims, self.dims), 2)
+        d_union.extend(i1)
+        d_result.extend(i2)
 
-        # Reorder, if that would do anything
-        return result.reorder_levels(order) if len(order) > 1 else result
+        return d_union or [None], result.reorder_levels(d_result or [None])
+
+    def _groupby_apply(
+        self,
+        dim: Hashable,
+        levels: Iterable["SupportsRichComparisonT"],
+        func: Callable[["AttrSeries"], "AttrSeries"],
+    ) -> "AttrSeries":
+        """Group along `dim`, ensure levels `levels`, and apply `func`.
+
+        `func` should accept and return AttrSeries. The resulting AttrSeries are
+        concatenated again along `dim`.
+        """
+        # Preserve order of dimensions
+        dims = self.dims
+
+        # Dimension other than `dim`
+        d_other = list(filter(lambda d: d != dim, dims))
+
+        def _join(base, item):
+            """Rejoin a full key for the MultiIndex in the correct order."""
+            # Wrap a scalar `base` (only occurs with len(other_dims) == 1; pandas < 2.0)
+            base = list(base) if isinstance(base, tuple) else [base]
+            return [(base[d_other.index(d)] if d in d_other else item[0]) for d in dims]
+
+        # Grouper or iterable of (key, pd.Series)
+        groups = self.groupby(d_other) if len(d_other) else [(None, self)]
+
+        # Iterate over groups, accumulating modified series
+        result = []
+        for group_key, group_series in groups:
+            # Work around https://github.com/pandas-dev/pandas/issues/25460; can't do:
+            # group_series.reindex(…, level=dim)
+
+            # Create 1-D MultiIndex for `dim` with the union of existing coords and
+            # `levels`
+            _levels = set(levels)
+            _levels.update(group_series.index.get_level_values(dim))
+            idx = pd.MultiIndex.from_product([sorted(_levels)], names=[dim])
+            # Reassemble full MultiIndex with the new coords added along `dim`
+            full_idx = pd.MultiIndex.from_tuples(
+                map(partial(_join, group_key), idx), names=dims
+            )
+
+            # - Reindex with `full_idx` to insert NaNs for new `levels`.
+            # - Replace the with the 1D index for `dim` only.
+            # - Apply `func`.
+            # - Restore the full index.
+            result.append(
+                func(group_series.reindex(full_idx).set_axis(idx)).set_axis(full_idx)
+            )
+
+        return pd.concat(result)
 
     def _maybe_groupby(self, dim):
         """Return an object for operations along dimension(s) `dim`.
@@ -581,7 +631,10 @@ class AttrSeries(pd.Series, Quantity):
         else:
             # Group on dimensions other than `dim`
             return self.groupby(
-                list(filter(lambda d: d not in dim, self.index.names)),  # type: ignore
+                level=list(  # type: ignore
+                    filter(lambda d: d not in dim, self.index.names)
+                ),
+                group_keys=False,
                 observed=True,
             )
 

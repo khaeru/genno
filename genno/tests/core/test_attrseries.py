@@ -12,7 +12,7 @@ class TestAttrSeries:
     @pytest.fixture
     def foo(self):
         idx = pd.MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]], names=["a", "b"])
-        yield AttrSeries([0, 1, 2, 3], index=idx)
+        yield AttrSeries([0, 1, 2, 3], index=idx, name="Foo")
 
     @pytest.fixture
     def bar(self):
@@ -23,30 +23,31 @@ class TestAttrSeries:
         # Scalar vs scalar
         q = AttrSeries(0.1)
         other = AttrSeries(2.2)
-        result = q.align_levels(other)
+        _, result = q.align_levels(other)
         assert tuple() == result.dims
 
         # Scalar to 1D: broadcasts to 1D
-        result = q.align_levels(bar)
+        _, result = q.align_levels(bar)
         assert ("a",) == result.dims
         assert 1 == len(result.unique())
 
         # Scalar to 2D:
-        result = q.align_levels(foo)
-        assert ("a", "b") == result.dims
+        _, result = q.align_levels(foo)
+        assert ("b",) == result.dims
         assert 1 == len(result.unique())
 
         # 1D to scalar
-        result = bar.align_levels(q)
+        _, result = bar.align_levels(q)
         assert ("a",) == result.dims
 
         # 2D vs. 2D; same dimensions, different order
         idx = pd.MultiIndex.from_product([["b1", "b2"], ["a1", "a2"]], names=["b", "a"])
         q = AttrSeries([3, 2, 1, 0], index=idx)
         assert ("b", "a") == q.dims
-        assert ("a", "b") == q.align_levels(foo).dims
+        _, result = q.align_levels(foo)
+        assert ("a", "b") == result.dims
 
-    def test_cumprod(self, bar):
+    def test_cumprod(self, foo, bar):
         """AttrSeries.cumprod works with 1-dimensional quantities."""
         result0 = (1.1 + bar).cumprod("a")
         assert ("a",) == result0.dims
@@ -54,6 +55,15 @@ class TestAttrSeries:
         # Same result with dim=None
         result1 = (1.1 + bar).cumprod()
         pdt.assert_series_equal(result0, result1)
+
+        # But not with ≥1D
+        with pytest.raises(NotImplementedError):
+            foo.cumprod()
+
+    def test_expand_dims(self, foo):
+        # Name passes through expand_dims
+        result = foo.expand_dims(c=["c1", "c2"])
+        assert result.name == foo.name
 
     def test_interp(self, foo):
         with pytest.raises(NotImplementedError):
@@ -76,6 +86,10 @@ class TestAttrSeries:
 
         with pytest.raises(NotImplementedError):
             bar.sel(a="a2", tolerance=0.01)
+
+    def test_shift(self, foo):
+        foo.shift(a=1)
+        foo.shift(b=1)
 
     def test_squeeze(self, foo):
         assert foo.sel(a="a1").squeeze().dims == ("b",)
@@ -130,7 +144,7 @@ class TestAttrSeries:
             bar.item()
 
 
-@pytest.mark.skip
+@pytest.mark.skip(reason="Slow, for benchmarking only")
 def test_sum_large(N_data=1e7):  # pragma: no cover
     """Test :meth:`.AttrSeries.sum` for large, sparse data."""
     # Create a single large AttrSeries
