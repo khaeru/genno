@@ -1,3 +1,4 @@
+"""Compatibility with :mod:`xarray`."""
 from typing import (
     Any,
     Dict,
@@ -23,6 +24,14 @@ T = TypeVar("T", covariant=True)
 
 
 class DataArrayLike(Generic[T]):
+    """Class with :class:`.xarray.DataArray` -like API.
+
+    This class is used to set signatures and types for methods and attributes on the
+    generic :class:`.Quantity` class. :class:`.SparseDataArray` inherits from both this
+    class and :class:`~xarray.DataArray`, and thus DataArray supplies implementations of
+    these methods. In :class:`.AttrSeries`, the methods are implemented directly.
+    """
+
     # To silence a warning in xarray
     __slots__: Tuple[str, ...] = tuple()
 
@@ -158,6 +167,9 @@ class DataArrayLike(Generic[T]):
     ):
         ...  # pragma: no cover
 
+    def round(self, *args, **kwargs):
+        ...  # pragma: no cover
+
     def sel(
         self,
         indexers: Optional[Mapping[Any, Any]] = None,
@@ -186,9 +198,6 @@ class DataArrayLike(Generic[T]):
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
     ):  # TODO set the return type
-        ...  # pragma: no cover
-
-    def round(self, *args, **kwargs):
         ...  # pragma: no cover
 
     def to_dataframe(

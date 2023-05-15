@@ -1,8 +1,14 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Bug fix: genno v1.16.1 (:pull:`85`) introduced :class:`ValueError` for some usages of :func:`.computations.sum` (:pull:`88`).
+- Provide typed signatures for :meth:`Quantity.bfill`, :meth:`~Quantity.cumprod`, :meth:`~Quantity.ffill` for the benefit of downstream applications (:pull:`88`).
+- Ensure and test that :attr:`.Quantity.name` and :attr:`~.Quantity.units` pass through all :mod:`.computations`, in particular :func:`~.computations.aggregate`, :func:`~.computations.convert_units`, and :func:`~.computations.sum` (:pull:`88`).
+- Simplify arithmetic operations (:func:`~.computations.div`, :func:`~.computations.mul`, :func:`~.computations.pow`) so they are agnostic as to the :class:`.Quantity` class in use (:pull:`88`).
+- Ensure :attr:`.AttrSeries.index` is always :class:`pandas.MultiIndex` (:pull:`88`).
 
 v1.16.1 (2023-05-13)
 ====================
