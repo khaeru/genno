@@ -569,7 +569,7 @@ class AttrSeries(pd.Series, Quantity):
     def _groupby_apply(
         self,
         dim: Hashable,
-        levels: Iterable[SupportsRichComparisonT],
+        levels: Iterable["SupportsRichComparisonT"],
         func: Callable[["AttrSeries"], "AttrSeries"],
     ) -> "AttrSeries":
         """Group along `dim`, ensure levels `levels`, and apply `func`.
