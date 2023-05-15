@@ -17,7 +17,7 @@ from genno.core.quantity import assert_quantity, possible_scalar, unwrap_scalar
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import add_large_data, assert_qty_allclose, assert_qty_equal
 
-pytsetmark = pytest.mark.usefixtures("parametrize_quantity_class")
+pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
 
 class TestQuantity:
