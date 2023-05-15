@@ -178,11 +178,15 @@ class AttrSeries(pd.Series, Quantity):
         if skipna is None:
             skipna = self.dtype == float
         if dim in (None, "..."):
-            dim = self.dims
+            if len(self.dims) > 1:
+                raise NotImplementedError("cumprod() over multiple dimensions")
+            dim = self.dims[0]
 
-        # Group on dimensions other than `dim`
-        result = self._maybe_groupby(dim).cumprod(skipna=skipna, **kwargs)
-        return self._replace(result)
+        def _(s):
+            # Invoke cumprod from the parent class pd.Series
+            return super(pd.Series, s).cumprod(skipna=skipna, **kwargs)
+
+        return self._replace(self._groupby_apply(dim, sorted(self.coords[dim].data), _))
 
     @property
     def dims(self) -> Tuple[Hashable, ...]:
@@ -280,46 +284,13 @@ class AttrSeries(pd.Series, Quantity):
         if isinstance(levels, (int, float)):
             levels = [levels]
 
-        # Preserve order of dimensions
-        dims = self.dims
-
-        # Dimension other than `dim`
-        other_dims = list(filter(lambda d: d != dim, dims))
-
-        def join(base, item):
-            """Rejoin a full key for the MultiIndex in the correct order."""
-            # Wrap a scalar `base` (only occurs with len(other_dims) == 1; pandas < 2.0)
-            base = list(base) if isinstance(base, tuple) else [base]
-            return [
-                (base[other_dims.index(d)] if d in other_dims else item[0])
-                for d in dims
-            ]
-
         def _flat_index(obj: AttrSeries):
             """Unpack a 1-D MultiIndex from an AttrSeries."""
             return [v[0] for v in obj.index]
 
         # Group by `dim` so that each level appears ≤ 1 time in `group_series`
-        result = []
-        groups = self.groupby(other_dims) if len(other_dims) else [(None, self)]
-        for group_key, group_series in groups:
-            # Work around https://github.com/pandas-dev/pandas/issues/25460; can't do:
-            # group_series.reindex(…, level=dim)
 
-            # A 1-D index for `dim` with the union of existing and new coords
-            idx = pd.MultiIndex.from_product(
-                [sorted(set(group_series.index.get_level_values(dim)).union(levels))]
-            )
-
-            # Reassemble full MultiIndex with the new coords added along `dim`
-            full_idx = pd.MultiIndex.from_tuples(
-                map(partial(join, group_key), idx), names=dims
-            )
-
-            # - Reindex to insert NaNs
-            # - Replace the full index with the 1-D index
-            s = group_series.reindex(full_idx).set_axis(idx)
-
+        def _(s):
             # Work around https://github.com/pandas-dev/pandas/issues/31949
             # Location of existing values
             x = s.notna()
@@ -327,19 +298,13 @@ class AttrSeries(pd.Series, Quantity):
             # Create an interpolator from the existing values
             i = interp1d(_flat_index(s[x]), s[x], kind=method, **kwargs)
 
-            # - Apply it to the missing indices.
-            # - Reconstruct a Series with these indices.
-            # - Use this Series to fill the NaNs in `s`.
-            # - Restore the full MultiIndex.
-            result.append(
-                s.fillna(pd.Series(i(_flat_index(s[~x])), index=s[~x].index)).set_axis(
-                    full_idx
-                )
-            )
+            return s.fillna(pd.Series(i(_flat_index(s[~x])), index=s[~x].index))
+
+        result = self._groupby_apply(dim, levels, _)
 
         # - Restore dimension order and attributes.
         # - Select only the desired `coords`.
-        return self._replace(pd.concat(result).reorder_levels(dims)).sel(coords)
+        return self._replace(result.reorder_levels(self.dims)).sel(coords)
 
     def rename(
         self,
@@ -470,11 +435,19 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.shift`."""
         shifts = either_dict_or_kwargs(shifts, shifts_kwargs, "shift")
 
+        # Apply shifts one-by-one
         result = self
         for dim, periods in shifts.items():
-            result = result._maybe_groupby(dim).shift(
-                periods=periods, fill_value=fill_value
-            )
+            levels = sorted(self.coords[dim].data)
+
+            def _(s):
+                # Invoke shift from the parent class pd.Series
+                return super(AttrSeries, s).shift(
+                    periods=periods, fill_value=fill_value
+                )
+
+            result = result._groupby_apply(dim, levels, _)
+
         return self._replace(result)
 
     def sum(
