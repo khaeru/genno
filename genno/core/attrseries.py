@@ -207,6 +207,8 @@ class AttrSeries(pd.Series, Quantity):
 
     def expand_dims(self, dim=None, axis=None, **dim_kwargs: Any) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.expand_dims`."""
+        if isinstance(dim, list):
+            dim = dict.fromkeys(dim, [])
         dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
         if axis is not None:
             raise NotImplementedError  # pragma: no cover

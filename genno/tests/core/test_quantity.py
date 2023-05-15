@@ -195,24 +195,34 @@ class TestQuantity:
         assert ("phase", "p") == q0.dims
 
         # New dimension(s) without labels
-        q1 = a.expand_dims({"phase": []})
+        q1 = a.expand_dims(["phase"])
         assert ("phase", "p") == q1.dims
         assert 2 == q1.size
         assert (1, 2) == q1.shape
 
-        # NB this behaviour differs slightly from xr.DataArray.expand_dims()
-        # da = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-        # assert (0, 2) == da.expand_dims({"phase": []}).shape  # Different result
-        # assert (1, 2) == da.expand_dims(["phase"]).shape  # Same result
+        # New dimension(s) without labels
+        q2 = a.expand_dims({"phase": []})
+        assert ("phase", "p") == q2.dims
+        if Quantity._get_class() is AttrSeries:
+            # NB this behaviour differs slightly from xr.DataArray.expand_dims()
+            assert (1, 2) == q2.shape
+            assert 2 == q2.size
+        else:
+            # da = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
+            # assert (0, 2) == da.expand_dims({"phase": []}).shape  # Different result
+            # assert (1, 2) == da.expand_dims(["phase"]).shape  # Same result
+
+            assert (0, 2) == q2.shape
+            assert 0 == q2.size
 
         # Multiple labels
-        q1 = a.expand_dims({"phase": ["liquid", "solid"]})
-        assert ("phase", "p") == q1.dims
-        assert all(["liquid", "solid"] == q1.coords["phase"])
+        q3 = a.expand_dims({"phase": ["liquid", "solid"]})
+        assert ("phase", "p") == q3.dims
+        assert all(["liquid", "solid"] == q3.coords["phase"])
 
         # Multiple dimensions and labels
-        q2 = a.expand_dims({"colour": ["red", "blue"], "phase": ["liquid", "solid"]})
-        assert ("colour", "phase", "p") == q2.dims
+        q4 = a.expand_dims({"colour": ["red", "blue"], "phase": ["liquid", "solid"]})
+        assert ("colour", "phase", "p") == q4.dims
 
     def test_ffill(self, tri):
         """Test Quantity.ffill()."""
@@ -338,7 +348,8 @@ class TestQuantity:
     "value",
     [
         2,
-        np.int64(2),
+        # Fails for SparseDataArray, not AttrSeries
+        pytest.param(np.int64(2), marks=pytest.mark.xfail(raises=ValueError)),
         1.1,
         np.float64(1.1),
         pytest.param([0.1, 2.3], marks=pytest.mark.xfail(raises=AssertionError)),
