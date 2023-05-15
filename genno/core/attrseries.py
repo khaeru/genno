@@ -629,7 +629,10 @@ class AttrSeries(pd.Series, Quantity):
         else:
             # Group on dimensions other than `dim`
             return self.groupby(
-                list(filter(lambda d: d not in dim, self.index.names)),  # type: ignore
+                level=list(  # type: ignore
+                    filter(lambda d: d not in dim, self.index.names)
+                ),
+                group_keys=False,
                 observed=True,
             )
 
