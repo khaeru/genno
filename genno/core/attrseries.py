@@ -3,7 +3,9 @@ import warnings
 from functools import partial
 from itertools import tee
 from typing import (
+    TYPE_CHECKING,
     Any,
+    Callable,
     Hashable,
     Iterable,
     Mapping,
@@ -13,6 +15,9 @@ from typing import (
     Union,
     cast,
 )
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsRichComparisonT
 
 import numpy as np
 import pandas as pd
@@ -592,6 +597,58 @@ class AttrSeries(pd.Series, Quantity):
         d_result.extend(i2)
 
         return d_union or [None], result.reorder_levels(d_result or [None])
+
+    def _groupby_apply(
+        self,
+        dim: Hashable,
+        levels: Iterable[SupportsRichComparisonT],
+        func: Callable[["AttrSeries"], "AttrSeries"],
+    ) -> "AttrSeries":
+        """Group along `dim`, ensure levels `levels`, and apply `func`.
+
+        `func` should accept and return AttrSeries. The resulting AttrSeries are
+        concatenated again along `dim`.
+        """
+        # Preserve order of dimensions
+        dims = self.dims
+
+        # Dimension other than `dim`
+        d_other = list(filter(lambda d: d != dim, dims))
+
+        def _join(base, item):
+            """Rejoin a full key for the MultiIndex in the correct order."""
+            # Wrap a scalar `base` (only occurs with len(other_dims) == 1; pandas < 2.0)
+            base = list(base) if isinstance(base, tuple) else [base]
+            return [(base[d_other.index(d)] if d in d_other else item[0]) for d in dims]
+
+        # Grouper or iterable of (key, pd.Series)
+        groups = self.groupby(d_other) if len(d_other) else [(None, self)]
+
+        # Iterate over groups, accumulating modified series
+        result = []
+        for group_key, group_series in groups:
+            # Work around https://github.com/pandas-dev/pandas/issues/25460; can't do:
+            # group_series.reindex(…, level=dim)
+
+            # Create 1-D MultiIndex for `dim` with the union of existing coords and
+            # `levels`
+            _levels = set(levels)
+            _levels.update(group_series.index.get_level_values(dim))
+            idx = pd.MultiIndex.from_product([sorted(_levels)], names=[dim])
+            # Reassemble full MultiIndex with the new coords added along `dim`
+            full_idx = pd.MultiIndex.from_tuples(
+                map(partial(_join, group_key), idx), names=dims
+            )
+
+            # - Reindex with `full_idx` to insert NaNs for new `levels`.
+            # - Replace the with the 1D index for `dim` only.
+            # - Apply `func`.
+            # - Restore the full index.
+            result.append(
+                func(group_series.reindex(full_idx).set_axis(idx)).set_axis(full_idx)
+            )
+
+        return pd.concat(result)
 
     def _maybe_groupby(self, dim):
         """Return an object for operations along dimension(s) `dim`.
