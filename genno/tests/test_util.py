@@ -6,6 +6,7 @@ import pytest
 from dask.core import quote
 
 from genno import Key, Quantity
+from genno.compat.pint import PintError
 from genno.testing import assert_logs
 from genno.util import (
     clean_units,
@@ -85,7 +86,8 @@ def test_parse_units1(ureg, caplog):
     """Multiple attempts to (re)define new units."""
     parse_units("JPY")
     parse_units("GBP/JPY")
-    with pytest.raises(pint.DefinitionSyntaxError):
+
+    with pytest.raises(PintError, match="cannot be parsed; contains invalid character"):
         parse_units("GBP/JPY/$?")
 
 

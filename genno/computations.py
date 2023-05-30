@@ -530,7 +530,7 @@ def interpolate(
 def load_file(
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
-    units: UnitLike = None,
+    units: Optional[UnitLike] = None,
     name: Optional[str] = None,
 ) -> Any:
     """Read the file at *path* and return its contents as a :class:`.Quantity`.
@@ -578,7 +578,7 @@ UNITS_RE = re.compile(r"# Units?: (.*)\s+")
 def _load_file_csv(
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
-    units: UnitLike = None,
+    units: Optional[UnitLike] = None,
     name: Optional[str] = None,
 ) -> Quantity:
     # Peek at the header, if any, and match a units expression
