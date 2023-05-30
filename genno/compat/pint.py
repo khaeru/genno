@@ -17,7 +17,7 @@ import pint
 try:
     PintError: Tuple[Type[Exception], ...] = (pint.PintError,)
     ApplicationRegistry: Type = pint.ApplicationRegistry
-except AttributeError:
+except AttributeError:  # pragma: no cover
     # Older versions of pint, e.g. 0.17
     PintError = (type("PintError", (Exception,), {}),)
     ApplicationRegistry = pint.UnitRegistry
