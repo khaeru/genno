@@ -4,7 +4,7 @@ What's new
 .. Next release
 .. ============
 
-v0.17.1 (2023-05-30)
+v1.17.1 (2023-05-30)
 ====================
 
 - Adjust for changed exception types in Pint 0.22 (:pull:`90`).
