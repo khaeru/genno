@@ -808,13 +808,22 @@ class Computer:
     def __dask_graph__(self):
         return self.graph
 
-    def visualize(self, filename, **kwargs):
+    def visualize(self, filename, optimize_graph=False, **kwargs):
         """Generate an image describing the Computer structure.
 
         This is a shorthand for :meth:`dask.visualize`. Requires
         `graphviz <https://pypi.org/project/graphviz/>`__.
         """
-        return dask.visualize(self, filename=filename, traverse=False, **kwargs)
+        from dask.base import collections_to_dsk, unpack_collections
+
+        from genno.compat.graphviz import visualize
+
+        args, _ = unpack_collections(self, traverse=False)
+        dsk = dict(collections_to_dsk(args, optimize_graph=optimize_graph))
+
+        kwargs.setdefault("rankdir", "LR")
+
+        return visualize(dsk, filename=filename, **kwargs)
 
     def write(self, key, path):
         """Write the result of `key` to the file `path`."""
