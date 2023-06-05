@@ -71,7 +71,7 @@ def is_list_of_keys(arg: Any, graph: Mapping) -> bool:
     """Identify a task which is a list of other keys."""
     return (
         isinstance(arg, list)
-        and len(arg)
+        and len(arg) > 0
         and isinstance(arg[0], Hashable)
         and arg[0] in graph
     )

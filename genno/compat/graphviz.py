@@ -1,5 +1,5 @@
 from os import PathLike
-from typing import Mapping, Optional, Union
+from typing import Mapping, MutableMapping, Optional, Set, Union
 
 import graphviz
 from dask.core import get_dependencies, ishashable, istask
@@ -70,19 +70,19 @@ def visualize(
         "data": data_attributes or {},
         "func": function_attributes or {},
     }
-    graph_attr = graph_attr or {}
-    node_attr = node_attr or {}
+    _graph_attr: MutableMapping = dict(graph_attr) if graph_attr else {}
+    _node_attr: MutableMapping = dict(node_attr) if node_attr else {}
     edge_attr = edge_attr or {}
 
     # Default attributes
-    graph_attr.setdefault("rankdir", "BT")
-    node_attr.setdefault("fontname", "helvetica")
+    _graph_attr.setdefault("rankdir", "BT")
+    _node_attr.setdefault("fontname", "helvetica")
 
     # Assume unused kwargs are for graph_attr
-    graph_attr.update(kwargs)
+    _graph_attr.update(kwargs)
 
     # Use a directional shape like [> in LR mode; otherwise a box
-    key_shape = "cds" if graph_attr["rankdir"] == "LR" else "box"
+    key_shape = "cds" if _graph_attr["rankdir"] == "LR" else "box"
 
     def _attrs(kind, key, **defaults):
         """Shorthand to prepare a copy from `item_attr` for `kind` with `defaults`."""
@@ -92,11 +92,11 @@ def visualize(
         return result
 
     g = graphviz.Digraph(
-        graph_attr=graph_attr, node_attr=node_attr, edge_attr=edge_attr
+        graph_attr=_graph_attr, node_attr=_node_attr, edge_attr=edge_attr
     )
 
     seen = set()  # Nodes or edges already seen
-    connected = set()  # Nodes already connected to the graph
+    connected: Set[str] = set()  # Nodes already connected to the graph
 
     # Iterate over keys, tasks in the graph
     for k, v in dsk.items():
