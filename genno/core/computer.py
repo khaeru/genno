@@ -492,7 +492,7 @@ class Computer:
         self.graph["config"] = dask.core.quote(self.graph.get("config", dict()))
 
         # Cull the graph, leaving only those needed to compute *key*
-        dsk, deps = cull(self.graph, key)
+        dsk, _ = cull(self.graph, key)
         log.debug(f"Cull {len(self.graph)} -> {len(dsk)} keys")
 
         try:
