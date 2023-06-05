@@ -14,7 +14,7 @@ v1.17.0 (2023-05-15)
 
 - Bug fix: genno v1.16.1 (:pull:`85`) introduced :class:`ValueError` for some usages of :func:`.computations.sum` (:pull:`88`).
 - Provide typed signatures for :meth:`Quantity.bfill`, :meth:`~Quantity.cumprod`, :meth:`~Quantity.ffill` for the benefit of downstream applications (:pull:`88`).
-- Ensure and test that :attr:`.Quantity.name` and :attr:`~.Quantity.units` pass through all :mod:`.computations`, in particular :func:`~.computations.aggregate`, :func:`~.computations.convert_units`, and :func:`~.computations.sum` (:pull:`88`).
+- Ensure and test that :attr:`.Quantity.name` and :attr:`~.Quantity.units` pass through all :mod:`~genno.computations`, in particular :func:`~.computations.aggregate`, :func:`~.computations.convert_units`, and :func:`~.computations.sum` (:pull:`88`).
 - Simplify arithmetic operations (:func:`~.computations.div`, :func:`~.computations.mul`, :func:`~.computations.pow`) so they are agnostic as to the :class:`.Quantity` class in use (:pull:`88`).
 - Ensure :attr:`.AttrSeries.index` is always :class:`pandas.MultiIndex` (:pull:`88`).
 
@@ -24,7 +24,7 @@ v1.16.1 (2023-05-13)
 - Bug fix: :func:`.select` raised :class:`.KeyError` if the indexers contained values not appearing in the coords of the :class:`.Quantity` (:pull:`85`).
   This occurred with pandas 2.x, but not with earlier versions.
   The documentation now states explicitly that extraneous values are silently ignored.
-- All :mod:`.computations` are type hinted for the benefit of downstream code (:pull:`85`).
+- All :mod:`~genno.computations` are type hinted for the benefit of downstream code (:pull:`85`).
 - Implement :attr:`.AttrSeries.shape` (:pull:`85`).
 - Bug fix: :meth:`.Computer.add` now correctly handles positional-only keyword arguments to computations that specify these (:pull:`85`).
 
