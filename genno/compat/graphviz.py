@@ -26,8 +26,8 @@ def visualize(
 ):
     """Generate a Graphviz visualization of `dsk`.
 
-    This is merged and extended version of :func:`.dask.base.visualize`,
-    :func:`.dask.dot.dot_graph`, and :func:`dask.dot.to_graphviz` that produces output
+    This is merged and extended version of :func:`dask.base.visualize`,
+    :func:`dask.dot.dot_graph`, and :func:`dask.dot.to_graphviz` that produces output
     that is informative for genno graphs.
 
     Parameters
@@ -36,11 +36,11 @@ def visualize(
         The graph to display.
     filename : Path or str, optional
         The name of the file to write to disk. If the file name does not have a suffix,
-        ".png" is used by default. If `filename` is :data:`None`, no file is be written,
-        and we communicate with :program:`dot` using only pipes.
+        ".png" is used by default. If `filename` is :data:`None`, no file is written,
+        and dask communicates with :program:`dot` using only pipes.
     format : {'png', 'pdf', 'dot', 'svg', 'jpeg', 'jpg'}, optional
-        Format in which to write output file, if not given by `filename`. Default is
-        "png".
+        Format in which to write output file, if not given by the suffix of `filename`.
+        Default "png".
     data_attributes :
         Graphviz attributes to apply to single nodes representing keys, in addition to
         `node_attr`.
