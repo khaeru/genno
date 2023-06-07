@@ -1,8 +1,10 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Improve :meth:`.Computer.visualize`; see the :ref:`example usage and output <visualize-example>` (:pull:`92`).
 
 v1.17.1 (2023-05-30)
 ====================
