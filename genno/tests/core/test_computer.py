@@ -735,6 +735,7 @@ def vis_computer():
     add_test_data(c)
     c.add_product("z", "x:t", "x:y")
     c.add("y::0", itemgetter(0), "y")
+    c.add("y0", "y::0")  # Simple alias
     c.add("index_to", "z::indexed", "z:y", "y::0")
     c.add_single("all", ["z::indexed", "t", "config", "x:t"])
 
