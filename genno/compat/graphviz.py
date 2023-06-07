@@ -61,6 +61,32 @@ def visualize(
     kwargs :
         All other keyword arguments are added to `graph_attr`.
 
+    Examples
+    --------
+
+    .. _visualize-example:
+
+    Prepare a computer:
+
+    >>> from genno import Computer
+    >>> from genno.testing import add_test_data
+    >>> c = Computer()
+    >>> add_test_data(c)
+    >>> c.add_product("z", "x:t", "x:y")
+    >>> c.add("y::0", itemgetter(0), "y")
+    >>> c.add("y0", "y::0")
+    >>> c.add("index_to", "z::indexed", "z:y", "y::0")
+    >>> c.add_single("all", ["z::indexed", "t", "config", "x:t"])
+
+    Visualize its contents:
+
+    >>> c.visualize("example.svg")
+
+    This produces the output:
+
+    .. image:: _static/visualize.svg
+       :alt: Example output from graphviz.visualize.
+
     See also
     --------
     .describe.label
