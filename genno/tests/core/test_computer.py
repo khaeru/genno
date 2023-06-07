@@ -549,7 +549,7 @@ def test_describe(test_data_path, capsys, ureg):
 
     # Describe one key
     desc1 = """'d:i':
-- sum(dimensions=['j'], weights=None, ...)
+- sum(dimensions=['j'], ...)
 - 'd:i-j':
   - get_test_quantity(<d:i-j>, ...)"""
     assert desc1 == c.describe("d:i")

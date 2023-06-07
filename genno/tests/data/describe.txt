@@ -1,10 +1,10 @@
 'a:':
-- sum(dimensions=['i'], weights=None, ...)
+- sum(dimensions=['i'], ...)
 - 'a:i':
   - get_test_quantity(<a:i>, ...)
 
 'b:':
-- sum(dimensions=['j'], weights=None, ...)
+- sum(dimensions=['j'], ...)
 - 'b:j':
   - get_test_quantity(<b:j>, ...)
 
@@ -18,25 +18,25 @@
 - get_test_quantity(<cost:>, ...)
 
 'd:':
-- sum(dimensions=['i', 'j'], weights=None, ...)
+- sum(dimensions=['i', 'j'], ...)
 - 'd:i-j':
   - get_test_quantity(<d:i-j>, ...)
 
 'd:i':
-- sum(dimensions=['j'], weights=None, ...)
+- sum(dimensions=['j'], ...)
 - 'd:i-j' (above)
 
 'd:j':
-- sum(dimensions=['i'], weights=None, ...)
+- sum(dimensions=['i'], ...)
 - 'd:i-j' (above)
 
 'demand-margin:':
-- sum(dimensions=['j'], weights=None, ...)
+- sum(dimensions=['j'], ...)
 - 'demand-margin:j':
   - get_test_quantity(<demand-margin:j>, ...)
 
 'demand:':
-- sum(dimensions=['j'], weights=None, ...)
+- sum(dimensions=['j'], ...)
 - 'demand:j':
   - get_test_quantity(<demand:j>, ...)
 
@@ -50,26 +50,26 @@
 - ['new-york', 'chicago', 'topeka']
 
 'supply-margin:':
-- sum(dimensions=['i'], weights=None, ...)
+- sum(dimensions=['i'], ...)
 - 'supply-margin:i':
   - get_test_quantity(<supply-margin:i>, ...)
 
 'supply:':
-- sum(dimensions=['i'], weights=None, ...)
+- sum(dimensions=['i'], ...)
 - 'supply:i':
   - get_test_quantity(<supply:i>, ...)
 
 'x:':
-- sum(dimensions=['i', 'j'], weights=None, ...)
+- sum(dimensions=['i', 'j'], ...)
 - 'x:i-j':
   - get_test_quantity(<x:i-j>, ...)
 
 'x:i':
-- sum(dimensions=['j'], weights=None, ...)
+- sum(dimensions=['j'], ...)
 - 'x:i-j' (above)
 
 'x:j':
-- sum(dimensions=['i'], weights=None, ...)
+- sum(dimensions=['i'], ...)
 - 'x:i-j' (above)
 
 'z:':
