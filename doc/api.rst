@@ -352,8 +352,14 @@ Internal format for quantities
 .. autoclass:: DataArrayLike
 
 
-Utilities
-=========
+Internals and utilities
+=======================
+
+.. automodule:: genno.compat.graphviz
+   :members:
+
+.. automodule:: genno.core.describe
+   :members:
 
 .. automodule:: genno.core.graph
    :members:

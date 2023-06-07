@@ -66,6 +66,7 @@ intersphinx_mapping = {
     "dask": ("https://docs.dask.org/en/stable/", None),
     "ixmp": ("https://docs.messageix.org/projects/ixmp/en/latest", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
+    "graphviz": ("https://graphviz.readthedocs.io/en/stable/", None),
     "message_ix": ("https://docs.messageix.org/en/latest", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
     "pint": ("https://pint.readthedocs.io/en/stable/", None),

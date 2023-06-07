@@ -549,7 +549,7 @@ def test_describe(test_data_path, capsys, ureg):
 
     # Describe one key
     desc1 = """'d:i':
-- sum(dimensions=['j'], weights=None, ...)
+- sum(dimensions=['j'], ...)
 - 'd:i-j':
   - get_test_quantity(<d:i-j>, ...)"""
     assert desc1 == c.describe("d:i")
@@ -727,15 +727,49 @@ def test_read_config(test_data_path, suffix):
     assert c.get("d_check").loc["seattle", "chicago"] == 1.7
 
 
-def test_visualize(tmp_path):
+@pytest.fixture(scope="module")
+def vis_computer():
+    from operator import itemgetter
+
     c = Computer()
     add_test_data(c)
+    c.add_product("z", "x:t", "x:y")
+    c.add("y::0", itemgetter(0), "y")
+    c.add("y0", "y::0")  # Simple alias
+    c.add("index_to", "z::indexed", "z:y", "y::0")
+    c.add_single("all", ["z::indexed", "t", "config", "x:t"])
 
-    target = tmp_path / "visualize.png"
+    yield c
+
+
+@pytest.mark.parametrize(
+    "kw",
+    (
+        dict(filename="visualize.png"),
+        dict(filename="visualize.svg"),
+        dict(filename="visualize.svg", key="all"),
+        # Works, although the output is not useful.
+        dict(filename="visualize.svg", key="all", collapse_outputs=True),
+        dict(filename="visualize.svg", rankdir="LR"),
+        pytest.param(
+            dict(filename="visualize.txt"),
+            marks=pytest.mark.xfail(
+                raises=AssertionError, reason="Dask chooses the name visualize.txt.png"
+            ),
+        ),
+        dict(filename=None, format="svg"),
+    ),
+)
+def test_visualize(tmp_path, vis_computer, kw):
+    if kw["filename"] is not None:
+        kw["filename"] = tmp_path.joinpath(kw["filename"])
+    # print(f"{kw['filename'] = }")
 
     # visualize() works
-    c.visualize(str(target))
+    result = vis_computer.visualize(**kw)
 
-    assert target.exists()
+    # An IPython display object is returned
+    assert "IPython.core.display." in str(result.__class__)
 
-    # TODO compare to a specimen
+    # Named file is created
+    assert kw["filename"] is None or kw["filename"].exists()

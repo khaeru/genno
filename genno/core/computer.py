@@ -492,7 +492,7 @@ class Computer:
         self.graph["config"] = dask.core.quote(self.graph.get("config", dict()))
 
         # Cull the graph, leaving only those needed to compute *key*
-        dsk, deps = cull(self.graph, key)
+        dsk, _ = cull(self.graph, key)
         log.debug(f"Cull {len(self.graph)} -> {len(dsk)} keys")
 
         try:
@@ -808,13 +808,29 @@ class Computer:
     def __dask_graph__(self):
         return self.graph
 
-    def visualize(self, filename, **kwargs):
+    def visualize(self, filename, key=None, optimize_graph=False, **kwargs):
         """Generate an image describing the Computer structure.
 
-        This is a shorthand for :meth:`dask.visualize`. Requires
+        This is similar to :func:`dask.visualize`; see
+        :func:`.compat.graphviz.visualize`. Requires
         `graphviz <https://pypi.org/project/graphviz/>`__.
         """
-        return dask.visualize(self, filename=filename, traverse=False, **kwargs)
+        from dask.base import collections_to_dsk, unpack_collections
+
+        from genno.compat.graphviz import visualize
+
+        # In dask, these calls appear in dask.base.visualize; see docstring of
+        # .compat.graphviz.visualize
+        args, _ = unpack_collections(self, traverse=False)
+        dsk = dict(collections_to_dsk(args, optimize_graph=optimize_graph))
+
+        if key:
+            # Cull the graph, leaving only those needed to compute *key*
+            N = len(dsk)
+            dsk, _ = cull(dsk, key)
+            log.debug(f"Cull {N} -> {len(dsk)} keys")
+
+        return visualize(dsk, filename=filename, **kwargs)
 
     def write(self, key, path):
         """Write the result of `key` to the file `path`."""
