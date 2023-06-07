@@ -114,6 +114,9 @@ def label(arg, max_length=MAX_ITEM_LENGTH) -> str:
         # Item protected with dask.core.quote()
         return shorten(str(arg.data), max_length)
     elif callable(arg):
-        return getattr(arg, "__name__", str(arg))
+        if arg.__class__.__name__ == "builtin_function_or_method":
+            return repr(arg).replace("function ", "")
+        else:
+            return getattr(arg, "__name__", str(arg))
     else:
         return shorten(str(arg), max_length)
