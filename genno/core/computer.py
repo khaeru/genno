@@ -89,7 +89,7 @@ class Computer:
         Messages are logged at level :data:`logging.INFO` if `config` contains
         unhandled sections.
 
-        See :doc:`config` for a list of all configuration sections and keys, and details
+        See :doc:`genno:config` for a list of all configuration sections and keys, and details
         of the configuration file format.
 
         Parameters
@@ -274,7 +274,7 @@ class Computer:
 
         See also
         --------
-        :doc:`cache`
+        :doc:`genno:cache`
         """
         return caching.decorate(func, computer=self)
 
