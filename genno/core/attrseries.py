@@ -57,23 +57,24 @@ def _binop(name: str, swap: bool = False):
 class AttrSeriesCoordinates(Coordinates):
     def __init__(self, obj):
         self._data = obj
+        self._idx = obj.index.remove_unused_levels()
 
     @property
     def _names(self):
-        return tuple(filter(None, self._data.index.names))
+        return tuple(filter(None, self._idx.names))
 
     @property
     def variables(self):
         result = {}
-        for name, levels in zip(self._data.index.names, self._data.index.levels):
+        for name, levels in zip(self._idx.names, self._idx.levels):
             if name is None:
                 continue
             result[name] = levels.unique()
         return result
 
     def __getitem__(self, key):
-        idx = self._data.index.names.index(key)
-        return Variable([key], self._data.index.levels[idx])
+        i = self._idx.names.index(key)
+        return Variable([key], self._idx.levels[i])
 
 
 class AttrSeries(pd.Series, Quantity):
