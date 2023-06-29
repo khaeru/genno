@@ -23,7 +23,10 @@ import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
+from xarray.core.coordinates import Coordinates
+from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
+from xarray.core.variable import Variable
 
 from genno.core.quantity import Quantity, possible_scalar
 from genno.core.types import Dims
@@ -49,6 +52,28 @@ def _binop(name: str, swap: bool = False):
         return getattr(left, name)(right).dropna().reorder_levels(order)
 
     return method
+
+
+class AttrSeriesCoordinates(Coordinates):
+    def __init__(self, obj):
+        self._data = obj
+
+    @property
+    def _names(self):
+        return tuple(filter(None, self._data.index.names))
+
+    @property
+    def variables(self):
+        result = {}
+        for name, levels in zip(self._data.index.names, self._data.index.levels):
+            if name is None:
+                continue
+            result[name] = levels.unique()
+        return result
+
+    def __getitem__(self, key):
+        idx = self._data.index.names.index(key)
+        return Variable([key], self._data.index.levels[idx])
 
 
 class AttrSeries(pd.Series, Quantity):
@@ -164,7 +189,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def coords(self):
         """Like :attr:`xarray.DataArray.coords`. Read-only."""
-        return xr.DataArray(coords=self.index.levels, dims=self.dims).coords
+        return AttrSeriesCoordinates(self)
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
         """Like :meth:`xarray.DataArray.cumprod`."""
@@ -520,6 +545,11 @@ class AttrSeries(pd.Series, Quantity):
     def to_series(self):
         """Like :meth:`xarray.DataArray.to_series`."""
         return self
+
+    @property
+    def xindexes(self):
+        _indexes = dict()
+        return Indexes(_indexes, None)
 
     # Internal methods
     def align_levels(
