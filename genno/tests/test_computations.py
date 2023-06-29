@@ -1,4 +1,5 @@
 import logging
+import random
 import re
 from contextlib import nullcontext
 from functools import partial
@@ -14,6 +15,7 @@ from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
 from genno.testing import (
+    add_large_data,
     add_test_data,
     assert_logs,
     assert_qty_allclose,
@@ -679,6 +681,39 @@ def test_select(data):
 
     with pytest.raises(NotImplementedError):
         computations.select(x, indexers, inverse=True)
+
+
+def test_select_bigmem():
+    """:func:`select` with large quantities does not exhaust memory."""
+    # Create a Computer with large data
+    c = Computer()
+    keys = add_large_data(c, num_params=2, N_dims=17)
+
+    print(keys)
+
+    # Add a task top generate random indexers
+    def random_indexers(qty, *, dim_index=0, k=20):
+        dims = qty.dims
+        coords = qty.coords
+        print(f"{dims = }")
+        print(f"{coords = }")
+        print(f"{len(qty) = }")
+
+        d = dims[dim_index]
+        indexers = {d: list(map(lambda c: c.item(), random.choices(coords[d], k=k)))}
+        print(f"{indexers = }")
+        return indexers
+
+    k = c.add("random indexers", random_indexers, keys[0])
+
+    # Add a task to select some values
+    key = c.add("select", "test key", keys[0], k)
+
+    # Selection occurs without raising MemoryError or segfault
+    result = c.get(key)
+
+    # Result can be converted to pd.Series
+    result.to_series()
 
 
 @pytest.mark.parametrize("dimensions", (["t"], ["y"], ["t", "y"]))
