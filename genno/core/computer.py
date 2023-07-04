@@ -89,8 +89,8 @@ class Computer:
         Messages are logged at level :data:`logging.INFO` if `config` contains
         unhandled sections.
 
-        See :doc:`genno:config` for a list of all configuration sections and keys, and details
-        of the configuration file format.
+        See :doc:`genno:config` for a list of all configuration sections and keys,
+         and details of the configuration file format.
 
         Parameters
         ----------

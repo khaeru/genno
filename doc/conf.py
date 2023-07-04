@@ -64,6 +64,7 @@ extlinks_detect_hardcoded_links = False
 
 intersphinx_mapping = {
     "dask": ("https://docs.dask.org/en/stable/", None),
+    "genno": ("https://genno.readthedocs.io/en/latest", None),
     "ixmp": ("https://docs.messageix.org/projects/ixmp/en/latest", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
     "graphviz": ("https://graphviz.readthedocs.io/en/stable/", None),
