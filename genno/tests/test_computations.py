@@ -14,6 +14,7 @@ from numpy.testing import assert_allclose
 from pandas.testing import assert_series_equal
 
 from genno import Computer, Quantity, computations
+from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import (
     add_large_data,
     add_test_data,
@@ -689,25 +690,23 @@ def test_select_bigmem():
     c = Computer()
     keys = add_large_data(c, num_params=2, N_dims=17)
 
-    print(keys)
-
     # Add a task top generate random indexers
     def random_indexers(qty, *, dim_index=0, k=20):
         dims = qty.dims
         coords = qty.coords
-        print(f"{dims = }")
-        print(f"{coords = }")
-        print(f"{len(qty) = }")
 
         d = dims[dim_index]
-        indexers = {d: list(map(lambda c: c.item(), random.choices(coords[d], k=k)))}
-        print(f"{indexers = }")
-        return indexers
+        return {d: list(map(lambda c: c.item(), random.choices(coords[d], k=k)))}
 
     k = c.add("random indexers", random_indexers, keys[0])
 
     # Add a task to select some values
     key = c.add("select", "test key", keys[0], k)
+
+    if Quantity._get_class() is SparseDataArray:
+        # ValueError: invalid dims: array size defined by dims is larger than the
+        # maximum possible size.
+        pytest.xfail(reason="Too large for sparse")
 
     # Selection occurs without raising MemoryError or segfault
     result = c.get(key)
