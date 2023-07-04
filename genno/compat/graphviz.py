@@ -9,7 +9,7 @@ from genno.core.describe import is_list_of_keys, label
 
 
 def key_label(key):
-    return str(key)
+    return str(key).replace(">", "&gt;")
 
 
 def visualize(

@@ -763,7 +763,6 @@ def vis_computer():
 def test_visualize(tmp_path, vis_computer, kw):
     if kw["filename"] is not None:
         kw["filename"] = tmp_path.joinpath(kw["filename"])
-    # print(f"{kw['filename'] = }")
 
     # visualize() works
     result = vis_computer.visualize(**kw)
@@ -773,3 +772,15 @@ def test_visualize(tmp_path, vis_computer, kw):
 
     # Named file is created
     assert kw["filename"] is None or kw["filename"].exists()
+
+
+def test_visualize_escape(tmp_path, vis_computer):
+    """:meth:`.visualize` works with certain characters in keys."""
+    c = vis_computer
+
+    # Add a key containing a problematic character sequence. dot gives "Error: <stdin>:
+    # syntax error in line 5 near '>'" without proper escaping.
+    key = c.add("<>>", "all")
+
+    # Visualization works
+    c.visualize(filename=tmp_path.joinpath("visualize.svg"), key=key)
