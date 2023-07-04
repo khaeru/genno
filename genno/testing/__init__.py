@@ -3,7 +3,7 @@ import logging
 import sys
 from copy import copy
 from functools import partial
-from itertools import chain
+from itertools import chain, islice
 from typing import Dict
 
 import numpy as np
@@ -61,9 +61,19 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
     handled by :class:`.SparseDataArray`, but not by :class:`xarray.DataArray` backed
     by :class:`np.array`.
     """
-    # Dimensions and their lengths (Fibonacci numbers)
-    dims = "abcdefghijk"[:N_dims]
-    sizes = [233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657][:N_dims]
+
+    def _fib():
+        """Yield dimensions and their lengths: Fibonacci numbers."""
+        a, b = 233, 377
+        dim_names = iter("abcdefghijklmnopqrstuvwxyz")
+        yield next(dim_names), a
+        while True:
+            yield next(dim_names), b
+            a, b = b, a + b
+
+    # Dimensions and their lengths
+    dims, sizes = zip(*islice(_fib(), N_dims))
+    # Number of data points to generate
     N_data = max(int(N_data), sizes[-1])
 
     # commented; for debugging
