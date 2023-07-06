@@ -1,3 +1,4 @@
+import re
 from os import PathLike
 from typing import Mapping, MutableMapping, Optional, Set, Union
 
@@ -9,7 +10,23 @@ from genno.core.describe import is_list_of_keys, label
 
 
 def key_label(key):
-    return str(key).replace(">", "&gt;")
+    return unwrap(str(key))
+
+
+_UNWRAP_EXPR = re.compile("^<(.*)>$")
+
+
+def unwrap(label: str) -> str:
+    """Unwrap any number of paired '<' and '>' at the start/end of `label.
+
+    These characters cause errors in graphviz/dot.
+    """
+    while True:
+        result = _UNWRAP_EXPR.sub(r"\1", label)
+        if result == label:
+            return result
+        else:
+            label = result
 
 
 def visualize(
@@ -110,19 +127,25 @@ def visualize(
     # Use a directional shape like [> in LR mode; otherwise a box
     key_shape = "cds" if _graph_attr["rankdir"] == "LR" else "box"
 
-    def _attrs(kind, key, **defaults):
-        """Shorthand to prepare a copy from `item_attr` for `kind` with `defaults`."""
-        result = item_attr[kind].get(key, {}).copy()
-        for k, v in defaults.items():
-            result.setdefault(k, v)
-        return result
-
     g = graphviz.Digraph(
         graph_attr=_graph_attr, node_attr=_node_attr, edge_attr=edge_attr
     )
 
     seen = set()  # Nodes or edges already seen
     connected: Set[str] = set()  # Nodes already connected to the graph
+
+    # Shorthand
+    def _attrs(kind, key, **defaults):
+        """Prepare a copy from `item_attr` for `kind` with `defaults`."""
+        result = item_attr[kind].get(key, {}).copy()
+        for k, v in defaults.items():
+            result.setdefault(k, v)
+        return result
+
+    def _edge(a, b):
+        """Add an edge to `g` and update `connected`."""
+        g.edge(a, b)
+        connected.update(a, b)
 
     # Iterate over keys, tasks in the graph
     for k, v in dsk.items():
@@ -139,14 +162,13 @@ def visualize(
             if collapse_outputs or func_name not in seen:
                 seen.add(func_name)
                 attrs = _attrs(
-                    "func", k, label=label(v[0], max_length=50), shape=key_shape
+                    "func", k, label=unwrap(label(v[0], max_length=50)), shape=key_shape
                 )
                 g.node(func_name, **attrs)
 
             # Add an edge between the operation-node and the key-node of its output
             if not collapse_outputs:
-                g.edge(func_name, k_name)
-                connected.update(k_name, func_name)
+                _edge(func_name, k_name)
 
             # Add edges between the operation-node and the key-nodes for each of its
             # inputs
@@ -156,21 +178,16 @@ def visualize(
                     seen.add(dep_name)
                     attrs = _attrs("data", dep, label=key_label(dep), shape="ellipse")
                     g.node(dep_name, **attrs)
-                g.edge(dep_name, func_name)
-                connected.update(dep_name, func_name)
+                _edge(dep_name, func_name)
 
         elif ishashable(v) and v in dsk:
             # Simple alias of k → v
-            v_name = name(v)
-            g.edge(v_name, k_name)
-            connected.update(k_name, v_name)
+            _edge(name(v), k_name)
 
         elif is_list_of_keys(v, dsk):
             # k is a list of multiple keys (genno extension)
             for _v in v:
-                v_name = name(_v)
-                g.edge(v_name, k_name)
-                connected.update(k_name, v_name)
+                _edge(name(_v), k_name)
 
         if (not collapse_outputs or k_name in connected) and k_name not in seen:
             # Something else that hasn't been seen: add a node that may never be
