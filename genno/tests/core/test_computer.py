@@ -793,7 +793,7 @@ def test_visualize_unwrap(tmp_path, vis_computer):
             return "<< -> >>"
 
         def __call__(self):
-            ...
+            ...  # pragma: no cover
 
     # Add a key and a callable containing a problematic character sequence
     key = c.add("<>>", Obj(), "all", "foo")

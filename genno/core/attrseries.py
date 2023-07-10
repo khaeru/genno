@@ -550,9 +550,9 @@ class AttrSeries(pd.Series, Quantity):
         return self
 
     @property
-    def xindexes(self):
-        _indexes = dict()
-        return Indexes(_indexes, None)
+    def xindexes(self):  # pragma: no cover
+        # NB incomplete implementation; currently sufficient that this property exists
+        return Indexes(dict(), None)
 
     # Internal methods
     def align_levels(
