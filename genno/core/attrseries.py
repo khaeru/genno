@@ -26,7 +26,6 @@ import xarray as xr
 from xarray.core.coordinates import Coordinates
 from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
-from xarray.core.variable import Variable
 
 from genno.core.quantity import Quantity, possible_scalar
 from genno.core.types import Dims
@@ -73,8 +72,8 @@ class AttrSeriesCoordinates(Coordinates):
         return result
 
     def __getitem__(self, key):
-        i = self._idx.names.index(key)
-        return Variable([key], self._idx.levels[i])
+        levels = self._idx.levels[self._idx.names.index(key)].to_list()
+        return xr.DataArray(levels, coords={key: levels})
 
 
 class AttrSeries(pd.Series, Quantity):
