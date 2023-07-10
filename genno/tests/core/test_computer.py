@@ -763,7 +763,6 @@ def vis_computer():
 def test_visualize(tmp_path, vis_computer, kw):
     if kw["filename"] is not None:
         kw["filename"] = tmp_path.joinpath(kw["filename"])
-    # print(f"{kw['filename'] = }")
 
     # visualize() works
     result = vis_computer.visualize(**kw)
@@ -773,3 +772,31 @@ def test_visualize(tmp_path, vis_computer, kw):
 
     # Named file is created
     assert kw["filename"] is None or kw["filename"].exists()
+
+
+def test_visualize_unwrap(tmp_path, vis_computer):
+    """:meth:`.visualize` works with certain patterns of '<>' characters in keys.
+
+    dot gives "Error: <stdin>: syntax error in line 5 near '>'" without modification or
+    escaping.
+    """
+    c = vis_computer
+
+    class Obj:
+        """Callable class whose repr() contains matched '<' and '>'."""
+
+        def __repr__(self):
+            # NB the following do *not* trigger errors:
+            # - "< < -> >>", "<< -> > >" → leading or trailing " " after 1 pass of
+            #   unwrap()
+            # - "<< -> >x>" → trailing "x" (not ">") after 1 pass of unwrap()
+            return "<< -> >>"
+
+        def __call__(self):
+            ...  # pragma: no cover
+
+    # Add a key and a callable containing a problematic character sequence
+    key = c.add("<>>", Obj(), "all", "foo")
+
+    # Visualization works
+    c.visualize(filename=tmp_path.joinpath("visualize.svg"), key=key)

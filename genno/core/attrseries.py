@@ -23,6 +23,8 @@ import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
+from xarray.core.coordinates import Coordinates
+from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity, possible_scalar
@@ -49,6 +51,32 @@ def _binop(name: str, swap: bool = False):
         return getattr(left, name)(right).dropna().reorder_levels(order)
 
     return method
+
+
+class AttrSeriesCoordinates(Coordinates):
+    def __init__(self, obj):
+        self._data = obj
+        self._idx = obj.index.remove_unused_levels()
+
+    @property
+    def _names(self):
+        return tuple(filter(None, self._idx.names))
+
+    @property
+    def variables(self):
+        result = {}
+        for name, levels in zip(self._idx.names, self._idx.levels):
+            if name is None:
+                continue
+            result[name] = levels.unique()
+        return result
+
+    def __contains__(self, key: Hashable) -> bool:
+        return key in self._names
+
+    def __getitem__(self, key):
+        levels = self._idx.levels[self._idx.names.index(key)].to_list()
+        return xr.DataArray(levels, coords={key: levels})
 
 
 class AttrSeries(pd.Series, Quantity):
@@ -164,7 +192,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def coords(self):
         """Like :attr:`xarray.DataArray.coords`. Read-only."""
-        return xr.DataArray(coords=self.index.levels, dims=self.dims).coords
+        return AttrSeriesCoordinates(self)
 
     def cumprod(self, dim=None, axis=None, skipna=None, **kwargs):
         """Like :meth:`xarray.DataArray.cumprod`."""
@@ -520,6 +548,11 @@ class AttrSeries(pd.Series, Quantity):
     def to_series(self):
         """Like :meth:`xarray.DataArray.to_series`."""
         return self
+
+    @property
+    def xindexes(self):  # pragma: no cover
+        # NB incomplete implementation; currently sufficient that this property exists
+        return Indexes(dict(), None)
 
     # Internal methods
     def align_levels(

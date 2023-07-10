@@ -56,6 +56,8 @@ jobs:
         cache-dependency-path: "**/pyproject.toml"
 
     - uses: ts-graphviz/setup-graphviz@v1
+      with:
+        macos-skip-brew-update: true
 
     - name: Install the Python package and dependencies
       run: pip install --upgrade --upgrade-strategy=eager .[docs,tests${{ matrix.python.extras }}]

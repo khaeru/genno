@@ -155,8 +155,15 @@ class TestQuantity:
         assert r2.loc["x0", "y0"] == tri.loc["x0", "y2"]
 
     def test_coords(self, tri):
-        assert isinstance(tri.coords, xr.core.coordinates.Coordinates)
-        assert ["x", "y"] == list(tri.coords)
+        coords = tri.coords
+        assert isinstance(coords, xr.core.coordinates.Coordinates)
+        assert ["x", "y"] == list(coords)
+        assert "x" in coords  # __contains__
+
+        assert isinstance(coords["x"], xr.DataArray)
+
+        coords = Quantity(3, units="kg").coords
+        assert [] == list(coords)
 
     def test_copy_modify(self, a):
         """Making a Quantity another produces a distinct attrs dictionary."""

@@ -161,7 +161,10 @@ def aggregate(
                     "with keep=True"
                 )
 
-            agg = result.sel({dim: members}).sum(dim=dim).expand_dims({dim: [group]})
+            # Use computations.select() to tolerate missing elements in `members`
+            agg = (
+                select(result, {dim: members}).sum(dim=dim).expand_dims({dim: [group]})
+            )
 
             if isinstance(agg, AttrSeries):
                 # .transpose() is necessary for AttrSeries
