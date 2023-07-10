@@ -71,6 +71,9 @@ class AttrSeriesCoordinates(Coordinates):
             result[name] = levels.unique()
         return result
 
+    def __contains__(self, key: Hashable) -> bool:
+        return key in self._names
+
     def __getitem__(self, key):
         levels = self._idx.levels[self._idx.names.index(key)].to_list()
         return xr.DataArray(levels, coords={key: levels})
