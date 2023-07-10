@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.17.2 (2023-07-11)
+====================
 
 - Improve :meth:`.Computer.visualize`; see the :ref:`example usage and output <visualize-example>` (:pull:`92`, :pull:`95`).
 - :func:`~.computations.aggregate` tolerates missing labels along any of the dimensions to be aggregated (:pull:`95`).
