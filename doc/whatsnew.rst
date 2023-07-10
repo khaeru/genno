@@ -4,7 +4,11 @@ What's new
 Next release
 ============
 
-- Improve :meth:`.Computer.visualize`; see the :ref:`example usage and output <visualize-example>` (:pull:`92`).
+- Improve :meth:`.Computer.visualize`; see the :ref:`example usage and output <visualize-example>` (:pull:`92`, :pull:`95`).
+- :func:`~.computations.aggregate` tolerates missing labels along any of the dimensions to be aggregated (:pull:`95`).
+  Previously, this would raise :class:`KeyError`.
+- Performance improvement: avoid creating a large, empty :class:`~xarray.DataArray` in order to provide :attr:`.AttrSeries.coords` (:pull:`95`).
+  In some cases this would trigger :class:`MemoryError`, a segmentation fault, or similar, even though the actual data was smaller than available memory.
 
 v1.17.1 (2023-05-30)
 ====================

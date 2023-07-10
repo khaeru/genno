@@ -17,7 +17,7 @@ _UNWRAP_EXPR = re.compile("^<(.*)>$")
 
 
 def unwrap(label: str) -> str:
-    """Unwrap any number of paired '<' and '>' at the start/end of `label.
+    """Unwrap any number of paired '<' and '>' at the start/end of `label`.
 
     These characters cause errors in graphviz/dot.
     """
