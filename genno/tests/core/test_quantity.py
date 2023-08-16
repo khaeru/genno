@@ -143,6 +143,10 @@ class TestQuantity:
             units="kg",
         )
 
+    def test_astype(self, tri):
+        result = tri.astype(float)
+        assert float == result.dtype
+
     def test_bfill(self, tri):
         """Test Quantity.bfill()."""
         if Quantity._get_class() is SparseDataArray:
@@ -247,6 +251,10 @@ class TestQuantity:
             == r2.loc["x0", "y3"].item()
             == tri.loc["x0", "y2"].item()
         )
+
+    def test_pipe(self, ureg, tri):
+        result = tri.pipe(computations.assign_units, "km")
+        assert ureg.Unit("km") == result.units
 
     def test_sel(self, tri):
         # Create indexers
