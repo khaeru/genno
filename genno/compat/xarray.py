@@ -40,7 +40,6 @@ class DataArrayLike(Generic[T]):
     def __len__(self) -> int:
         return NotImplemented
 
-    # @abstractmethod  # NB this suppresses a mypy "empty-body" error
     def __mul__(self, other):  # TODO set the return type
         ...
 
@@ -59,8 +58,10 @@ class DataArrayLike(Generic[T]):
     def __rtruediv__(self, other):
         ...
 
-    # @abstractmethod  # NB this suppresses a mypy "empty-body" error
     def __truediv__(self, other):  # TODO set the return type
+        ...
+
+    def __neg__(self):
         ...
 
     @property
@@ -68,14 +69,12 @@ class DataArrayLike(Generic[T]):
         return NotImplemented
 
     @property
-    # @abstractmethod
     def coords(
         self,
     ) -> xarray.core.coordinates.DataArrayCoordinates:
         return NotImplemented
 
     @property
-    # @abstractmethod
     def dims(self) -> Tuple[Hashable, ...]:
         return NotImplemented
 

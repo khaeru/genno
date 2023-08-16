@@ -816,6 +816,11 @@ def select(
     return qty.sel(new_indexers, drop=drop)
 
 
+def sub(a: Quantity, b: Quantity) -> Quantity:
+    """Subtract `b` from `a`."""
+    return add(a, -b)
+
+
 def sum(
     quantity: Quantity,
     weights: Optional[Quantity] = None,
