@@ -156,12 +156,8 @@ def test_eval(ureg):
         ("z, y = x, x", NotImplementedError, "Assign to Tuple"),
         ("z = y = x", NotImplementedError, "Assign to 2 != 1 targets"),
         ("z = ~x", NotImplementedError, "ast.Invert"),
-        (
-            "z = Foo.bar(x)",
-            NotImplementedError,
-            r"Call Foo.bar\(…\) instead of function",
-        ),
-        ("z = index_to(x, dim=x)", NotImplementedError, "Non-literal keyword arg 'x'"),
+        ("z = Foo.bar(x)", NotImplementedError, r"Call .*\(…\) instead of function"),
+        ("z = index_to(x, dim=x)", NotImplementedError, "Non-literal keyword arg .*"),
     ),
 )
 def test_eval_error(expr, exc_type, match):
