@@ -1,7 +1,6 @@
 """Elementary computations for genno."""
-# Notes:
-# - To avoid ambiguity, computations should not have default arguments. Define default
-#   values for the corresponding methods on the Computer class.
+# NB To avoid ambiguity, computations should not have default positional arguments.
+#    Define default values for the corresponding methods on the Computer class.
 import logging
 import operator
 import re
@@ -682,6 +681,11 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     if isinstance(b, int):
         unit_exponent = b
         b = Quantity(float(b))
+    elif isinstance(b, Quantity):
+        if (1.0 == b / b.astype(int)).all():
+            unit_exponent = b.item()  # NB only valid if `b` is 0-dimensional
+        else:
+            unit_exponent = 0
     else:
         unit_exponent = 0
 
