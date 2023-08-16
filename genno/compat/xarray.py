@@ -1,6 +1,7 @@
 """Compatibility with :mod:`xarray`."""
 from typing import (
     Any,
+    Callable,
     Dict,
     Generic,
     Hashable,
@@ -83,7 +84,19 @@ class DataArrayLike(Generic[T]):
         coords: Optional[Mapping[Any, Any]] = None,
         **coords_kwargs: Any,
     ):
-        ...  # pragma: no cover
+        ...
+
+    def astype(
+        self,
+        dtype,
+        *,
+        order=None,
+        casting=None,
+        subok=None,
+        copy=None,
+        keep_attrs=True,
+    ):
+        ...
 
     def bfill(
         self,
@@ -151,7 +164,15 @@ class DataArrayLike(Generic[T]):
         ...
 
     def item(self, *args):
-        ...  # pragma: no cover
+        ...
+
+    def pipe(
+        self,
+        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        *args: Any,
+        **kwargs: Any,
+    ) -> T:
+        return NotImplemented
 
     def rename(
         self,
