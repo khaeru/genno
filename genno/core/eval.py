@@ -13,6 +13,7 @@ BINOP = {
     ast.Div: "div",
     ast.Mult: "mul",
     ast.Pow: "pow",
+    ast.Sub: "sub",
 }
 
 

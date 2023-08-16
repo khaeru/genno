@@ -152,7 +152,7 @@ def test_eval(ureg):
     "expr, exc_type, match",
     (
         ("z = not_a_comp(x)", NameError, "No computation named 'not_a_comp'"),
-        ("z = x - x", NotImplementedError, "ast.Sub"),
+        ("z = x % x", NotImplementedError, "ast.Mod"),
         ("z, y = x, x", NotImplementedError, "Assign to Tuple"),
         ("z = y = x", NotImplementedError, "Assign to 2 != 1 targets"),
         ("z = ~x", NotImplementedError, "ast.Invert"),
