@@ -463,6 +463,67 @@ class Computer:
             # Update the graph with the computations
             self.graph.update(applied)
 
+    def eval(self, expr: str) -> Tuple[KeyLike, ...]:
+        r"""Evaluate `expr` to add tasks and keys.
+
+        Parse a code-like expression or block of expressions using :mod:`.ast` from the
+        Python standard library. `expr` may include:
+
+        - Constants.
+        - References to existing keys in the Computer by their name; these are
+          expanded using :meth:`full_key`.
+        - Multiple statements on separate lines or separated by ";".
+        - Python arithmetic operators including ``+``, ``*``, ``/``, ``**``; these are
+          mapped to the corresponding :mod:`.computations`.
+        - Function calls, also mapped to the corresponding :mod:`.computations` via
+          :meth:`get_comp`. These may include simple positional (constants or key
+          references) or keyword (constants only) arguments.
+
+        Parameters
+        ----------
+        expr : str
+            Expression to be evaluated.
+
+        Examples
+        --------
+        Parse a multi-line string and add tasks to compute z, a, b, d, and e. The
+        dimensions of each are automatically inferred given the dimension of the
+        existing operand, x.
+
+        >>> c = Computer()
+        >>> # Add tasks to compute a quantity like "x:t-y"
+        >>> added = c.eval(
+        ...     \"\"\"
+        ...     z = - (0.5 / (x ** 3))
+        ...     a = x ** 3 + z
+        ...     b = a + a
+        ...     d = assign_units(b, "km")
+        ...     e = index_to(d, dim="t", label="foo1")
+        ...     \"\"\"
+        ... )
+        >>> added[-1]
+        <e:t-y>
+
+        Raises
+        ------
+        NotImplementedError
+            For complex expressions not supported; if any of the statements is other
+            than a simple assignment.
+        NameError
+            If a function call references a non-existent computation.
+        """
+        from .eval import Parser
+
+        # Parse `expr`
+        p = Parser(self)
+        p.parse(expr)
+
+        # Add tasks
+        self.add_queue(p.queue)
+
+        # Return the new keys corresponding to the LHS of each expression
+        return tuple(p.new_keys.values())
+
     def get(self, key=None):
         """Execute and return the result of the computation `key`.
 
