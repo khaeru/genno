@@ -267,7 +267,7 @@ def test_combine(ureg, data):
         )
 
 
-def test_concat(data):
+def test_concat(ureg, data):
     *_, t_foo, t_bar, x = data
 
     # Split x into two concatenateable quantities
@@ -282,6 +282,7 @@ def test_concat(data):
 
     # NB for AttrSeries, the new dimension is first; for SparseDataArray, last
     assert {"t", "y", "z"} == set(result.dims)
+    assert ureg.Unit("kg") == x.units == result.units
 
 
 @pytest.mark.parametrize("func", [computations.div, computations.ratio])
