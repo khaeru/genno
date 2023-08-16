@@ -120,6 +120,58 @@ def test_contains():
     assert "a:y-x" in c
 
 
+def test_eval(ureg):
+    c = Computer()
+    add_test_data(c)
+
+    added = c.eval(
+        """
+        z = - (0.5 / (x ** 3))
+        a = x ** 3 + z
+        b = a + a
+        d = assign_units(b, "km")
+        e = index_to(d, dim="t", label="foo1")
+        """
+    )
+
+    # Added keys are those on the left hand side
+    assert tuple([Key(n, "ty") for n in "zabde"]) == added
+
+    # print(c.describe("d"))
+
+    # Calculations work
+    result = c.get("b")
+    assert ("t", "y") == result.dims
+    assert "kilogram ** 3" == result.units
+
+    result = c.get("d")
+    assert ureg.Unit("km") == result.units
+
+
+@pytest.mark.parametrize(
+    "expr, exc_type, match",
+    (
+        ("z = not_a_comp(x)", NameError, "No computation named 'not_a_comp'"),
+        ("z = x - x", NotImplementedError, "ast.Sub"),
+        ("z, y = x, x", NotImplementedError, "Assign to Tuple"),
+        ("z = y = x", NotImplementedError, "Assign to 2 != 1 targets"),
+        ("z = ~x", NotImplementedError, "ast.Invert"),
+        (
+            "z = Foo.bar(x)",
+            NotImplementedError,
+            "Call Foo.bar\(…\) instead of function",
+        ),
+        ("z = index_to(x, dim=x)", NotImplementedError, "Non-literal keyword arg 'x'"),
+    ),
+)
+def test_eval_error(expr, exc_type, match):
+    c = Computer()
+    add_test_data(c)
+
+    with pytest.raises(exc_type, match=match):
+        c.eval(expr)
+
+
 def test_get():
     """Computer.get() using a default key."""
     c = Computer()
