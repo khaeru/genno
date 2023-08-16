@@ -71,6 +71,9 @@ homepage = "https://github.com/khaeru/genno"
 repository = "https://github.com/khaeru/genno"
 documentation = "https://genno.rtfd.io/en/stable/"
 
+[tool.coverage.report]
+exclude_also = ["\\.{3}$", "return NotImplemented"]
+
 [tool.isort]
 profile = "black"
 
