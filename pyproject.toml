@@ -5,11 +5,9 @@ requires = ["build", "setuptools-scm"]
 dynamic = ["version"]
 name = "genno"
 description = "Efficient, transparent calculation on N-D data"
-authors = [
-  {name = "genno contributors"}
-]
+authors = [{ name = "genno contributors" }]
 maintainers = [
-  {name = "Paul Natsuo Kishimoto", email = "mail@paul.kishimoto.name"}
+  { name = "Paul Natsuo Kishimoto", email = "mail@paul.kishimoto.name" },
 ]
 readme = "README.rst"
 classifiers = [
@@ -40,18 +38,12 @@ dependencies = [
 [project.optional-dependencies]
 # Graphviz, for Computer.describe()
 graphviz = ["graphviz"]
-docs = [
-  "IPython",
-  "sphinx-book-theme",
-]
+docs = ["IPython", "sphinx-book-theme"]
 # Specific packages for which compatibility is provided
 plotnine = ["plotnine"]
 pyam = ["pyam-iamc"]
 # All compat packages together
-compat = [
-  "genno[plotnine]",
-  "genno[pyam]",
-]
+compat = ["genno[plotnine]", "genno[pyam]"]
 tests = [
   "genno[compat,graphviz]",
   "bottleneck",
@@ -62,9 +54,7 @@ tests = [
   "pytest-cov",
   "pytest-xdist",
 ]
-sparse = [
-  "sparse >= 0.12",
-]
+sparse = ["sparse >= 0.12"]
 
 [project.urls]
 homepage = "https://github.com/khaeru/genno"
