@@ -715,6 +715,17 @@ def test_select_bigmem():
     result.to_series()
 
 
+def test_sub(data):
+    *_, t_foo, t_bar, x = data
+
+    # Function runs
+    result = computations.sub(x, x)
+
+    assert (0 == result).all()
+
+    assert result.units == x.units  # Pass through
+
+
 @pytest.mark.parametrize("dimensions", (["t"], ["y"], ["t", "y"]))
 def test_sum(data, dimensions):
     *_, t_foo, t_bar, x = data
