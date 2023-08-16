@@ -300,7 +300,7 @@ def assert_qty_equal(
     __tracebackhide__ = True
 
     try:
-        assert type(a) == type(b) and type(a).__name__ == genno.core.quantity.CLASS
+        assert type(a) is type(b) and type(a).__name__ == genno.core.quantity.CLASS
     except AssertionError:
         if check_type:
             raise
@@ -356,7 +356,7 @@ def assert_qty_allclose(
     __tracebackhide__ = True
 
     try:
-        assert type(a) == type(b) and type(a).__name__ == genno.core.quantity.CLASS
+        assert type(a) is type(b) and type(a).__name__ == genno.core.quantity.CLASS
     except AssertionError:
         if check_type:
             raise

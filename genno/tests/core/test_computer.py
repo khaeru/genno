@@ -159,7 +159,7 @@ def test_eval(ureg):
         (
             "z = Foo.bar(x)",
             NotImplementedError,
-            "Call Foo.bar\(…\) instead of function",
+            r"Call Foo.bar\(…\) instead of function",
         ),
         ("z = index_to(x, dim=x)", NotImplementedError, "Non-literal keyword arg 'x'"),
     ),
