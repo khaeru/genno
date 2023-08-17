@@ -10,6 +10,7 @@ from itertools import chain
 from os import PathLike
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Collection,
     Hashable,
@@ -27,6 +28,7 @@ from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
+from genno.core.computation import computation
 from genno.core.quantity import (
     Quantity,
     assert_quantity,
@@ -35,6 +37,9 @@ from genno.core.quantity import (
 )
 from genno.core.sparsedataarray import SparseDataArray
 from genno.util import UnitLike, collect_units, filter_concat_args
+
+if TYPE_CHECKING:
+    from genno.core.computer import Computer
 
 __all__ = [
     "add",
@@ -533,7 +538,9 @@ def interpolate(
     return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
+@computation
 def load_file(
+    self,
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
     units: Optional[UnitLike] = None,
