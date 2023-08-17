@@ -212,6 +212,10 @@ class AttrSeries(pd.Series, Quantity):
         return self._replace(self._groupby_apply(dim, sorted(self.coords[dim].data), _))
 
     @property
+    def data(self):
+        return self.values
+
+    @property
     def dims(self) -> Tuple[Hashable, ...]:
         """Like :attr:`xarray.DataArray.dims`."""
         return tuple(filter(None, self.index.names))

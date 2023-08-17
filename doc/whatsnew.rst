@@ -1,8 +1,14 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- New method :meth:`.Computer.eval` for using Python code-like expressions to define tasks and keys (:pull:`97`).
+- Provide typed signatures for :meth:`Quantity.astype`, :attr:`~Quantity.data`, and :meth:`~Quantity.pipe`, and :meth:`~Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
+- Add :func:`.computations.sub` (:pull:`97``).
+- :func:`~.genno.computations.concat` handles N-dimensional quantities with dimensions in any order (:issue:`38`, :pull:`97`).
+- :func:`~.computations.pow` will derive units if the exponent is a Quantity with all identical integer values (:pull:`97`).
 
 v1.17.2 (2023-07-11)
 ====================

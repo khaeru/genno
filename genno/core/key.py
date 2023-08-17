@@ -3,6 +3,8 @@ from functools import partial
 from itertools import chain, compress
 from typing import Callable, Generator, Hashable, Iterable, Optional, Tuple, Union
 
+from genno.core.quantity import Quantity
+
 #: Regular expression for valid key strings.
 EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
 
@@ -34,7 +36,7 @@ class Key:
     @classmethod
     def from_str_or_key(
         cls,
-        value: Union["Key", Hashable],
+        value: Union["Key", Hashable, Quantity],
         drop: Union[Iterable[str], bool] = [],
         append: Iterable[str] = [],
         tag: Optional[str] = None,
@@ -71,6 +73,8 @@ class Key:
                 dims=[] if not groups["dims"] else groups["dims"].split("-"),
                 tag=groups["tag"],
             )
+        elif isinstance(value, Quantity):
+            base = cls(name=str(value.name), dims=map(str, value.dims))
         else:
             raise TypeError(type(value))
 

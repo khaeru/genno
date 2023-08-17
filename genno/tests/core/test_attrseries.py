@@ -12,7 +12,7 @@ class TestAttrSeries:
     @pytest.fixture
     def foo(self):
         idx = pd.MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]], names=["a", "b"])
-        yield AttrSeries([0, 1, 2, 3], index=idx, name="Foo")
+        yield AttrSeries([0, 1, 2, 3], index=idx, name="Foo", units="kg")
 
     @pytest.fixture
     def bar(self):
@@ -60,10 +60,10 @@ class TestAttrSeries:
         with pytest.raises(NotImplementedError):
             foo.cumprod()
 
-    def test_expand_dims(self, foo):
-        # Name passes through expand_dims
+    def test_expand_dims(self, ureg, foo):
+        # Name and units pass through expand_dims
         result = foo.expand_dims(c=["c1", "c2"])
-        assert result.name == foo.name
+        assert foo.name == result.name and ureg.Unit("kg") == foo.units == result.units
 
     def test_interp(self, foo):
         with pytest.raises(NotImplementedError):

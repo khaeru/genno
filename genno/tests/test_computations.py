@@ -267,7 +267,7 @@ def test_combine(ureg, data):
         )
 
 
-def test_concat(data):
+def test_concat(ureg, data):
     *_, t_foo, t_bar, x = data
 
     # Split x into two concatenateable quantities
@@ -282,6 +282,38 @@ def test_concat(data):
 
     # NB for AttrSeries, the new dimension is first; for SparseDataArray, last
     assert {"t", "y", "z"} == set(result.dims)
+    assert ureg.Unit("kg") == x.units == result.units
+
+
+def test_concat_dim_order(data):
+    """:func:`.concat` succeeds even if dimension are not in matching order on operands.
+
+    Test of https://github.com/khaeru/genno/issues/38.
+    """
+    *_, x = data
+
+    # Create another Quantity like `x`, but with dims in the opposite order
+    z = Quantity(
+        x.to_series()
+        .reset_index()
+        .eval("y = y + 1000")
+        .set_index(list(reversed(x.dims)))
+        .iloc[:, 0]
+    )
+    assert tuple(reversed(x.dims)) == z.dims
+
+    # Concatenation succeeds
+    result = computations.concat(x, z)
+
+    # Dims and length are as expected
+    assert set(x.dims) == set(z.dims) == set(result.dims)
+    assert len(x) + len(z) == len(result)
+
+    # Dimensions were aligned correctly such that "y" in the result contains labels from
+    # the same dimension in both operands
+    assert set(x.coords["y"].data) | set(z.coords["y"].data) == set(
+        result.coords["y"].data
+    )
 
 
 @pytest.mark.parametrize("func", [computations.div, computations.ratio])
@@ -510,40 +542,56 @@ def test_mul1(func, dims, exp_dims, exp_shape):
     assert exp_shape == result.shape
 
 
-def test_pow(ureg):
-    # 2D dimensionless ** int
-    A = random_qty(dict(x=3, y=3))
-    result = computations.pow(A, 2)
+@pytest.mark.parametrize(
+    "exponent, base_units, exp_units",
+    (
+        # 2D dimensionless ** float
+        (1.2, None, None),
+        # 2D with units ** int
+        (2, "kg", "kg ** 2"),
+        # 2D ** 1D int
+        (pd.Series(dict(y1=1, y2=2, y3=3)), "kg", ""),
+        # 2D ** 1D int, all values the same
+        (pd.Series(dict(y1=2, y2=2, y3=2)), "kg", "kg ** 2"),
+        # 2D ** 1D with units
+        pytest.param(
+            random_qty(dict(y=3), units="km"),
+            None,
+            None,
+            marks=pytest.mark.xfail(
+                raises=ValueError, reason="Cannot raise to a power with units (km)"
+            ),
+        ),
+    ),
+)
+def test_pow_simple(ureg, exponent, base_units, exp_units):
+    A = random_qty(dict(x=3, y=3), units=base_units)
 
+    # Convert using the current Quantity class
+    if isinstance(exponent, pd.Series):
+        exponent = Quantity(exponent)
+
+    result = computations.pow(A, exponent)
+    assert exp_units is None or ureg.Unit(exp_units) == result.units
+
+
+def test_pow(ureg):
+    A = random_qty(dict(x=3, y=3))
+
+    # 2D dimensionless ** int
+    result = computations.pow(A, 2)
     # Expected values
     assert_qty_equal(A.sel(x="x1", y="y1") ** 2, result.sel(x="x1", y="y1"))
 
-    # 2D with units ** int
-    A = random_qty(dict(x=3, y=3), units="kg")
-    result = computations.pow(A, 2)
-
-    # Expected units
-    assert ureg.kg**2 == result.units
-
-    # 2D ** 1D
+    # 2D ** 1D float
     B = random_qty(dict(y=3))
-
     result = computations.pow(A, B)
-
     # Expected values
     assert_allclose(
         A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item(),
         result.sel(x="x1", y="y1").item(),
     )
     assert ureg.dimensionless == result.units
-
-    # 2D ** 1D with units
-    C = random_qty(dict(y=3), units="km")
-
-    with pytest.raises(
-        ValueError, match=re.escape("Cannot raise to a power with units (km)")
-    ):
-        computations.pow(A, C)
 
 
 def test_relabel(data):
@@ -713,6 +761,17 @@ def test_select_bigmem():
 
     # Result can be converted to pd.Series
     result.to_series()
+
+
+def test_sub(data):
+    *_, t_foo, t_bar, x = data
+
+    # Function runs
+    result = computations.sub(x, x)
+
+    assert (0 == result).all()
+
+    assert result.units == x.units  # Pass through
 
 
 @pytest.mark.parametrize("dimensions", (["t"], ["y"], ["t", "y"]))

@@ -1,8 +1,8 @@
 """Elementary computations for genno."""
-# Notes:
-# - To avoid ambiguity, computations should not have default arguments. Define default
-#   values for the corresponding methods on the Computer class.
+# NB To avoid ambiguity, computations should not have default positional arguments.
+#    Define default values for the corresponding methods on the Computer class.
 import logging
+import numbers
 import operator
 import re
 from functools import reduce
@@ -60,6 +60,7 @@ __all__ = [
     "rename_dims",
     "round",
     "select",
+    "sub",
     "sum",
     "write_report",
 ]
@@ -367,12 +368,14 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
 
         return pd.concat(_objs, **kwargs)
     else:
-        # Correct fill-values
-        # NB mypy here cannot tell that the returned DataArray has an accessor ._sda
-        return xr.concat(
-            cast(xr.DataArray, objs),
-            **kwargs,
-        )._sda.convert()  # type: ignore[attr-defined]
+        # xr.merge() and xr.combine_by_coords() are not usable with sparse ≤ 0.14; they
+        # give "IndexError: Only one-dimensional iterable indices supported." when the
+        # objects have >1 dimension. Arbitrarily choose the first dimension of the first
+        # of `objs` to concatenate along.
+        # FIXME this may result in non-unique indices; avoid this.
+        kwargs.setdefault("dim", (objs[0].dims or [None])[0])
+
+        return xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
 
 
 def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
@@ -669,21 +672,25 @@ product = mul
 def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     """Compute `a` raised to the power of `b`.
 
-    .. todo:: Provide units on the result in the special case where `b` is a Quantity
-       but all its values are the same :class:`int`.
-
     Returns
     -------
     .Quantity
-        If `b` is :class:`int`, then the quantity has the units of `a` raised to this
-        power; e.g. "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
+        If `b` is :class:`int` or a Quantity with all :class:`int` values that are equal
+        to one another, then the quantity has the units of `a` raised to this power;
+        for example, "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
         units, so the returned quantity is dimensionless.
     """
-    if isinstance(b, int):
-        unit_exponent = b
+    # Determine the exponent for the units
+    if isinstance(b, numbers.Real):
+        unit_exponent = b if isinstance(b, int) else 0
         b = Quantity(float(b))
-    else:
-        unit_exponent = 0
+    elif isinstance(b, Quantity):
+        check = b / b.astype(int)
+        unique_values = set(b.data)
+        if (1.0 == check).all() and len(unique_values) == 1:
+            unit_exponent = unique_values.pop()
+        else:
+            unit_exponent = 0
 
     u_a, u_b = collect_units(a, b)
 
@@ -810,6 +817,11 @@ def select(
         }
 
     return qty.sel(new_indexers, drop=drop)
+
+
+def sub(a: Quantity, b: Quantity) -> Quantity:
+    """Subtract `b` from `a`."""
+    return add(a, -b)
 
 
 def sum(
