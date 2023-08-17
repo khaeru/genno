@@ -366,12 +366,14 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
 
         return pd.concat(_objs, **kwargs)
     else:
-        # Correct fill-values
-        # NB mypy here cannot tell that the returned DataArray has an accessor ._sda
-        return xr.concat(
-            cast(xr.DataArray, objs),
-            **kwargs,
-        )._sda.convert()  # type: ignore[attr-defined]
+        # xr.merge() and xr.combine_by_coords() are not usable with sparse ≤ 0.14; they
+        # give "IndexError: Only one-dimensional iterable indices supported." when the
+        # objects have >1 dimension. Arbitrarily choose the first dimension of the first
+        # of `objs` to concatenate along.
+        # FIXME this may result in non-unique indices; avoid this.
+        kwargs.setdefault("dim", (objs[0].dims or [None])[0])
+
+        return xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
 
 
 def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
