@@ -782,45 +782,9 @@ class Computer:
 
         return self.add(key, tuple([method, qty] + args), strict=True)
 
-    def add_file(self, path, key=None, **kwargs):
-        """Add exogenous quantities from *path*.
-
-        Computing the `key` or using it in other computations causes `path` to
-        be loaded and converted to :class:`.Quantity`.
-
-        Parameters
-        ----------
-        path : os.PathLike
-            Path to the file, e.g. '/path/to/foo.ext'.
-        key : str or .Key, optional
-            Key for the quantity read from the file.
-
-        Other parameters
-        ----------------
-        dims : dict or list or set
-            Either a collection of names for dimensions of the quantity, or a
-            mapping from names appearing in the input to dimensions.
-        units : str or pint.Unit
-            Units to apply to the loaded Quantity.
-
-        Returns
-        -------
-        .Key
-            Either `key` (if given) or e.g. ``file:foo.ext`` based on the `path` name,
-            without directory components.
-
-        See also
-        --------
-        genno.computations.load_file
-        """
-        path = Path(path)
-        key = key if key else "file {}".format(path.name)
-        return self.add(
-            key, (partial(self.get_comp("load_file"), path, **kwargs),), strict=True
-        )
-
-    # Use add_file as a helper for computations.load_file
-    add_load_file = add_file
+    # For backwards compatibility
+    def add_file(self, *args, **kwargs):
+        return computations.load_file.add_task(self, *args, **kwargs)
 
     def describe(self, key=None, quiet=True):
         """Return a string describing the computations that produce `key`.
