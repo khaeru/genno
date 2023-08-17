@@ -285,6 +285,37 @@ def test_concat(ureg, data):
     assert ureg.Unit("kg") == x.units == result.units
 
 
+def test_concat_dim_order(data):
+    """:func:`.concat` succeeds even if dimension are not in matching order on operands.
+
+    Test of https://github.com/khaeru/genno/issues/38.
+    """
+    *_, x = data
+
+    # Create another Quantity like `x`, but with dims in the opposite order
+    z = Quantity(
+        x.to_series()
+        .reset_index()
+        .eval("y = y + 1000")
+        .set_index(list(reversed(x.dims)))
+        .iloc[:, 0]
+    )
+    assert tuple(reversed(x.dims)) == z.dims
+
+    # Concatenation succeeds
+    result = computations.concat(x, z)
+
+    # Dims and length are as expected
+    assert set(x.dims) == set(z.dims) == set(result.dims)
+    assert len(x) + len(z) == len(result)
+
+    # Dimensions were aligned correctly such that "y" in the result contains labels from
+    # the same dimension in both operands
+    assert set(x.coords["y"].data) | set(z.coords["y"].data) == set(
+        result.coords["y"].data
+    )
+
+
 @pytest.mark.parametrize("func", [computations.div, computations.ratio])
 def test_div(func, ureg):
     # Non-overlapping dimensions can be broadcast together
