@@ -651,38 +651,6 @@ class Computer:
         return self.graph.__contains__(item)
 
     # Convenience methods
-    def add_product(self, key, *quantities, sums=True):
-        """Add a computation that takes the product of *quantities*.
-
-        Parameters
-        ----------
-        key : str or Key
-            Key of the new quantity. If a Key, any dimensions are ignored; the
-            dimensions of the product are the union of the dimensions of
-            *quantities*.
-        sums : bool, optional
-            If :obj:`True`, all partial sums of the new quantity are also
-            added.
-
-        Returns
-        -------
-        :class:`Key`
-            The full key of the new quantity.
-        """
-        # Fetch the full key for each quantity
-        base_keys = list(map(Key.from_str_or_key, self.check_keys(*quantities)))
-
-        # Compute a key for the result
-        # Parse the name and tag of the target
-        key = Key.from_str_or_key(key)
-        # New key with dimensions of the product
-        key = Key.product(key.name, *base_keys, tag=key.tag)
-
-        # Add the basic product to the graph and index
-        keys = self.add(key, computations.product, *base_keys, sums=sums)
-
-        return keys[0]
-
     def aggregate(
         self,
         qty: KeyLike,
@@ -785,6 +753,9 @@ class Computer:
     # For backwards compatibility
     def add_file(self, *args, **kwargs):
         return computations.load_file.add_task(self, *args, **kwargs)
+
+    def add_product(self, *args, **kwargs):
+        return computations.mul.add_task(self, *args, **kwargs)
 
     def convert_pyam(self, *args, **kwargs):
         self.require_compat("pyam")

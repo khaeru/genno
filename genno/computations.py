@@ -29,6 +29,7 @@ from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
 from genno.core.computation import computation
+from genno.core.key import Key
 from genno.core.quantity import (
     Quantity,
     assert_quantity,
@@ -696,7 +697,8 @@ def _load_file_csv(
     )
 
 
-def mul(*quantities: Quantity) -> Quantity:
+@computation
+def mul(self, *quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
 
     result = reduce(operator.mul, quantities)
@@ -705,6 +707,38 @@ def mul(*quantities: Quantity) -> Quantity:
     result.units = u_result
 
     return result
+
+
+@mul.helper
+def add_mul(func, c: "Computer", key, *quantities, sums=True) -> Key:
+    """Add a computation that takes the product of `quantities`.
+
+    Parameters
+    ----------
+    key : str or Key
+        Key of the new quantity. If a Key, any dimensions are ignored; the dimensions of
+        the product are the union of the dimensions of `quantities`.
+    sums : bool, optional
+        If :obj:`True`, all partial sums of the new quantity are also added.
+
+    Returns
+    -------
+    :class:`Key`
+        The full key of the new quantity.
+    """
+    # Fetch the full key for each quantity
+    base_keys = list(map(Key.from_str_or_key, c.check_keys(*quantities) or []))
+
+    # Compute a key for the result
+    # Parse the name and tag of the target
+    key = Key.from_str_or_key(key)
+    # New key with dimensions of the product
+    key = Key.product(key.name, *base_keys, tag=key.tag)
+
+    # Add the basic product to the graph and index
+    keys = c.add(key, func, *base_keys, sums=sums)
+
+    return keys[0]
 
 
 #: Alias of :func:`mul`, for backwards compatibility.
