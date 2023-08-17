@@ -786,6 +786,10 @@ class Computer:
     def add_file(self, *args, **kwargs):
         return computations.load_file.add_task(self, *args, **kwargs)
 
+    def convert_pyam(self, *args, **kwargs):
+        self.require_compat("pyam")
+        return self.get_comp("as_pyam").add_task(self, *args, **kwargs)
+
     def describe(self, key=None, quiet=True):
         """Return a string describing the computations that produce `key`.
 
@@ -852,70 +856,3 @@ class Computer:
     def unit_registry(self):
         """The :meth:`pint.UnitRegistry` used by the Computer."""
         return pint.get_application_registry()
-
-    # For .compat.pyam
-
-    # "/, " requires Python 3.8; change only if/when support for Python 3.7 is dropped
-    # def convert_pyam(self, quantities, tag="iamc", /, **kwargs):
-    def convert_pyam(self, quantities, tag="iamc", **kwargs):
-        """Add conversion of one or more **quantities** to IAMC format.
-
-        Parameters
-        ----------
-        quantities : str or Key or list of (str, Key)
-            Keys for quantities to transform.
-        tag : str, optional
-            Tag to append to new Keys.
-
-        Other parameters
-        ----------------
-        kwargs :
-            Any keyword arguments accepted by :func:`.as_pyam`.
-
-        Returns
-        -------
-        list of Key
-            Each task converts a :class:`.Quantity` into a :class:`pyam.IamDataFrame`.
-
-        See also
-        --------
-        .as_pyam
-        """
-        self.require_compat("pyam")
-
-        # Handle single vs. iterable of inputs
-        multi_arg = not isinstance(quantities, (str, Key))
-        if not multi_arg:
-            quantities = [quantities]
-
-        if len(kwargs.get("replace", {})) and not isinstance(
-            next(iter(kwargs["replace"].values())), dict
-        ):
-            kwargs["replace"] = dict(variable=kwargs.pop("replace"))
-            warn(
-                f"replace must be nested dict(), e.g. {repr(kwargs['replace'])}",
-                DeprecationWarning,
-            )
-
-        # Check keys
-        quantities = self.check_keys(*quantities)
-
-        # The callable for the task. If pyam is not available, require_compat() above
-        # will fail; so this will never be None
-        comp = partial(cast(Callable, self.get_comp("as_pyam")), **kwargs)
-
-        keys = []
-        for qty in quantities:
-            # Key for the input quantity, e.g. foo:x-y-z
-            key = Key.from_str_or_key(qty)
-
-            # Key for the task/output, e.g. foo::iamc
-            keys.append(Key(key.name, tag=tag))
-
-            # Add the task and store the key
-            self.add_single(keys[-1], (comp, "scenario", key))
-
-        return tuple(keys) if multi_arg else keys[0]
-
-    # Use convert_pyam as a helper for computations.as_pyam
-    add_as_pyam = convert_pyam
