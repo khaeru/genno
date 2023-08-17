@@ -463,15 +463,15 @@ class Computer:
             # Update the graph with the computations
             self.graph.update(applied)
 
-    def eval(self, expr: str) -> Tuple[KeyLike, ...]:
+    def eval(self, expr: str) -> Tuple[Key, ...]:
         r"""Evaluate `expr` to add tasks and keys.
 
-        Parse a code-like expression or block of expressions using :mod:`.ast` from the
-        Python standard library. `expr` may include:
+        Parse a statement or block of statements using :mod:`.ast` from the Python
+        standard library. `expr` may include:
 
         - Constants.
-        - References to existing keys in the Computer by their name; these are
-          expanded using :meth:`full_key`.
+        - References to existing keys in the Computer by their name; these are expanded
+          using :meth:`full_key`.
         - Multiple statements on separate lines or separated by ";".
         - Python arithmetic operators including ``+``, ``*``, ``/``, ``**``; these are
           mapped to the corresponding :mod:`.computations`.
@@ -484,31 +484,16 @@ class Computer:
         expr : str
             Expression to be evaluated.
 
-        Examples
-        --------
-        Parse a multi-line string and add tasks to compute z, a, b, d, and e. The
-        dimensions of each are automatically inferred given the dimension of the
-        existing operand, x.
-
-        >>> c = Computer()
-        >>> # Add tasks to compute a quantity like "x:t-y"
-        >>> added = c.eval(
-        ...     \"\"\"
-        ...     z = - (0.5 / (x ** 3))
-        ...     a = x ** 3 + z
-        ...     b = a + a
-        ...     d = assign_units(b, "km")
-        ...     e = index_to(d, dim="t", label="foo1")
-        ...     \"\"\"
-        ... )
-        >>> added[-1]
-        <e:t-y>
+        Returns
+        -------
+        tuple of Key
+            One key for the left-hand side of each expression.
 
         Raises
         ------
         NotImplementedError
-            For complex expressions not supported; if any of the statements is other
-            than a simple assignment.
+            For complex expressions not supported; if any of the statements is anything
+            other than a simple assignment.
         NameError
             If a function call references a non-existent computation.
         """

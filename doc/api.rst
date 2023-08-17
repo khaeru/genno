@@ -18,7 +18,7 @@ Top-level classes and functions
 
 .. autoclass:: genno.Computer
    :members:
-   :exclude-members: add, add_as_pyam, add_load_file, apply, convert_pyam, graph
+   :exclude-members: add, add_as_pyam, add_load_file, apply, convert_pyam, eval, graph
 
    A Computer is used to describe (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **tasks** stored in a :attr:`graph`.
    Advanced users may manipulate the graph directly; but common reporting tasks can be handled by using Computer methods.
@@ -41,6 +41,7 @@ Top-level classes and functions
       apply
       cache
       describe
+      eval
       visualize
 
    Helper methods to simplify adding specific computations:
@@ -52,7 +53,7 @@ Top-level classes and functions
       convert_pyam
       disaggregate
 
-   Exectuing tasks:
+   Executing tasks:
 
    .. autosummary::
       get
@@ -183,6 +184,28 @@ Top-level classes and functions
           ACT = rep.full_key('ACT')
           keys = rep.convert_pyam(ACT, 'ya', collapse=m_t, drop=['t', 'm'])
 
+   .. automethod:: eval
+
+      .. rubric:: Examples
+
+      Parse a multi-line string and add tasks to compute z, a, b, d, and e.
+      The dimensions of each are automatically inferred given the dimension of the existing operand, x.
+
+      .. code-block:: python
+
+         >>> c = Computer()
+         >>> # (Here, add tasks to compute a quantity like "x:t-y")
+         >>> added = c.eval(
+         ...     """
+         ...     z = - (0.5 / (x ** 3))
+         ...     a = x ** 3 + z
+         ...     b = a + a
+         ...     d = assign_units(b, "km")
+         ...     e = index_to(d, dim="t", label="foo1")
+         ...     """
+         ... )
+         >>> added[-1]
+         <e:t-y>
 
 .. autoclass:: genno.Key
    :members:
@@ -299,6 +322,7 @@ Computations
       pow
       product
       ratio
+      sub
       sum
 
    Input and output:

@@ -60,6 +60,7 @@ __all__ = [
     "rename_dims",
     "round",
     "select",
+    "sub",
     "sum",
     "write_report",
 ]
@@ -671,14 +672,12 @@ product = mul
 def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     """Compute `a` raised to the power of `b`.
 
-    .. todo:: Provide units on the result in the special case where `b` is a Quantity
-       but all its values are the same :class:`int`.
-
     Returns
     -------
     .Quantity
-        If `b` is :class:`int`, then the quantity has the units of `a` raised to this
-        power; e.g. "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
+        If `b` is :class:`int` or a Quantity with all :class:`int` values that are equal
+        to one another, then the quantity has the units of `a` raised to this power;
+        for example, "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
         units, so the returned quantity is dimensionless.
     """
     # Determine the exponent for the units
