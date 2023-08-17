@@ -542,54 +542,56 @@ def test_mul1(func, dims, exp_dims, exp_shape):
     assert exp_shape == result.shape
 
 
-def test_pow(ureg):
-    # 2D dimensionless ** int
-    A = random_qty(dict(x=3, y=3))
-    result = computations.pow(A, 2)
+@pytest.mark.parametrize(
+    "exponent, base_units, exp_units",
+    (
+        # 2D dimensionless ** float
+        (1.2, None, None),
+        # 2D with units ** int
+        (2, "kg", "kg ** 2"),
+        # 2D ** 1D int
+        (pd.Series(dict(y1=1, y2=2, y3=3)), "kg", ""),
+        # 2D ** 1D int, all values the same
+        (pd.Series(dict(y1=2, y2=2, y3=2)), "kg", "kg ** 2"),
+        # 2D ** 1D with units
+        pytest.param(
+            random_qty(dict(y=3), units="km"),
+            None,
+            None,
+            marks=pytest.mark.xfail(
+                raises=ValueError, reason="Cannot raise to a power with units (km)"
+            ),
+        ),
+    ),
+)
+def test_pow_simple(ureg, exponent, base_units, exp_units):
+    A = random_qty(dict(x=3, y=3), units=base_units)
 
+    # Convert using the current Quantity class
+    if isinstance(exponent, pd.Series):
+        exponent = Quantity(exponent)
+
+    result = computations.pow(A, exponent)
+    assert exp_units is None or ureg.Unit(exp_units) == result.units
+
+
+def test_pow(ureg):
+    A = random_qty(dict(x=3, y=3))
+
+    # 2D dimensionless ** int
+    result = computations.pow(A, 2)
     # Expected values
     assert_qty_equal(A.sel(x="x1", y="y1") ** 2, result.sel(x="x1", y="y1"))
 
-    # 2D dimensionless ** float
-    A = random_qty(dict(x=3, y=3))
-    result = computations.pow(A, 1.2)
-
-    # 2D with units ** int
-    A = random_qty(dict(x=3, y=3), units="kg")
-    result = computations.pow(A, 2)
-
-    # Expected units
-    assert ureg.kg**2 == result.units
-
     # 2D ** 1D float
     B = random_qty(dict(y=3))
-
     result = computations.pow(A, B)
-
     # Expected values
     assert_allclose(
         A.sel(x="x1", y="y1").item() ** B.sel(y="y1").item(),
         result.sel(x="x1", y="y1").item(),
     )
     assert ureg.dimensionless == result.units
-
-    # 2D ** 1D int
-    B = Quantity(pd.Series(dict(y1=1, y2=2, y3=3)))
-    result = computations.pow(A, B)
-    assert ureg.dimensionless == result.units
-
-    # 2D ** 1D int, all values the same
-    B = Quantity(pd.Series(dict(y1=2, y2=2, y3=2)))
-    result = computations.pow(A, B)
-    assert ureg.kg**2 == result.units
-
-    # 2D ** 1D with units
-    C = random_qty(dict(y=3), units="km")
-
-    with pytest.raises(
-        ValueError, match=re.escape("Cannot raise to a power with units (km)")
-    ):
-        computations.pow(A, C)
 
 
 def test_relabel(data):
