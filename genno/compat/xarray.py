@@ -69,6 +69,10 @@ class DataArrayLike(Generic[T]):
         return NotImplemented
 
     @property
+    def data(self) -> Any:
+        return NotImplemented
+
+    @property
     def coords(
         self,
     ) -> xarray.core.coordinates.DataArrayCoordinates:

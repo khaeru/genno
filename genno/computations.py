@@ -2,6 +2,7 @@
 # NB To avoid ambiguity, computations should not have default positional arguments.
 #    Define default values for the corresponding methods on the Computer class.
 import logging
+import numbers
 import operator
 import re
 from functools import reduce
@@ -680,16 +681,17 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
         power; e.g. "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
         units, so the returned quantity is dimensionless.
     """
-    if isinstance(b, int):
-        unit_exponent = b
+    # Determine the exponent for the units
+    if isinstance(b, numbers.Real):
+        unit_exponent = b if isinstance(b, int) else 0
         b = Quantity(float(b))
     elif isinstance(b, Quantity):
-        if (1.0 == b / b.astype(int)).all():
-            unit_exponent = b.item()  # NB only valid if `b` is 0-dimensional
+        check = b / b.astype(int)
+        unique_values = set(b.data)
+        if (1.0 == check).all() and len(unique_values) == 1:
+            unit_exponent = unique_values.pop()
         else:
             unit_exponent = 0
-    else:
-        unit_exponent = 0
 
     u_a, u_b = collect_units(a, b)
 

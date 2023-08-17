@@ -550,6 +550,10 @@ def test_pow(ureg):
     # Expected values
     assert_qty_equal(A.sel(x="x1", y="y1") ** 2, result.sel(x="x1", y="y1"))
 
+    # 2D dimensionless ** float
+    A = random_qty(dict(x=3, y=3))
+    result = computations.pow(A, 1.2)
+
     # 2D with units ** int
     A = random_qty(dict(x=3, y=3), units="kg")
     result = computations.pow(A, 2)
@@ -557,7 +561,7 @@ def test_pow(ureg):
     # Expected units
     assert ureg.kg**2 == result.units
 
-    # 2D ** 1D
+    # 2D ** 1D float
     B = random_qty(dict(y=3))
 
     result = computations.pow(A, B)
@@ -568,6 +572,16 @@ def test_pow(ureg):
         result.sel(x="x1", y="y1").item(),
     )
     assert ureg.dimensionless == result.units
+
+    # 2D ** 1D int
+    B = Quantity(pd.Series(dict(y1=1, y2=2, y3=3)))
+    result = computations.pow(A, B)
+    assert ureg.dimensionless == result.units
+
+    # 2D ** 1D int, all values the same
+    B = Quantity(pd.Series(dict(y1=2, y2=2, y3=2)))
+    result = computations.pow(A, B)
+    assert ureg.kg**2 == result.units
 
     # 2D ** 1D with units
     C = random_qty(dict(y=3), units="km")
