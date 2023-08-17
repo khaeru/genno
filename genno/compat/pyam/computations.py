@@ -6,6 +6,7 @@ from typing import Callable, Collection, Optional, Union
 import pyam
 
 import genno.computations
+from genno.core.computation import computation
 
 from . import util
 
@@ -15,7 +16,9 @@ log = logging.getLogger(__name__)
 __all__ = ["as_pyam", "concat", "write_report"]
 
 
+@computation
 def as_pyam(
+    self,
     scenario,
     quantity,
     # /,  # Requires Python 3.8; uncomment if/when support for Python 3.7 is dropped
