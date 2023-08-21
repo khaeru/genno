@@ -14,7 +14,7 @@ class Computation(ABC):
     @abstractmethod
     def __call__(self, *args, **kwargs):
         # Actual logic of the computation
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     @classmethod
     def helper(cls, func: Callable) -> None:

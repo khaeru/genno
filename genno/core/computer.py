@@ -61,8 +61,8 @@ class Computer:
     #:
     #: By default, this includes the :mod:`genno` built-in computations in
     #: :mod:`genno.computations`. :meth:`require_compat` appends additional modules,
-    #: e.g. #: :mod:`.compat.pyam.computations`, to this list. User code may also add
-    #: modules to this list.
+    #: for instance :mod:`.compat.pyam.computations`, to this list. User code may also
+    #: add modules to this list.
     modules: MutableSequence[ModuleType] = []
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
