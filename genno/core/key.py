@@ -169,7 +169,7 @@ class Key:
             Name for the new Key. The names of *keys* are discarded.
         """
         # Iterable of dimension names from all keys, in order, with repetitions
-        dims = chain(*map(lambda k: cls.from_str_or_key(k).dims, keys))
+        dims = chain(*map(lambda k: cls(k).dims, keys))
 
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
@@ -191,7 +191,7 @@ class Key:
     def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
         try:
-            other = Key.from_str_or_key(other)
+            other = Key(other)
         except TypeError:
             return False
 
@@ -236,7 +236,7 @@ class Key:
     @property
     def sorted(self) -> "Key":
         """A version of the Key with its :attr:`dims` sorted alphabetically."""
-        return Key(self._name, sorted(self._dims), self._tag)
+        return Key(self._name, sorted(self._dims), self._tag, _fast=True)
 
     def drop(self, *dims: Union[str, bool]):
         """Return a new Key with `dims` dropped."""
@@ -244,15 +244,18 @@ class Key:
             self._name,
             [] if dims == (True,) else filter(lambda d: d not in dims, self._dims),
             self._tag,
+            _fast=True,
         )
 
     def append(self, *dims: str):
         """Return a new Key with additional dimensions `dims`."""
-        return Key(self._name, list(self._dims) + list(dims), self._tag)
+        return Key(self._name, list(self._dims) + list(dims), self._tag, _fast=True)
 
     def add_tag(self, tag):
         """Return a new Key with `tag` appended."""
-        return Key(self._name, self._dims, "+".join(filter(None, [self._tag, tag])))
+        return Key(
+            self._name, self._dims, "+".join(filter(None, [self._tag, tag])), _fast=True
+        )
 
     def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
@@ -260,7 +263,7 @@ class Key:
 
         for agg_dims, others in combo_partition(self.dims):
             yield (
-                Key(self.name, agg_dims, self.tag),
+                Key(self._name, agg_dims, self.tag, _fast=True),
                 partial(computations.sum, dimensions=others, weights=None),
                 self,
             )
