@@ -274,7 +274,7 @@ class Key:
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
-KeyLike = Union[Key, Hashable]
+KeyLike = Union[Key, str]
 
 
 def combo_partition(iterable):
