@@ -164,7 +164,7 @@ def add_test_data(c: Computer):
 _i = ["seattle", "san-diego"]
 _j = ["new-york", "chicago", "topeka"]
 _TEST_DATA = {
-    Key.from_str_or_key(k): data
+    Key(k): data
     for k, data in {
         "a:i": (xr.DataArray([350, 600], coords=[("i", _i)]), "cases"),
         "b:j": (xr.DataArray([325, 300, 275], coords=[("i", _j)]), "cases"),

@@ -229,7 +229,7 @@ Top-level classes and functions
      >>> k1
      <foo:a-b-c>
 
-   - in a partial sum over one dimension, e.g. summed across dimension c, with  remaining dimensions a and b:
+   - in a partial sum over one dimension, e.g. summed across dimension c, with remaining dimensions a and b:
 
      >>> k2 = k1.drop('c')
      >>> k2 == 'foo:a-b'

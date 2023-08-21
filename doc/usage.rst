@@ -119,7 +119,7 @@ A Key object can also be produced by parsing a string representation:
 
 .. ipython:: python
 
-    Z_j = Key.from_str_or_key("Z:j")
+    Z_j = Key("Z:j")
     Z_j
 
     # Keys compare and hash() identically to their str() representation

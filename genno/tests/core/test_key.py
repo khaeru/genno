@@ -57,11 +57,11 @@ _invalid = pytest.mark.xfail(raises=ValueError, reason="Invalid key expression")
     ],
 )
 def test_from_str(value, expected):
-    assert expected == Key.from_str_or_key(value)
+    assert expected == Key(value)
 
 
 def test_drop():
-    key = Key.from_str_or_key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
+    key = Key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
     assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
 
 
