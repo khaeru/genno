@@ -72,7 +72,7 @@ class Graph(dict):
         super().__delitem__(key)
         self._deindex(key)
 
-    def __contains__(self, item: KeyLike) -> bool:
+    def __contains__(self, item) -> bool:
         """:obj:`True` if `item` *or* a key with the same dims in a different order."""
         return super().__contains__(item) or bool(self.unsorted_key(item))
 
@@ -126,7 +126,7 @@ class Graph(dict):
 
         if isinstance(key, str) or not key.dims:
             # Find the full-dimensional key
-            result = self.full_key(result)
+            result = self.full_key(result) or ""
 
         if not isinstance(result, Key):
             return result or key
