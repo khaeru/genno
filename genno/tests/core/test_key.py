@@ -33,36 +33,71 @@ def test_key():
 _invalid = pytest.mark.xfail(raises=ValueError, reason="Invalid key expression")
 
 
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        ("foo", Key("foo")),
-        ("foo:", Key("foo")),
-        ("foo::", Key("foo")),
-        ("foo::bar", Key("foo", tag="bar")),
-        ("foo::bar+baz", Key("foo", tag="bar+baz")),
-        ("foo:a-b", Key("foo", "ab")),
-        ("foo:a-b:", Key("foo", "ab")),
-        ("foo:a-b:bar", Key("foo", "ab", "bar")),
-        # Weird but not invalid
-        ("foo::++", Key("foo", tag="++")),
-        # Invalid
-        pytest.param(":", None, marks=_invalid),
-        pytest.param("::", None, marks=_invalid),
-        pytest.param("::bar", None, marks=_invalid),
-        pytest.param(":a-b:bar", None, marks=_invalid),
-        pytest.param("foo:a-b-", None, marks=_invalid),
-        # Bad arguments
-        pytest.param(42.1, None, marks=pytest.mark.xfail(raises=TypeError)),
-    ],
+CASES = (
+    ("foo", Key("foo")),
+    ("foo:", Key("foo")),
+    ("foo::", Key("foo")),
+    ("foo::bar", Key("foo", tag="bar")),
+    ("foo::bar+baz", Key("foo", tag="bar+baz")),
+    ("foo:a-b", Key("foo", "ab")),
+    ("foo:a-b:", Key("foo", "ab")),
+    ("foo:a-b:bar", Key("foo", "ab", "bar")),
+    # Weird but not invalid
+    ("foo::++", Key("foo", tag="++")),
+    # Invalid
+    pytest.param(":", None, marks=_invalid),
+    pytest.param("::", None, marks=_invalid),
+    pytest.param("::bar", None, marks=_invalid),
+    pytest.param(":a-b:bar", None, marks=_invalid),
+    pytest.param("foo:a-b-", None, marks=_invalid),
+    # Bad arguments
+    pytest.param(42.1, None, marks=pytest.mark.xfail(raises=TypeError)),
 )
-def test_from_str(value, expected):
-    assert expected == Key(value)
 
 
-def test_drop():
-    key = Key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
-    assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
+class TestKey:
+    @pytest.mark.parametrize("value, expected", CASES)
+    def test_init0(self, value, expected):
+        assert expected == Key(value)
+
+    @pytest.mark.parametrize(
+        "args, expected",
+        (
+            ((Key("foo:a-b-c"), [], "t2"), Key("foo:a-b-c:t2")),
+            pytest.param(
+                (Key("foo:a-b-c:t1"), [], "t2"),
+                None,
+                marks=pytest.mark.xfail(raises=ValueError),
+            ),
+            pytest.param(
+                (Key("foo:a-b-c"), "d e f".split()),
+                None,
+                marks=pytest.mark.xfail(raises=ValueError),
+            ),
+        ),
+    )
+    def test_init1(self, args, expected):
+        assert expected == Key(*args)
+
+    @pytest.mark.parametrize("value, expected", CASES)
+    def test_from_str_or_key0(self, value, expected):
+        with pytest.warns(UserWarning, match="no longer necessary"):
+            assert expected == Key.from_str_or_key(value)
+
+    @pytest.mark.parametrize(
+        "kwargs, value, expected",
+        (
+            (dict(drop="b"), "foo:a-b-c", Key("foo:a-c")),
+            (dict(drop="b", append="d"), "foo:a-b-c", Key("foo:a-c-d")),
+            (dict(drop="b", tag="t2"), "foo:a-b-c:t1", Key("foo:a-c:t1+t2")),
+        ),
+    )
+    def test_from_str_or_key1(self, kwargs, value, expected):
+        assert expected == Key.from_str_or_key(value, **kwargs)
+
+    def test_drop(self):
+        key = Key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
+        assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
 
 
 def test_sorted():
