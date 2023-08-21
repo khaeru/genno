@@ -727,11 +727,11 @@ def add_mul(func, c: "Computer", key, *quantities, sums=True) -> Key:
         The full key of the new quantity.
     """
     # Fetch the full key for each quantity
-    base_keys = list(map(Key.from_str_or_key, c.check_keys(*quantities) or []))
+    base_keys = list(map(Key, c.check_keys(*quantities) or []))
 
     # Compute a key for the result
     # Parse the name and tag of the target
-    key = Key.from_str_or_key(key)
+    key = Key(key)
     # New key with dimensions of the product
     key = Key.product(key.name, *base_keys, tag=key.tag)
 

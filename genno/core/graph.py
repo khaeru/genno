@@ -7,7 +7,7 @@ from .key import Key, KeyLike
 
 
 def _key_arg(key: KeyLike) -> Union[str, Key]:
-    return Key.bare_name(key) or Key.from_str_or_key(key)
+    return Key.bare_name(key) or Key(key)
 
 
 class Graph(dict):
@@ -102,7 +102,7 @@ class Graph(dict):
 
     def full_key(self, name_or_key: KeyLike) -> Optional[KeyLike]:
         """Return `name_or_key` with its full dimensions."""
-        return self._full.get(Key.from_str_or_key(name_or_key, drop=True))
+        return self._full.get(Key(name_or_key).drop_all())
 
     def infer(
         self, key: Union[str, Key], dims: Iterable[str] = []

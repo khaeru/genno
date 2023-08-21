@@ -248,7 +248,7 @@ class Computer:
 
             if kwargs.pop("sums", False):
                 # Convert *key* to a Key object in order to use .iter_sums()
-                key = Key.from_str_or_key(key)
+                key = Key(key)
 
                 # Iterable of computations
                 # print((tuple([key] + list(computation)), kwargs))
@@ -388,7 +388,7 @@ class Computer:
                 DeprecationWarning,
             )
 
-        key = Key.bare_name(key) or Key.from_str_or_key(key)
+        key = Key.bare_name(key) or Key(key)
 
         if strict:
             if key in self.graph:
@@ -693,7 +693,7 @@ class Computer:
             if len(groups) > 1:
                 raise NotImplementedError("aggregate() along >1 dimension")
 
-            key = Key.from_str_or_key(qty, tag=tag)
+            key = Key(qty).add_tag(tag)
             comp: Tuple[Any, ...] = (
                 computations.aggregate,
                 qty,
@@ -705,7 +705,7 @@ class Computer:
             if isinstance(dims, str):
                 dims = [dims]
 
-            key = Key.from_str_or_key(qty, drop=dims, tag=tag)
+            key = Key(qty).drop(*dims).add_tag(tag)
             comp = (partial(computations.sum, dimensions=dims), qty, weights)
 
         return self.add(key, comp, strict=True, sums=sums, fail=fail)
@@ -735,7 +735,7 @@ class Computer:
             The key of the newly-added node.
         """
         # Compute the new key
-        key = Key.from_str_or_key(qty, append=new_dim)
+        key = Key(qty).append(new_dim)
 
         # Get the method
         if isinstance(method, str):

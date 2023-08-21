@@ -27,7 +27,7 @@ def iamc(c: Computer, info):
     name = info.pop("variable")
 
     # Chain of keys produced: first entry is the key for the base quantity
-    keys = [Key.from_str_or_key(info.pop("base"))]
+    keys = [Key(info.pop("base"))]
 
     # Second entry is a simple rename
     keys.append(c.add_single(Key(name, keys[0].dims, keys[0].tag), keys[0]))

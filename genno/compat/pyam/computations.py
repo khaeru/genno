@@ -140,7 +140,7 @@ def add_as_pyam(func, c: "Computer", quantities, tag="iamc", /, **kwargs):
     keys = []
     for qty in quantities:
         # Key for the input quantity, e.g. foo:x-y-z
-        key = Key.from_str_or_key(qty)
+        key = Key(qty)
 
         # Key for the task/output, e.g. foo::iamc
         keys.append(Key(key.name, tag=tag))

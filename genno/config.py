@@ -187,7 +187,7 @@ def combine(c: Computer, info):
     quantities, select, weights = [], [], []
 
     # Key for the new quantity
-    key = Key.from_str_or_key(info["key"])
+    key = Key(info["key"])
 
     # Loop over inputs to the combination
     for i in info["inputs"]:
@@ -248,7 +248,7 @@ def general(c: Computer, info):
     else:
         # The resulting key
         key = info["key"]
-        key = key if Key.bare_name(key) else Key.from_str_or_key(key)
+        key = key if Key.bare_name(key) else Key(key)
 
         # Infer the dimensions of the resulting key if ":*:" is given for the dims
         if set(getattr(key, "dims", {})) == {"*"}:
