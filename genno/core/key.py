@@ -1,9 +1,13 @@
+import logging
 import re
-from functools import partial
+from functools import partial, singledispatchmethod
 from itertools import chain, compress
-from typing import Callable, Generator, Hashable, Iterable, Optional, Tuple, Union
+from typing import Callable, Generator, Iterable, Optional, Tuple, Union
+from warnings import warn
 
 from genno.core.quantity import Quantity
+
+log = logging.getLogger(__name__)
 
 #: Regular expression for valid key strings.
 EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
@@ -15,15 +19,72 @@ BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
 class Key:
     """A hashable key for a quantity that includes its dimensionality."""
 
-    def __init__(self, name: str, dims: Iterable[str] = [], tag: Optional[str] = None):
-        self._name = name
-        self._dims = tuple(dims)
-        self._tag = tag or None
+    _name: str
+    _dims: Tuple[str, ...]
+    _tag: Optional[str]
 
+    def __init__(
+        self,
+        name_or_value: Union[str, "Key", Quantity],
+        dims: Iterable[str] = [],
+        tag: Optional[str] = None,
+        _fast: bool = False,
+    ):
+        if _fast:
+            # Fast path: don't handle arguments
+            assert isinstance(name_or_value, str)
+            self._name = name_or_value
+            self._dims = tuple(dims)
+            self._tag = tag or None
+        else:
+            self._name, _dims, _tag = self._from(name_or_value)
+
+            # Check for conflicts between dims inferred from name_or_value and any
+            # direct argument
+            # TODO handle resolveable combinations without raising exceptions
+            if bool(_dims) and bool(dims):
+                raise ValueError(
+                    f"Conflict: {dims = } argument vs. {_dims!r} from {name_or_value!r}"
+                )
+            elif bool(_tag) and bool(tag):
+                raise ValueError(
+                    f"Conflict: {tag = } argument vs. {_tag!r} from {name_or_value!r}"
+                )
+
+            self._dims = _dims or tuple(dims)
+            self._tag = _tag or tag
+
+        # Pre-compute string representation and hash
         self._str = "{}:{}{}".format(
-            name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
+            self._name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
         )
         self._hash = hash(self._str)
+
+    # _from() methods: convert various arguments into (name, dims, tag) tuples
+    @singledispatchmethod
+    @classmethod
+    def _from(cls, value) -> Tuple[str, Tuple[str, ...], Optional[str]]:
+        if isinstance(value, cls):
+            return value._name, value._dims, value._tag
+        else:
+            raise TypeError(type(value))
+
+    @_from.register
+    def _(cls, value: str):
+        # Parse a string
+        match = EXPR.match(value)
+        if match is None:
+            raise ValueError(f"Invalid key expression: {repr(value)}")
+        groups = match.groupdict()
+        return (
+            groups["name"],
+            tuple() if not groups["dims"] else tuple(groups["dims"].split("-")),
+            groups["tag"],
+        )
+
+    @_from.register
+    def _(cls, value: Quantity):
+        return str(value.name), tuple(map(str, value.dims)), None
 
     @classmethod
     def bare_name(cls, value) -> Optional[str]:
@@ -36,7 +97,7 @@ class Key:
     @classmethod
     def from_str_or_key(
         cls,
-        value: Union["Key", Hashable, Quantity],
+        value: Union[str, "Key", Quantity],
         drop: Union[Iterable[str], bool] = [],
         append: Iterable[str] = [],
         tag: Optional[str] = None,
@@ -58,28 +119,29 @@ class Key:
         Returns
         -------
         :class:`Key`
+
+        .. versionchanged:: 1.18.0
+
+           Calling :meth:`from_str_or_key` with a single argument is no longer
+           necessary; simply give the same `value` as an argument to :class:`Key`.
+
+           The class method is retained for convenience when calling with multiple
+           arguments. However, the following are equivalent and may be more readable:
+
+           .. code-block:: python
+
+              k1 = Key("foo:a-b-c:t1", drop="b", append="d", tag="t2")
+              k2 = Key("foo:a-b-c:t1").drop("b").append("d)"
         """
-        # Determine the base Key
-        if isinstance(value, cls):
-            base = value
-        elif isinstance(value, str):
-            # Parse a string
-            match = EXPR.match(value)
-            if match is None:
-                raise ValueError(f"Invalid key expression: {repr(value)}")
-            groups = match.groupdict()
-            base = cls(
-                name=groups["name"],
-                dims=[] if not groups["dims"] else groups["dims"].split("-"),
-                tag=groups["tag"],
-            )
-        elif isinstance(value, Quantity):
-            base = cls(name=str(value.name), dims=map(str, value.dims))
-        else:
-            raise TypeError(type(value))
+        base = cls(value)
 
         # Return quickly if no further manipulations are required
         if not any([drop, append, tag]):
+            warn(
+                "Calling Key.from_str_or_key(value) with no other arguments is no "
+                "longer necessary; simply use Key(value)",
+                UserWarning,
+            )
             return base
 
         # mypy is fussy here
