@@ -247,6 +247,10 @@ class Key:
             _fast=True,
         )
 
+    def drop_all(self):
+        """Return a new Key with all dimensions dropped / zero dimensions."""
+        return Key(self._name, tuple(), self._tag, _fast=True)
+
     def append(self, *dims: str):
         """Return a new Key with additional dimensions `dims`."""
         return Key(self._name, list(self._dims) + list(dims), self._tag, _fast=True)
