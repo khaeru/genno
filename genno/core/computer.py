@@ -239,26 +239,19 @@ class Computer:
         elif isinstance(data, (str, Key)):
             # *data* is a key, *args* are the computation
             key, computation = data, args
+            sums = kwargs.pop("sums", False)
+            fail = kwargs.pop("fail", "fail")
 
-            if kwargs.pop("sums", False):
-                # Convert *key* to a Key object in order to use .iter_sums()
-                key = Key(key)
+            # Add a single computation (without converting to Key)
+            result = self.add_single(key, *computation, **kwargs)
 
-                # Iterable of computations
-                # print((tuple([key] + list(computation)), kwargs))
-                # print([(c, {}) for c in key.iter_sums()])
-                to_add = chain(
-                    # The original
-                    [(tuple([key] + list(computation)), kwargs)],
-                    # One entry for each sum
-                    [(c, {}) for c in key.iter_sums()],
-                )
-
-                return self.add_queue(to_add, fail=kwargs.get("fail"))
+            if sums:
+                # Ensure `key`` is a Key object in order to use .iter_sums(); add one
+                # entry for each sum
+                return (result,) + self.add_queue(Key(key).iter_sums(), fail=fail)
             else:
-                # Add a single computation (without converting to Key)
-                kwargs.pop("fail", None)
-                return self.add_single(key, *computation, **kwargs)
+                return result
+
         else:
             # Some other kind of input
             raise TypeError(f"{type(data)} `data` argument")
