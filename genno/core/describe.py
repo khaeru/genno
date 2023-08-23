@@ -109,7 +109,8 @@ def label(arg, max_length=MAX_ITEM_LENGTH) -> str:
                 ["..."],
             )
         )
-        return shorten(f"{arg.func.__name__}({fn_args})", max_length)
+        fn_repr = getattr(arg.func, "__name__", repr(arg.func))
+        return shorten(f"{fn_repr}({fn_args})", max_length)
     elif isinstance(arg, dask.core.literal):
         # Item protected with dask.core.quote()
         return shorten(str(arg.data), max_length)
