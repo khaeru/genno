@@ -222,19 +222,13 @@ class Computer:
             # A list. Use add_queue to add
             return self.add_queue(data, *args, **kwargs)
 
-        elif isinstance(data, str) and self.get_comp(data):
+        elif func := self.get_comp(data):
             # *data* is the name of a pre-defined computation
-            name = data
-
-            if hasattr(self, f"add_{name}"):
-                # Use a method on the current class to add. This invokes any
-                # argument-handling conveniences, e.g. Computer.add_product()
-                # instead of using the bare product() computation directly.
-                return getattr(self, f"add_{name}")(*args, **kwargs)
-            else:
-                # Get the function directly
-                func = self.get_comp(name)
-                # Rearrange arguments: key, computation function, args, …
+            try:
+                # Use an implementation of Computation.add_task()
+                return func.add_tasks(*args, **kwargs)
+            except (AttributeError, NotImplementedError):
+                # No implementation; add manually
                 func, kwargs = partial_split(func, kwargs)
                 return self.add(args[0], func, *args[1:], **kwargs)
 
