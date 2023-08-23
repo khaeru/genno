@@ -220,7 +220,7 @@ class Computer:
 
     # Add computations to the Computer
 
-    def add(self, data, *args, **kwargs):
+    def add(self, data, *args, **kwargs) -> Union[KeyLike, Tuple[KeyLike, ...]]:
         """General-purpose method to add computations.
 
         :meth:`add` can be called in several ways; its behaviour depends on `data`; see
@@ -376,7 +376,9 @@ class Computer:
         return tuple(added)
 
     # Generic graph manipulations
-    def add_single(self, key, *computation, strict=False, index=False):
+    def add_single(
+        self, key: KeyLike, *computation, strict=False, index=False
+    ) -> KeyLike:
         """Add a single `computation` at `key`.
 
         Parameters
