@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Callable, Iterable, Mapping, Tuple, Type, Union
+from typing import Callable, Iterable, Mapping, MutableMapping, Tuple, Type, Union
 
 import pandas as pd
 import pint
@@ -147,13 +147,19 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
         raise invalid(unit, e)
 
 
-def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, Mapping]:
+def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMapping]:
     """Forgiving version of :func:`functools.partial`.
 
     Returns a :class:`partial` object and leftover kwargs not applicable to `func`.
     """
     # Names of parameters to `func`
-    par_names = signature(func).parameters
+    try:
+        par_names: Mapping = signature(func).parameters
+    except ValueError:
+        if callable(func):  # operator.itemgetter(…) or similar
+            par_names = {}
+        else:
+            raise
 
     func_args, extra = {}, {}
     for name, value in kwargs.items():
