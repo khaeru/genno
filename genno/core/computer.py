@@ -3,7 +3,7 @@ from collections import deque
 from functools import partial
 from importlib import import_module
 from inspect import signature
-from itertools import chain, compress, repeat
+from itertools import chain, compress
 from operator import itemgetter
 from pathlib import Path
 from types import ModuleType
@@ -67,7 +67,7 @@ class Computer:
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
     # element is current; the leftmost is the default.
-    _queue_fail: deque
+    _queue_fail: deque[int]
 
     def __init__(self, **kwargs):
         self.graph = Graph(config=dict())
@@ -280,7 +280,7 @@ class Computer:
 
     def add_queue(
         self,
-        queue: Iterable[Tuple[Tuple, Mapping]],
+        queue: Iterable[Tuple],
         max_tries: int = 1,
         fail: Optional[Union[str, int]] = None,
     ) -> Tuple[KeyLike, ...]:
@@ -308,43 +308,60 @@ class Computer:
         # Accumulate added keys
         added: List[KeyLike] = []
 
+        class Item:
+            """Container for queue items."""
+
+            def __init__(self, value):
+                self.count = 1
+                if (
+                    len(value) == 2
+                    and isinstance(value[0], tuple)
+                    and isinstance(value[1], Mapping)
+                ):
+                    self.args, self.kwargs = value  # Both args and kwargs provided
+                else:
+                    self.args, self.kwargs = value, {}  # `value` is positional only
+
+        def _log(msg: str, i: Item, e: Optional[Exception] = None, level=logging.DEBUG):
+            """Log information for debugging."""
+            log.log(
+                level,
+                f"{msg.format(i)} (max {max_tries}):\n    ({repr(i.args)}, "
+                f"{repr(i.kwargs)})" + (f"\n    with {repr(e)}" if e else ""),
+            )
+
         # Iterate over elements from queue, then any which are re-appended to be
         # retried. On the first pass, count == 1; on subsequent passes, it is
         # incremented.
-        _queue = deque(zip(repeat(1), queue))
+        _queue = deque(map(Item, queue))
         while len(_queue):
-            count, (args, kwargs) = _queue.popleft()
-
-            def _log(level, msg: str, e: Optional[Exception] = None):
-                """Log information for debugging."""
-                log.log(
-                    level,
-                    f"{msg} (max {max_tries}):\n    ({repr(args)}, {repr(kwargs)})"
-                    + (f"\n    with {repr(e)}" if e else ""),
-                )
+            item = _queue.popleft()
+            self._queue_fail.append(fail)
 
             try:
-                self._queue_fail.append(fail)
                 # Recurse
-                keys = self.add(*args, **kwargs)
+                keys = self.add(*item.args, **item.kwargs)
             except KeyError as exc:
                 # Adding failed
-                if count < max_tries:
+                if item.count < max_tries:
                     # This may only be due to items being out of order; retry silently
-                    _queue.append((count + 1, (args, kwargs)))
+                    item.count += 1
+                    _queue.append(item)
+
                     # verbose; uncomment for debugging only
-                    # _log(logging.DEBUG, "Failed {count} times, will retry", exc)
+                    # _log("Failed {0.count} times, will retry", item, exc)
                 else:
                     # Failed `max_tries` times; something has gone wrong
-                    _log(fail, f"Failed {count} time(s), discarded", exc)
-                    if fail == logging.ERROR:
+                    _log("Failed {0.count} time(s), discarded", item, exc, fail)
+                    if fail >= logging.ERROR:
                         raise  # Also raise
             else:
                 # Succeeded; record the key(s)
                 added.extend(keys) if isinstance(keys, tuple) else added.append(keys)
+
                 # verbose; uncomment for debugging only
                 # if count > 1:
-                #     _log(logging.DEBUG, f"Succeeded on {count} try")
+                #     _log("Succeeded on {0.count} try", item)
             finally:
                 # Restore the failure action from an outer level
                 self._queue_fail.pop()
