@@ -20,7 +20,7 @@ import yaml
 
 import genno.computations as computations
 from genno.core.computer import Computer
-from genno.core.exceptions import KeyExistsError
+from genno.core.exceptions import KeyExistsError, MissingKeyError
 from genno.core.key import Key
 from genno.util import REPLACE_UNITS
 
@@ -169,6 +169,9 @@ def aggregate(c: Computer, info):
             keys = c.aggregate(qty, tag, groups, sums=True, fail=fail)
         except KeyExistsError:
             pass
+        except MissingKeyError:
+            if fail == "error":
+                raise
         else:
             if len(keys):
                 log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
