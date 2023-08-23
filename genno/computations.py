@@ -619,7 +619,7 @@ def add_load_file(func, c: "Computer", path, key=None, **kwargs):
     """
     path = Path(path)
     key = key if key else "file {}".format(path.name)
-    return c.add(key, (partial(func, path, **kwargs),), strict=True)
+    return c.add_single(key, partial(func, path, **kwargs), strict=True)
 
 
 UNITS_RE = re.compile(r"# Units?: (.*)\s+")
