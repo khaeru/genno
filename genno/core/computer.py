@@ -395,7 +395,7 @@ class Computer:
             If `strict` is :obj:`True` and any key referred to by `computation` does
             not exist.
         """
-        if len(computation) == 1:
+        if len(computation) == 1 and not callable(computation[0]):
             # Unpack a length-1 tuple
             computation = computation[0]
 
