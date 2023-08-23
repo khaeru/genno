@@ -541,7 +541,6 @@ def interpolate(
 
 @computation
 def load_file(
-    self,
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
     units: Optional[UnitLike] = None,
@@ -698,7 +697,7 @@ def _load_file_csv(
 
 
 @computation
-def mul(self, *quantities: Quantity) -> Quantity:
+def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
 
     result = reduce(operator.mul, quantities)

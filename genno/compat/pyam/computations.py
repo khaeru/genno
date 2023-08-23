@@ -24,7 +24,6 @@ __all__ = ["as_pyam", "concat", "write_report"]
 
 @computation
 def as_pyam(
-    self,
     scenario,
     quantity,
     # /,  # Requires Python 3.8; uncomment if/when support for Python 3.7 is dropped
