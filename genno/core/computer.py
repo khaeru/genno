@@ -3,7 +3,7 @@ from collections import deque
 from functools import partial
 from importlib import import_module
 from inspect import signature
-from itertools import chain, compress
+from itertools import compress
 from operator import itemgetter
 from pathlib import Path
 from types import ModuleType
@@ -75,6 +75,21 @@ class Computer:
         self._queue_fail = deque([logging.ERROR])
         self.configure(**kwargs)
 
+    # Python data model
+
+    def __contains__(self, item):
+        return self.graph.__contains__(item)
+
+    # Dask data model
+
+    def __dask_keys__(self):
+        return self.graph.keys()
+
+    def __dask_graph__(self):
+        return self.graph
+
+    # Configuration
+
     def configure(
         self,
         path: Optional[Union[Path, str]] = None,
@@ -102,7 +117,8 @@ class Computer:
             configured.
         config :
             Configuration keys/sections and values, as a mapping. Use this if any of
-            the keys/sections are not valid Python names, e.g. contain "-" or " ".
+            the keys/sections are not valid Python names, for instance if they contain
+            "-" or " ".
 
         Other parameters
         ----------------
@@ -123,8 +139,10 @@ class Computer:
 
         parse_config(self, data=config, fail=fail)
 
+    # Manipulating callables
+
     def get_comp(self, name) -> Optional[Callable]:
-        """Return a computation function.
+        """Return a function or callable for use in computations.
 
         :meth:`get_comp` checks each of the :attr:`modules` for a function or callable
         with the given `name`. Modules at the end of the list take precedence over those
@@ -134,7 +152,7 @@ class Computer:
         -------
         .callable
         None
-            If there is no computation with the given `name` in any of :attr:`modules`.
+            If there is no callable with the given `name` in any of :attr:`modules`.
         """
         for module in reversed(self.modules):
             try:
@@ -155,11 +173,11 @@ class Computer:
         pkg : str or module
             One of:
 
-            - the name of a package (e.g. "plotnine"), corresponding to a submodule of
-              :mod:`genno.compat`, e.g. :mod:`genno.compat.plotnine`.
+            - the name of a package (for instance "plotnine"), corresponding to a
+              submodule of :mod:`genno.compat` (:mod:`genno.compat.plotnine`).
               ``genno.compat.{pkg}.computations`` is added.
-            - the name of an arbitary module, e.g. "foo.bar"
-            - a previously imported module object.
+            - the name of any importable module, for instance "foo.bar".
+            - a module object that has already been imported.
 
         Raises
         ------
@@ -200,6 +218,8 @@ class Computer:
         if mod not in self.modules:
             self.modules.append(mod)
 
+    # Add computations to the Computer
+
     def add(self, data, *args, **kwargs):
         """General-purpose method to add computations.
 
@@ -233,7 +253,7 @@ class Computer:
                 return self.add(args[0], func, *args[1:], **kwargs)
 
         elif isinstance(data, str) and data in dir(self):
-            # Name of another method, e.g. 'apply'
+            # Name of another method such as "apply" or "eval"
             return getattr(self, data)(*args, **kwargs)
 
         elif isinstance(data, (str, Key)):
@@ -276,7 +296,7 @@ class Computer:
         Parameters
         ----------
         queue : iterable of 2-:class:`tuple`
-            The members of each tuple are the arguments (e.g. :class:`list` or tuple)
+            The members of each tuple are the arguments (such as :class:`list` or tuple)
             and keyword arguments (e.g :class:`dict`) to :meth:`add`.
         max_tries : int, optional
             Retry adding elements up to this many times.
@@ -416,7 +436,7 @@ class Computer:
         :meth:`get` and :meth:`describe`.
         """
         if not isinstance(computation, (list, tuple)):
-            # Something else, e.g. pd.DataFrame or a literal
+            # Something else, such as pd.DataFrame or a literal
             return computation
 
         # True if the element is key-like
@@ -651,9 +671,6 @@ class Computer:
 
         return result[0] if single else tuple(result)
 
-    def __contains__(self, item):
-        return self.graph.__contains__(item)
-
     # Convenience methods
     def aggregate(
         self,
@@ -754,17 +771,6 @@ class Computer:
 
         return self.add(key, tuple([method, qty] + args), strict=True)
 
-    # For backwards compatibility
-    def add_file(self, *args, **kwargs):
-        return computations.load_file.add_task(self, *args, **kwargs)
-
-    def add_product(self, *args, **kwargs):
-        return computations.mul.add_task(self, *args, **kwargs)
-
-    def convert_pyam(self, *args, **kwargs):
-        self.require_compat("pyam")
-        return self.get_comp("as_pyam").add_task(self, *args, **kwargs)
-
     def describe(self, key=None, quiet=True):
         """Return a string describing the computations that produce `key`.
 
@@ -791,12 +797,6 @@ class Computer:
             print(result, end="\n")
         return result
 
-    def __dask_keys__(self):
-        return self.graph.keys()
-
-    def __dask_graph__(self):
-        return self.graph
-
     def visualize(self, filename, key=None, optimize_graph=False, **kwargs):
         """Generate an image describing the Computer structure.
 
@@ -822,7 +822,7 @@ class Computer:
         return visualize(dsk, filename=filename, **kwargs)
 
     def write(self, key, path):
-        """Write the result of `key` to the file `path`."""
+        """Compute `key` and write the result directly to `path`."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
         self.get_comp("write_report")(self.get(key), path)
@@ -831,3 +831,30 @@ class Computer:
     def unit_registry(self):
         """The :meth:`pint.UnitRegistry` used by the Computer."""
         return pint.get_application_registry()
+
+    # Deprecated methods
+
+    def add_file(self, *args, **kwargs):
+        warn(
+            "Computer.add_file(…). Use: Computer.add("
+            f'{kwargs.get("key") or args[1] if len(args) else "…"!r}, "load_file", …)',
+            DeprecationWarning,
+        )
+        return computations.load_file.add_tasks(self, *args, **kwargs)
+
+    def add_product(self, *args, **kwargs):
+        warn(
+            f'Computer.add_product(…). Use: Computer.add({args[0]!r}, "mul", …)',
+            DeprecationWarning,
+        )
+        return computations.mul.add_tasks(self, *args, **kwargs)
+
+    def convert_pyam(self, *args, **kwargs):
+        warn(
+            f"""Computer.convert_pyam(…). Use:
+    Computer.require_compat("pyam")
+    Computer.add({args[0]!r}, "as_pyam", …)""",
+            DeprecationWarning,
+        )
+        self.require_compat("pyam")
+        return self.get_comp("as_pyam").add_tasks(self, *args, **kwargs)
