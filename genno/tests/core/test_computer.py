@@ -209,7 +209,6 @@ def test_order():
     c.add("b:x-y", 2.2)
 
     def func(*args):
-        print("sum args", args)
         return sum(args)
 
     # Dimensions in correct order
@@ -299,10 +298,18 @@ def test_add0():
 
     # One missing key
     with pytest.raises(MissingKeyError, match=msg("b")):
+        c.add("ab", "mul", "a", "b")
+    with pytest.raises(MissingKeyError, match=msg("b")), pytest.warns(
+        DeprecationWarning
+    ):
         c.add_product("ab", "a", "b")
 
     # Two missing keys
     with pytest.raises(MissingKeyError, match=msg("c", "b")):
+        c.add("abc", "mul", "c", "a", "b")
+    with pytest.raises(MissingKeyError, match=msg("c", "b")), pytest.warns(
+        DeprecationWarning
+    ):
         c.add_product("abc", "c", "a", "b")
 
     # Using apply() targeted at non-existent keys also raises an Exception
@@ -449,7 +456,8 @@ def test_add_product(ureg):
     *_, x = add_test_data(c)
 
     # add_product() works
-    key = c.add_product("x squared", "x", "x", sums=True)
+    with pytest.warns(DeprecationWarning):
+        key = c.add_product("x squared", "x", "x", sums=True)
 
     # Product has the expected dimensions
     assert key == "x squared:t-y"
@@ -522,10 +530,10 @@ def test_check_keys():
     c.check_keys("a:y-x", "a:x-y", "b:z-y", "b:y-z")
 
     # Non-existent keys, both bare strings and those parsed to Key()
-    assert c.check_keys("foo", "foo:bar-baz", action="return") is None
+    assert [None, None] == c.check_keys("foo", "foo:bar-baz", action="return")
 
     # Check a lookup using the index
-    c.add("a:y-x:foo")
+    c.add("a:y-x:foo", None)
     assert [Key("a", "yx", "foo")] == c.check_keys("a::foo")
 
 
@@ -652,7 +660,7 @@ def test_file_io(tmp_path):
 
     # File can be added to the Computer before it is created, because the file is not
     # read until/unless required
-    k1 = c.add_file(p)
+    k1 = c.add("load_file", p)
 
     # File has the expected key
     assert k1 == "file foo.txt"
@@ -684,19 +692,19 @@ def test_file_formats(test_data_path, tmp_path):
 
     # CSV file is automatically parsed to xr.DataArray
     p1 = test_data_path / "input0.csv"
-    k = c.add_file(p1, units=pint.Unit("km"))
+    k = c.add("load_file", p1, units=pint.Unit("km"))
     assert_qty_equal(c.get(k), expected)
 
     # Dimensions can be specified
     p2 = test_data_path / "input1.csv"
-    k2 = c.add_file(p2, dims=dict(i="i", j_dim="j"))
+    k2 = c.add("load_file", p2, dims=dict(i="i", j_dim="j"))
     assert_qty_equal(c.get(k), c.get(k2))
 
     # Units are loaded from a column
     assert c.get(k2).units == pint.Unit("km")
 
     # Specifying units that do not match file contents → ComputationError
-    c.add_file(p2, key="bad", dims=dict(i="i", j_dim="j"), units="kg")
+    c.add("load_file", p2, key="bad", dims=dict(i="i", j_dim="j"), units="kg")
     with pytest.raises(ComputationError):
         c.get("bad")
 
@@ -781,7 +789,7 @@ def vis_computer():
 
     c = Computer()
     add_test_data(c)
-    c.add_product("z", "x:t", "x:y")
+    c.add("z", "mul", "x:t", "x:y")
     c.add("y::0", itemgetter(0), "y")
     c.add("y0", "y::0")  # Simple alias
     c.add("index_to", "z::indexed", "z:y", "y::0")

@@ -129,7 +129,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
         return df.drop(["t", "m"], axis=1)
 
     # Use the convenience function to add the node
-    key2 = c.convert_pyam(ACT, rename=rename, collapse=add_tm)
+    with pytest.warns(DeprecationWarning):
+        key2 = c.convert_pyam(ACT, rename=rename, collapse=add_tm)
+
+    key2 = c.add(ACT, "as_pyam", rename=rename, collapse=add_tm)
 
     # Keys of added node(s) are returned
     assert ACT.name + "::iamc" == key2
@@ -180,9 +183,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
 
     # Use a name map to replace variable names
     replacements = {re.escape("Activity|canning_plant|production"): "Foo"}
-    key3 = c.convert_pyam(
-        ACT, rename=rename, replace=dict(variable=replacements), collapse=add_tm
-    )
+    kw = dict(rename=rename, replace=dict(variable=replacements), collapse=add_tm)
+    with pytest.warns(DeprecationWarning):
+        key3 = c.convert_pyam(ACT, **kw)
+    key3 = c.add(ACT, "as_pyam", **kw)
     df3 = c.get(key3).as_pandas()
 
     # Values are the same; different names
@@ -193,7 +197,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
 
     # Now convert variable cost
     cb = partial(add_tm, name="Variable cost")
-    key4 = c.convert_pyam("var_cost", rename=rename, collapse=cb)
+    kw = dict(rename=rename, collapse=cb)
+    with pytest.warns(DeprecationWarning):
+        key4 = c.convert_pyam("var_cost", **kw)
+    key4 = c.add("var_cost", "as_pyam", **kw)
     df4 = c.get(key4).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
