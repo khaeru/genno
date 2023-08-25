@@ -442,19 +442,12 @@ class Computer:
             # Something else, such as pd.DataFrame or a literal
             return computation
 
-        # True if the element is key-like
-        is_keylike = list(map(lambda e: isinstance(e, (str, Key)), computation))
-
-        # Run only the key-like elements through check_keys(); make an iterator
-        checked = iter(self.check_keys(*compress(computation, is_keylike)))
-
         # Assemble the result using either checked keys (with properly ordered
         # dimensions) or unmodified elements from `computation`; cast to the same type
         return type(computation)(
-            [
-                next(checked) if is_keylike[i] else elem
-                for i, elem in enumerate(computation)
-            ]
+            self.check_keys(
+                *computation, predicate=lambda e: not isinstance(e, (Key, str))
+            )
         )
 
     def apply(self, generator, *keys, **kwargs):
