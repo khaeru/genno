@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Tuple
 
 if TYPE_CHECKING:
     from .computer import Computer
@@ -27,9 +27,7 @@ class Computation:
         """Register `func` as the convenience method for adding task(s)."""
         self._add_tasks = func
 
-    def add_tasks(
-        self, c: "Computer", *args, **kwargs
-    ) -> Union["KeyLike", Tuple["KeyLike", ...]]:
+    def add_tasks(self, c: "Computer", *args, **kwargs) -> Tuple["KeyLike", ...]:
         """Invoke :attr:`_add_task` to add (a) task(s) to `c`."""
         if self._add_tasks is None:
             raise NotImplementedError
