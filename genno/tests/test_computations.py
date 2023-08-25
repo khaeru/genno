@@ -626,6 +626,9 @@ def test_relabel(data):
     for args in [
         ("test", computations.relabel, "x:t-y", args),
         ("test", partial(computations.relabel, **args), "x:t-y"),
+        ("test", "relabel", "x:t-y", args),
+        ("test", "relabel", "x:t-y", "labels"),
+        # Deprecated
         ("relabel", "test", "x:t-y", args),
         ("relabel", "test", "x:t-y", "labels"),
     ]:
@@ -661,6 +664,9 @@ def test_rename_dims(data):
     for args in [
         ("test", computations.rename_dims, "x:t-y", args),
         ("test", partial(computations.rename_dims, **args), "x:t-y"),
+        ("test", "rename_dims", "x:t-y", args),
+        ("test", "rename_dims", "x:t-y", "dim name map"),
+        # Deprecated
         ("rename_dims", "test", "x:t-y", args),
         ("rename_dims", "test", "x:t-y", "dim name map"),
     ]:
@@ -749,7 +755,7 @@ def test_select_bigmem():
     k = c.add("random indexers", random_indexers, keys[0])
 
     # Add a task to select some values
-    key = c.add("select", "test key", keys[0], k)
+    key = c.add("test key", "select", keys[0], k)
 
     if Quantity._get_class() is SparseDataArray:
         # ValueError: invalid dims: array size defined by dims is larger than the
