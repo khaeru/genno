@@ -229,7 +229,7 @@ class Computer:
 
         Returns
         -------
-        list of Key-like
+        Key-like or tuple of Key-like
             Some or all of the keys added to the Computer.
 
         See also
@@ -237,6 +237,8 @@ class Computer:
         add_single
         add_queue
         apply
+        iter_keys
+        single_key
         """
         if isinstance(data, list):
             # A list. Use add_queue to add

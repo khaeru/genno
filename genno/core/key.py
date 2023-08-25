@@ -2,7 +2,7 @@ import logging
 import re
 from functools import partial, singledispatchmethod
 from itertools import chain, compress
-from typing import Callable, Generator, Iterable, Optional, Tuple, Union
+from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, Union
 from warnings import warn
 
 from genno.core.quantity import Quantity
@@ -285,3 +285,45 @@ def combo_partition(iterable):
         # Two binary lists
         a, b = zip(*[(v, not v) for v in map(int, format(n, fmt))])
         yield list(compress(iterable, a)), list(compress(iterable, b))
+
+
+def iter_keys(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Iterator[Key]:
+    """Yield :class:`Keys <Key>` from `value`.
+
+    Raises
+    ------
+    TypeError
+        `value` is not an iterable of :class:`Key`.
+
+    See also
+    --------
+    Computer.add
+    """
+    if not isinstance(value, Iterable):
+        raise TypeError(type(value))
+    for element in value:
+        if not isinstance(element, Key):
+            raise TypeError(type(element))
+        yield element
+
+
+def single_key(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Key:
+    """Ensure `value` is a single :class:`Key`.
+
+    Raises
+    ------
+    TypeError
+        `value` is not a :class:`Key` or 1-tuple of :class:`Key`.
+
+    See also
+    --------
+    Computer.add
+    """
+    if isinstance(value, tuple):
+        assert 1 == len(value)
+        result = value[0]
+    else:
+        result = value
+    if not isinstance(result, Key):
+        raise TypeError(type(result))
+    return result
