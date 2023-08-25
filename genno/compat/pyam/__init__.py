@@ -17,9 +17,14 @@ log = logging.getLogger(__name__)
 @handles("iamc")
 def iamc(c: Computer, info):
     """Handle one entry from the ``iamc:`` config section."""
-    if not HAS_PYAM:  # pragma: no cover
-        log.warning("Missing pyam; configuration section 'iamc:' ignored")
-        return
+    try:
+        c.require_compat("pyam")
+    except ModuleNotFoundError:
+        if not HAS_PYAM:  # pragma: no cover
+            log.warning("Missing pyam; configuration section 'iamc:' ignored")
+            return
+        else:
+            raise
 
     from . import util
 
