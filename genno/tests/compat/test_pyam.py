@@ -89,7 +89,7 @@ def test_as_pyam(dantzig_computer, scenario):
         computations.as_pyam(scenario, input)
 
 
-def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
+def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     caplog.set_level(logging.INFO)
     c = dantzig_computer
 
@@ -207,9 +207,11 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     assert all(df4["unit"] == "USD / case")
 
     # Also change units
-    key5 = c.convert_pyam(
-        "var_cost", rename=rename, collapse=cb, unit="centiUSD / case"
-    )
+    kw = dict(rename=rename, collapse=cb, unit="centiUSD / case")
+    with pytest.warns(DeprecationWarning):
+        key5 = c.convert_pyam("var_cost", **kw)
+    key5 = c.add("var_cost", "as_pyam", **kw)
+
     df5 = c.get(key5).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
@@ -218,6 +220,7 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
 
 
 def test_convert_pyam_deprecated():
+    """Test deprecated usage of `replace` parameter to as_pyam."""
     c = Computer()
 
     c.add("foo", None)
