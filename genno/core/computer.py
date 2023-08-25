@@ -239,43 +239,64 @@ class Computer:
         iter_keys
         single_key
         """
-        if isinstance(data, list):
-            # A list. Use add_queue to add
+        # Other methods
+        if isinstance(data, Sequence) and not isinstance(data, str):
+            # Sequence of (args, kwargs) or args; use add_queue()
             return self.add_queue(data, *args, **kwargs)
-
-        elif func := self.get_comp(data):
-            # *data* is the name of a pre-defined computation
-            try:
-                # Use an implementation of Computation.add_task()
-                return func.add_tasks(*args, **kwargs)
-            except (AttributeError, NotImplementedError):
-                # No implementation; add manually
-                func, kwargs = partial_split(func, kwargs)
-                return self.add(args[0], func, *args[1:], **kwargs)
-
-        elif isinstance(data, str) and data in dir(self):
+        elif isinstance(data, str) and data in dir(self) and data != "add":
             # Name of another method such as "apply" or "eval"
             return getattr(self, data)(*args, **kwargs)
 
-        elif isinstance(data, (str, Key)):
-            # *data* is a key, *args* are the computation
-            key, computation = data, args
-            sums = kwargs.pop("sums", False)
-            fail = kwargs.pop("fail", "fail")
-
-            # Add a single computation (without converting to Key)
-            result = self.add_single(key, *computation, **kwargs)
-
-            if sums:
-                # Ensure `key`` is a Key object in order to use .iter_sums(); add one
-                # entry for each sum
-                return (result,) + self.add_queue(Key(key).iter_sums(), fail=fail)
-            else:
-                return result
-
+        # Possibly identify a named or direct callable in `data` or `args[0]`
+        func: Optional[Callable] = None
+        if func := self.get_comp(data):
+            # `data` is the name of a pre-defined computation
+            # NB in the future, could raise some warning here to suggest the second form
+            pass
         else:
-            # Some other kind of input
-            raise TypeError(f"{type(data)} `data` argument")
+            # Further checks
+            if not isinstance(data, (Key, str)):
+                raise TypeError(f"{type(data)} `data` argument")
+            elif not len(args):
+                raise TypeError("At least 1 argument required")
+
+            # Check if the first element of `args` references a computation is callable
+            func = self.get_comp(args[0]) or (args[0] if callable(args[0]) else None)
+
+            # Located a callable in args[0], so `data` joins args[1:]
+            if func:
+                args = (data,) + args[1:]
+
+        if func:
+            try:
+                # Use an implementation of Computation.add_task()
+                return func.add_tasks(self, *args, **kwargs)  # type: ignore[union-attr]
+            except (AttributeError, NotImplementedError):
+                # Computation obj that doesn't implement .add_tasks(), or plain callable
+                _partialed_func, kw = partial_split(func, kwargs)
+                key = args[0]
+                computation = (_partialed_func,) + args[1:]
+        else:
+            # `func` is None, for instance args[0] is a list of keys to be collected, or
+            # some literal value
+            key = data
+            computation = args
+            kw = kwargs
+
+        # Keyword arguments not understood by .add_single() and/or .add_queue()
+        sums = kw.pop("sums", False)
+        fail = kw.pop("fail", "fail")
+
+        # Add a single computation
+        result = self.add_single(key, *computation, **kw)
+
+        # Optionally add sums
+        if isinstance(result, Key) and sums:
+            # Add one entry for each of the partial sums of `result`
+            return (result,) + self.add_queue(result.iter_sums(), fail=fail)
+        else:
+            # NB This might be deprecated to simplify expectations of calling code
+            return result
 
     def cache(self, func):
         """Decorate `func` so that its return value is cached.
