@@ -23,7 +23,7 @@ class Computation:
     def __repr__(self):
         return f"<{self.__class__.__name__}>"
 
-    def helper(self, func: Callable) -> None:
+    def helper(self, func: Callable[..., Tuple["KeyLike", ...]]) -> None:
         """Register `func` as the convenience method for adding task(s)."""
         self._add_tasks = func
 
