@@ -66,7 +66,7 @@ class Computer:
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
     # element is current; the leftmost is the default.
-    _queue_fail: deque[int]
+    _queue_fail: MutableSequence[int]
 
     def __init__(self, **kwargs):
         self.graph = Graph(config=dict())
