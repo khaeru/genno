@@ -21,7 +21,7 @@ import yaml
 import genno.computations as computations
 from genno.core.computer import Computer
 from genno.core.exceptions import KeyExistsError, MissingKeyError
-from genno.core.key import Key
+from genno.core.key import Key, iter_keys
 from genno.util import REPLACE_UNITS
 
 log = logging.getLogger(__name__)
@@ -211,9 +211,9 @@ def combine(c: Computer, info):
         [partial(computations.combine, select=select, weights=weights)] + quantities
     )
 
-    added = c.add(key, task, strict=True, sums=True)
+    added = iter_keys(c.add(key, task, strict=True, sums=True))
 
-    log.info(f"Add {repr(key)} + {len(added)-1} partial sums")
+    log.info(f"Add {repr(key)} + {len(list(added))-1} partial sums")
     log.debug("    as combination of")
     log.debug(f"    {repr(quantities)}")
 
@@ -236,7 +236,7 @@ def files(c: Computer, info):
 
     info["path"] = path
 
-    c.add_file(**info)
+    c.add("load_file", **info)
 
 
 @handles("general")
@@ -246,15 +246,15 @@ def general(c: Computer, info):
     inputs = c.infer_keys(info.get("inputs", []))
 
     if info["comp"] in ("mul", "product"):
-        key = c.add_product(info["key"], *inputs)
-        log.info(f"Add {repr(key)} using .add_product()")
+        result = c.add(info["key"], "mul", *inputs)
+        log.info(f"Add {repr(result)} using .add_product()")
     else:
         # The resulting key
         key = info["key"]
         key = key if Key.bare_name(key) else Key(key)
 
         # Infer the dimensions of the resulting key if ":*:" is given for the dims
-        if set(getattr(key, "dims", {})) == {"*"}:
+        if isinstance(key, Key) and key.dims == ("*",):
             key = Key.product(key.name, *inputs, tag=key.tag)
             # log.debug(f"Inferred dimensions ({', '.join(key.dims)}) for '*'")
 
@@ -285,7 +285,7 @@ def report(c: Computer, info):
     """Handle one entry from the ``report:`` config section."""
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
-    # Concatenatqe pyam data structures
+    # Concatenate pyam data structures
     c.add(info["key"], tuple([c.get_comp("concat")] + info["members"]), strict=True)
 
 
