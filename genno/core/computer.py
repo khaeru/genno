@@ -674,12 +674,14 @@ class Computer:
         # Process all keys to produce more useful error messages
         result = list(map(_check, keys))
 
-        if action == "raise" and any(i is None for i in result):
-            # 1 or more keys missing
-            # Identify values in `keys` corresponding to None in `result`
-            raise MissingKeyError(
+        if action == "raise":
+            # Construct an exception with only (non-None) `keys` that correspond to None
+            # in `result`
+            exc = MissingKeyError(
                 *filter(None, compress(keys, map(lambda r: r is None, result)))
             )
+            if len(exc.args):  # 1 or more keys missing
+                raise exc
 
         return result
 
