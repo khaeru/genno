@@ -1,10 +1,13 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Hashable, Sequence
+from typing import TYPE_CHECKING, Hashable, Sequence
 
 import plotnine as p9
 
 from genno.core.quantity import Quantity
+
+if TYPE_CHECKING:
+    from genno.core.computer import Computer
 
 log = logging.getLogger(__name__)
 
@@ -87,6 +90,13 @@ class Plot(ABC):
             - The third and following elements are the `inputs`.
         """
         return tuple([cls().save, "config"] + (list(inputs) if inputs else cls.inputs))
+
+    @classmethod
+    def add_tasks(cls, c: "Computer", key, *inputs, strict: bool = False):
+        _inputs = list(inputs if inputs else cls.inputs)
+        if strict:
+            _inputs = c.check_keys(*_inputs)
+        c.add_single(key, cls().save, "config", *_inputs)
 
     @abstractmethod
     def generate(self, *args, **kwargs):
