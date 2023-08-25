@@ -719,21 +719,23 @@ class Computer:
                 raise NotImplementedError("aggregate() along >1 dimension")
 
             key = Key(qty).add_tag(tag)
-            comp: Tuple[Any, ...] = (
+            args: Tuple[Any, ...] = (
                 computations.aggregate,
                 qty,
                 dask.core.quote(groups),
                 keep,
             )
+            kwargs = dict()
         else:
             dims = dims_or_groups
             if isinstance(dims, str):
                 dims = [dims]
 
             key = Key(qty).drop(*dims).add_tag(tag)
-            comp = (partial(computations.sum, dimensions=dims), qty, weights)
+            args = ("sum", qty, weights)
+            kwargs = dict(dimensions=dims)
 
-        return self.add(key, comp, strict=True, sums=sums, fail=fail)
+        return self.add(key, *args, **kwargs, strict=True, sums=sums, fail=fail)
 
     add_aggregate = aggregate
 
