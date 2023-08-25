@@ -1,6 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Hashable, Sequence
+from warnings import warn
 
 import plotnine as p9
 
@@ -89,6 +90,13 @@ class Plot(ABC):
               Computer.
             - The third and following elements are the `inputs`.
         """
+        inputs_repr = ",".join(map(repr, inputs))
+        warn(
+            f"Plot.make_task(…). Use: Computer.add(…, {cls.__name__}"
+            + (", " if inputs_repr else "")
+            + f"{inputs_repr})",
+            DeprecationWarning,
+        )
         return tuple([cls().save, "config"] + (list(inputs) if inputs else cls.inputs))
 
     @classmethod
