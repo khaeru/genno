@@ -4,7 +4,6 @@ from functools import partial
 from importlib import import_module
 from inspect import signature
 from itertools import compress
-from operator import itemgetter
 from pathlib import Path
 from types import ModuleType
 from typing import (
@@ -606,38 +605,64 @@ class Computer:
         return result
 
     def check_keys(
-        self, *keys: Union[str, Key], action="raise"
-    ) -> Optional[List[Union[str, Key]]]:
+        self, *keys: Union[str, Key], predicate=None, action="raise"
+    ) -> List[KeyLike]:
         """Check that `keys` are in the Computer.
 
-        If any of `keys` is not in the Computer and `action` is "raise" (the default)
-        :class:`KeyError` is raised. Otherwise, a list is returned with either the key
-        from `keys`, or the corresponding :meth:`full_key`.
 
-        If `action` is "return" (or any other value), :class:`None` is returned on
-        missing keys.
+        Parameters
+        ----------
+        keys : KeyLike
+            Some :class:`Keys <Key>` or strings.
+        predicate : callable, optional
+            Function to run on each of `keys`; see below.
+        action : "raise" or any other value
+            Action to take on missing `keys`.
+
+        Returns
+        -------
+        list of KeyLike
+            One item for each item ``k`` in `keys`:
+
+            1. ``k`` itself, unchanged, if `predicate` is given and ``predicate(k)``
+               returns :obj:`True`.
+            2. :meth:`Graph.unsorted_key`, that is, ``k`` but with its dimensions in a
+               specific order that already appears in :attr:`graph`.
+            3. :meth:`Graph.full_key`, that is, an existing key with the name ``k`` with
+               its full dimensionality.
+            4. :obj:`None` otherwise.
+
+        Raises
+        ------
+        MissingKeyError
+            If `action` is "raise" and 1 or more of `keys` do not appear (either in
+            different dimension order, or full dimensionality) in the :attr:`graph`.
         """
+        # Suppress traceback from within this function
+        __tracebackhide__ = True
+
+        if predicate:
+            _p = predicate
+        else:
+            # Default predicate: always false
+            def _p(x):
+                return False
 
         def _check(value):
-            return self.graph.unsorted_key(value) or self.graph.full_key(value)
+            if _p(value):
+                return value
+            else:
+                return self.graph.unsorted_key(value) or self.graph.full_key(value)
 
         # Process all keys to produce more useful error messages
         result = list(map(_check, keys))
 
-        if result.count(None):
-            if action == "raise":
-                # 1 or more keys missing
-                # Suppress traceback from within this function
-                __tracebackhide__ = True
-
-                # Identify values in `keys` corresponding to None in `result`
-                raise MissingKeyError(
-                    *map(
-                        itemgetter(0), filter(lambda i: i[1] is None, zip(keys, result))
-                    )
-                )
-            else:
-                return None
+        if action == "raise" and any(i is None for i in result):
+            # 1 or more keys missing
+            # Identify values in `keys` corresponding to None in `result`
+            raise MissingKeyError(
+                *filter(None, compress(keys, map(lambda r: r is None, result)))
+            )
 
         return result
 
