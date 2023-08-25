@@ -483,6 +483,9 @@ class Computer:
             # Update the graph with the computations
             self.graph.update(applied)
 
+        # FIXME capture and return the added keys
+        return ()
+
     def eval(self, expr: str) -> Tuple[Key, ...]:
         r"""Evaluate `expr` to add tasks and keys.
 
