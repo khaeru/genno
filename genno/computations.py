@@ -29,7 +29,7 @@ from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
 from genno.core.computation import computation
-from genno.core.key import Key
+from genno.core.key import Key, iter_keys
 from genno.core.quantity import (
     Quantity,
     assert_quantity,
@@ -726,7 +726,7 @@ def add_mul(func, c: "Computer", key, *quantities, sums=True) -> Key:
         The full key of the new quantity.
     """
     # Fetch the full key for each quantity
-    base_keys = list(map(Key, c.check_keys(*quantities) or []))
+    base_keys = c.check_keys(*quantities, predicate=lambda v: isinstance(v, Quantity))
 
     # Compute a key for the result
     # Parse the name and tag of the target
@@ -735,9 +735,9 @@ def add_mul(func, c: "Computer", key, *quantities, sums=True) -> Key:
     key = Key.product(key.name, *base_keys, tag=key.tag)
 
     # Add the basic product to the graph and index
-    keys = c.add(key, func, *base_keys, sums=sums)
+    keys = iter_keys(c.add(key, func, *base_keys, sums=sums))
 
-    return keys[0]
+    return next(keys)
 
 
 #: Alias of :func:`mul`, for backwards compatibility.
