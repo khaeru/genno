@@ -841,10 +841,12 @@ class Computer:
     # Deprecated methods
 
     def add_file(self, *args, **kwargs):
+        arg = (args[1:2] if len(args) else None) or None
         warn(
-            "Computer.add_file(…). Use: Computer.add("
-            f'{kwargs.get("key") or args[1] if len(args) else "…"!r}, "load_file", …)',
+            f"Computer.add_file(…). Use: Computer.add({kwargs.get('key', arg)!r}, "
+            '"load_file", …)',
             DeprecationWarning,
+            stacklevel=-1,
         )
         return computations.load_file.add_tasks(self, *args, **kwargs)
 
@@ -852,6 +854,7 @@ class Computer:
         warn(
             f'Computer.add_product(…). Use: Computer.add({args[0]!r}, "mul", …)',
             DeprecationWarning,
+            stacklevel=-1,
         )
         return computations.mul.add_tasks(self, *args, **kwargs)
 
@@ -861,6 +864,7 @@ class Computer:
     Computer.require_compat("pyam")
     Computer.add({args[0]!r}, "as_pyam", …)""",
             DeprecationWarning,
+            stacklevel=-1,
         )
         self.require_compat("pyam")
         return self.get_comp("as_pyam").add_tasks(self, *args, **kwargs)
