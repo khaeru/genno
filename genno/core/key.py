@@ -238,6 +238,10 @@ class Key:
         """A version of the Key with its :attr:`dims` sorted alphabetically."""
         return Key(self._name, sorted(self._dims), self._tag, _fast=True)
 
+    def rename(self, name: str) -> "Key":
+        """Return a Key with a replaced `name`."""
+        return Key(name, self._dims, self._tag, _fast=True)
+
     def drop(self, *dims: Union[str, bool]) -> "Key":
         """Return a new Key with `dims` dropped."""
         return Key(
