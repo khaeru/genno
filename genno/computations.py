@@ -415,10 +415,11 @@ def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
 
 
 def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
-    """Disaggregate *quantity* by *shares*."""
-    result = quantity * shares
-    result.units = collect_units(quantity)[0]
-    return result
+    """Deprecated: Disaggregate `quantity` by `shares`.
+
+    This operator is identical to :func:`mul`; use :func:`mul` and its helper instead.
+    """
+    return mul(quantity, shares)
 
 
 def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
