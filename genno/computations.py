@@ -699,11 +699,8 @@ def _load_file_csv(
 @Operator.define
 def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
-
     result = reduce(operator.mul, quantities)
-    u_result = reduce(operator.mul, collect_units(*quantities))
-
-    result.units = u_result
+    result.units = reduce(operator.mul, collect_units(*quantities))
 
     return result
 
