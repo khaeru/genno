@@ -143,7 +143,7 @@ def test_plot_none(caplog, tmp_path):
         def generate(self):
             return []
 
-    c.add("plot-1", Plot1.make_task())
+    c.add("plot-1", Plot1)
     # Returns None
     assert c.get("plot-1") is None
     # Message is logged
@@ -151,6 +151,6 @@ def test_plot_none(caplog, tmp_path):
 
     caplog.clear()
 
-    c.add("plot-2", Plot2.make_task())
+    c.add("plot-2", Plot2)
     assert c.get("plot-2") is None
     assert "Plot2.generate() returned []; no output" == caplog.messages[-1]
