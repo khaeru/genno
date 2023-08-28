@@ -238,7 +238,7 @@ class Key:
         """A version of the Key with its :attr:`dims` sorted alphabetically."""
         return Key(self._name, sorted(self._dims), self._tag, _fast=True)
 
-    def drop(self, *dims: Union[str, bool]):
+    def drop(self, *dims: Union[str, bool]) -> "Key":
         """Return a new Key with `dims` dropped."""
         return Key(
             self._name,
@@ -247,15 +247,15 @@ class Key:
             _fast=True,
         )
 
-    def drop_all(self):
+    def drop_all(self) -> "Key":
         """Return a new Key with all dimensions dropped / zero dimensions."""
         return Key(self._name, tuple(), self._tag, _fast=True)
 
-    def append(self, *dims: str):
+    def append(self, *dims: str) -> "Key":
         """Return a new Key with additional dimensions `dims`."""
         return Key(self._name, list(self._dims) + list(dims), self._tag, _fast=True)
 
-    def add_tag(self, tag):
+    def add_tag(self, tag) -> "Key":
         """Return a new Key with `tag` appended."""
         return Key(
             self._name, self._dims, "+".join(filter(None, [self._tag, tag])), _fast=True
