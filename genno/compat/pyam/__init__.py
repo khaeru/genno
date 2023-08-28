@@ -21,8 +21,8 @@ def iamc(c: Computer, info):
     """Handle one entry from the ``iamc:`` config section."""
     try:
         c.require_compat("pyam")
-    except ModuleNotFoundError:
-        if not HAS_PYAM:  # pragma: no cover
+    except ModuleNotFoundError:  # pragma: no cover
+        if not HAS_PYAM:
             log.warning("Missing pyam; configuration section 'iamc:' ignored")
             return
         else:
