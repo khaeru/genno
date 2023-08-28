@@ -156,10 +156,10 @@ def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMap
     try:
         par_names: Mapping = signature(func).parameters
     except ValueError:
-        if callable(func):  # operator.itemgetter(…) or similar
-            par_names = {}
-        else:
-            raise
+        # signature() raises for operator.itemgetter(…), built-ins, and similar
+        if not callable(func):
+            raise TypeError(type(func))
+        par_names = {}
 
     func_args, extra = {}, {}
     for name, value in kwargs.items():
@@ -172,7 +172,10 @@ def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMap
         else:
             extra[name] = value
 
-    return partial(func, **func_args), extra
+    if func_args:
+        return partial(func, **func_args), extra
+    else:
+        return func, extra  # Nothing to partial; return `func` as-is
 
 
 def unquote(value):

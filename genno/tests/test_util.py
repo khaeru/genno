@@ -108,6 +108,9 @@ def test_partial_split():
     _, extra = partial_split(func2, kwargs)
     assert {"baz"} == set(extra.keys())
 
+    with pytest.raises(TypeError):
+        partial_split(1.2, kwargs)
+
 
 @pytest.mark.parametrize(
     "value, exp",
