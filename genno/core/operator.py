@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from .key import KeyLike
 
 
-class Computation:
+class Operator:
     """Base class for a callable with convenience methods."""
 
     # Use these specific attribute names to be intelligible to functools.partial()
@@ -23,19 +23,19 @@ class Computation:
     def __repr__(self):
         return f"<{self.__class__.__name__}>"
 
+    @staticmethod
+    def define(func: Callable) -> "Operator":
+        """Create a :class:`Operator` object that wraps `func`."""
+        # Create a class and return an instance of it
+        return type(func.__name__, (Operator,), {})(func)
+
     def helper(self, func: Callable[..., Tuple["KeyLike", ...]]) -> None:
         """Register `func` as the convenience method for adding task(s)."""
         self._add_tasks = func
 
     def add_tasks(self, c: "Computer", *args, **kwargs) -> Tuple["KeyLike", ...]:
-        """Invoke :attr:`_add_task` to add (a) task(s) to `c`."""
+        """Invoke :attr:`_add_task` to add tasks to `c`."""
         if self._add_tasks is None:
             raise NotImplementedError
 
         return self._add_tasks(self.func, c, *args, **kwargs)
-
-
-def computation(func: Callable):
-    """Create a :class:`Computation` object that wraps `func`."""
-    # Create a class and return an instance of it
-    return type(func.__name__, (Computation,), {})(func)

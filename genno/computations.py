@@ -28,8 +28,8 @@ from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
-from genno.core.computation import computation
 from genno.core.key import Key, iter_keys
+from genno.core.operator import Operator
 from genno.core.quantity import (
     Quantity,
     assert_quantity,
@@ -539,7 +539,7 @@ def interpolate(
     return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
-@computation
+@Operator.define
 def load_file(
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
@@ -696,7 +696,7 @@ def _load_file_csv(
     )
 
 
-@computation
+@Operator.define
 def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of *quantities*."""
 

@@ -8,8 +8,8 @@ from warnings import warn
 import pyam
 
 import genno.computations
-from genno.core.computation import computation
 from genno.core.key import Key
+from genno.core.operator import Operator
 
 from . import util
 
@@ -22,7 +22,7 @@ log = logging.getLogger(__name__)
 __all__ = ["as_pyam", "concat", "write_report"]
 
 
-@computation
+@Operator.define
 def as_pyam(
     scenario,
     quantity,
