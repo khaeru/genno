@@ -709,7 +709,7 @@ def mul(*quantities: Quantity) -> Quantity:
 
 
 @mul.helper
-def add_mul(func, c: "Computer", key, *quantities, sums=True) -> Key:
+def add_mul(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     """Add a computation that takes the product of `quantities`.
 
     Parameters
@@ -735,9 +735,10 @@ def add_mul(func, c: "Computer", key, *quantities, sums=True) -> Key:
     key = Key.product(key.name, *base_keys, tag=key.tag)
 
     # Add the basic product to the graph and index
-    keys = iter_keys(c.add(key, func, *base_keys, sums=sums))
+    kwargs.setdefault("sums", True)
+    keys = iter_keys(c.add(key, func, *base_keys, **kwargs))
 
-    return next(keys)
+    return next(keys) if kwargs["sums"] else single_key(keys)
 
 
 #: Alias of :func:`mul`, for backwards compatibility.
