@@ -303,15 +303,18 @@ def iter_keys(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Iterator[Key]:
     --------
     Computer.add
     """
-    if not isinstance(value, Iterable):
-        raise TypeError(type(value))
-    for element in value:
+    if isinstance(value, (Key, str)):
+        yield Key(value)
+        tmp: Iterator[KeyLike] = iter(())
+    else:
+        tmp = iter(value)
+    for element in tmp:
         if not isinstance(element, Key):
             raise TypeError(type(element))
         yield element
 
 
-def single_key(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Key:
+def single_key(value: Union[KeyLike, Tuple[KeyLike, ...], Iterator]) -> Key:
     """Ensure `value` is a single :class:`Key`.
 
     Raises
@@ -323,11 +326,23 @@ def single_key(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Key:
     --------
     Computer.add
     """
-    if isinstance(value, tuple):
-        assert 1 == len(value)
-        result = value[0]
+    if isinstance(value, (Key, str)):
+        return Key(value)
+
+    tmp = iter(value)
+    try:
+        result = next(tmp)
+    except StopIteration:
+        raise TypeError("Empty iterable")
     else:
-        result = value
-    if not isinstance(result, Key):
+        try:
+            next(tmp)
+        except StopIteration:
+            pass
+        else:
+            raise TypeError("Iterable of length >1")
+
+    if isinstance(result, Key):
+        return result
+    else:
         raise TypeError(type(result))
-    return result

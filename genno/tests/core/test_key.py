@@ -1,6 +1,7 @@
 import pytest
 
 from genno import Key
+from genno.core.key import iter_keys, single_key
 
 
 def test_key():
@@ -133,3 +134,24 @@ def test_gt_lt():
 
     with pytest.raises(TypeError):
         assert k > 1.1
+
+
+def test_iter_keys():
+    # Non-iterable
+    with pytest.raises(TypeError):
+        next(iter_keys(1.2))
+
+    # Iterable containing non-keys
+    with pytest.raises(TypeError):
+        list(iter_keys([Key("a"), Key("b"), 1.2]))
+
+
+def test_single_key():
+    # Single key is unpacked
+    k = Key("a")
+    result = single_key((k,))
+    assert k is result
+
+    # Tuple containing 1 non-key
+    with pytest.raises(TypeError):
+        single_key((1.2,))
