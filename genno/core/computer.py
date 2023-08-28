@@ -847,6 +847,7 @@ class Computer:
     # Deprecated methods
 
     def add_file(self, *args, **kwargs):
+        """Deprecated. Use ``Computer.add(…, "load_file" …) instead."""
         arg = (args[1:2] if len(args) else None) or None
         warn(
             f"Computer.add_file(…). Use: Computer.add({kwargs.get('key', arg)!r}, "
@@ -857,6 +858,7 @@ class Computer:
         return computations.load_file.add_tasks(self, *args, **kwargs)
 
     def add_product(self, *args, **kwargs):
+        """Deprecated. Use ``Computer.add(…, "mul" …) instead."""
         warn(
             f'Computer.add_product(…). Use: Computer.add({args[0]!r}, "mul", …)',
             DeprecationWarning,
@@ -865,6 +867,15 @@ class Computer:
         return computations.mul.add_tasks(self, *args, **kwargs)
 
     def convert_pyam(self, *args, **kwargs):
+        """Deprecated. Instead, use:
+
+        .. code-block:: python
+
+           c = Computer()
+           c.require_compat("pyam")
+           c.add(…, "as_pyam", …)
+
+        """
         warn(
             f"""Computer.convert_pyam(…). Use:
     Computer.require_compat("pyam")
