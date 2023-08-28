@@ -38,6 +38,28 @@ class TestComputer:
     def c(self):
         return Computer()
 
+    def test_add_invalid0(self, c):
+        with pytest.raises(TypeError, match="At least 1 argument required"):
+            c.add("foo")
+
+    def test_deprecated_add_file(self, tmp_path, c):
+        # Path to a temporary file
+        p = tmp_path / "foo.csv"
+
+        p.write_text(
+            """# Comment
+         x,  y, value
+        x1, y1, 1.2
+        """
+        )
+
+        with pytest.warns(DeprecationWarning):
+            k1 = c.add_file(p, name="foo")
+        assert k1 == "file foo.csv"
+
+        result = c.get(k1)
+        assert ("x", "y") == result.dims
+
     def test_deprecated_disaggregate(self, c):
         *_, x = add_test_data(c)
         c.add("z_shares", "<share data>")
