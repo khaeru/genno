@@ -28,6 +28,52 @@ from genno.testing import (
 log = logging.getLogger(__name__)
 
 
+def msg(*keys):
+    """Return a regex for str(MissingKeyError(*keys))."""
+    return re.escape(f"required keys {repr(tuple(keys))} not defined")
+
+
+class TestComputer:
+    @pytest.fixture
+    def c(self):
+        return Computer()
+
+    def test_deprecated_disaggregate(self, c):
+        *_, x = add_test_data(c)
+        c.add("z_shares", "<share data>")
+        c.add("a:t-y", "x:t-y", sums=False)
+
+        def func(qty):
+            return type(qty)
+
+        with pytest.warns(DeprecationWarning):
+            k1 = c.disaggregate(Key(x).rename("x"), "z", method=func, args=["z_shares"])
+
+        assert "x:t-y-z" == k1
+        # Produces the expected task
+        assert (func, "x:t-y", "z_shares") == c.graph[k1]
+
+        with pytest.warns(DeprecationWarning):
+            k1 = c.disaggregate(Key(x).rename("a"), "z", args=["z_shares"])
+
+        assert (computations.mul, "a:t-y", "z_shares") == c.graph[k1]
+
+        # MissingKeyError is raised
+        g = Key("g", "hi")
+        with pytest.raises(MissingKeyError, match=msg(g)), pytest.warns(
+            DeprecationWarning
+        ):
+            c.disaggregate(g, "j")
+
+        # Invalid method argument
+        with pytest.raises(ValueError), pytest.warns(DeprecationWarning):
+            c.disaggregate("x:", "d", method="baz")
+
+        # Invalid method argument
+        with pytest.raises(TypeError), pytest.warns(DeprecationWarning):
+            c.disaggregate("x:", "d", method=None)
+
+
 def test_cache(caplog, tmp_path, test_data_path, ureg):
     caplog.set_level(logging.INFO)
 
@@ -292,10 +338,6 @@ def test_add0():
         """A generator for apply()."""
         return (lambda a, b: a * b, "a", other)
 
-    def msg(*keys):
-        """Return a regex for str(MissingKeyError(*keys))."""
-        return re.escape(f"required keys {repr(tuple(keys))} not defined")
-
     # One missing key
     with pytest.raises(MissingKeyError, match=msg("b")):
         c.add("ab", "mul", "a", "b")
@@ -321,11 +363,9 @@ def test_add0():
     with pytest.raises(MissingKeyError, match=msg("b", g)):
         c.add("foo", (computations.mul, "a", "b", g), strict=True)
 
-    # aggregate() and disaggregate() call add(), which raises the exception
+    # aggregate() calls add(), which raises the exception
     with pytest.raises(MissingKeyError, match=msg(g)):
         c.aggregate(g, "tag", "i")
-    with pytest.raises(MissingKeyError, match=msg(g)):
-        c.disaggregate(g, "j")
 
     # add(..., sums=True) also adds partial sums
     c.add("foo:a-b-c", [], sums=True)
@@ -336,8 +376,7 @@ def test_add0():
 
     # add(name, ...) with keyword arguments not recognized by the computation raises an
     # exception
-    msg = "unexpected keyword argument 'bad_kwarg'"
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError, match="unexpected keyword argument 'bad_kwarg'"):
         c.add("select", "bar", "a", bad_kwarg="foo")
 
 
@@ -576,7 +615,7 @@ def test_dantzig(ureg):
     # Disaggregation with explicit data
     # (cases of canned food 'p'acked in oil or water)
     shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-    new_key = c.disaggregate("b:j", "p", args=[Quantity(shares)])
+    new_key = c.add("b", "mul", "b:j", Quantity(shares), sums=False)
 
     # ...produces the expected key with new dimension added
     assert new_key == "b:j-p"
@@ -626,30 +665,6 @@ def test_describe(test_data_path, capsys, ureg):
     # Since quiet=False, description is also printed to stdout
     out2, _ = capsys.readouterr()
     assert desc2 == out2
-
-
-def test_disaggregate():
-    c = Computer()
-    foo = Key("foo", ["a", "b", "c"])
-    c.add(foo, "<foo data>")
-    c.add("d_shares", "<share data>")
-
-    # Disaggregation works
-    c.disaggregate(foo, "d", args=["d_shares"])
-
-    assert "foo:a-b-c-d" in c.graph
-    assert c.graph["foo:a-b-c-d"] == (
-        computations.disaggregate_shares,
-        "foo:a-b-c",
-        "d_shares",
-    )
-
-    # Invalid method
-    with pytest.raises(ValueError):
-        c.disaggregate(foo, "d", method="baz")
-
-    with pytest.raises(TypeError):
-        c.disaggregate(foo, "d", method=None)
 
 
 def test_file_io(tmp_path):

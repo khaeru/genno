@@ -783,44 +783,6 @@ class Computer:
 
     add_aggregate = aggregate
 
-    def disaggregate(self, qty, new_dim, method="shares", args=[]):
-        """Add a computation that disaggregates `qty` using `method`.
-
-        Parameters
-        ----------
-        qty: hashable
-            Key of the quantity to be disaggregated.
-        new_dim: str
-            Name of the new dimension of the disaggregated variable.
-        method: callable or str
-            Disaggregation method. If a callable, then it is applied to `var` with any
-            extra `args`. If a string, then a method named 'disaggregate_{method}' is
-            used.
-        args: list, optional
-            Additional arguments to the `method`. The first element should be the key
-            for a quantity giving shares for disaggregation.
-
-        Returns
-        -------
-        :class:`Key`
-            The key of the newly-added node.
-        """
-        # Compute the new key
-        key = Key(qty).append(new_dim)
-
-        # Get the method
-        if isinstance(method, str):
-            name = f"disaggregate_{method}"
-            try:
-                method = getattr(computations, name)
-            except AttributeError:
-                raise ValueError(f"No disaggregation method '{name}'")
-
-        if not callable(method):
-            raise TypeError(method)
-
-        return self.add(key, tuple([method, qty] + args), strict=True)
-
     def describe(self, key=None, quiet=True):
         """Return a string describing the computations that produce `key`.
 
@@ -912,3 +874,42 @@ class Computer:
         )
         self.require_compat("pyam")
         return self.get_comp("as_pyam").add_tasks(self, *args, **kwargs)
+
+    def disaggregate(self, qty, new_dim, method="shares", args=[]):
+        """Deprecated. Instead use one of:
+
+        For `method` = "disaggregate_shares":
+
+        .. code-block:: python
+
+           c = Computer()
+           c.add(qty.append(new_dim), "mul", qty, …)
+
+        For a :class:`callable` `method`:
+
+        .. code-block:: python
+
+           c.add(qty.append(new_dim), method, qty, …)
+
+        """
+        # Compute the new key
+        key = Key(qty).append(new_dim)
+
+        if method == "shares":
+            arg0 = (repr(args[0]) + ", ") if len(args) else ""
+            msg = (
+                f'method="shares"). Use: Computer.add({key!r}, "mul", {qty!r}, '
+                f"{arg0}…, strict=True)"
+            )
+            method = "mul"
+        elif callable(method):
+            msg = (
+                f"method={method.__name__}). Use: Computer.add({key!r}, "
+                f"{method.__name__}, {qty!r}, …, strict=True)"
+            )
+        else:
+            raise ValueError(method) if isinstance(method, str) else TypeError(method)
+
+        warn(f"Computer.disaggregate(…, {msg}", DeprecationWarning, stacklevel=-1)
+
+        return self.add(key, method, qty, *args, sums=False, strict=True)

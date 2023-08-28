@@ -28,7 +28,7 @@ from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
-from genno.core.key import Key, iter_keys
+from genno.core.key import Key, iter_keys, single_key
 from genno.core.operator import Operator
 from genno.core.quantity import (
     Quantity,
