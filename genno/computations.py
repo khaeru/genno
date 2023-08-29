@@ -737,8 +737,12 @@ def add_mul(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     # Compute a key for the result
     # Parse the name and tag of the target
     key = Key(key)
+
     # New key with dimensions of the product
-    key = Key.product(key.name, *base_keys, tag=key.tag)
+    candidate = Key.product(key.name, *base_keys, tag=key.tag)
+    # Only use this if it has greater dimensionality than `key`
+    if set(candidate.dims) >= set(key.dims):
+        key = candidate
 
     # Add the basic product to the graph and index
     kwargs.setdefault("sums", True)
