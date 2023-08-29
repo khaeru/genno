@@ -111,6 +111,10 @@ def test_aggregate(caplog, data, keep):
     ):
         result = computations.aggregate(x, dict(t=t_groups), keep)
 
+    # Two dimensions
+    result = computations.aggregate(x, {"t": t_groups, "y": {"2k": [2000, 2010]}}, keep)
+    assert "2k" in result.coords["y"]
+
 
 def test_apply_units(data, caplog):
     # Unpack

@@ -42,6 +42,38 @@ class TestComputer:
         with pytest.raises(TypeError, match="At least 1 argument required"):
             c.add("foo")
 
+    def test_add_aggregate(self, c):
+        """Using :func:`.computations.aggregate` through :meth:`.add`."""
+        t, t_foo, t_bar, qty_x = add_test_data(c)
+
+        # Define some groups
+        t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
+
+        # Use the computation directly
+        agg1 = computations.aggregate(qty_x, {"t": t_groups}, True)
+
+        # Use Computer.add(…)
+        x = Key("x:t-y")
+        key2 = c.add(x + "agg2", "aggregate", x, groups={"t": t_groups}, keep=True)
+
+        # Group has expected key and contents
+        assert "x:t-y:agg2" == key2
+
+        # Aggregate is computed without error
+        agg2 = c.get(key2)
+
+        assert_qty_equal(agg1, agg2)
+
+        # Add aggregates, without keeping originals
+        key3 = c.add(x + "agg3", "aggregate", x, groups={"t": t_groups}, keep=False)
+
+        # Distinct keys
+        assert key3 != key2
+
+        # Only the aggregated and no original keys along the aggregated dimension
+        agg3 = c.get(key3)
+        assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
     def test_deprecated_add_file(self, tmp_path, c):
         # Path to a temporary file
         p = tmp_path / "foo.csv"
@@ -59,6 +91,59 @@ class TestComputer:
 
         result = c.get(k1)
         assert ("x", "y") == result.dims
+
+    def test_deprecated_aggregate(self, c):
+        t, t_foo, t_bar, x = add_test_data(c)
+
+        # Define some groups
+        t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
+
+        # Use the computation directly
+        agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
+
+        # Expected set of keys along the aggregated dimension
+        assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
+
+        # Sums are as expected
+        assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
+        assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
+        assert_qty_allclose(
+            agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
+        )
+
+        # Use Computer convenience method
+        with pytest.warns(DeprecationWarning):
+            key2 = c.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
+
+        # Group has expected key and contents
+        assert key2 == "x:t-y:agg2"
+
+        # Aggregate is computed without error
+        agg2 = c.get(key2)
+
+        assert_qty_equal(agg1, agg2)
+
+        # Add aggregates, without keeping originals
+        with pytest.warns(DeprecationWarning):
+            key3 = c.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
+
+        # Distinct keys
+        assert key3 != key2
+
+        # Only the aggregated and no original keys along the aggregated dimension
+        agg3 = c.get(key3)
+        assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
+        with pytest.raises(NotImplementedError), pytest.warns(DeprecationWarning):
+            # Not yet supported; requires two separate operations
+            c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
+
+        # aggregate() calls add(), which raises the exception
+        g = Key("g", "hi")
+        with pytest.raises(MissingKeyError, match=msg(g)), pytest.warns(
+            DeprecationWarning
+        ):
+            c.aggregate(g, "tag", "i")
 
     def test_deprecated_disaggregate(self, c):
         *_, x = add_test_data(c)
@@ -385,10 +470,6 @@ def test_add0():
     with pytest.raises(MissingKeyError, match=msg("b", g)):
         c.add("foo", (computations.mul, "a", "b", g), strict=True)
 
-    # aggregate() calls add(), which raises the exception
-    with pytest.raises(MissingKeyError, match=msg(g)):
-        c.aggregate(g, "tag", "i")
-
     # add(..., sums=True) also adds partial sums
     c.add("foo:a-b-c", [], sums=True)
     assert "foo:b" in c
@@ -530,53 +611,6 @@ def test_add_product(ureg):
     key = c.add("product", "x_squared", "x", "x", sums=True)
 
 
-def test_aggregate():
-    c = Computer()
-
-    t, t_foo, t_bar, x = add_test_data(c)
-
-    # Define some groups
-    t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
-
-    # Use the computation directly
-    agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
-
-    # Expected set of keys along the aggregated dimension
-    assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
-
-    # Sums are as expected
-    assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
-    assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
-    assert_qty_allclose(
-        agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
-    )
-
-    # Use Computer convenience method
-    key2 = c.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
-
-    # Group has expected key and contents
-    assert key2 == "x:t-y:agg2"
-
-    # Aggregate is computed without error
-    agg2 = c.get(key2)
-
-    assert_qty_equal(agg1, agg2)
-
-    # Add aggregates, without keeping originals
-    key3 = c.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
-
-    # Distinct keys
-    assert key3 != key2
-
-    # Only the aggregated and no original keys along the aggregated dimension
-    agg3 = c.get(key3)
-    assert set(agg3.coords["t"].values) == set(t_groups.keys())
-
-    with pytest.raises(NotImplementedError):
-        # Not yet supported; requires two separate operations
-        c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
-
-
 def test_check_keys():
     """:meth:`.check_keys` succeeds even with dimensions in a different order."""
     c = Computer()
@@ -618,10 +652,10 @@ def test_dantzig(ureg):
     weights = Quantity(
         xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
     )
-    new_key = c.aggregate("d:i-j", "weighted", "j", weights)
+    new_key = c.add("*::weighted", "sum", "d:i-j", weights, "j")
 
     # ...produces the expected new key with the summed dimension removed and tag added
-    assert new_key == "d:i:weighted"
+    assert "d:i:weighted" == new_key
 
     # ...produces the expected new value
     obs = c.get(new_key)
