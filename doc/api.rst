@@ -100,11 +100,11 @@ Top-level classes and functions
       The `data` argument may be:
 
       :class:`list`
-         A list of computations, like ``[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]`` → passed to :meth:`add_queue`.
+         A list of computations, like :py:`[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]` → passed to :meth:`add_queue`.
 
       :class:`str` naming an operator
          e.g. "select", retrievable with :meth:`get_comp`.
-         :meth:`add_single` is called with ``(key=args[0], data, *args[1], **kwargs``, i.e. applying the named operator to the other parameters.
+         :meth:`add_single` is called with :py:`(key=args[0], data, *args[1], **kwargs)`, that is, applying the named operator to the other parameters.
 
       :class:`str` naming another Computer method
          e.g. :meth:`add_file` → the named method is called with the `args` and `kwargs`.
@@ -265,6 +265,8 @@ Common :mod:`genno` usage, e.g. in :mod:`message_ix`, creates large, sparse data
 
 The goal is that all :mod:`genno`-based code, including built-in and user functions, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
 
+.. automodule:: genno
+   :members: MissingKeyError
 
 Operators
 =========
@@ -365,6 +367,9 @@ Internals and utilities
 
 .. automodule:: genno.core.graph
    :members:
+
+.. automodule:: genno.core.key
+   :members: KeyLike, iter_keys, single_key
 
 .. automodule:: genno.core.operator
    :members:

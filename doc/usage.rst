@@ -148,7 +148,7 @@ This means:
 - Every edge has a direction; *from* one node *to* another.
 - There are no recursive loops in the graph; i.e. no node is its own ancestor.
 
-In the reporting graph, every node represents a **computation**; usually a :class:`tuple` called a **task** wherein the first element is a :class:`callable` like a function.
+In the reporting graph, every node represents a **computation**; usually a :class:`tuple` called a **task** wherein the first element is a :func:`callable` like a function.
 This callable can be:
 
 - a numerical *calculation* operating on one or more Quantities;
@@ -157,7 +157,7 @@ This callable can be:
 Other elements in the task tuple are passed, in the same order, as positional arguments to the callable.
 
 .. note::
-   :mod:`genno` relies on the :mod:`dask` implementation of task graphs.
+   :mod:`genno` relies on the :mod:`.dask` implementation of task graphs.
    For a complete description of tasks, see the :doc:`dask:spec` in the dask documentation.
 
 Every node has a unique *label*, describing the results of its task.
@@ -205,15 +205,15 @@ To describe this using the Computer (step 1):
 
 To unpack this code:
 
-- :meth:`Computer.add` is used to build the graph.
-- The first argument to :meth:`add` is the label or key of the node; the description of what it will produce.
+- :meth:`.Computer.add` is used to build the graph.
+- The first argument to :meth:`.add` is the label or key of the node; the description of what it will produce.
 - The following arguments describe the computation (for instance, a task with a specific operator) to be performed:
 
   - For nodes ‘A’ and ‘B’, these are simply a raw or literal value.
     When the node is executed, this value is returned.
-  - For node ‘C’, it is a :class:`tuple` with 3 items: ``(lambda *inputs: sum(inputs), 'A', 'B')``.
+  - For node ‘C’, it is a :class:`tuple` with 3 items: :py:`(lambda *inputs: sum(inputs), 'A', 'B')`.
 
-    1. ``lambda *inputs: sum(inputs)``, is an `anonymous or ‘lambda’ function <https://doc.python.org/3/tutorial/controlflow.html#lambda-expressions>`_ that computes the sum of its inputs.
+    1. :py:`lambda *inputs: sum(inputs)`, is an `anonymous or ‘lambda’ function <https://doc.python.org/3/tutorial/controlflow.html#lambda-expressions>`_ that computes the sum of its inputs.
     2. The label ``"A"`` is a reference to another node. This indicates that there is a graph edge from node ``"A"`` into node ``"C"``.
     3. Same as (2)
 
@@ -229,7 +229,7 @@ The task to produce "C", and any direct or indirect inputs required, is executed
 
     c.get("C")
 
-:meth:`Computer.describe` displays a simple textual trace of the tasks used in this chain of computations.
+:meth:`.Computer.describe` displays a simple textual trace of the tasks used in this chain of computations.
 A portion of the graph is printed out as a nested list:
 
 .. ipython:: python
@@ -241,9 +241,9 @@ This description shows how :mod:`genno` traverses the graph in order to calculat
 1. The desired value is from node "C", which computes a function of some arguments.
 2. The first argument is ``"A"``.
 3. "A" is the name of another node.
-4. Node "A" gives a literal value ``int(1)``, which is stored.
+4. Node "A" gives a literal value :py:`int(1)`, which is stored.
 5. The Computer returns to "C" and moves on to the next argument, "B".
-6. Steps 3 and 4 are repeated for "B", giving ``int(2)``.
+6. Steps 3 and 4 are repeated for "B", giving :py:`int(2)`.
 7. All of the arguments to "C" have been processed.
 8. The function/operator for "C" is called.
 

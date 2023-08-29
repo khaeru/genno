@@ -301,7 +301,7 @@ def iter_keys(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Iterator[Key]:
 
     See also
     --------
-    Computer.add
+    .Computer.add
     """
     if isinstance(value, (Key, str)):
         yield Key(value)
@@ -324,7 +324,7 @@ def single_key(value: Union[KeyLike, Tuple[KeyLike, ...], Iterator]) -> Key:
 
     See also
     --------
-    Computer.add
+    .Computer.add
     """
     if isinstance(value, (Key, str)):
         return Key(value)

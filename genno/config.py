@@ -34,16 +34,16 @@ STORE = set(["cache_path", "cache_skip"])
 
 
 def configure(path: Optional[Union[Path, str]] = None, **config):
-    """Configure :mod:`genno` globally.
+    """Configure :mod:`.genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
-    computations. Configuration keys loaded from file are superseded by keyword
-    arguments. Messages are logged at level :obj:`logging.INFO` if `config` contains
-    unhandled sections.
+    operators. Configuration keys loaded from file are superseded by keyword arguments.
+    Messages are logged at level :obj:`logging.INFO` if `config` contains unhandled
+    sections.
 
     Parameters
     ----------
-    path : Path, optional
+    path : pathlib.Path, optional
         Path to a configuration file in JSON or YAML format.
     **config :
         Configuration keys/sections and values.

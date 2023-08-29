@@ -63,7 +63,7 @@ Configuration
 
    Computer-specific configuration.
 
-   Invokes :meth:`.add_as_pyam` and adds additional computations to convert data from :class:`.Quantity` to a :class:`pyam.IamDataFrame`.
+   Invokes :func:`.add_as_pyam` and adds additional computations to convert data from :class:`.Quantity` to a :class:`pyam.IamDataFrame`.
    Each entry contains:
 
    ``variable:`` (:class:`str`)
@@ -75,15 +75,15 @@ Configuration
       Keyword arguments to :func:`.computations.select`.
       This selection is performed while data is in :class:`.Quantity` format, before it is passed to :func:`.as_pyam`.
    ``rename:`` (:class:`dict`, optional)
-      Passed to :meth:`.as_pyam`.
+      Passed to :func:`.as_pyam`.
    ``replace:`` (:class:`dict`, optional)
-      Passed to :meth:`.as_pyam`.
+      Passed to :func:`.as_pyam`.
    ``drop:`` (:class:`list` of :class:`str`, optional)
-      Passed to :meth:`.as_pyam`.
+      Passed to :func:`.as_pyam`.
    ``unit:`` (:class:`str`, optional)
-      Passed to :meth:`.as_pyam`.
+      Passed to :func:`.as_pyam`.
 
-   Any further additional entries are passed as keyword arguments to :func:`.collapse`, which is then given as the `collapse` callback for :meth:`.as_pyam`.
+   Any further additional entries are passed as keyword arguments to :func:`.collapse`, which is then given as the `collapse` callback for :func:`.as_pyam`.
 
    :func:`.collapse` formats the ``variable`` labels of the IamDataFrame.
    The variable name replacements from the ``iamc variable names:`` section of the config file are applied to all variables.

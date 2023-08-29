@@ -289,13 +289,13 @@ def assert_qty_equal(
     Parameters
     ----------
     check_type : bool, optional
-        Assert that `a` and `b` are both :class:`Quantity` instances. If :obj:`False`,
+        Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
     check_attrs : bool, optional
         Also assert that check that attributes are identical.
     ignore_extra_coords : bool, optional
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
-        :class:`SparseDataArray`.
+        :class:`.SparseDataArray`.
     """
     __tracebackhide__ = True
 
@@ -345,13 +345,13 @@ def assert_qty_allclose(
     Parameters
     ----------
     check_type : bool, optional
-        Assert that `a` and `b` are both :class:`Quantity` instances. If :obj:`False`,
+        Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
     check_attrs : bool, optional
         Also assert that check that attributes are identical.
     ignore_extra_coords : bool, optional
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
-        :class:`SparseDataArray`.
+        :class:`.SparseDataArray`.
     """
     __tracebackhide__ = True
 

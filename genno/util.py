@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 #: - The '%' symbol cannot be supported by pint, because it is a Python operator; it is
 #:   replaced with “percent”.
 #:
-#: Additional values can be added with :meth:`configure`; see :ref:`config-units`.
+#: Additional values can be added with :func:`configure`; see :ref:`config-units`.
 REPLACE_UNITS = {
     "%": "percent",
 }

@@ -163,7 +163,7 @@ class Computer:
         return None
 
     def require_compat(self, pkg: Union[str, ModuleType]):
-        """Register computations from :mod:`genno.compat`/others for :func:`.get_comp`.
+        """Register computations from :mod:`genno.compat`/others for :meth:`.get_comp`.
 
         The specified module is appended to :attr:`modules`.
 
@@ -228,7 +228,7 @@ class Computer:
 
         Returns
         -------
-        Key-like or tuple of Key-like
+        KeyLike or tuple of KeyLike
             Some or all of the keys added to the Computer.
 
         See also
@@ -236,8 +236,8 @@ class Computer:
         add_single
         add_queue
         apply
-        iter_keys
-        single_key
+        .iter_keys
+        .single_key
         """
         # Other methods
         if isinstance(data, Sequence) and not isinstance(data, str):
@@ -476,9 +476,9 @@ class Computer:
 
         Parameters
         ----------
-        generator : callable
+        generator : .callable
             Function to apply to `keys`.
-        keys : hashable
+        keys : Hashable
             The starting key(s).
         kwargs
             Keyword arguments to `generator`.
@@ -517,8 +517,8 @@ class Computer:
         - References to existing keys in the Computer by their name; these are expanded
           using :meth:`full_key`.
         - Multiple statements on separate lines or separated by ";".
-        - Python arithmetic operators including ``+``, ``*``, ``/``, ``**``; these are
-          mapped to the corresponding :mod:`.computations`.
+        - Python arithmetic operators including ``+``, ``-``, ``*``, ``/``, ``**``;
+          these are mapped to the corresponding :mod:`.computations`.
         - Function calls, also mapped to the corresponding :mod:`.computations` via
           :meth:`get_comp`. These may include simple positional (constants or key
           references) or keyword (constants only) arguments.
@@ -643,10 +643,10 @@ class Computer:
 
             1. ``k`` itself, unchanged, if `predicate` is given and ``predicate(k)``
                returns :obj:`True`.
-            2. :meth:`Graph.unsorted_key`, that is, ``k`` but with its dimensions in a
+            2. :meth:`.Graph.unsorted_key`, that is, ``k`` but with its dimensions in a
                specific order that already appears in :attr:`graph`.
-            3. :meth:`Graph.full_key`, that is, an existing key with the name ``k`` with
-               its full dimensionality.
+            3. :meth:`.Graph.full_key`, that is, an existing key with the name ``k``
+               with its full dimensionality.
             4. :obj:`None` otherwise.
 
         Raises

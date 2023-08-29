@@ -25,10 +25,13 @@ class Operator:
     """
 
     # Use these specific attribute names to be intelligible to functools.partial()
+    #: Function or callable for the Operator.
     func: ClassVar[Callable]
     args = ()
     keywords: Dict[str, Any] = dict()
 
+    #: Helper method to add tasks to a :class:`.Computer`. Register with :meth:`helper`,
+    #: invoke with :meth:`add_tasks`.
     _add_tasks: ClassVar[Optional[Callable]] = None
 
     def __call__(self, *args, **kwargs):
@@ -40,7 +43,7 @@ class Operator:
 
     @staticmethod
     def define(func: Callable) -> "Operator":
-        """Create a :class:`Operator` object that wraps `func`."""
+        """Create an Operator object that wraps `func`."""
         # This follows the pattern of using a metaclass, except compressed
 
         # - Create the class
