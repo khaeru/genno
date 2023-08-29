@@ -497,7 +497,14 @@ def test_load_file(test_data_path, ureg, name, kwargs):
     assert "baz" == qty.name
 
 
-@pytest.mark.parametrize("func", [computations.mul, computations.product])
+@pytest.mark.parametrize(
+    "func",
+    (
+        computations.mul,
+        computations.product,  # Alias
+        computations.disaggregate_shares,  # Deprecated alias
+    ),
+)
 def test_mul0(func):
     A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
     B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))

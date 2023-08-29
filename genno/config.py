@@ -164,17 +164,17 @@ def aggregate(c: Computer, info):
     fail = info.pop("_fail", None)
     groups = {info.pop("_dim"): info}
 
-    for qty in quantities:
+    for qty in map(Key, quantities):
         try:
             result = c.add(
-                Key(qty).add_tag(tag),
+                qty.add_tag(tag),
                 "aggregate",
+                qty,
                 groups=groups,
                 strict=True,
                 sums=True,
                 fail=fail,
             )
-
         except KeyExistsError:
             pass
         except MissingKeyError:

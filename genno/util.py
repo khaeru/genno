@@ -157,7 +157,7 @@ def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMap
         par_names: Mapping = signature(func).parameters
     except ValueError:
         # signature() raises for operator.itemgetter(…), built-ins, and similar
-        if not callable(func):
+        if not callable(func):  # pragma: no cover
             raise TypeError(type(func))
         par_names = {}
 

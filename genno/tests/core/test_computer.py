@@ -151,7 +151,7 @@ class TestComputer:
         c.add("a:t-y", "x:t-y", sums=False)
 
         def func(qty):
-            return type(qty)
+            pass  # pragma: no cover
 
         with pytest.warns(DeprecationWarning):
             k1 = c.disaggregate(Key(x).rename("x"), "z", method=func, args=["z_shares"])

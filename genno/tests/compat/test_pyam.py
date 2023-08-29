@@ -218,8 +218,12 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     assert all(df5["unit"] == "centiUSD / case")
     assert_series_equal(df4["value"], df5["value"] / 100.0)
 
+    # Convert multiple quantities at once
+    keys = c.add("as_pyam", ["var_cost", "var_cost"], **kw)
+    assert ("var_cost::iamc", "var_cost::iamc") == keys
 
-def test_convert_pyam_deprecated():
+
+def test_deprecated_convert_pyam():
     """Test deprecated usage of `replace` parameter to as_pyam."""
     c = Computer()
 

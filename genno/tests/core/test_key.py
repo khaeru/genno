@@ -117,6 +117,14 @@ class TestKey:
         # __truediv__: drop a dimension
         assert "x:a-c" == key / "b"
 
+        # Invalid
+        with pytest.raises(TypeError):
+            key + 1.1
+        with pytest.raises(TypeError):
+            key * 2.2
+        with pytest.raises(TypeError):
+            key / 3.3
+
 
 def test_sorted():
     k1 = Key("foo", "abc")
@@ -172,3 +180,11 @@ def test_single_key():
     # Tuple containing 1 non-key
     with pytest.raises(TypeError):
         single_key((1.2,))
+
+    # Tuple containing >1 Keys
+    with pytest.raises(TypeError):
+        single_key((k, k))
+
+    # Empty iterable
+    with pytest.raises(TypeError):
+        single_key([])
