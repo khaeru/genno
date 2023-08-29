@@ -148,11 +148,11 @@ This means:
 - Every edge has a direction; *from* one node *to* another.
 - There are no recursive loops in the graph; i.e. no node is its own ancestor.
 
-In the reporting graph, every node represents a **task**, usually a :class:`tuple` wherein the first element is a :class:`callable` like a function.
+In the reporting graph, every node represents a **computation**; usually a :class:`tuple` called a **task** wherein the first element is a :class:`callable` like a function.
 This callable can be:
 
 - a numerical *calculation* operating on one or more Quantities;
-- more generally, a *computation*, including other actions like transforming data formats, reading and writing files, writing plots, etc.
+- more generally, an *operator*, including other actions like transforming data formats, reading and writing files, writing plots, etc.
 
 Other elements in the task tuple are passed, in the same order, as positional arguments to the callable.
 
@@ -207,7 +207,7 @@ To unpack this code:
 
 - :meth:`Computer.add` is used to build the graph.
 - The first argument to :meth:`add` is the label or key of the node; the description of what it will produce.
-- The following arguments describe the task, calculation, or computation to be performed:
+- The following arguments describe the computation (for instance, a task with a specific operator) to be performed:
 
   - For nodes ‘A’ and ‘B’, these are simply a raw or literal value.
     When the node is executed, this value is returned.
@@ -229,7 +229,7 @@ The task to produce "C", and any direct or indirect inputs required, is executed
 
     c.get("C")
 
-:meth:`Computer.describe` displays a simple textual trace of the tasks used in this computation.
+:meth:`Computer.describe` displays a simple textual trace of the tasks used in this chain of computations.
 A portion of the graph is printed out as a nested list:
 
 .. ipython:: python
@@ -245,7 +245,7 @@ This description shows how :mod:`genno` traverses the graph in order to calculat
 5. The Computer returns to "C" and moves on to the next argument, "B".
 6. Steps 3 and 4 are repeated for "B", giving ``int(2)``.
 7. All of the arguments to "C" have been processed.
-8. The computation function for "C" is called.
+8. The function/operator for "C" is called.
 
    As arguments, instead of the strings "A" and "B", this function receives the computed :class:`int` values from steps 4 and 6 respectively.
 9. The result is returned.
@@ -258,11 +258,11 @@ In more realistic examples, the graph can have:
 
 However, the Computer still follows the same procedure to traverse the graph and calculate the results.
 
-Computations
-============
+Operators
+=========
 
-A computation is any Python function or callable that operates on Quantities or other data.
-:mod:`genno.computations` includes many common computations; see the API documentation for descriptions of each.
+A operator is any Python function or callable that operates on Quantities or other data.
+:mod:`genno.computations` includes many common operators; see the API documentation for descriptions of each.
 
 The power of :mod:`genno` is the ability to link *any* code, no matter how complex, into the graph, and have it operate on the results of other code.
 Tasks can perform complex tasks such as:

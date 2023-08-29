@@ -51,7 +51,7 @@ To use :class:`.Plot`:
       c.add("y:t", Quantity(xr.DataArray([1.0, 4, 9], coords=t), name="y"))
 
       # Add the plot to the Computer
-      c.add("plot", DemoPlot.make_task("x:t", "y:t"))
+      c.add("plot", DemoPlot, "x:t", "y:t")
 
       # Show the task that was added
       c.graph["plot"]

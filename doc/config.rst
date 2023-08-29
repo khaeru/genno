@@ -297,7 +297,7 @@ This is, as the name implies, the most generalized section.
 Each item contains:
 
 ``comp:``
-  Refers to the name of a computation that is available in the namespace of :mod:`genno.computations`, or custom computations registered by compatibility modules or third-party packages.
+  Refers to the name of a operator that is available in the namespace of :mod:`genno.computations`, or a custom operator registered by compatibility modules or third-party packages.
   See :meth:`Computer.add` and :meth:`Computer.get_comp`.
   E.g. if "product", then :meth:`.Computer.add_product` is called, which also automatically infers the correct dimensions for each input.
 
@@ -308,9 +308,9 @@ Each item contains:
 
    If the key has the single dimension "\*" (e.g. ``key: "X:*:tag"``), then dimensions of the resulting key are inferred to be the union of the dimensions of each of the ``inputs:``, below.
 ``inputs:``
-   A list of (1 or more) keys to which the computation is applied.
+   A list of (1 or more) keys to which the operator is applied.
 ``args:`` (:class:`dict`, optional)
-   Keyword arguments to the computation.
+   Keyword arguments to the operator.
 ``add args:`` (:class:`dict`, optional)
    Keyword arguments to :meth:`.Computer.add` itself.
 

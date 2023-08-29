@@ -18,10 +18,10 @@ Top-level classes and functions
 
 .. autoclass:: genno.Computer
    :members:
-   :exclude-members: add, add_as_pyam, add_load_file, apply, convert_pyam, eval, graph
+   :exclude-members: add, apply, eval, graph
 
-   A Computer is used to describe (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **tasks** stored in a :attr:`graph`.
-   Advanced users may manipulate the graph directly; but common reporting tasks can be handled by using Computer methods.
+   A Computer is used to prepare (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **computations** stored in a :attr:`graph`.
+   Advanced users may manipulate the graph directly; but most computations can be prepared can be handled by using Computer methods.
 
    Instance attributes:
 
@@ -32,28 +32,20 @@ Top-level classes and functions
       modules
       unit_registry
 
-   General-purpose methods for describing tasks and preparing computations:
+   General-purpose methods for preparing computations and tasks:
 
    .. autosummary::
       add
       add_queue
       add_single
+      aggregate
       apply
       cache
       describe
       eval
       visualize
 
-   Helper methods to simplify adding specific computations:
-
-   .. autosummary::
-      add_file
-      add_product
-      aggregate
-      convert_pyam
-      disaggregate
-
-   Executing tasks:
+   Executing computations:
 
    .. autosummary::
       get
@@ -68,6 +60,14 @@ Top-level classes and functions
       get_comp
       infer_keys
       require_compat
+
+   Deprecated:
+
+   .. autosummary::
+      add_file
+      add_product
+      convert_pyam
+      disaggregate
 
    .. autoattribute:: graph
 
@@ -86,8 +86,7 @@ Top-level classes and functions
       ``"config"``
          A :class:`dict` storing configuration settings.
          See :doc:`config`.
-         Because this information is stored *in* the :attr:`graph`, it can be
-         used as one input to other computations.
+         Because this information is stored *in* the :attr:`graph`, it can be used as one input to other computations.
 
       Some inputs to tasks may be confused for (1) or (4), above.
       The recommended way to protect these is:
@@ -103,9 +102,9 @@ Top-level classes and functions
       :class:`list`
          A list of computations, like ``[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]`` → passed to :meth:`add_queue`.
 
-      :class:`str` naming a computation
+      :class:`str` naming an operator
          e.g. "select", retrievable with :meth:`get_comp`.
-         :meth:`add_single` is called with ``(key=args[0], data, *args[1], **kwargs``, i.e. applying the named computation. to the other parameters.
+         :meth:`add_single` is called with ``(key=args[0], data, *args[1], **kwargs``, i.e. applying the named operator to the other parameters.
 
       :class:`str` naming another Computer method
          e.g. :meth:`add_file` → the named method is called with the `args` and `kwargs`.
@@ -121,8 +120,7 @@ Top-level classes and functions
         >>> rep = Computer()  # Create a new Computer object
         >>> rep.add('aliased name', 'original name')
 
-      - Define an arbitrarily complex computation in a Python function that
-        operates directly on the :class:`ixmp.Scenario`:
+      - Define an arbitrarily complex operator in a Python function that operates directly on the :class:`ixmp.Scenario`:
 
         >>> def my_report(scenario):
         >>>     # many lines of code
@@ -293,20 +291,20 @@ Common :mod:`genno` usage, e.g. in :mod:`message_ix`, creates large, sparse data
 - Currently, Quantity is :class:`.AttrSeries`, a wrapped :class:`pandas.Series` that behaves like a :class:`~xarray.DataArray`.
 - In the future, :mod:`genno` will use :class:`.SparseDataArray`, and eventually :class:`~xarray.DataArray` backed by sparse data, directly.
 
-The goal is that all :mod:`genno`-based code, including built-in and user computations, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
+The goal is that all :mod:`genno`-based code, including built-in and user functions, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
 
 
-Computations
-============
+Operators
+=========
 
 .. automodule:: genno.computations
    :members:
 
-   Unless otherwise specified, these methods accept and return :class:`.Quantity` objects for data arguments/return values.
+   Unless otherwise specified, these functions accept and return :class:`.Quantity` objects for data arguments/return values.
 
-   Genno's :ref:`compatibility modules <compat>` each provide additional computations.
+   Genno's :ref:`compatibility modules <compat>` each provide additional operators.
 
-   Numerical calculations:
+   Numerical operators:
 
    .. autosummary::
       add
@@ -319,6 +317,7 @@ Computations
       index_to
       interpolate
       mul
+      add_mul
       pow
       product
       ratio
@@ -329,6 +328,7 @@ Computations
 
    .. autosummary::
       load_file
+      add_load_file
       write_report
 
    Data manipulation:
@@ -341,6 +341,12 @@ Computations
       relabel
       rename_dims
       select
+
+Helper functions for adding tasks to Computers
+----------------------------------------------
+
+.. autofunction:: add_load_file
+.. autofunction:: add_mul
 
 
 Internal format for quantities
@@ -386,6 +392,9 @@ Internals and utilities
    :members:
 
 .. automodule:: genno.core.graph
+   :members:
+
+.. automodule:: genno.core.operator
    :members:
 
 .. automodule:: genno.util
