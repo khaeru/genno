@@ -1,6 +1,6 @@
 from functools import update_wrapper
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Dict, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     from .computer import Computer
@@ -66,7 +66,9 @@ class Operator:
         #    will skip documenting items that have the same __doc__ as their class
         return update_wrapper(klass(), func, updated=())
 
-    def helper(self, func: Callable[..., Tuple["KeyLike", ...]]) -> Callable:
+    def helper(
+        self, func: Callable[..., Union["KeyLike", Tuple["KeyLike", ...]]]
+    ) -> Callable:
         """Register `func` as the convenience method for adding task(s)."""
         self.__class__._add_tasks = staticmethod(func)
         return func
