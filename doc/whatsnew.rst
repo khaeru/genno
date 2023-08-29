@@ -4,11 +4,33 @@ What's new
 Next release
 ============
 
+Migration notes
+---------------
+
+Code that uses the deprecated :class:`.Computer` convenience methods can be adjusted to use the corresponding :meth:`~.Operator.add_tasks` helpers—which give equivalent behaviour—via :meth:`.Computer.add`.
+See the documentation of the deprecated methods and/or warnings at runtime for examples and hints.
+
+- :meth:`.Computer.add_file` → use :func:`~.computations.load_file` and its helper.
+- :meth:`.Computer.add_product` → use :func:`~.computations.mul` and its helper.
+- :meth:`.Computer.convert_pyam` → use :func:`~.computations.as_pyam` and its helper.
+- :meth:`.Computer.disaggregate` and :func:`~.computations.disaggregate_shares`: use :func:`~.computations.mul` and its helper.
+
+For :meth:`.Plot.make_task` similarly change, for instance, :py:`c.add("plot", DemoPlot.make_task("x:t", "y:t"))` to :py:`c.add("plot", DemoPlot, "x:t", "y:t")`.
+
+All changes
+-----------
+
+- New class :class:`.Operator` (:pull:`98`).
+  This class allows to combine a function/callable for use in computations with an optional :meth:`~.Operator.helper` convenience method for adding tasks to a :class:`.Computer`.
+  :meth:`.Computer.add` calls these helpers automatically, if they exist.
 - New method :meth:`.Computer.eval` for using Python code-like expressions to define tasks and keys (:pull:`97`).
-- Provide typed signatures for :meth:`Quantity.astype`, :attr:`~Quantity.data`, and :meth:`~Quantity.pipe`, and :meth:`~Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
+- Deprecate methods: :meth:`.Computer.add_file`, :meth:`.Computer.add_product`, :meth:`.Computer.convert_pyam`, and :meth:`.Computer.disaggregate` (:pull:`98`).
+- Add :meth:`.Key.rename` (:pull:`98`).
+- Provide typed signatures for :meth:`.Quantity.astype`, :attr:`~.Quantity.data`, and :meth:`~.Quantity.pipe`, and :meth:`~.Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
 - Add :func:`.computations.sub` (:pull:`97``).
 - :func:`~.genno.computations.concat` handles N-dimensional quantities with dimensions in any order (:issue:`38`, :pull:`97`).
 - :func:`~.computations.pow` will derive units if the exponent is a Quantity with all identical integer values (:pull:`97`).
+- Deprecate :meth:`.Plot.make_task`; the Plot class now has a :meth:`~.Plot.add_tasks` method, analogous to :meth:`~.Operator.add_tasks`, and so a Plot subclass can be provided directly to :meth:`.Computer.add` (:pull:`98`).
 
 v1.17.2 (2023-07-11)
 ====================
