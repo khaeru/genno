@@ -86,6 +86,8 @@ class Key:
     def _(cls, value: Quantity):
         return str(value.name), tuple(map(str, value.dims)), None
 
+    # Class methods
+
     @classmethod
     def bare_name(cls, value) -> Optional[str]:
         """If `value` is a bare name (no dims or tags), return it; else :obj:`None`."""
@@ -173,6 +175,24 @@ class Key:
 
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
+
+    def __add__(self, other) -> "Key":
+        if isinstance(other, str):
+            return self.add_tag(other)
+        else:
+            raise TypeError(type(other))
+
+    def __mul__(self, other) -> "Key":
+        if isinstance(other, str):
+            return self.append(other)
+        else:
+            raise TypeError(type(other))
+
+    def __truediv__(self, other) -> "Key":
+        if isinstance(other, str):
+            return self.drop(other)
+        else:
+            raise TypeError(type(other))
 
     def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""

@@ -38,7 +38,11 @@ All changes
   This class allows to combine a function/callable for use in computations with an optional :meth:`~.Operator.helper` convenience method for adding tasks to a :class:`.Computer`.
   :meth:`.Computer.add` calls these helpers automatically, if they exist.
 - New method :meth:`.Computer.eval` for using Python code-like expressions to define tasks and keys (:pull:`97`).
-- Add :meth:`.Key.rename` (:pull:`98`).
+- Improve :class:`.Key` (:pull:`98`).
+
+  - New method :meth:`.Key.rename`.
+  - Key supports the Python operations :py:`+` (= :meth:`.add_tag`), :py:`*` (= :meth:`.append` a dimension), :py:`/` (= :meth:`.drop` a dimension).
+
 - Add :func:`.computations.sub` (:pull:`97``).
 - Provide typed signatures for :meth:`.Quantity.astype`, :attr:`~.Quantity.data`, and :meth:`~.Quantity.pipe`, and :meth:`~.Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
 - :func:`~.genno.computations.concat` handles N-dimensional quantities with dimensions in any order (:issue:`38`, :pull:`97`).

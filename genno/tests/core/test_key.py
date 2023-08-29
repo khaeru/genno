@@ -100,6 +100,23 @@ class TestKey:
         key = Key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
         assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
 
+    def test_operations(self):
+        key = Key("x:a-b-c")
+
+        # __add__: Add a tag
+        assert "x:a-b-c:foo" == key + "foo"
+        # Associative: (key + "foo") is another key that supports __add__
+        assert "x:a-b-c:foo+bar" == key + "foo" + "bar"
+
+        # __mul__: add a dimension
+        assert "x:a-b-c-d" == key * "d"
+
+        # Existing dimension → no change
+        assert key == key * "c"
+
+        # __truediv__: drop a dimension
+        assert "x:a-c" == key / "b"
+
 
 def test_sorted():
     k1 = Key("foo", "abc")
