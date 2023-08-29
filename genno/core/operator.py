@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, Any, Callable, Dict, Tuple
+from functools import update_wrapper
+from inspect import signature
+from typing import TYPE_CHECKING, Any, Callable, ClassVar, Dict, Optional, Tuple
 
 if TYPE_CHECKING:
     from .computer import Computer
@@ -6,32 +8,61 @@ if TYPE_CHECKING:
 
 
 class Operator:
-    """Base class for a callable with convenience methods."""
+    """Base class for a callable with convenience methods.
+
+    Example
+    -------
+    >>> from genno import Operator
+    >>>
+    >>> @Operator.define
+    ... def myfunc(q1: Quantity, q2: Quantity) -> Quantity:
+    ...     # Operator code
+    >>>
+    >>> @myfunc.helper
+    ... def add_myfunc(f, computer, *args, **kwargs):
+    ...     # Custom code to add tasks to `computer`
+    ...     # Perform checks or handle `args` and `kwargs`.
+    """
 
     # Use these specific attribute names to be intelligible to functools.partial()
-    __slots__ = "func", "args", "keywords", "_add_tasks"
+    func: ClassVar[Callable]
+    args = ()
+    keywords: Dict[str, Any] = dict()
 
-    def __init__(self, func: Callable):
-        self.func = func
-        self.args = ()
-        self.keywords: Dict[str, Any] = {}
+    _add_tasks: ClassVar[Optional[Callable]] = None
 
     def __call__(self, *args, **kwargs):
-        # Don't pass `self` to the callable
+        # The callable is stored as a static method; `self` is not passed
         return self.func(*args, **kwargs)
 
     def __repr__(self):
-        return f"<{self.__class__.__name__}>"
+        return f"<operator {self.__class__.__name__}>"
 
     @staticmethod
     def define(func: Callable) -> "Operator":
         """Create a :class:`Operator` object that wraps `func`."""
-        # Create a class and return an instance of it
-        return type(func.__name__, (Operator,), {})(func)
+        # This follows the pattern of using a metaclass, except compressed
 
-    def helper(self, func: Callable[..., Tuple["KeyLike", ...]]) -> None:
+        # - Create the class
+        #   - Same name as func, subclass of Operator
+        #   - Subclass of Operator
+        #   - func is a static method
+        #   - Signature of klass.__call__ is the signature of func.
+        klass = type(
+            func.__name__,
+            (Operator,),
+            {"func": staticmethod(func), "__signature__": signature(func)},
+        )
+
+        # Create an instance of the class, update __doc__ and other attributes, return
+        # NB these are updated on the instance, not on `klass`, to satisfy Sphinx, which
+        #    will skip documenting items that have the same __doc__ as their class
+        return update_wrapper(klass(), func, updated=())
+
+    def helper(self, func: Callable[..., Tuple["KeyLike", ...]]) -> Callable:
         """Register `func` as the convenience method for adding task(s)."""
-        self._add_tasks = func
+        self.__class__._add_tasks = staticmethod(func)
+        return func
 
     def add_tasks(self, c: "Computer", *args, **kwargs) -> Tuple["KeyLike", ...]:
         """Invoke :attr:`_add_task` to add tasks to `c`."""
