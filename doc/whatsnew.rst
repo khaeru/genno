@@ -26,6 +26,7 @@ See the documentation of the deprecated methods and/or warnings at runtime for e
 
 - :meth:`.Computer.add_file` → use :func:`~.computations.load_file` and its helper.
 - :meth:`.Computer.add_product` → use :func:`~.computations.mul` and its helper.
+- :meth:`.Computer.aggregate` → use :func:`~.computations.aggregate` or :func:`~.computations.sum` and its helper.
 - :meth:`.Computer.convert_pyam` → use :func:`~.computations.as_pyam` and its helper.
 - :meth:`.Computer.disaggregate` and :func:`~.computations.disaggregate_shares`: use :func:`~.computations.mul` and its helper.
 
@@ -49,7 +50,7 @@ All changes
 - :func:`~.computations.pow` will derive units if the exponent is a Quantity with all identical integer values (:pull:`97`).
 - Deprecations:
 
-  - :meth:`.Computer.add_file`, :meth:`~.Computer.add_product`, :meth:`~.Computer.convert_pyam`, and :meth:`~.Computer.disaggregate` (:pull:`98`).
+  - :meth:`.Computer.add_file`, :meth:`~.Computer.add_product`, :meth:`~.Computer.aggregate`, :meth:`~.Computer.convert_pyam`, and :meth:`~.Computer.disaggregate` (:pull:`98`).
   - :meth:`.Plot.make_task`; the Plot class now has a :meth:`~.Plot.add_tasks` method, analogous to :meth:`~.Operator.add_tasks`, and so a Plot subclass can be provided directly to :meth:`.Computer.add` (:pull:`98`).
 
 v1.17.2 (2023-07-11)

@@ -719,70 +719,6 @@ class Computer:
 
         return result[0] if single else tuple(result)
 
-    # Convenience methods
-    def aggregate(
-        self,
-        qty: KeyLike,
-        tag: str,
-        dims_or_groups: Union[Mapping, str, Sequence[str]],
-        weights: Optional[xr.DataArray] = None,
-        keep: bool = True,
-        sums: bool = False,
-        fail: Optional[Union[str, int]] = None,
-    ):
-        """Add a computation that aggregates *qty*.
-
-        Parameters
-        ----------
-        qty: :class:`Key` or str
-            Key of the quantity to be aggregated.
-        tag: str
-            Additional string to add to the end the key for the aggregated
-            quantity.
-        dims_or_groups: str or iterable of str or dict
-            Name(s) of the dimension(s) to sum over, or nested dict.
-        weights : :class:`xarray.DataArray`, optional
-            Weights for weighted aggregation.
-        keep : bool, optional
-            Passed to :meth:`computations.aggregate <genno.computations.aggregate>`.
-        sums : bool, optional
-            Passed to :meth:`add`.
-        fail : str or int, optional
-            Passed to :meth:`add_queue` via :meth:`add`.
-
-        Returns
-        -------
-        :class:`Key`
-            The key of the newly-added node.
-        """
-        # TODO maybe split this to two methods?
-
-        if isinstance(dims_or_groups, dict):
-            groups = dims_or_groups
-            if len(groups) > 1:
-                raise NotImplementedError("aggregate() along >1 dimension")
-
-            key = Key(qty).add_tag(tag)
-            args: Tuple[Any, ...] = (
-                computations.aggregate,
-                qty,
-                dask.core.quote(groups),
-                keep,
-            )
-            kwargs = dict()
-        else:
-            dims = dims_or_groups
-            if isinstance(dims, str):
-                dims = [dims]
-
-            key = Key(qty).drop(*dims).add_tag(tag)
-            args = ("sum", qty, weights)
-            kwargs = dict(dimensions=dims)
-
-        return self.add(key, *args, **kwargs, strict=True, sums=sums, fail=fail)
-
-    add_aggregate = aggregate
-
     def describe(self, key=None, quiet=True):
         """Return a string describing the computations that produce `key`.
 
@@ -881,6 +817,95 @@ class Computer:
             stacklevel=-1,
         )
         return computations.mul.add_tasks(self, *args, **kwargs)
+
+    def aggregate(
+        self,
+        qty: KeyLike,
+        tag: str,
+        dims_or_groups: Union[Mapping, str, Sequence[str]],
+        weights: Optional[xr.DataArray] = None,
+        keep: bool = True,
+        sums: bool = False,
+        fail: Optional[Union[str, int]] = None,
+    ):
+        """Deprecated.
+
+        Add a computation that aggregates `qty`.
+
+        .. deprecated:: 1.18.0
+
+           Instead, for a mapping/:class:`dict` `dims_or_groups`, use:
+
+           .. code-block:: python
+
+              c.add(qty, "aggregate", groups=dims_or_groups, keep=keep, ...)
+
+           Or, for :class:`str` or sequence of :class:`str` `dims_or_groups`, use:
+
+           .. code-block:: python
+
+              c.add(None, "sum", qty, dimensions=dims_or_groups, ...)
+
+        Parameters
+        ----------
+        qty: :class:`Key` or str
+            Key of the quantity to be aggregated.
+        tag: str
+            Additional string to add to the end the key for the aggregated
+            quantity.
+        dims_or_groups: str or iterable of str or dict
+            Name(s) of the dimension(s) to sum over, or nested dict.
+        weights : :class:`xarray.DataArray`, optional
+            Weights for weighted aggregation.
+        keep : bool, optional
+            Passed to :meth:`computations.aggregate <genno.computations.aggregate>`.
+        sums : bool, optional
+            Passed to :meth:`add`.
+        fail : str or int, optional
+            Passed to :meth:`add_queue` via :meth:`add`.
+
+        Returns
+        -------
+        :class:`Key`
+            The key of the newly-added node.
+        """
+        if isinstance(dims_or_groups, dict):
+            groups = dims_or_groups
+            if len(groups) > 1:
+                raise NotImplementedError("aggregate() along >1 dimension")
+
+            key = Key(qty).add_tag(tag)
+            args: Tuple[Any, ...] = (
+                computations.aggregate,
+                qty,
+                dask.core.quote(groups),
+                keep,
+            )
+            kwargs = dict()
+
+            msg = (
+                f'dims_or_groups={{...}}). Use:\nComputer.add({key!r}, "aggregate", '
+                f"{qty!r}, groups=dims_or_groups, strict=True, ...)"
+            )
+        else:
+            dims = dims_or_groups
+            if isinstance(dims, str):
+                dims = [dims]
+
+            key = Key(qty).drop(*dims).add_tag(tag)
+            args = ("sum", qty, weights)
+            kwargs = dict(dimensions=dims)
+
+            msg = (
+                f'dims_or_groups=[...]). Use:\nComputer.add(None, "sum", {qty!r}, '
+                f"dimensions=dims_or_groups, strict=True, ...)"
+            )
+
+        warn(f"Computer.aggregate(…, {msg}", DeprecationWarning, stacklevel=-1)
+
+        return self.add(key, *args, **kwargs, strict=True, sums=sums, fail=fail)
+
+    add_aggregate = aggregate
 
     def convert_pyam(self, *args, **kwargs):
         """Deprecated.
