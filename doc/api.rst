@@ -154,34 +154,6 @@ Top-level classes and functions
 
          rep.apply(my_gen1, units="kg")
 
-   .. automethod:: convert_pyam
-
-      The :doc:`IAMC data format <pyam:data>` includes columns named 'Model', 'Scenario', 'Region', 'Variable', 'Unit'; one of 'Year' or 'Time'; and 'value'.
-
-      Using :meth:`convert_pyam`:
-
-      - 'Model' and 'Scenario' are populated from the attributes of the object returned by the Reporter key ``scenario``;
-      - 'Variable' contains the name(s) of the `quantities`;
-      - 'Unit' contains the units associated with the `quantities`; and
-      - 'Year' or 'Time' is created according to `year_time_dim`.
-
-      A callback function (`collapse`) can be supplied that modifies the data before it is converted to an :class:`~pyam.IamDataFrame`; for instance, to concatenate extra dimensions into the 'Variable' column.
-      Other dimensions can simply be dropped (with `drop`).
-      Dimensions that are not collapsed or dropped will appear as additional columns in the resulting :class:`~pyam.IamDataFrame`; this is valid, but non-standard IAMC data.
-
-      For example, here the values for the MESSAGEix ``technology`` and ``mode`` dimensions are appended to the 'Variable' column:
-
-      .. code-block:: python
-
-          def m_t(df):
-              """Callback for collapsing ACT columns."""
-              # .pop() removes the named column from the returned row
-              df['variable'] = 'Activity|' + df['t'] + '|' + df['m']
-              return df
-
-          ACT = rep.full_key('ACT')
-          keys = rep.convert_pyam(ACT, 'ya', collapse=m_t, drop=['t', 'm'])
-
    .. automethod:: eval
 
       .. rubric:: Examples
