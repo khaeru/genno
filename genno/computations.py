@@ -1,4 +1,4 @@
-"""Elementary computations for genno."""
+"""Elementary operators for genno."""
 # NB To avoid ambiguity, computations should not have default positional arguments.
 #    Define default values for the corresponding methods on the Computer class.
 import logging
@@ -569,6 +569,10 @@ def load_file(
         Units to apply to the loaded Quantity.
     name : str
         Name for the loaded Quantity.
+
+    See also
+    --------
+    add_load_file
     """
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
@@ -588,10 +592,11 @@ def load_file(
 
 @load_file.helper
 def add_load_file(func, c: "Computer", path, key=None, **kwargs):
-    """Add exogenous quantities from *path*.
+    """:meth:`.Computer.add` helper for :func:`.load_file`.
 
-    Computing the `key` or using it in other computations causes `path` to be loaded and
-    converted to :class:`.Quantity`.
+    Add a task to load an exogenous quantity from `path`. Computing the `key` or using
+    it in other computations causes `path` to be loaded and converted to
+    :class:`.Quantity`.
 
     Parameters
     ----------
@@ -611,12 +616,8 @@ def add_load_file(func, c: "Computer", path, key=None, **kwargs):
     Returns
     -------
     .Key
-        Either `key` (if given) or e.g. ``file:foo.ext`` based on the `path` name,
+        Either `key` (if given) or e.g. ``file foo.ext`` based on the `path` name,
         without directory components.
-
-    See also
-    --------
-    genno.computations.load_file
     """
     path = Path(path)
     key = key if key else "file {}".format(path.name)
@@ -699,7 +700,12 @@ def _load_file_csv(
 
 @Operator.define
 def mul(*quantities: Quantity) -> Quantity:
-    """Compute the product of any number of *quantities*."""
+    """Compute the product of any number of `quantities`.
+
+    See also
+    --------
+    add_mul
+    """
     result = reduce(operator.mul, quantities)
     result.units = reduce(operator.mul, collect_units(*quantities))
 
@@ -708,7 +714,9 @@ def mul(*quantities: Quantity) -> Quantity:
 
 @mul.helper
 def add_mul(func, c: "Computer", key, *quantities, **kwargs) -> Key:
-    """Add a computation that takes the product of `quantities`.
+    """:meth:`.Computer.add` helper for :func:`.mul`.
+
+    Add a computation that takes the product of `quantities`.
 
     Parameters
     ----------

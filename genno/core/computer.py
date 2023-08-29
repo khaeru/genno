@@ -847,7 +847,15 @@ class Computer:
     # Deprecated methods
 
     def add_file(self, *args, **kwargs):
-        """Deprecated. Use ``Computer.add(…, "load_file" …) instead."""
+        """Deprecated.
+
+        .. deprecated:: 1.18.0
+           Instead use :func:`.add_load_file` via:
+
+           .. code-block:: python
+
+              c.add(..., "load_file", ...)
+        """
         arg = (args[1:2] if len(args) else None) or None
         warn(
             f"Computer.add_file(…). Use: Computer.add({kwargs.get('key', arg)!r}, "
@@ -858,7 +866,15 @@ class Computer:
         return computations.load_file.add_tasks(self, *args, **kwargs)
 
     def add_product(self, *args, **kwargs):
-        """Deprecated. Use ``Computer.add(…, "mul" …) instead."""
+        """Deprecated.
+
+        .. deprecated:: 1.18.0
+           Instead use :func:`.add_mul` via:
+
+           .. code-block:: python
+
+              c.add(..., "mul", ...)
+        """
         warn(
             f'Computer.add_product(…). Use: Computer.add({args[0]!r}, "mul", …)',
             DeprecationWarning,
@@ -867,14 +883,16 @@ class Computer:
         return computations.mul.add_tasks(self, *args, **kwargs)
 
     def convert_pyam(self, *args, **kwargs):
-        """Deprecated. Instead, use:
+        """Deprecated.
 
-        .. code-block:: python
+        .. deprecated:: 1.18.0
 
-           c = Computer()
-           c.require_compat("pyam")
-           c.add(…, "as_pyam", …)
+           Instead use :func:`.add_as_pyam` via:
 
+           .. code-block:: python
+
+              c.require_compat("pyam")
+              c.add(..., "as_pyam", ...)
         """
         warn(
             f"""Computer.convert_pyam(…). Use:
@@ -887,21 +905,22 @@ class Computer:
         return self.get_comp("as_pyam").add_tasks(self, *args, **kwargs)
 
     def disaggregate(self, qty, new_dim, method="shares", args=[]):
-        """Deprecated. Instead use one of:
+        """Deprecated.
 
-        For `method` = "disaggregate_shares":
+        .. deprecated:: 1.18.0
 
-        .. code-block:: python
+           Instead, for `method` = "disaggregate_shares", use:
 
-           c = Computer()
-           c.add(qty.append(new_dim), "mul", qty, …)
+           .. code-block:: python
 
-        For a :class:`callable` `method`:
+              c = Computer()
+              c.add(qty.append(new_dim), "mul", qty, ..., strict=True)
 
-        .. code-block:: python
+           Or for a :func:`callable` `method`, use:
 
-           c.add(qty.append(new_dim), method, qty, …)
+           .. code-block:: python
 
+              c.add(qty.append(new_dim), method, qty, ..., strict=True)
         """
         # Compute the new key
         key = Key(qty).append(new_dim)

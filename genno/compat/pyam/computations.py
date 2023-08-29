@@ -2,19 +2,20 @@ import logging
 from functools import partial
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Collection, Optional, Union
+from typing import TYPE_CHECKING, Callable, Collection, Iterable, Optional, Union
 from warnings import warn
 
 import pyam
 
 import genno.computations
-from genno.core.key import Key
+from genno.core.key import Key, KeyLike
 from genno.core.operator import Operator
 
 from . import util
 
 if TYPE_CHECKING:
     from genno.core.computer import Computer
+    from genno.core.quantity import Quantity
 
 log = logging.getLogger(__name__)
 
@@ -25,34 +26,59 @@ __all__ = ["as_pyam", "concat", "write_report"]
 @Operator.define
 def as_pyam(
     scenario,
-    quantity,
-    # /,  # Requires Python 3.8; uncomment if/when support for Python 3.7 is dropped
+    quantity: "Quantity",
+    *,
     rename=dict(),
     collapse: Optional[Callable] = None,
     replace=dict(),
     drop: Union[Collection[str], str] = "auto",
     unit=None,
 ):
-    """Return a :class:`pyam.IamDataFrame` containing `quantity`.
+    """Return a :class:`pyam.IamDataFrame` containing the data from `quantity`.
 
     Warnings are logged if the arguments result in additional, unhandled columns in the
     resulting data frame that are not part of the IAMC spec.
 
+    The conversion has the following steps:
+
+    1. `quantity` is converted to a temporary :class:`pandas.DataFrame`.
+    2. Labels for the following IAMC dimensions are filled:
+
+       - ``model``, ``scenario``: from attributes of the `scenario` argument.
+       - ``variable``: from the :attr:`~.Quantity.name` of `quantity`, if any.
+       - ``unit``: from the :attr:`~.Quantity.units` of `quantity`, if any.
+
+    3. The actions specified by the optional arguments `rename`, `collapse`, `replace`,
+       `drop`, and `unit`, if any, are applied in that order.
+    4. The resulting data frame is converted to :class:`pyam.IamDataFrame`.
+
     Parameters
     ----------
     scenario :
-        Any objects with :attr:`model` and :attr:`scenario` attributes of type
-        :class:`str`, e.g. :class:`ixmp.Scenario`.
+        Any object with :attr:`model` and :attr:`scenario` attributes of type
+        :class:`str`, for instance an :class:`ixmp.Scenario`.
+    rename : dict (str -> str), optional
+        Mapping from dimension names in `quantity` to column names; either IAMC
+        dimension names, or others that are consumed by `collapse`.
+    collapse : callable, optional
+        Function that takes a :class:`pandas.DataFrame` and returns the same type.
+        This function **may** collapse 2 or more dimensions, for example to construct
+        labels for the IAMC ``variable`` dimension, or any other.
+    replace : optional
+        Values to be replaced and their replaced. Passed directly to
+        :meth:`pandas.DataFrame.replace`.
+    drop : str or collection of str, optional
+        Columns to drop. Passed to :func:`.util.drop`, so if not given, all non-IAMC
+        columns are dropped.
+    unit : str, optional
+        Label for the IAMC ``unit`` dimension. Passed to
+        :func:`~.pyam.util.clean_units`.
 
     Raises
     ------
     ValueError
-        If the resulting data frame has duplicate values in the standard IAMC index
-        columns. :class:`pyam.IamDataFrame` cannot handle this data.
-
-    See also
-    --------
-    .Computer.convert_pyam
+        If the resulting data frame has duplicate keys in the IAMC dimensions.
+        :class:`pyam.IamDataFrame` cannot handle such data.
     """
     # - Convert to pd.DataFrame
     # - Rename one dimension to 'year' or 'time'
@@ -91,8 +117,17 @@ def as_pyam(
 
 
 @as_pyam.helper
-def add_as_pyam(func, c: "Computer", quantities, tag="iamc", /, **kwargs):
-    """Add conversion of one or more `quantities` to IAMC format.
+def add_as_pyam(
+    func,
+    c: "Computer",
+    quantities: Union[KeyLike, Iterable[KeyLike]],
+    tag="iamc",
+    /,
+    **kwargs,
+):
+    """:meth:`.Computer.add` helper for :func:`.as_pyam`.
+
+    Add conversion of one or more `quantities` to the IAMC data structure.
 
     Parameters
     ----------
@@ -110,15 +145,13 @@ def add_as_pyam(func, c: "Computer", quantities, tag="iamc", /, **kwargs):
     -------
     list of Key
         Each task converts a :class:`.Quantity` into a :class:`pyam.IamDataFrame`.
-
-    See also
-    --------
-    .as_pyam
     """
     # Handle single vs. iterable of inputs
-    multi_arg = not isinstance(quantities, (str, Key))
-    if not multi_arg:
+    if isinstance(quantities, (str, Key)):
         quantities = [quantities]
+        multi_arg = False
+    else:
+        multi_arg = True
 
     if len(kwargs.get("replace", {})) and not isinstance(
         next(iter(kwargs["replace"].values())), dict
@@ -151,7 +184,10 @@ def add_as_pyam(func, c: "Computer", quantities, tag="iamc", /, **kwargs):
 
 
 def concat(*args, **kwargs):
-    """Concatenate *args*, which must all be :class:`pyam.IamDataFrame`."""
+    """Concatenate *args*, which must all be :class:`pyam.IamDataFrame`.
+
+    Otherwise, equivalent to :func:`genno.computations.concat`.
+    """
     if isinstance(args[0], pyam.IamDataFrame):
         # pyam.concat() takes an iterable of args
         return pyam.concat(args, **kwargs)
@@ -161,7 +197,7 @@ def concat(*args, **kwargs):
 
 
 def write_report(obj, path: Union[str, PathLike]) -> None:
-    """Write  obj` to the file at `path`.
+    """Write  `obj` to the file at `path`.
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",
     use :mod:`pyam` methods to write the file to CSV or Excel format, respectively.
