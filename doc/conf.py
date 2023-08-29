@@ -35,6 +35,12 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
+rst_prolog = """
+.. role:: py(code)
+   :language: python
+"""
+
+
 def setup(app):
     """Modify the sphinx.ext.autodoc config to handle Operators as functions."""
     from sphinx.ext.autodoc import FunctionDocumenter
