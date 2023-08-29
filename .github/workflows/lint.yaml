@@ -18,5 +18,6 @@ jobs:
         nbclient
         "pint < 0.21"
         pytest
+        Sphinx
         types-PyYAML
         xarray
