@@ -38,6 +38,10 @@ class Operator:
         # The callable is stored as a static method; `self` is not passed
         return self.func(*args, **kwargs)
 
+    def __eq__(self, other):
+        """Compares equal to the wrapped `func`."""
+        return other == self.func
+
     def __repr__(self):
         return f"<operator {self.__class__.__name__}>"
 
