@@ -166,14 +166,22 @@ def aggregate(c: Computer, info):
 
     for qty in quantities:
         try:
-            keys = c.aggregate(qty, tag, groups, sums=True, fail=fail)
+            result = c.add(
+                Key(qty).add_tag(tag),
+                "aggregate",
+                groups=groups,
+                strict=True,
+                sums=True,
+                fail=fail,
+            )
+
         except KeyExistsError:
             pass
         except MissingKeyError:
             if fail == "error":
                 raise
         else:
-            if len(keys):
+            if keys := list(iter_keys(result)):
                 log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
 
 
