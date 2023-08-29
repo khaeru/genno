@@ -18,6 +18,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Tuple,
     Union,
     cast,
 )
@@ -28,7 +29,7 @@ from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
-from genno.core.key import Key, iter_keys, single_key
+from genno.core.key import Key, KeyLike, iter_keys, single_key
 from genno.core.operator import Operator
 from genno.core.quantity import (
     Quantity,
@@ -912,18 +913,19 @@ def sub(a: Quantity, b: Quantity) -> Quantity:
     return add(a, -b)
 
 
+@Operator.define
 def sum(
     quantity: Quantity,
     weights: Optional[Quantity] = None,
     dimensions: Optional[List[str]] = None,
 ) -> Quantity:
-    """Sum *quantity* over *dimensions*, with optional *weights*.
+    """Sum `quantity` over `dimensions`, with optional `weights`.
 
     Parameters
     ----------
     weights : .Quantity, optional
-        If *dimensions* is given, *weights* must have at least these
-        dimensions. Otherwise, any dimensions are valid.
+        If `dimensions` is given, `weights` must have at least these dimensions.
+        Otherwise, any dimensions are valid.
     dimensions : list of str, optional
         If not provided, sum over all dimensions. If provided, sum over these
         dimensions.
@@ -940,6 +942,26 @@ def sum(
     return _preserve(
         "name", div(mul(quantity, _w).sum(dim=dimensions), w_total), quantity
     )
+
+
+@sum.helper
+def add_sum(
+    func, c: "Computer", key, qty, weights=None, dimensions=None, **kwargs
+) -> Union[KeyLike, Tuple[KeyLike, ...]]:
+    """:meth:`.Computer.add` helper for :func:`.sum`.
+
+    If `key` has the name "*", the returned key has name and dimensions inferred from
+    `qty` and `dimensions`, and only the tag (if any) of `key` is preserved.
+
+    Parameters
+    ----------
+    """
+    key = Key(key)
+    if key.name == "*":
+        q = Key(qty)
+        key = (q.drop(*dimensions) if dimensions else q.drop_all()).add_tag(key.tag)
+
+    return c.add(key, func, qty, weights=weights, dimensions=dimensions, **kwargs)
 
 
 def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:

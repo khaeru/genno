@@ -297,6 +297,7 @@ Operators
       ratio
       sub
       sum
+      add_sum
 
    Input and output:
 
