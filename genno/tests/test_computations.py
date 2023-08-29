@@ -111,6 +111,10 @@ def test_aggregate(caplog, data, keep):
     ):
         result = computations.aggregate(x, dict(t=t_groups), keep)
 
+    # Two dimensions
+    result = computations.aggregate(x, {"t": t_groups, "y": {"2k": [2000, 2010]}}, keep)
+    assert "2k" in result.coords["y"]
+
 
 def test_apply_units(data, caplog):
     # Unpack
@@ -493,7 +497,14 @@ def test_load_file(test_data_path, ureg, name, kwargs):
     assert "baz" == qty.name
 
 
-@pytest.mark.parametrize("func", [computations.mul, computations.product])
+@pytest.mark.parametrize(
+    "func",
+    (
+        computations.mul,
+        computations.product,  # Alias
+        computations.disaggregate_shares,  # Deprecated alias
+    ),
+)
 def test_mul0(func):
     A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
     B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))
@@ -626,6 +637,9 @@ def test_relabel(data):
     for args in [
         ("test", computations.relabel, "x:t-y", args),
         ("test", partial(computations.relabel, **args), "x:t-y"),
+        ("test", "relabel", "x:t-y", args),
+        ("test", "relabel", "x:t-y", "labels"),
+        # Deprecated
         ("relabel", "test", "x:t-y", args),
         ("relabel", "test", "x:t-y", "labels"),
     ]:
@@ -661,6 +675,9 @@ def test_rename_dims(data):
     for args in [
         ("test", computations.rename_dims, "x:t-y", args),
         ("test", partial(computations.rename_dims, **args), "x:t-y"),
+        ("test", "rename_dims", "x:t-y", args),
+        ("test", "rename_dims", "x:t-y", "dim name map"),
+        # Deprecated
         ("rename_dims", "test", "x:t-y", args),
         ("rename_dims", "test", "x:t-y", "dim name map"),
     ]:
@@ -749,7 +766,7 @@ def test_select_bigmem():
     k = c.add("random indexers", random_indexers, keys[0])
 
     # Add a task to select some values
-    key = c.add("select", "test key", keys[0], k)
+    key = c.add("test key", "select", keys[0], k)
 
     if Quantity._get_class() is SparseDataArray:
         # ValueError: invalid dims: array size defined by dims is larger than the

@@ -206,7 +206,7 @@ Computer-specific configuration that controls the behaviour of functions decorat
 
 Computer-specific configuration.
 
-Invokes :meth:`.Computer.add_combination` to add tasks with :func:`computations.combine`, computing a weighted sum of multiple Quantities.
+Add tasks with :func:`.combine`, computing a weighted sum of multiple Quantities.
 Each item contains:
 
 ``key:``
@@ -217,7 +217,7 @@ Each item contains:
 
   ``quantity:`` (required)
      Key for the input quantity.
-     :meth:`.add_combination` infers the proper dimensionality from the dimensions of `key` plus dimension to `select` on.
+     The final dimensionality is inferred from the dimensions of `key` plus dimension to `select` on.
   ``select:`` (:class:`dict`, optional)
      Selectors to be applied to the input quantity.
      Keys are dimensions; values are either single labels, or lists of labels.
@@ -240,7 +240,7 @@ For the following YAML:
      - quantity: baz::tag
        select: {d: [d1, d2, d3]}
 
-…:meth:`.add_combination` infers:
+The code infers:
 
 .. math::
 
@@ -297,20 +297,20 @@ This is, as the name implies, the most generalized section.
 Each item contains:
 
 ``comp:``
-  Refers to the name of a computation that is available in the namespace of :mod:`genno.computations`, or custom computations registered by compatibility modules or third-party packages.
-  See :meth:`Computer.add` and :meth:`Computer.get_comp`.
-  E.g. if "product", then :meth:`.Computer.add_product` is called, which also automatically infers the correct dimensions for each input.
+  Refers to the name of a operator that is available in the namespace of :mod:`genno.computations`, or a custom operator registered by compatibility modules or third-party packages.
+  See :meth:`.Computer.add` and :meth:`.Computer.get_comp`.
+  For instance, if "product", then :meth:`.Computer.add_product` is called, which also automatically infers the correct dimensions for each input.
 
-  If omitted, :data:`None`, or YAML ``null``, no specific callable is used, but instead ``key:`` is configured to retrieve a simple :class:`list`` of the ``inputs:``.
+  If omitted, :data:`None`, or YAML ``null``, no specific callable is used, but instead ``key:`` is configured to retrieve a simple :class:`list` of the ``inputs:``.
   In this case, ``args:`` are ignored.
 ``key:``
    The key for the computed quantity.
 
    If the key has the single dimension "\*" (e.g. ``key: "X:*:tag"``), then dimensions of the resulting key are inferred to be the union of the dimensions of each of the ``inputs:``, below.
 ``inputs:``
-   A list of (1 or more) keys to which the computation is applied.
+   A list of (1 or more) keys to which the operator is applied.
 ``args:`` (:class:`dict`, optional)
-   Keyword arguments to the computation.
+   Keyword arguments to the operator.
 ``add args:`` (:class:`dict`, optional)
    Keyword arguments to :meth:`.Computer.add` itself.
 

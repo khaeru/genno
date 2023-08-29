@@ -1,0 +1,25 @@
+aggregate:
+- _quantities: [ "X::", "Y::", "Z::" ]
+  _tag: agg
+  _dim: a
+  _fail: warning
+
+  baz123: [baz1, baz2, baz3]
+  baz13: [baz1, baz3]
+
+# Triggers non-fatal KeyExistsError
+- _quantities: [ "X::", "Y::", "Z::" ]
+  _tag: agg
+  _dim: a
+
+  baz123: [baz1, baz2, baz3]
+  baz13: [baz1, baz3]
+
+# Triggers MissingKeyError
+- _quantities: [ "X::", "Y::", "Q::" ]
+  _tag: agg2
+  _dim: a
+  _fail: "error"
+
+  baz123: [baz1, baz2, baz3]
+  baz13: [baz1, baz3]

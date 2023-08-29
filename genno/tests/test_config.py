@@ -4,7 +4,7 @@ from importlib import import_module
 
 import pytest
 
-from genno import Computer, Key, configure
+from genno import Computer, Key, MissingKeyError, configure
 from genno.compat.pyam import HAS_PYAM
 from genno.config import HANDLERS, handles
 
@@ -33,6 +33,9 @@ def test_handlers():
     [
         "config-aggregate0.yaml",
         "config-aggregate1.yaml",
+        pytest.param(
+            "config-aggregate2.yaml", marks=pytest.mark.xfail(raises=MissingKeyError)
+        ),
         "config-combine.yaml",
         "config-general0.yaml",
         pytest.param(

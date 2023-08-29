@@ -7,9 +7,11 @@ else:
 
 import logging
 from functools import partial
+from typing import List
 
 from genno import Computer, Key
 from genno.config import handles
+from genno.core.key import single_key
 
 log = logging.getLogger(__name__)
 
@@ -17,9 +19,14 @@ log = logging.getLogger(__name__)
 @handles("iamc")
 def iamc(c: Computer, info):
     """Handle one entry from the ``iamc:`` config section."""
-    if not HAS_PYAM:  # pragma: no cover
-        log.warning("Missing pyam; configuration section 'iamc:' ignored")
-        return
+    try:
+        c.require_compat("pyam")
+    except ModuleNotFoundError:  # pragma: no cover
+        if not HAS_PYAM:
+            log.warning("Missing pyam; configuration section 'iamc:' ignored")
+            return
+        else:
+            raise
 
     from . import util
 
@@ -27,19 +34,21 @@ def iamc(c: Computer, info):
     name = info.pop("variable")
 
     # Chain of keys produced: first entry is the key for the base quantity
-    keys = [Key.from_str_or_key(info.pop("base"))]
+    keys: List[Key] = [Key(info.pop("base"))]
 
     # Second entry is a simple rename
-    keys.append(c.add_single(Key(name, keys[0].dims, keys[0].tag), keys[0]))
+    keys.append(single_key(c.add_single(Key(name, keys[0].dims, keys[0].tag), keys[0])))
 
     # Optionally select a subset of data from the base quantity
     sel = info.get("select")
     if sel:
         keys.append(
-            c.add_single(
-                keys[-1].add_tag("sel"),
-                (c.get_comp("select"), keys[-1], sel),
-                strict=True,
+            single_key(
+                c.add_single(
+                    keys[-1].add_tag("sel"),
+                    (c.get_comp("select"), keys[-1], sel),
+                    strict=True,
+                )
             )
         )
 
@@ -51,13 +60,16 @@ def iamc(c: Computer, info):
     # Use the Computer method to add the coversion step
     # NB convert_pyam() returns a single key when applied to a single key
     keys.append(
-        c.convert_pyam(
-            keys[-1],
-            rename=info.pop("rename", {}),
-            collapse=partial(collapse_func, **collapse_info),
-            replace=info.pop("replace", {}),
-            drop=set(info.pop("drop", [])) & set(keys[-1].dims),
-            unit=info.pop("unit", None),
+        single_key(
+            c.add(
+                keys[-1],
+                "as_pyam",
+                rename=info.pop("rename", {}),
+                collapse=partial(collapse_func, **collapse_info),
+                replace=info.pop("replace", {}),
+                drop=set(info.pop("drop", [])) & set(keys[-1].dims),
+                unit=info.pop("unit", None),
+            )
         )
     )
 

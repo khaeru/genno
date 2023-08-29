@@ -4,7 +4,7 @@ Caching
 Basics
 ======
 
-Use :meth:`.Computer.cache` to decorate another function, `func`, that will be added as the computation/callable in a task.
+Use :meth:`.Computer.cache` to decorate another function, `func`, that will be added as the operator/callable in a task.
 Caching is useful when :meth:`.get` is called multiple times on the same Computer, or across processes, invoking a slow `func` each time.
 
 .. code-block:: python
@@ -85,7 +85,7 @@ Another possibility is to hash the entire file.
 
 .. warning:: For very large files, even hashing the file in this way can be slow, and this check must *always* be performed in order to check for a matching cache key.
 
-The decorated functions can be used as computations in the graph, or called directly:
+The decorated functions can be used as operators in the graph, or called directly:
 
 .. code-block:: python
 

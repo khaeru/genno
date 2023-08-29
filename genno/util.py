@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Callable, Iterable, Mapping, Tuple, Type, Union
+from typing import Callable, Iterable, Mapping, MutableMapping, Tuple, Type, Union
 
 import pandas as pd
 import pint
@@ -21,7 +21,7 @@ log = logging.getLogger(__name__)
 #: - The '%' symbol cannot be supported by pint, because it is a Python operator; it is
 #:   replaced with “percent”.
 #:
-#: Additional values can be added with :meth:`configure`; see :ref:`config-units`.
+#: Additional values can be added with :func:`configure`; see :ref:`config-units`.
 REPLACE_UNITS = {
     "%": "percent",
 }
@@ -147,13 +147,19 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
         raise invalid(unit, e)
 
 
-def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, Mapping]:
+def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMapping]:
     """Forgiving version of :func:`functools.partial`.
 
     Returns a :class:`partial` object and leftover kwargs not applicable to `func`.
     """
     # Names of parameters to `func`
-    par_names = signature(func).parameters
+    try:
+        par_names: Mapping = signature(func).parameters
+    except ValueError:
+        # signature() raises for operator.itemgetter(…), built-ins, and similar
+        if not callable(func):  # pragma: no cover
+            raise TypeError(type(func))
+        par_names = {}
 
     func_args, extra = {}, {}
     for name, value in kwargs.items():
@@ -166,7 +172,10 @@ def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, Mapping]:
         else:
             extra[name] = value
 
-    return partial(func, **func_args), extra
+    if func_args:
+        return partial(func, **func_args), extra
+    else:
+        return func, extra  # Nothing to partial; return `func` as-is
 
 
 def unquote(value):

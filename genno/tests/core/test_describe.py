@@ -1,9 +1,11 @@
 import re
+from operator import itemgetter
 
 import pandas as pd
 import pytest
 
 from genno import Computer, Quantity
+from genno.core.describe import label
 from genno.core.sparsedataarray import SparseDataArray
 
 
@@ -35,3 +37,8 @@ def test_describe_shorten():
 all"""  # noqa: 501
         == c.describe()
     )
+
+
+def test_label():
+    """:func:`label` handles unusual callables."""
+    assert "operator.itemgetter(0)" == label(itemgetter(0))

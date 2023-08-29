@@ -20,8 +20,8 @@ import yaml
 
 import genno.computations as computations
 from genno.core.computer import Computer
-from genno.core.exceptions import KeyExistsError
-from genno.core.key import Key
+from genno.core.exceptions import KeyExistsError, MissingKeyError
+from genno.core.key import Key, iter_keys
 from genno.util import REPLACE_UNITS
 
 log = logging.getLogger(__name__)
@@ -34,16 +34,16 @@ STORE = set(["cache_path", "cache_skip"])
 
 
 def configure(path: Optional[Union[Path, str]] = None, **config):
-    """Configure :mod:`genno` globally.
+    """Configure :mod:`.genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
-    computations. Configuration keys loaded from file are superseded by keyword
-    arguments. Messages are logged at level :obj:`logging.INFO` if `config` contains
-    unhandled sections.
+    operators. Configuration keys loaded from file are superseded by keyword arguments.
+    Messages are logged at level :obj:`logging.INFO` if `config` contains unhandled
+    sections.
 
     Parameters
     ----------
-    path : Path, optional
+    path : pathlib.Path, optional
         Path to a configuration file in JSON or YAML format.
     **config :
         Configuration keys/sections and values.
@@ -164,13 +164,24 @@ def aggregate(c: Computer, info):
     fail = info.pop("_fail", None)
     groups = {info.pop("_dim"): info}
 
-    for qty in quantities:
+    for qty in map(Key, quantities):
         try:
-            keys = c.aggregate(qty, tag, groups, sums=True, fail=fail)
+            result = c.add(
+                qty.add_tag(tag),
+                "aggregate",
+                qty,
+                groups=groups,
+                strict=True,
+                sums=True,
+                fail=fail,
+            )
         except KeyExistsError:
             pass
+        except MissingKeyError:
+            if fail == "error":
+                raise
         else:
-            if len(keys):
+            if keys := list(iter_keys(result)):
                 log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
 
 
@@ -187,7 +198,7 @@ def combine(c: Computer, info):
     quantities, select, weights = [], [], []
 
     # Key for the new quantity
-    key = Key.from_str_or_key(info["key"])
+    key = Key(info["key"])
 
     # Loop over inputs to the combination
     for i in info["inputs"]:
@@ -208,9 +219,9 @@ def combine(c: Computer, info):
         [partial(computations.combine, select=select, weights=weights)] + quantities
     )
 
-    added = c.add(key, task, strict=True, sums=True)
+    added = iter_keys(c.add(key, task, strict=True, sums=True))
 
-    log.info(f"Add {repr(key)} + {len(added)-1} partial sums")
+    log.info(f"Add {repr(key)} + {len(list(added))-1} partial sums")
     log.debug("    as combination of")
     log.debug(f"    {repr(quantities)}")
 
@@ -233,7 +244,7 @@ def files(c: Computer, info):
 
     info["path"] = path
 
-    c.add_file(**info)
+    c.add("load_file", **info)
 
 
 @handles("general")
@@ -243,15 +254,15 @@ def general(c: Computer, info):
     inputs = c.infer_keys(info.get("inputs", []))
 
     if info["comp"] in ("mul", "product"):
-        key = c.add_product(info["key"], *inputs)
-        log.info(f"Add {repr(key)} using .add_product()")
+        result = c.add(info["key"], "mul", *inputs)
+        log.info(f"Add {repr(result)} using .add_product()")
     else:
         # The resulting key
         key = info["key"]
-        key = key if Key.bare_name(key) else Key.from_str_or_key(key)
+        key = key if Key.bare_name(key) else Key(key)
 
         # Infer the dimensions of the resulting key if ":*:" is given for the dims
-        if set(getattr(key, "dims", {})) == {"*"}:
+        if isinstance(key, Key) and key.dims == ("*",):
             key = Key.product(key.name, *inputs, tag=key.tag)
             # log.debug(f"Inferred dimensions ({', '.join(key.dims)}) for '*'")
 
@@ -282,7 +293,7 @@ def report(c: Computer, info):
     """Handle one entry from the ``report:`` config section."""
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
-    # Concatenatqe pyam data structures
+    # Concatenate pyam data structures
     c.add(info["key"], tuple([c.get_comp("concat")] + info["members"]), strict=True)
 
 

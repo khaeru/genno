@@ -62,7 +62,13 @@ repository = "https://github.com/khaeru/genno"
 documentation = "https://genno.rtfd.io/en/stable/"
 
 [tool.coverage.report]
-exclude_also = ["\\.{3}$", "return NotImplemented"]
+exclude_also = [
+  # Imports only used by type checkers
+  "if TYPE_CHECKING:",
+  # Exclude bodies of abstract functions
+  "\\.{3}$",
+  "return NotImplemented",
+]
 
 [tool.isort]
 profile = "black"

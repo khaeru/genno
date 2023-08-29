@@ -35,6 +35,30 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
+rst_prolog = """
+.. role:: py(code)
+   :language: python
+"""
+
+
+def setup(app):
+    """Modify the sphinx.ext.autodoc config to handle Operators as functions."""
+    from sphinx.ext.autodoc import FunctionDocumenter
+
+    from genno.core.operator import Operator
+
+    class OperatorDocumenter(FunctionDocumenter):
+        # priority = FunctionDocumenter.priority - 1
+
+        @classmethod
+        def can_document_member(cls, member, membername, isattr, parent) -> bool:
+            return isinstance(member, Operator) or super().can_document_member(
+                member, membername, isattr, parent
+            )
+
+    app.add_autodocumenter(OperatorDocumenter, override=True)
+
+
 # -- Options for HTML output -----------------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for a list of

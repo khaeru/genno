@@ -164,7 +164,7 @@ def add_test_data(c: Computer):
 _i = ["seattle", "san-diego"]
 _j = ["new-york", "chicago", "topeka"]
 _TEST_DATA = {
-    Key.from_str_or_key(k): data
+    Key(k): data
     for k, data in {
         "a:i": (xr.DataArray([350, 600], coords=[("i", _i)]), "cases"),
         "b:j": (xr.DataArray([325, 300, 275], coords=[("i", _j)]), "cases"),
@@ -289,13 +289,13 @@ def assert_qty_equal(
     Parameters
     ----------
     check_type : bool, optional
-        Assert that `a` and `b` are both :class:`Quantity` instances. If :obj:`False`,
+        Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
     check_attrs : bool, optional
         Also assert that check that attributes are identical.
     ignore_extra_coords : bool, optional
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
-        :class:`SparseDataArray`.
+        :class:`.SparseDataArray`.
     """
     __tracebackhide__ = True
 
@@ -345,13 +345,13 @@ def assert_qty_allclose(
     Parameters
     ----------
     check_type : bool, optional
-        Assert that `a` and `b` are both :class:`Quantity` instances. If :obj:`False`,
+        Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
     check_attrs : bool, optional
         Also assert that check that attributes are identical.
     ignore_extra_coords : bool, optional
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
-        :class:`SparseDataArray`.
+        :class:`.SparseDataArray`.
     """
     __tracebackhide__ = True
 

@@ -1,15 +1,16 @@
-"""Elementary computations for genno."""
+"""Elementary operators for genno."""
 # NB To avoid ambiguity, computations should not have default positional arguments.
 #    Define default values for the corresponding methods on the Computer class.
 import logging
 import numbers
 import operator
 import re
-from functools import reduce
+from functools import partial, reduce
 from itertools import chain
 from os import PathLike
 from pathlib import Path
 from typing import (
+    TYPE_CHECKING,
     Any,
     Collection,
     Hashable,
@@ -17,6 +18,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Tuple,
     Union,
     cast,
 )
@@ -27,6 +29,8 @@ from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.attrseries import AttrSeries
+from genno.core.key import Key, KeyLike, iter_keys, single_key
+from genno.core.operator import Operator
 from genno.core.quantity import (
     Quantity,
     assert_quantity,
@@ -35,6 +39,9 @@ from genno.core.quantity import (
 )
 from genno.core.sparsedataarray import SparseDataArray
 from genno.util import UnitLike, collect_units, filter_concat_args
+
+if TYPE_CHECKING:
+    from genno.core.computer import Computer
 
 __all__ = [
     "add",
@@ -409,10 +416,11 @@ def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
 
 
 def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
-    """Disaggregate *quantity* by *shares*."""
-    result = quantity * shares
-    result.units = collect_units(quantity)[0]
-    return result
+    """Deprecated: Disaggregate `quantity` by `shares`.
+
+    This operator is identical to :func:`mul`; use :func:`mul` and its helper instead.
+    """
+    return mul(quantity, shares)
 
 
 def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
@@ -533,6 +541,7 @@ def interpolate(
     return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
+@Operator.define
 def load_file(
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
@@ -561,6 +570,10 @@ def load_file(
         Units to apply to the loaded Quantity.
     name : str
         Name for the loaded Quantity.
+
+    See also
+    --------
+    add_load_file
     """
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
@@ -576,6 +589,40 @@ def load_file(
     else:
         # Default
         return open(path).read()
+
+
+@load_file.helper
+def add_load_file(func, c: "Computer", path, key=None, **kwargs):
+    """:meth:`.Computer.add` helper for :func:`.load_file`.
+
+    Add a task to load an exogenous quantity from `path`. Computing the `key` or using
+    it in other computations causes `path` to be loaded and converted to
+    :class:`.Quantity`.
+
+    Parameters
+    ----------
+    path : os.PathLike
+        Path to the file, e.g. '/path/to/foo.ext'.
+    key : str or .Key, optional
+        Key for the quantity read from the file.
+
+    Other parameters
+    ----------------
+    dims : dict or list or set
+        Either a collection of names for dimensions of the quantity, or a mapping from
+        names appearing in the input to dimensions.
+    units : str or pint.Unit
+        Units to apply to the loaded Quantity.
+
+    Returns
+    -------
+    .Key
+        Either `key` (if given) or e.g. ``file foo.ext`` based on the `path` name,
+        without directory components.
+    """
+    path = Path(path)
+    key = key if key else "file {}".format(path.name)
+    return c.add_single(key, partial(func, path, **kwargs), strict=True)
 
 
 UNITS_RE = re.compile(r"# Units?: (.*)\s+")
@@ -652,15 +699,57 @@ def _load_file_csv(
     )
 
 
+@Operator.define
 def mul(*quantities: Quantity) -> Quantity:
-    """Compute the product of any number of *quantities*."""
+    """Compute the product of any number of `quantities`.
 
+    See also
+    --------
+    add_mul
+    """
     result = reduce(operator.mul, quantities)
-    u_result = reduce(operator.mul, collect_units(*quantities))
-
-    result.units = u_result
+    result.units = reduce(operator.mul, collect_units(*quantities))
 
     return result
+
+
+@mul.helper
+def add_mul(func, c: "Computer", key, *quantities, **kwargs) -> Key:
+    """:meth:`.Computer.add` helper for :func:`.mul`.
+
+    Add a computation that takes the product of `quantities`.
+
+    Parameters
+    ----------
+    key : str or Key
+        Key of the new quantity. If a Key, any dimensions are ignored; the dimensions of
+        the product are the union of the dimensions of `quantities`.
+    sums : bool, optional
+        If :obj:`True`, all partial sums of the new quantity are also added.
+
+    Returns
+    -------
+    :class:`Key`
+        The full key of the new quantity.
+    """
+    # Fetch the full key for each quantity
+    base_keys = c.check_keys(*quantities, predicate=lambda v: isinstance(v, Quantity))
+
+    # Compute a key for the result
+    # Parse the name and tag of the target
+    key = Key(key)
+
+    # New key with dimensions of the product
+    candidate = Key.product(key.name, *base_keys, tag=key.tag)
+    # Only use this if it has greater dimensionality than `key`
+    if set(candidate.dims) >= set(key.dims):
+        key = candidate
+
+    # Add the basic product to the graph and index
+    kwargs.setdefault("sums", True)
+    keys = iter_keys(c.add(key, func, *base_keys, **kwargs))
+
+    return next(keys) if kwargs["sums"] else single_key(keys)
 
 
 #: Alias of :func:`mul`, for backwards compatibility.
@@ -824,18 +913,19 @@ def sub(a: Quantity, b: Quantity) -> Quantity:
     return add(a, -b)
 
 
+@Operator.define
 def sum(
     quantity: Quantity,
     weights: Optional[Quantity] = None,
     dimensions: Optional[List[str]] = None,
 ) -> Quantity:
-    """Sum *quantity* over *dimensions*, with optional *weights*.
+    """Sum `quantity` over `dimensions`, with optional `weights`.
 
     Parameters
     ----------
     weights : .Quantity, optional
-        If *dimensions* is given, *weights* must have at least these
-        dimensions. Otherwise, any dimensions are valid.
+        If `dimensions` is given, `weights` must have at least these dimensions.
+        Otherwise, any dimensions are valid.
     dimensions : list of str, optional
         If not provided, sum over all dimensions. If provided, sum over these
         dimensions.
@@ -852,6 +942,26 @@ def sum(
     return _preserve(
         "name", div(mul(quantity, _w).sum(dim=dimensions), w_total), quantity
     )
+
+
+@sum.helper
+def add_sum(
+    func, c: "Computer", key, qty, weights=None, dimensions=None, **kwargs
+) -> Union[KeyLike, Tuple[KeyLike, ...]]:
+    """:meth:`.Computer.add` helper for :func:`.sum`.
+
+    If `key` has the name "*", the returned key has name and dimensions inferred from
+    `qty` and `dimensions`, and only the tag (if any) of `key` is preserved.
+
+    Parameters
+    ----------
+    """
+    key = Key(key)
+    if key.name == "*":
+        q = Key(qty)
+        key = (q.drop(*dimensions) if dimensions else q.drop_all()).add_tag(key.tag)
+
+    return c.add(key, func, qty, weights=weights, dimensions=dimensions, **kwargs)
 
 
 def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:

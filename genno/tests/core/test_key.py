@@ -1,6 +1,7 @@
 import pytest
 
 from genno import Key
+from genno.core.key import iter_keys, single_key
 
 
 def test_key():
@@ -33,36 +34,96 @@ def test_key():
 _invalid = pytest.mark.xfail(raises=ValueError, reason="Invalid key expression")
 
 
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        ("foo", Key("foo")),
-        ("foo:", Key("foo")),
-        ("foo::", Key("foo")),
-        ("foo::bar", Key("foo", tag="bar")),
-        ("foo::bar+baz", Key("foo", tag="bar+baz")),
-        ("foo:a-b", Key("foo", "ab")),
-        ("foo:a-b:", Key("foo", "ab")),
-        ("foo:a-b:bar", Key("foo", "ab", "bar")),
-        # Weird but not invalid
-        ("foo::++", Key("foo", tag="++")),
-        # Invalid
-        pytest.param(":", None, marks=_invalid),
-        pytest.param("::", None, marks=_invalid),
-        pytest.param("::bar", None, marks=_invalid),
-        pytest.param(":a-b:bar", None, marks=_invalid),
-        pytest.param("foo:a-b-", None, marks=_invalid),
-        # Bad arguments
-        pytest.param(42.1, None, marks=pytest.mark.xfail(raises=TypeError)),
-    ],
+CASES = (
+    ("foo", Key("foo")),
+    ("foo:", Key("foo")),
+    ("foo::", Key("foo")),
+    ("foo::bar", Key("foo", tag="bar")),
+    ("foo::bar+baz", Key("foo", tag="bar+baz")),
+    ("foo:a-b", Key("foo", "ab")),
+    ("foo:a-b:", Key("foo", "ab")),
+    ("foo:a-b:bar", Key("foo", "ab", "bar")),
+    # Weird but not invalid
+    ("foo::++", Key("foo", tag="++")),
+    # Invalid
+    pytest.param(":", None, marks=_invalid),
+    pytest.param("::", None, marks=_invalid),
+    pytest.param("::bar", None, marks=_invalid),
+    pytest.param(":a-b:bar", None, marks=_invalid),
+    pytest.param("foo:a-b-", None, marks=_invalid),
+    # Bad arguments
+    pytest.param(42.1, None, marks=pytest.mark.xfail(raises=TypeError)),
 )
-def test_from_str(value, expected):
-    assert expected == Key.from_str_or_key(value)
 
 
-def test_drop():
-    key = Key.from_str_or_key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
-    assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
+class TestKey:
+    @pytest.mark.parametrize("value, expected", CASES)
+    def test_init0(self, value, expected):
+        assert expected == Key(value)
+
+    @pytest.mark.parametrize(
+        "args, expected",
+        (
+            ((Key("foo:a-b-c"), [], "t2"), Key("foo:a-b-c:t2")),
+            pytest.param(
+                (Key("foo:a-b-c:t1"), [], "t2"),
+                None,
+                marks=pytest.mark.xfail(raises=ValueError),
+            ),
+            pytest.param(
+                (Key("foo:a-b-c"), "d e f".split()),
+                None,
+                marks=pytest.mark.xfail(raises=ValueError),
+            ),
+        ),
+    )
+    def test_init1(self, args, expected):
+        assert expected == Key(*args)
+
+    @pytest.mark.parametrize("value, expected", CASES)
+    def test_from_str_or_key0(self, value, expected):
+        with pytest.warns(UserWarning, match="no longer necessary"):
+            assert expected == Key.from_str_or_key(value)
+
+    @pytest.mark.parametrize(
+        "kwargs, value, expected",
+        (
+            (dict(drop="b"), "foo:a-b-c", Key("foo:a-c")),
+            (dict(drop="b", append="d"), "foo:a-b-c", Key("foo:a-c-d")),
+            (dict(drop="b", tag="t2"), "foo:a-b-c:t1", Key("foo:a-c:t1+t2")),
+        ),
+    )
+    def test_from_str_or_key1(self, kwargs, value, expected):
+        assert expected == Key.from_str_or_key(value, **kwargs)
+
+    def test_drop(self):
+        key = Key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
+        assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
+
+    def test_operations(self):
+        key = Key("x:a-b-c")
+
+        # __add__: Add a tag
+        assert "x:a-b-c:foo" == key + "foo"
+        # Associative: (key + "foo") is another key that supports __add__
+        assert "x:a-b-c:foo+bar" == key + "foo" + "bar"
+
+        # __mul__: add a dimension
+        assert "x:a-b-c-d" == key * "d"
+
+        # Existing dimension → no change
+        assert key == key * "c"
+
+        # __truediv__: drop a dimension
+        assert "x:a-c" == key / "b"
+
+        # Invalid
+        with pytest.raises(TypeError):
+            key + 1.1
+        with pytest.raises(TypeError):
+            key * 2.2
+        with pytest.raises(TypeError):
+            key / 3.3
 
 
 def test_sorted():
@@ -98,3 +159,32 @@ def test_gt_lt():
 
     with pytest.raises(TypeError):
         assert k > 1.1
+
+
+def test_iter_keys():
+    # Non-iterable
+    with pytest.raises(TypeError):
+        next(iter_keys(1.2))
+
+    # Iterable containing non-keys
+    with pytest.raises(TypeError):
+        list(iter_keys([Key("a"), Key("b"), 1.2]))
+
+
+def test_single_key():
+    # Single key is unpacked
+    k = Key("a")
+    result = single_key((k,))
+    assert k is result
+
+    # Tuple containing 1 non-key
+    with pytest.raises(TypeError):
+        single_key((1.2,))
+
+    # Tuple containing >1 Keys
+    with pytest.raises(TypeError):
+        single_key((k, k))
+
+    # Empty iterable
+    with pytest.raises(TypeError):
+        single_key([])

@@ -1,10 +1,14 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import Hashable, Sequence
+from typing import TYPE_CHECKING, Hashable, Sequence
+from warnings import warn
 
 import plotnine as p9
 
 from genno.core.quantity import Quantity
+
+if TYPE_CHECKING:
+    from genno.core.computer import Computer
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +77,10 @@ class Plot(ABC):
     def make_task(cls, *inputs):
         """Return a task :class:`tuple` to add to a Computer.
 
+        .. deprecated:: 1.18.0
+
+           Use :func:`add_tasks` instead.
+
         Parameters
         ----------
         inputs : sequence of :class:`.Key`, :class:`str`, or other hashable, optional
@@ -86,7 +94,25 @@ class Plot(ABC):
               Computer.
             - The third and following elements are the `inputs`.
         """
+        inputs_repr = ",".join(map(repr, inputs))
+        warn(
+            f"Plot.make_task(…). Use: Computer.add(…, {cls.__name__}"
+            + (", " if inputs_repr else "")
+            + f"{inputs_repr})",
+            DeprecationWarning,
+        )
         return tuple([cls().save, "config"] + (list(inputs) if inputs else cls.inputs))
+
+    @classmethod
+    def add_tasks(cls, c: "Computer", key, *inputs, strict: bool = False):
+        """Add a task to `c` to generate and save the Plot.
+
+        Analogous to :meth:`.Operator.add_tasks`.
+        """
+        _inputs = list(inputs if inputs else cls.inputs)
+        if strict:
+            _inputs = c.check_keys(*_inputs)
+        c.add_single(key, cls().save, "config", *_inputs)
 
     @abstractmethod
     def generate(self, *args, **kwargs):

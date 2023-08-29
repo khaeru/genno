@@ -28,6 +28,159 @@ from genno.testing import (
 log = logging.getLogger(__name__)
 
 
+def msg(*keys):
+    """Return a regex for str(MissingKeyError(*keys))."""
+    return re.escape(f"required keys {repr(tuple(keys))} not defined")
+
+
+class TestComputer:
+    @pytest.fixture
+    def c(self):
+        return Computer()
+
+    def test_add_invalid0(self, c):
+        with pytest.raises(TypeError, match="At least 1 argument required"):
+            c.add("foo")
+
+    def test_add_aggregate(self, c):
+        """Using :func:`.computations.aggregate` through :meth:`.add`."""
+        t, t_foo, t_bar, qty_x = add_test_data(c)
+
+        # Define some groups
+        t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
+
+        # Use the computation directly
+        agg1 = computations.aggregate(qty_x, {"t": t_groups}, True)
+
+        # Use Computer.add(…)
+        x = Key("x:t-y")
+        key2 = c.add(x + "agg2", "aggregate", x, groups={"t": t_groups}, keep=True)
+
+        # Group has expected key and contents
+        assert "x:t-y:agg2" == key2
+
+        # Aggregate is computed without error
+        agg2 = c.get(key2)
+
+        assert_qty_equal(agg1, agg2)
+
+        # Add aggregates, without keeping originals
+        key3 = c.add(x + "agg3", "aggregate", x, groups={"t": t_groups}, keep=False)
+
+        # Distinct keys
+        assert key3 != key2
+
+        # Only the aggregated and no original keys along the aggregated dimension
+        agg3 = c.get(key3)
+        assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
+    def test_deprecated_add_file(self, tmp_path, c):
+        # Path to a temporary file
+        p = tmp_path / "foo.csv"
+
+        p.write_text(
+            """# Comment
+         x,  y, value
+        x1, y1, 1.2
+        """
+        )
+
+        with pytest.warns(DeprecationWarning):
+            k1 = c.add_file(p, name="foo")
+        assert k1 == "file foo.csv"
+
+        result = c.get(k1)
+        assert ("x", "y") == result.dims
+
+    def test_deprecated_aggregate(self, c):
+        t, t_foo, t_bar, x = add_test_data(c)
+
+        # Define some groups
+        t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
+
+        # Use the computation directly
+        agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
+
+        # Expected set of keys along the aggregated dimension
+        assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
+
+        # Sums are as expected
+        assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
+        assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
+        assert_qty_allclose(
+            agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
+        )
+
+        # Use Computer convenience method
+        with pytest.warns(DeprecationWarning):
+            key2 = c.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
+
+        # Group has expected key and contents
+        assert key2 == "x:t-y:agg2"
+
+        # Aggregate is computed without error
+        agg2 = c.get(key2)
+
+        assert_qty_equal(agg1, agg2)
+
+        # Add aggregates, without keeping originals
+        with pytest.warns(DeprecationWarning):
+            key3 = c.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
+
+        # Distinct keys
+        assert key3 != key2
+
+        # Only the aggregated and no original keys along the aggregated dimension
+        agg3 = c.get(key3)
+        assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
+        with pytest.raises(NotImplementedError), pytest.warns(DeprecationWarning):
+            # Not yet supported; requires two separate operations
+            c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
+
+        # aggregate() calls add(), which raises the exception
+        g = Key("g", "hi")
+        with pytest.raises(MissingKeyError, match=msg(g)), pytest.warns(
+            DeprecationWarning
+        ):
+            c.aggregate(g, "tag", "i")
+
+    def test_deprecated_disaggregate(self, c):
+        *_, x = add_test_data(c)
+        c.add("z_shares", "<share data>")
+        c.add("a:t-y", "x:t-y", sums=False)
+
+        def func(qty):
+            pass  # pragma: no cover
+
+        with pytest.warns(DeprecationWarning):
+            k1 = c.disaggregate(Key(x).rename("x"), "z", method=func, args=["z_shares"])
+
+        assert "x:t-y-z" == k1
+        # Produces the expected task
+        assert (func, "x:t-y", "z_shares") == c.graph[k1]
+
+        with pytest.warns(DeprecationWarning):
+            k1 = c.disaggregate(Key(x).rename("a"), "z", args=["z_shares"])
+
+        assert (computations.mul, "a:t-y", "z_shares") == c.graph[k1]
+
+        # MissingKeyError is raised
+        g = Key("g", "hi")
+        with pytest.raises(MissingKeyError, match=msg(g)), pytest.warns(
+            DeprecationWarning
+        ):
+            c.disaggregate(g, "j")
+
+        # Invalid method argument
+        with pytest.raises(ValueError), pytest.warns(DeprecationWarning):
+            c.disaggregate("x:", "d", method="baz")
+
+        # Invalid method argument
+        with pytest.raises(TypeError), pytest.warns(DeprecationWarning):
+            c.disaggregate("x:", "d", method=None)
+
+
 def test_cache(caplog, tmp_path, test_data_path, ureg):
     caplog.set_level(logging.INFO)
 
@@ -209,7 +362,6 @@ def test_order():
     c.add("b:x-y", 2.2)
 
     def func(*args):
-        print("sum args", args)
         return sum(args)
 
     # Dimensions in correct order
@@ -293,16 +445,20 @@ def test_add0():
         """A generator for apply()."""
         return (lambda a, b: a * b, "a", other)
 
-    def msg(*keys):
-        """Return a regex for str(MissingKeyError(*keys))."""
-        return re.escape(f"required keys {repr(tuple(keys))} not defined")
-
     # One missing key
     with pytest.raises(MissingKeyError, match=msg("b")):
+        c.add("ab", "mul", "a", "b")
+    with pytest.raises(MissingKeyError, match=msg("b")), pytest.warns(
+        DeprecationWarning
+    ):
         c.add_product("ab", "a", "b")
 
     # Two missing keys
     with pytest.raises(MissingKeyError, match=msg("c", "b")):
+        c.add("abc", "mul", "c", "a", "b")
+    with pytest.raises(MissingKeyError, match=msg("c", "b")), pytest.warns(
+        DeprecationWarning
+    ):
         c.add_product("abc", "c", "a", "b")
 
     # Using apply() targeted at non-existent keys also raises an Exception
@@ -314,12 +470,6 @@ def test_add0():
     with pytest.raises(MissingKeyError, match=msg("b", g)):
         c.add("foo", (computations.mul, "a", "b", g), strict=True)
 
-    # aggregate() and disaggregate() call add(), which raises the exception
-    with pytest.raises(MissingKeyError, match=msg(g)):
-        c.aggregate(g, "tag", "i")
-    with pytest.raises(MissingKeyError, match=msg(g)):
-        c.disaggregate(g, "j")
-
     # add(..., sums=True) also adds partial sums
     c.add("foo:a-b-c", [], sums=True)
     assert "foo:b" in c
@@ -329,8 +479,7 @@ def test_add0():
 
     # add(name, ...) with keyword arguments not recognized by the computation raises an
     # exception
-    msg = "unexpected keyword argument 'bad_kwarg'"
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(TypeError, match="unexpected keyword argument 'bad_kwarg'"):
         c.add("select", "bar", "a", bad_kwarg="foo")
 
 
@@ -449,7 +598,8 @@ def test_add_product(ureg):
     *_, x = add_test_data(c)
 
     # add_product() works
-    key = c.add_product("x squared", "x", "x", sums=True)
+    with pytest.warns(DeprecationWarning):
+        key = c.add_product("x squared", "x", "x", sums=True)
 
     # Product has the expected dimensions
     assert key == "x squared:t-y"
@@ -459,53 +609,6 @@ def test_add_product(ureg):
 
     # add('product', ...) works
     key = c.add("product", "x_squared", "x", "x", sums=True)
-
-
-def test_aggregate():
-    c = Computer()
-
-    t, t_foo, t_bar, x = add_test_data(c)
-
-    # Define some groups
-    t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
-
-    # Use the computation directly
-    agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
-
-    # Expected set of keys along the aggregated dimension
-    assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
-
-    # Sums are as expected
-    assert_qty_allclose(agg1.sel(t="foo", drop=True), x.sel(t=t_foo).sum("t"))
-    assert_qty_allclose(agg1.sel(t="bar", drop=True), x.sel(t=t_bar).sum("t"))
-    assert_qty_allclose(
-        agg1.sel(t="baz", drop=True), x.sel(t=["foo1", "bar5", "bar6"]).sum("t")
-    )
-
-    # Use Computer convenience method
-    key2 = c.aggregate("x:t-y", "agg2", {"t": t_groups}, keep=True)
-
-    # Group has expected key and contents
-    assert key2 == "x:t-y:agg2"
-
-    # Aggregate is computed without error
-    agg2 = c.get(key2)
-
-    assert_qty_equal(agg1, agg2)
-
-    # Add aggregates, without keeping originals
-    key3 = c.aggregate("x:t-y", "agg3", {"t": t_groups}, keep=False)
-
-    # Distinct keys
-    assert key3 != key2
-
-    # Only the aggregated and no original keys along the aggregated dimension
-    agg3 = c.get(key3)
-    assert set(agg3.coords["t"].values) == set(t_groups.keys())
-
-    with pytest.raises(NotImplementedError):
-        # Not yet supported; requires two separate operations
-        c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
 
 
 def test_check_keys():
@@ -522,10 +625,10 @@ def test_check_keys():
     c.check_keys("a:y-x", "a:x-y", "b:z-y", "b:y-z")
 
     # Non-existent keys, both bare strings and those parsed to Key()
-    assert c.check_keys("foo", "foo:bar-baz", action="return") is None
+    assert [None, None] == c.check_keys("foo", "foo:bar-baz", action="return")
 
     # Check a lookup using the index
-    c.add("a:y-x:foo")
+    c.add("a:y-x:foo", None)
     assert [Key("a", "yx", "foo")] == c.check_keys("a::foo")
 
 
@@ -549,10 +652,10 @@ def test_dantzig(ureg):
     weights = Quantity(
         xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
     )
-    new_key = c.aggregate("d:i-j", "weighted", "j", weights)
+    new_key = c.add("*::weighted", "sum", "d:i-j", weights, "j")
 
     # ...produces the expected new key with the summed dimension removed and tag added
-    assert new_key == "d:i:weighted"
+    assert "d:i:weighted" == new_key
 
     # ...produces the expected new value
     obs = c.get(new_key)
@@ -568,7 +671,7 @@ def test_dantzig(ureg):
     # Disaggregation with explicit data
     # (cases of canned food 'p'acked in oil or water)
     shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-    new_key = c.disaggregate("b:j", "p", args=[Quantity(shares)])
+    new_key = c.add("b", "mul", "b:j", Quantity(shares), sums=False)
 
     # ...produces the expected key with new dimension added
     assert new_key == "b:j-p"
@@ -620,30 +723,6 @@ def test_describe(test_data_path, capsys, ureg):
     assert desc2 == out2
 
 
-def test_disaggregate():
-    c = Computer()
-    foo = Key("foo", ["a", "b", "c"])
-    c.add(foo, "<foo data>")
-    c.add("d_shares", "<share data>")
-
-    # Disaggregation works
-    c.disaggregate(foo, "d", args=["d_shares"])
-
-    assert "foo:a-b-c-d" in c.graph
-    assert c.graph["foo:a-b-c-d"] == (
-        computations.disaggregate_shares,
-        "foo:a-b-c",
-        "d_shares",
-    )
-
-    # Invalid method
-    with pytest.raises(ValueError):
-        c.disaggregate(foo, "d", method="baz")
-
-    with pytest.raises(TypeError):
-        c.disaggregate(foo, "d", method=None)
-
-
 def test_file_io(tmp_path):
     c = Computer()
 
@@ -652,7 +731,7 @@ def test_file_io(tmp_path):
 
     # File can be added to the Computer before it is created, because the file is not
     # read until/unless required
-    k1 = c.add_file(p)
+    k1 = c.add("load_file", p)
 
     # File has the expected key
     assert k1 == "file foo.txt"
@@ -684,19 +763,19 @@ def test_file_formats(test_data_path, tmp_path):
 
     # CSV file is automatically parsed to xr.DataArray
     p1 = test_data_path / "input0.csv"
-    k = c.add_file(p1, units=pint.Unit("km"))
+    k = c.add("load_file", p1, units=pint.Unit("km"))
     assert_qty_equal(c.get(k), expected)
 
     # Dimensions can be specified
     p2 = test_data_path / "input1.csv"
-    k2 = c.add_file(p2, dims=dict(i="i", j_dim="j"))
+    k2 = c.add("load_file", p2, dims=dict(i="i", j_dim="j"))
     assert_qty_equal(c.get(k), c.get(k2))
 
     # Units are loaded from a column
     assert c.get(k2).units == pint.Unit("km")
 
     # Specifying units that do not match file contents → ComputationError
-    c.add_file(p2, key="bad", dims=dict(i="i", j_dim="j"), units="kg")
+    c.add("load_file", p2, key="bad", dims=dict(i="i", j_dim="j"), units="kg")
     with pytest.raises(ComputationError):
         c.get("bad")
 
@@ -781,7 +860,7 @@ def vis_computer():
 
     c = Computer()
     add_test_data(c)
-    c.add_product("z", "x:t", "x:y")
+    c.add("z", "mul", "x:t", "x:y")
     c.add("y::0", itemgetter(0), "y")
     c.add("y0", "y::0")  # Simple alias
     c.add("index_to", "z::indexed", "z:y", "y::0")

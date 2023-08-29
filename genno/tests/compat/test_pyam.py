@@ -89,7 +89,7 @@ def test_as_pyam(dantzig_computer, scenario):
         computations.as_pyam(scenario, input)
 
 
-def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
+def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     caplog.set_level(logging.INFO)
     c = dantzig_computer
 
@@ -129,7 +129,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
         return df.drop(["t", "m"], axis=1)
 
     # Use the convenience function to add the node
-    key2 = c.convert_pyam(ACT, rename=rename, collapse=add_tm)
+    with pytest.warns(DeprecationWarning):
+        key2 = c.convert_pyam(ACT, rename=rename, collapse=add_tm)
+
+    key2 = c.add(ACT, "as_pyam", rename=rename, collapse=add_tm)
 
     # Keys of added node(s) are returned
     assert ACT.name + "::iamc" == key2
@@ -180,9 +183,10 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
 
     # Use a name map to replace variable names
     replacements = {re.escape("Activity|canning_plant|production"): "Foo"}
-    key3 = c.convert_pyam(
-        ACT, rename=rename, replace=dict(variable=replacements), collapse=add_tm
-    )
+    kw = dict(rename=rename, replace=dict(variable=replacements), collapse=add_tm)
+    with pytest.warns(DeprecationWarning):
+        key3 = c.convert_pyam(ACT, **kw)
+    key3 = c.add(ACT, "as_pyam", **kw)
     df3 = c.get(key3).as_pandas()
 
     # Values are the same; different names
@@ -193,24 +197,34 @@ def test_convert_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
 
     # Now convert variable cost
     cb = partial(add_tm, name="Variable cost")
-    key4 = c.convert_pyam("var_cost", rename=rename, collapse=cb)
+    kw = dict(rename=rename, collapse=cb)
+    with pytest.warns(DeprecationWarning):
+        key4 = c.convert_pyam("var_cost", **kw)
+    key4 = c.add("var_cost", "as_pyam", **kw)
     df4 = c.get(key4).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
     assert all(df4["unit"] == "USD / case")
 
     # Also change units
-    key5 = c.convert_pyam(
-        "var_cost", rename=rename, collapse=cb, unit="centiUSD / case"
-    )
+    kw = dict(rename=rename, collapse=cb, unit="centiUSD / case")
+    with pytest.warns(DeprecationWarning):
+        key5 = c.convert_pyam("var_cost", **kw)
+    key5 = c.add("var_cost", "as_pyam", **kw)
+
     df5 = c.get(key5).as_pandas().drop(["model", "scenario"], axis=1)
 
     # Results have the expected units
     assert all(df5["unit"] == "centiUSD / case")
     assert_series_equal(df4["value"], df5["value"] / 100.0)
 
+    # Convert multiple quantities at once
+    keys = c.add("as_pyam", ["var_cost", "var_cost"], **kw)
+    assert ("var_cost::iamc", "var_cost::iamc") == keys
 
-def test_convert_pyam_deprecated():
+
+def test_deprecated_convert_pyam():
+    """Test deprecated usage of `replace` parameter to as_pyam."""
     c = Computer()
 
     c.add("foo", None)

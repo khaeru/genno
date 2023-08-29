@@ -4,11 +4,54 @@ What's new
 Next release
 ============
 
+This release adjusts the documentation by using language more carefully and precisely in line with :mod:`.dask` (:issue:`34`):
+
+- A **computation** is *any* entry in the :attr:`.Computer.graph`: even a simple alias, or a list of other keys with no specific operation to be performed.
+- A **task** is a specific kind of computation: a tuple that consists of a callable first item (usually a function) and other items—including keys and literal values—that are arguments to that callable.
+- An **operator** is a function or callable that is used as the first item in a task.
+  The new :class:`.Operator` class is named to align with this meaning.
+
+To complete this shift, in future releases of :mod:`.genno`:
+
+1. The module :mod:`.genno.computations` will be renamed to :mod:`.genno.operators`.
+   At this point, imports from :mod:`.genno.computations` will continue to function, but will trigger a :class:`.DeprecationWarning`.
+2. :mod:`.genno.computations` will be removed entirely.
+   This will happen no sooner than 6 months after (1), and with at least 1 minor version in between.
+
+Migration notes
+---------------
+
+Code that uses the deprecated :class:`.Computer` convenience methods can be adjusted to use the corresponding :meth:`~.Operator.add_tasks` helpers—which give equivalent behaviour—via :meth:`.Computer.add`.
+See the documentation of the deprecated methods and/or warnings at runtime for examples and hints.
+
+- :meth:`.Computer.add_file` → use :func:`~.computations.load_file` and its helper.
+- :meth:`.Computer.add_product` → use :func:`~.computations.mul` and its helper.
+- :meth:`.Computer.aggregate` → use :func:`~.computations.aggregate` or :func:`~.computations.sum` and its helper.
+- :meth:`.Computer.convert_pyam` → use :func:`~.computations.as_pyam` and its helper.
+- :meth:`.Computer.disaggregate` and :func:`~.computations.disaggregate_shares`: use :func:`~.computations.mul` and its helper.
+
+For :meth:`.Plot.make_task` similarly change, for instance, :py:`c.add("plot", DemoPlot.make_task("x:t", "y:t"))` to :py:`c.add("plot", DemoPlot, "x:t", "y:t")`.
+
+All changes
+-----------
+
+- New class :class:`.Operator` (:pull:`98`).
+  This class allows to combine a function/callable for use in computations with an optional :meth:`~.Operator.helper` convenience method for adding tasks to a :class:`.Computer`.
+  :meth:`.Computer.add` calls these helpers automatically, if they exist.
 - New method :meth:`.Computer.eval` for using Python code-like expressions to define tasks and keys (:pull:`97`).
-- Provide typed signatures for :meth:`Quantity.astype`, :attr:`~Quantity.data`, and :meth:`~Quantity.pipe`, and :meth:`~Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
+- Improve :class:`.Key` (:pull:`98`).
+
+  - New method :meth:`.Key.rename`.
+  - Key supports the Python operations :py:`+` (= :meth:`.add_tag`), :py:`*` (= :meth:`.append` a dimension), :py:`/` (= :meth:`.drop` a dimension).
+
 - Add :func:`.computations.sub` (:pull:`97``).
+- Provide typed signatures for :meth:`.Quantity.astype`, :attr:`~.Quantity.data`, and :meth:`~.Quantity.pipe`, and :meth:`~.Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
 - :func:`~.genno.computations.concat` handles N-dimensional quantities with dimensions in any order (:issue:`38`, :pull:`97`).
 - :func:`~.computations.pow` will derive units if the exponent is a Quantity with all identical integer values (:pull:`97`).
+- Deprecations:
+
+  - :meth:`.Computer.add_file`, :meth:`~.Computer.add_product`, :meth:`~.Computer.aggregate`, :meth:`~.Computer.convert_pyam`, and :meth:`~.Computer.disaggregate` (:pull:`98`).
+  - :meth:`.Plot.make_task`; the Plot class now has a :meth:`~.Plot.add_tasks` method, analogous to :meth:`~.Operator.add_tasks`, and so a Plot subclass can be provided directly to :meth:`.Computer.add` (:pull:`98`).
 
 v1.17.2 (2023-07-11)
 ====================

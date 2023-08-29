@@ -1,9 +1,13 @@
+import logging
 import re
-from functools import partial
+from functools import partial, singledispatchmethod
 from itertools import chain, compress
-from typing import Callable, Generator, Hashable, Iterable, Optional, Tuple, Union
+from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, Union
+from warnings import warn
 
 from genno.core.quantity import Quantity
+
+log = logging.getLogger(__name__)
 
 #: Regular expression for valid key strings.
 EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*))?)?$")
@@ -15,15 +19,74 @@ BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
 class Key:
     """A hashable key for a quantity that includes its dimensionality."""
 
-    def __init__(self, name: str, dims: Iterable[str] = [], tag: Optional[str] = None):
-        self._name = name
-        self._dims = tuple(dims)
-        self._tag = tag or None
+    _name: str
+    _dims: Tuple[str, ...]
+    _tag: Optional[str]
 
+    def __init__(
+        self,
+        name_or_value: Union[str, "Key", Quantity],
+        dims: Iterable[str] = [],
+        tag: Optional[str] = None,
+        _fast: bool = False,
+    ):
+        if _fast:
+            # Fast path: don't handle arguments
+            assert isinstance(name_or_value, str)
+            self._name = name_or_value
+            self._dims = tuple(dims)
+            self._tag = tag or None
+        else:
+            self._name, _dims, _tag = self._from(name_or_value)
+
+            # Check for conflicts between dims inferred from name_or_value and any
+            # direct argument
+            # TODO handle resolveable combinations without raising exceptions
+            if bool(_dims) and bool(dims):
+                raise ValueError(
+                    f"Conflict: {dims = } argument vs. {_dims!r} from {name_or_value!r}"
+                )
+            elif bool(_tag) and bool(tag):
+                raise ValueError(
+                    f"Conflict: {tag = } argument vs. {_tag!r} from {name_or_value!r}"
+                )
+
+            self._dims = _dims or tuple(dims)
+            self._tag = _tag or tag
+
+        # Pre-compute string representation and hash
         self._str = "{}:{}{}".format(
-            name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
+            self._name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
         )
         self._hash = hash(self._str)
+
+    # _from() methods: convert various arguments into (name, dims, tag) tuples
+    @singledispatchmethod
+    @classmethod
+    def _from(cls, value) -> Tuple[str, Tuple[str, ...], Optional[str]]:
+        if isinstance(value, cls):
+            return value._name, value._dims, value._tag
+        else:
+            raise TypeError(type(value))
+
+    @_from.register
+    def _(cls, value: str):
+        # Parse a string
+        match = EXPR.match(value)
+        if match is None:
+            raise ValueError(f"Invalid key expression: {repr(value)}")
+        groups = match.groupdict()
+        return (
+            groups["name"],
+            tuple() if not groups["dims"] else tuple(groups["dims"].split("-")),
+            groups["tag"],
+        )
+
+    @_from.register
+    def _(cls, value: Quantity):
+        return str(value.name), tuple(map(str, value.dims)), None
+
+    # Class methods
 
     @classmethod
     def bare_name(cls, value) -> Optional[str]:
@@ -36,7 +99,7 @@ class Key:
     @classmethod
     def from_str_or_key(
         cls,
-        value: Union["Key", Hashable, Quantity],
+        value: Union[str, "Key", Quantity],
         drop: Union[Iterable[str], bool] = [],
         append: Iterable[str] = [],
         tag: Optional[str] = None,
@@ -58,28 +121,29 @@ class Key:
         Returns
         -------
         :class:`Key`
+
+        .. versionchanged:: 1.18.0
+
+           Calling :meth:`from_str_or_key` with a single argument is no longer
+           necessary; simply give the same `value` as an argument to :class:`Key`.
+
+           The class method is retained for convenience when calling with multiple
+           arguments. However, the following are equivalent and may be more readable:
+
+           .. code-block:: python
+
+              k1 = Key("foo:a-b-c:t1", drop="b", append="d", tag="t2")
+              k2 = Key("foo:a-b-c:t1").drop("b").append("d)"
         """
-        # Determine the base Key
-        if isinstance(value, cls):
-            base = value
-        elif isinstance(value, str):
-            # Parse a string
-            match = EXPR.match(value)
-            if match is None:
-                raise ValueError(f"Invalid key expression: {repr(value)}")
-            groups = match.groupdict()
-            base = cls(
-                name=groups["name"],
-                dims=[] if not groups["dims"] else groups["dims"].split("-"),
-                tag=groups["tag"],
-            )
-        elif isinstance(value, Quantity):
-            base = cls(name=str(value.name), dims=map(str, value.dims))
-        else:
-            raise TypeError(type(value))
+        base = cls(value)
 
         # Return quickly if no further manipulations are required
         if not any([drop, append, tag]):
+            warn(
+                "Calling Key.from_str_or_key(value) with no other arguments is no "
+                "longer necessary; simply use Key(value)",
+                UserWarning,
+            )
             return base
 
         # mypy is fussy here
@@ -107,10 +171,28 @@ class Key:
             Name for the new Key. The names of *keys* are discarded.
         """
         # Iterable of dimension names from all keys, in order, with repetitions
-        dims = chain(*map(lambda k: cls.from_str_or_key(k).dims, keys))
+        dims = chain(*map(lambda k: cls(k).dims, keys))
 
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
+
+    def __add__(self, other) -> "Key":
+        if isinstance(other, str):
+            return self.add_tag(other)
+        else:
+            raise TypeError(type(other))
+
+    def __mul__(self, other) -> "Key":
+        if isinstance(other, str):
+            return self.append(other)
+        else:
+            raise TypeError(type(other))
+
+    def __truediv__(self, other) -> "Key":
+        if isinstance(other, str):
+            return self.drop(other)
+        else:
+            raise TypeError(type(other))
 
     def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""
@@ -129,7 +211,7 @@ class Key:
     def __eq__(self, other) -> bool:
         """Key is equal to str(Key)."""
         try:
-            other = Key.from_str_or_key(other)
+            other = Key(other)
         except TypeError:
             return False
 
@@ -174,23 +256,34 @@ class Key:
     @property
     def sorted(self) -> "Key":
         """A version of the Key with its :attr:`dims` sorted alphabetically."""
-        return Key(self._name, sorted(self._dims), self._tag)
+        return Key(self._name, sorted(self._dims), self._tag, _fast=True)
 
-    def drop(self, *dims: Union[str, bool]):
+    def rename(self, name: str) -> "Key":
+        """Return a Key with a replaced `name`."""
+        return Key(name, self._dims, self._tag, _fast=True)
+
+    def drop(self, *dims: Union[str, bool]) -> "Key":
         """Return a new Key with `dims` dropped."""
         return Key(
             self._name,
             [] if dims == (True,) else filter(lambda d: d not in dims, self._dims),
             self._tag,
+            _fast=True,
         )
 
-    def append(self, *dims: str):
-        """Return a new Key with additional dimensions `dims`."""
-        return Key(self._name, list(self._dims) + list(dims), self._tag)
+    def drop_all(self) -> "Key":
+        """Return a new Key with all dimensions dropped / zero dimensions."""
+        return Key(self._name, tuple(), self._tag, _fast=True)
 
-    def add_tag(self, tag):
+    def append(self, *dims: str) -> "Key":
+        """Return a new Key with additional dimensions `dims`."""
+        return Key(self._name, list(self._dims) + list(dims), self._tag, _fast=True)
+
+    def add_tag(self, tag) -> "Key":
         """Return a new Key with `tag` appended."""
-        return Key(self._name, self._dims, "+".join(filter(None, [self._tag, tag])))
+        return Key(
+            self._name, self._dims, "+".join(filter(None, [self._tag, tag])), _fast=True
+        )
 
     def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
@@ -198,14 +291,14 @@ class Key:
 
         for agg_dims, others in combo_partition(self.dims):
             yield (
-                Key(self.name, agg_dims, self.tag),
+                Key(self._name, agg_dims, self.tag, _fast=True),
                 partial(computations.sum, dimensions=others, weights=None),
                 self,
             )
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
-KeyLike = Union[Key, Hashable]
+KeyLike = Union[Key, str]
 
 
 def combo_partition(iterable):
@@ -216,3 +309,60 @@ def combo_partition(iterable):
         # Two binary lists
         a, b = zip(*[(v, not v) for v in map(int, format(n, fmt))])
         yield list(compress(iterable, a)), list(compress(iterable, b))
+
+
+def iter_keys(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Iterator[Key]:
+    """Yield :class:`Keys <Key>` from `value`.
+
+    Raises
+    ------
+    TypeError
+        `value` is not an iterable of :class:`Key`.
+
+    See also
+    --------
+    .Computer.add
+    """
+    if isinstance(value, (Key, str)):
+        yield Key(value)
+        tmp: Iterator[KeyLike] = iter(())
+    else:
+        tmp = iter(value)
+    for element in tmp:
+        if not isinstance(element, Key):
+            raise TypeError(type(element))
+        yield element
+
+
+def single_key(value: Union[KeyLike, Tuple[KeyLike, ...], Iterator]) -> Key:
+    """Ensure `value` is a single :class:`Key`.
+
+    Raises
+    ------
+    TypeError
+        `value` is not a :class:`Key` or 1-tuple of :class:`Key`.
+
+    See also
+    --------
+    .Computer.add
+    """
+    if isinstance(value, (Key, str)):
+        return Key(value)
+
+    tmp = iter(value)
+    try:
+        result = next(tmp)
+    except StopIteration:
+        raise TypeError("Empty iterable")
+    else:
+        try:
+            next(tmp)
+        except StopIteration:
+            pass
+        else:
+            raise TypeError("Iterable of length >1")
+
+    if isinstance(result, Key):
+        return result
+    else:
+        raise TypeError(type(result))

@@ -7,7 +7,7 @@ from .key import Key, KeyLike
 
 
 def _key_arg(key: KeyLike) -> Union[str, Key]:
-    return Key.bare_name(key) or Key.from_str_or_key(key)
+    return Key.bare_name(key) or Key(key)
 
 
 class Graph(dict):
@@ -72,7 +72,7 @@ class Graph(dict):
         super().__delitem__(key)
         self._deindex(key)
 
-    def __contains__(self, item: KeyLike) -> bool:
+    def __contains__(self, item) -> bool:
         """:obj:`True` if `item` *or* a key with the same dims in a different order."""
         return super().__contains__(item) or bool(self.unsorted_key(item))
 
@@ -102,7 +102,7 @@ class Graph(dict):
 
     def full_key(self, name_or_key: KeyLike) -> Optional[KeyLike]:
         """Return `name_or_key` with its full dimensions."""
-        return self._full.get(Key.from_str_or_key(name_or_key, drop=True))
+        return self._full.get(Key(name_or_key).drop_all())
 
     def infer(
         self, key: Union[str, Key], dims: Iterable[str] = []
@@ -126,7 +126,7 @@ class Graph(dict):
 
         if isinstance(key, str) or not key.dims:
             # Find the full-dimensional key
-            result = self.full_key(result)
+            result = self.full_key(result) or ""
 
         if not isinstance(result, Key):
             return result or key

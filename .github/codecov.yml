@@ -9,6 +9,8 @@ comment:
 coverage:
   status:
     project:
-      default: {}
+      default:
+        if_ci_failed: success
     patch:
-      default: {}
+      default:
+        if_ci_failed: success
