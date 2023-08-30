@@ -151,7 +151,9 @@ class AttrSeries(pd.Series, Quantity):
     __truediv__ = _binop("div")
 
     def __repr__(self):
-        return super().__repr__() + f", units: {self.units}"
+        return (
+            super().__repr__() + f", units: {self.attrs.get('_unit', 'dimensionless')}"
+        )
 
     @classmethod
     def from_series(cls, series, sparse=None):
