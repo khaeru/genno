@@ -186,7 +186,7 @@ class AttrSeries(pd.Series, Quantity):
         #      if needed use _maybe_groupby()
         return self._replace(
             self.unstack(dim)
-            .fillna(method="bfill", axis=1, limit=limit)
+            .bfill(axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
         )
@@ -271,7 +271,7 @@ class AttrSeries(pd.Series, Quantity):
         #      if needed use _maybe_groupby()
         return self._replace(
             self.unstack(dim)
-            .fillna(method="ffill", axis=1, limit=limit)
+            .ffill(axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
         )

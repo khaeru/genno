@@ -14,6 +14,11 @@ from genno.computations import add, load_file
 # Skip this entire file if pyam is not installed
 pyam = pytest.importorskip("pyam", reason="pyam-iamc not installed")
 
+# Warning emitted by pandas ≥ 2.1.0 with pyam 1.9.0
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:.*unique with argument that is not.*:FutureWarning:pyam.core"
+)
+
 
 @pytest.fixture(scope="session")
 def scenario():
