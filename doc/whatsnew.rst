@@ -42,12 +42,13 @@ All changes
 - Improve :class:`.Key` (:pull:`98`).
 
   - New method :meth:`.Key.rename`.
-  - Key supports the Python operations :py:`+` (= :meth:`.add_tag`), :py:`*` (= :meth:`.append` a dimension), :py:`/` (= :meth:`.drop` a dimension).
+  - Key supports the Python operations :py:`+` (= :meth:`.add_tag`), :py:`*` (= :meth:`.append` a dimension), :py:`/` (= :meth:`~.Key.drop` a dimension).
 
 - Add :func:`.computations.sub` (:pull:`97``).
 - Provide typed signatures for :meth:`.Quantity.astype`, :attr:`~.Quantity.data`, and :meth:`~.Quantity.pipe`, and :meth:`~.Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
 - :func:`~.genno.computations.concat` handles N-dimensional quantities with dimensions in any order (:issue:`38`, :pull:`97`).
 - :func:`~.computations.pow` will derive units if the exponent is a Quantity with all identical integer values (:pull:`97`).
+- Adjust for pandas 2.1.0 to prevent :class:`RecursionError` that could occur using :meth:`.AttrSeries.sel` (:pull:`99`).
 - Deprecations:
 
   - :meth:`.Computer.add_file`, :meth:`~.Computer.add_product`, :meth:`~.Computer.aggregate`, :meth:`~.Computer.convert_pyam`, and :meth:`~.Computer.disaggregate` (:pull:`98`).
