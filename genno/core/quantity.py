@@ -82,7 +82,7 @@ class Quantity(DataArrayLike["Quantity"]):
         return cls
 
     @staticmethod
-    def _single_column_df(data, name):
+    def _single_column_df(data, name, *, copy=None):
         """Handle `data` and `name` arguments to Quantity constructors."""
         if isinstance(data, pd.DataFrame):
             if len(data.columns) != 1:
@@ -92,8 +92,15 @@ class Quantity(DataArrayLike["Quantity"]):
 
             # Unpack a single column; use its name if not overridden by `name`
             return data.iloc[:, 0], (name or data.columns[0])
-        elif isinstance(data, pd.Series) and not isinstance(data.index, pd.MultiIndex):
-            return data.set_axis(pd.MultiIndex.from_product([data.index])), name
+        elif (
+            isinstance(data, pd.Series)
+            and not isinstance(data.index, pd.MultiIndex)
+            and copy
+        ):
+            return (
+                data.set_axis(pd.MultiIndex.from_product([data.index]), copy=copy),
+                name,
+            )
         else:
             return data, name
 

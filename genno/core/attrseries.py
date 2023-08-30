@@ -127,7 +127,7 @@ class AttrSeries(pd.Series, Quantity):
             else:
                 attrs.update()
 
-        data, name = Quantity._single_column_df(data, name)
+        data, name = Quantity._single_column_df(data, name, copy=kwargs.get("copy"))
 
         if data is None:
             kwargs["dtype"] = float
