@@ -263,6 +263,7 @@ class TestQuantity:
         y_idx = xr.DataArray(["y4", "y2", "y0"], coords=newdim)
 
         # Select using the indexers
+        # NB with pandas 2.1, this triggers the RecursionError fixed in khaeru/genno#99
         assert_qty_equal(
             Quantity(xr.DataArray([9.0, 3.0, 5.0], coords=newdim), units="kg"),
             tri.sel(x=x_idx, y=y_idx),
