@@ -151,7 +151,9 @@ class AttrSeries(pd.Series, Quantity):
     __truediv__ = _binop("div")
 
     def __repr__(self):
-        return super().__repr__() + f", units: {self.units}"
+        return (
+            super().__repr__() + f", units: {self.attrs.get('_unit', 'dimensionless')}"
+        )
 
     @classmethod
     def from_series(cls, series, sparse=None):
@@ -184,7 +186,7 @@ class AttrSeries(pd.Series, Quantity):
         #      if needed use _maybe_groupby()
         return self._replace(
             self.unstack(dim)
-            .fillna(method="bfill", axis=1, limit=limit)
+            .bfill(axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
         )
@@ -269,7 +271,7 @@ class AttrSeries(pd.Series, Quantity):
         #      if needed use _maybe_groupby()
         return self._replace(
             self.unstack(dim)
-            .fillna(method="ffill", axis=1, limit=limit)
+            .ffill(axis=1, limit=limit)
             .stack()
             .reorder_levels(self.dims),
         )

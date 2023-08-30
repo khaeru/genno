@@ -742,6 +742,7 @@ def test_select(data):
             [2000, 2010, 2020], dims="new_dim", coords={"new_dim": ["d1", "d2", "d3"]}
         ),
     }
+    # NB with pandas 2.1, this triggers the RecursionError fixed in khaeru/genno#99
     result_4 = computations.select(x, indexers)
     assert ("new_dim",) == result_4.dims
 

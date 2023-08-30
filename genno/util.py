@@ -3,6 +3,7 @@ from functools import partial
 from inspect import Parameter, signature
 from typing import Callable, Iterable, Mapping, MutableMapping, Tuple, Type, Union
 
+import numpy as np
 import pandas as pd
 import pint
 from dask.core import literal
@@ -70,6 +71,16 @@ def filter_concat_args(args):
         yield arg
 
 
+def _invalid(unit: str, exc: Exception) -> Exception:
+    """Helper method to return an intelligible exception from :func:`parse_units`."""
+    chars = "".join(filter("-?$".__contains__, unit))
+    msg = f"unit {unit!r} cannot be parsed; contains invalid character(s) {chars!r}"
+    # Use the original class of `exc`, mapped in some cases
+    cls_map: Mapping[Type[Exception], Type[Exception]] = {TypeError: ValueError}
+    return_cls = cls_map.get(type(exc), type(exc))
+    return return_cls(msg)
+
+
 def parse_units(data: Iterable, registry=None) -> pint.Unit:
     """Return a :class:`pint.Unit` for an iterable of strings.
 
@@ -95,6 +106,12 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
     """
     registry = registry or pint.get_application_registry()
 
+    # Ensure a type that is accepted by pd.unique()
+    if isinstance(data, str):
+        data = np.array([data])
+    elif not isinstance(data, (np.ndarray, pd.Index, pd.Series)):
+        data = np.array(data)
+
     unit = pd.unique(data)
 
     if len(unit) > 1:
@@ -105,15 +122,6 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
     except IndexError:
         # `units_series` is length 0 → no data → dimensionless
         unit = registry.dimensionless
-
-    def invalid(unit: str, exc: Exception) -> Exception:
-        """Helper method to return an intelligible exception."""
-        chars = "".join(filter("-?$".__contains__, unit))
-        msg = f"unit {unit!r} cannot be parsed; contains invalid character(s) {chars!r}"
-        # Use the original class of `exc`, mapped in some cases
-        cls_map: Mapping[Type[Exception], Type[Exception]] = {TypeError: ValueError}
-        return_cls = cls_map.get(type(exc), type(exc))
-        return return_cls(msg)
 
     # Parse units
     try:
@@ -139,12 +147,12 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
             return registry.Unit(unit)
         except PintError as e:
             # registry.define() failed somehow
-            raise invalid(unit, e)
+            raise _invalid(unit, e)
     except (AttributeError, TypeError) + PintError as e:  # type: ignore [misc]
         # Unit contains a character like '-' that throws off pint
         # NB this 'except' clause must be *after* UndefinedUnitError, since that is a
         #    subclass of AttributeError.
-        raise invalid(unit, e)
+        raise _invalid(unit, e)
 
 
 def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMapping]:

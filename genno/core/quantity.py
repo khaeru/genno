@@ -92,8 +92,6 @@ class Quantity(DataArrayLike["Quantity"]):
 
             # Unpack a single column; use its name if not overridden by `name`
             return data.iloc[:, 0], (name or data.columns[0])
-        elif isinstance(data, pd.Series) and not isinstance(data.index, pd.MultiIndex):
-            return data.set_axis(pd.MultiIndex.from_product([data.index])), name
         else:
             return data, name
 
