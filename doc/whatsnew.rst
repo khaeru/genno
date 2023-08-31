@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.18.1 (2023-08-31)
+====================
 
 - Show the caller's context in :class:`DeprecationWarning` from :class:`.Computer` methods that were
 - deprecated in :pull:`98` (:pull:`101`).
