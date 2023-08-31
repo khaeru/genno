@@ -919,10 +919,11 @@ class Computer:
               c.require_compat("pyam")
               c.add(..., "as_pyam", ...)
         """
+        arg0 = (repr(args[0]) + ", ") if len(args) else ""
         warn(
             f"""Computer.convert_pyam(…). Use:
     Computer.require_compat("pyam")
-    Computer.add({args[0]!r}, "as_pyam", …)""",
+    Computer.add({arg0}"as_pyam", …)""",
             DeprecationWarning,
             stacklevel=2,
         )
