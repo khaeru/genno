@@ -797,7 +797,7 @@ class Computer:
             f"Computer.add_file(…). Use: Computer.add({kwargs.get('key', arg)!r}, "
             '"load_file", …)',
             DeprecationWarning,
-            stacklevel=-1,
+            stacklevel=2,
         )
         return computations.load_file.add_tasks(self, *args, **kwargs)
 
@@ -814,7 +814,7 @@ class Computer:
         warn(
             f'Computer.add_product(…). Use: Computer.add({args[0]!r}, "mul", …)',
             DeprecationWarning,
-            stacklevel=-1,
+            stacklevel=2,
         )
         return computations.mul.add_tasks(self, *args, **kwargs)
 
@@ -901,7 +901,7 @@ class Computer:
                 f"dimensions=dims_or_groups, strict=True, ...)"
             )
 
-        warn(f"Computer.aggregate(…, {msg}", DeprecationWarning, stacklevel=-1)
+        warn(f"Computer.aggregate(…, {msg}", DeprecationWarning, stacklevel=2)
 
         return self.add(key, *args, **kwargs, strict=True, sums=sums, fail=fail)
 
@@ -924,7 +924,7 @@ class Computer:
     Computer.require_compat("pyam")
     Computer.add({args[0]!r}, "as_pyam", …)""",
             DeprecationWarning,
-            stacklevel=-1,
+            stacklevel=2,
         )
         self.require_compat("pyam")
         return self.get_comp("as_pyam").add_tasks(self, *args, **kwargs)
@@ -965,6 +965,6 @@ class Computer:
         else:
             raise ValueError(method) if isinstance(method, str) else TypeError(method)
 
-        warn(f"Computer.disaggregate(…, {msg}", DeprecationWarning, stacklevel=-1)
+        warn(f"Computer.disaggregate(…, {msg}", DeprecationWarning, stacklevel=2)
 
         return self.add(key, method, qty, *args, sums=False, strict=True)
