@@ -159,7 +159,7 @@ def aggregate(c: Computer, info):
     # Copy for destructive .pop()
     info = copy(info)
 
-    quantities = c.infer_keys(info.pop("_quantities"))
+    quantities = c.check_keys(*c.infer_keys(info.pop("_quantities")))
     tag = info.pop("_tag")
     fail = info.pop("_fail", None)
     groups = {info.pop("_dim"): info}
