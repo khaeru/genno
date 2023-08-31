@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.18.0 (2023-08-31)
+====================
 
 This release adjusts the documentation by using language more carefully and precisely in line with :mod:`.dask` (:issue:`34`):
 
