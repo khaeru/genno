@@ -82,7 +82,7 @@ class TestKey:
 
     @pytest.mark.parametrize("value, expected", CASES)
     def test_from_str_or_key0(self, value, expected):
-        with pytest.warns(UserWarning, match="no longer necessary"):
+        with pytest.warns(FutureWarning, match="no longer necessary"):
             assert expected == Key.from_str_or_key(value)
 
     @pytest.mark.parametrize(

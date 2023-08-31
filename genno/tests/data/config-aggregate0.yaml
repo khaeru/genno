@@ -1,5 +1,16 @@
 aggregate:
-- _quantities: [ "X::", "Y::", "Z::" ]
+# Z:: fails because no existing key
+- _quantities: [ "X::", "Z::" ]
+  _tag: agg
+  _dim: a
+  _fail: warning
+
+  baz123: [baz1, baz2, baz3]
+  baz13: [baz1, baz3]
+
+# X:: is skipped silently because
+# already created above
+- _quantities: [ "X::", "Y::" ]
   _tag: agg
   _dim: a
   _fail: warning

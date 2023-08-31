@@ -142,7 +142,8 @@ class Key:
             warn(
                 "Calling Key.from_str_or_key(value) with no other arguments is no "
                 "longer necessary; simply use Key(value)",
-                UserWarning,
+                FutureWarning,
+                stacklevel=2,
             )
             return base
 

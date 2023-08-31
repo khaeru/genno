@@ -159,27 +159,40 @@ def aggregate(c: Computer, info):
     # Copy for destructive .pop()
     info = copy(info)
 
+    # Unpack `info`
     quantities = c.infer_keys(info.pop("_quantities"))
     tag = info.pop("_tag")
-    fail = info.pop("_fail", None)
-    groups = {info.pop("_dim"): info}
+    # Keyword arguments for add()
+    kw = dict(
+        fail=info.pop("_fail", None),
+        groups={info.pop("_dim"): info},
+        strict=True,
+        sums=True,
+    )
 
+    def _log_or_raise(exc: Exception, default_level: str, message: str):
+        """Either raise `exc` if ``kw["fail"]`` > `default_level`, or log `message`."""
+        fail_level = getattr(logging, (kw["fail"] or default_level).upper())
+        if fail_level >= logging.ERROR:
+            raise exc
+        else:
+            log.log(fail_level, message)
+
+    try:
+        quantities = c.check_keys(*quantities)
+    except MissingKeyError as e:
+        # Default to fail="error" here: stricter
+        _log_or_raise(e, "error", f"No key(s) {e.args!r} to aggregate")
+
+    # Iterate over quantities to be aggregated
     for qty in map(Key, quantities):
         try:
-            result = c.add(
-                qty.add_tag(tag),
-                "aggregate",
-                qty,
-                groups=groups,
-                strict=True,
-                sums=True,
-                fail=fail,
-            )
+            result = c.add(qty.add_tag(tag), "aggregate", qty, **kw)
         except KeyExistsError:
             pass
-        except MissingKeyError:
-            if fail == "error":
-                raise
+        except MissingKeyError as e:
+            # Default to fail="warning": more permissive
+            _log_or_raise(e, "warning", repr(e))
         else:
             if keys := list(iter_keys(result)):
                 log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")

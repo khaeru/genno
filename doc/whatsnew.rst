@@ -1,8 +1,16 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Show the caller's context in :class:`DeprecationWarning` from :class:`.Computer` methods that were
+- deprecated in :pull:`98` (:pull:`101`).
+- Bugfix: restore behaviour of genno ≤ 1.17.2 in :func:`.config.aggregate` (:pull:`101`).
+  Specifically: when there are multiple ``_quantities:`` to be aggregated, a failure to match any one key results in the whole item failing and being re-appended to the queue to be retried after other configuration items.
+  Giving ``_fail: warning`` (or anything less than "error") causes the behaviour to be permissive: missing keys are logged but tolerated.
+  This functionality was broken in 1.18.0.
+- Allow for zero positional/only keyword arguments when formatting a :class:`DeprecationWarning` from :meth:`.Computer.convert_pyam` (:pull:`101`).
 
 v1.18.0 (2023-08-31)
 ====================
