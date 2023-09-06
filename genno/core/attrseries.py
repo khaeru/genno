@@ -432,7 +432,7 @@ class AttrSeries(pd.Series, Quantity):
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
 
-                if np.isscalar(i) and drop:
+                if (np.isscalar(i) or isinstance(i, list) and len(i) == 1) and drop:
                     to_drop.add(dim)
 
                 # Maybe unpack an xarray DataArray indexers, for pandas
