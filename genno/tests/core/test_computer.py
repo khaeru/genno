@@ -246,7 +246,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     # Value was loaded from the cache file
     assert f"Cache hit for myfunc2(<{hash[:8]}…>)" in caplog.messages
     # The function was NOT executed
-    assert not ("myfunc executing" in caplog.messages)
+    assert "myfunc executing" not in caplog.messages
 
     # With cache_skip
     caplog.clear()

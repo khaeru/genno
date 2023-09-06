@@ -34,7 +34,7 @@ def test_describe_shorten():
 - <built-in len>
 - {'key0': '', 'key1': 'X', 'key2': 'XX', 'key3': 'XXX', 'key4': 'XXXX', 'key5': 'XXXXX', 'key6': 'XXXXXX', 'key7': 'XXXXXXX', 'key8': 'XXXXXXXX', 'key9': [...]
 
-all"""  # noqa: 501
+all"""  # noqa: E501
         == c.describe()
     )
 
