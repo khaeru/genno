@@ -70,9 +70,6 @@ exclude_also = [
   "return NotImplemented",
 ]
 
-[tool.isort]
-profile = "black"
-
 [[tool.mypy.overrides]]
 # Packages/modules for which no type hints are available
 module = [
@@ -88,6 +85,12 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=genno --cov-report="
+
+[tool.ruff]
+select = ["C9", "E", "F", "I", "W"]
+
+[tool.ruff.mccabe]
+max-complexity = 14
 
 [tool.setuptools.packages]
 find = {}
