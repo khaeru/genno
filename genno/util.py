@@ -50,7 +50,10 @@ def collect_units(*args):
     for arg in args:
         unit = arg.attrs.get("_unit")
         if unit is None:
-            log.debug(f"{arg} lacks units; assume dimensionless")
+            log.debug(
+                f"{arg.__class__.__name__} '{arg.name or '(no name)'}' {arg.dims!r} "
+                "lacks units; assume dimensionless"
+            )
             unit = registry.dimensionless
 
         # Convert a possible string or other expression to a pint.Unit object
