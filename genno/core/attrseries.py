@@ -139,7 +139,11 @@ class AttrSeries(pd.Series, Quantity):
         try:
             self.index.levels
         except AttributeError:
-            self.index = pd.MultiIndex.from_product([self.index])
+            # Assign the dimension name "dim_0" if 1-D with no names
+            kw = {}
+            if len(self.index) > 1 and self.index.name is None:
+                kw["names"] = ["dim_0"]
+            self.index = pd.MultiIndex.from_product([self.index], **kw)
 
         # Update the attrs after initialization
         self.attrs.update(attrs)
@@ -220,6 +224,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def dims(self) -> Tuple[Hashable, ...]:
         """Like :attr:`xarray.DataArray.dims`."""
+        # If 0-D, the single dimension has name `None` → discard
         return tuple(filter(None, self.index.names))
 
     @property
