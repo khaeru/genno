@@ -18,7 +18,7 @@ Top-level classes and functions
 
 .. autoclass:: genno.Computer
    :members:
-   :exclude-members: add, apply, eval, graph
+   :exclude-members: add, add_queue, apply, eval, graph
 
    A Computer is used to prepare (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **computations** stored in a :attr:`graph`.
    Advanced users may manipulate the graph directly; but most computations can be prepared can be handled by using Computer methods.
@@ -106,9 +106,6 @@ Top-level classes and functions
          e.g. "select", retrievable with :meth:`get_comp`.
          :meth:`add_single` is called with :py:`(key=args[0], data, *args[1], **kwargs)`, that is, applying the named operator to the other parameters.
 
-      :class:`str` naming another Computer method
-         e.g. :meth:`add_file` → the named method is called with the `args` and `kwargs`.
-
       :class:`.Key` or other :class:`str`:
          Passed to :meth:`add_single`.
 
@@ -129,6 +126,22 @@ Top-level classes and functions
         >>> rep.finalize(scenario)
         >>> rep.get('my report')
         foo
+
+   .. automethod:: add_queue
+
+      This method allows to add many computations at once by, in effect, calling :meth:`add` repeatedly with sets of positional and (optionally) keyword arguments taken from the `queue`.
+      The argument may be:
+
+      - A prepared/static data structure, like a :class:`list`, where each item is either a 2-:class:`tuple` of :py:`(args, kwargs)` or only a tuple of :py:`args` that can be passed to :meth:`add`.
+      - A generator that yields items of the same type(s).
+
+      Given this initial sequence of items, :meth:`add_queue` will…
+
+      - Pass each item in turn to :meth:`add`;
+      - If an item fails to be added—for instance, with :class:`MissingKeyError` on one of its inputs—and `max_tries` > 1: re-append that item to the queue so that it can be attempted again;
+      - If an item fails to be added at least `max_tries` times: take an action according to `fail`.
+
+      This behaviour makes :meth:`add_queue` tolerant of entries in `queue` that are out-of-order: individual items may fail in calls to :meth:`add` on initial passes through the queue, but eventually succeed once their inputs are available.
 
    .. automethod:: apply
 
