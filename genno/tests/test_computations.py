@@ -705,7 +705,27 @@ def test_round(data):
     assert 0 <= len(result1.to_series().unique()) <= 11
 
 
-def test_select(data):
+@pytest.mark.parametrize(
+    "indexers, kwargs, exp_dims, exp_shape",
+    (
+        # Single indexer but drop=False (default) results in 2D data
+        ({"y": [2010]}, {}, ("t", "y"), (6, 1)),
+        # Single indexer with drop=True results in 1D data
+        ({"y": [2010]}, dict(drop=True), ("t",), (6,)),
+        # With inverse=True, the given label is dropped from the given dimension
+        ({"y": [2010]}, dict(inverse=True), ("t", "y"), (6, 6 - 1)),
+    ),
+)
+def test_select0(data, indexers, kwargs, exp_dims, exp_shape):
+    *_, x = data
+
+    result = computations.select(x, indexers=indexers, **kwargs)
+
+    assert exp_dims == result.dims
+    assert exp_shape == result.shape
+
+
+def test_select1(data):
     # Unpack
     *_, t_foo, t_bar, x = data
 
@@ -720,18 +740,9 @@ def test_select(data):
     assert result_0.size == 2 * N_y
     assert result_0.name == x.name and result_0.units == x.units  # Pass through
 
-    # Single indexer along one dimension results in 1D data
-    indexers["y"] = [2010]
-    result_1 = computations.select(x, indexers=indexers)
-    assert result_1.size == 2 * 1
-
-    # Selection with inverse=True
-    result_2 = computations.select(x, indexers=indexers, inverse=True)
-    assert result_2.size == 4 * (N_y - 1)
-
     # Select with labels that do not appear in the data
-    result_3 = computations.select(x, indexers={"t": t_foo + ["MISSING"]})
-    assert result_3.size == len(t_foo) * N_y
+    result_1 = computations.select(x, indexers={"t": t_foo + ["MISSING"]})
+    assert result_1.size == len(t_foo) * N_y
 
     # Select with xarray indexers
     indexers = {
@@ -743,8 +754,8 @@ def test_select(data):
         ),
     }
     # NB with pandas 2.1, this triggers the RecursionError fixed in khaeru/genno#99
-    result_4 = computations.select(x, indexers)
-    assert ("new_dim",) == result_4.dims
+    result_2 = computations.select(x, indexers)
+    assert ("new_dim",) == result_2.dims
 
     with pytest.raises(NotImplementedError):
         computations.select(x, indexers, inverse=True)
