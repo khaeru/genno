@@ -82,6 +82,14 @@ class DataArrayLike(Generic[T]):
     def dims(self) -> Tuple[Hashable, ...]:
         return NotImplemented
 
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return NotImplemented
+
+    @property
+    def size(self) -> int:
+        return NotImplemented
+
     def assign_coords(
         self,
         coords: Optional[Mapping[Any, Any]] = None,
