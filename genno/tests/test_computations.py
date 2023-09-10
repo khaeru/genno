@@ -709,10 +709,20 @@ def test_round(data):
 @pytest.mark.parametrize(
     "indexers, kwargs, exp_dims, exp_shape",
     (
-        # Single indexer but drop=False (default) results in 2D data
+        # Length-1 indexer but drop=False (default) results in 2D data
         ({"y": [2010]}, {}, ("t", "y"), (6, 1)),
-        # Single indexer with drop=True results in 1D data
-        ({"y": [2010]}, dict(drop=True), ("t",), (6,)),
+        # Same, with an additional non-existent label → same result
+        ({"y": [2010, 9999]}, {}, ("t", "y"), (6, 1)),
+        # Scalar indexer with drop=True results in 1D data
+        ({"y": 2010}, dict(drop=True), ("t",), (6,)),
+        # Length-1 indexer with drop=True results in 2D data
+        ({"y": [2010]}, dict(drop=True), ("t", "y"), (6, 1)),
+        # Scalar indexer with nonexistent label -> KeyError
+        pytest.param({"y": 9999}, {}, (), (), marks=pytest.mark.xfail(raises=KeyError)),
+        # Length-1 indexer with nonexistent label
+        # NB this gives shape (6, 0) with SparseDataArray; (0, 0) with AttrSeries; test
+        #    the size instead
+        ({"y": [9999]}, {}, ("t", "y"), 0),
         # With inverse=True, the given label is dropped from the given dimension
         ({"y": [2010]}, dict(inverse=True), ("t", "y"), (6, 6 - 1)),
     ),
@@ -723,7 +733,10 @@ def test_select0(data, indexers, kwargs, exp_dims, exp_shape) -> None:
     result = computations.select(x, indexers=indexers, **kwargs)
 
     assert exp_dims == result.dims
-    assert exp_shape == result.shape
+    if isinstance(exp_shape, tuple):
+        assert exp_shape == result.shape
+    else:
+        assert exp_shape == result.size
 
 
 def test_select1(data) -> None:

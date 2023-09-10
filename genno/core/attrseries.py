@@ -19,13 +19,12 @@ from typing import (
 if TYPE_CHECKING:  # pragma: no cover
     from _typeshed import SupportsRichComparisonT
 
-import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
 from xarray.core.coordinates import Coordinates
 from xarray.core.indexes import Indexes
-from xarray.core.utils import either_dict_or_kwargs
+from xarray.core.utils import either_dict_or_kwargs, is_scalar
 
 from genno.core.quantity import Quantity, possible_scalar
 from genno.core.types import Dims
@@ -437,7 +436,7 @@ class AttrSeries(pd.Series, Quantity):
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
 
-                if (np.isscalar(i) or isinstance(i, list) and len(i) == 1) and drop:
+                if is_scalar(i) and (i != slice(None)) and drop:
                     to_drop.add(dim)
 
                 # Maybe unpack an xarray DataArray indexers, for pandas

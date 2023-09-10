@@ -26,7 +26,7 @@ from typing import (
 import pandas as pd
 import pint
 from xarray.core.types import InterpOptions
-from xarray.core.utils import either_dict_or_kwargs
+from xarray.core.utils import either_dict_or_kwargs, is_scalar
 
 from genno.core.attrseries import AttrSeries
 from genno.core.key import Key, KeyLike, iter_keys, single_key
@@ -893,19 +893,27 @@ def select(
             raise NotImplementedError("select(…, inverse=True) with DataArray indexers")
 
         # Pass through
-        new_indexers = indexers
+        idx = indexers
     else:
         # Predicate for containment
-        op = operator.not_ if inverse else operator.truth
+        op2 = operator.not_ if inverse else operator.truth
 
-        # Use only the values from `indexers` (not) appearing in `qty.coords`
         coords = qty.coords
-        new_indexers = {
-            dim: list(filter(lambda x: op(x in labels), coords[dim].data))
-            for dim, labels in indexers.items()
-        }
+        idx = dict()
+        for dim, labels in indexers.items():
+            s = is_scalar(labels)
+            # Check coords equal to (scalar) label or contained in (iterable of) labels
+            op1 = partial(operator.eq if s else operator.contains, labels)
+            # Take either 1 item (scalar label) or all (collection of labels)
+            ig = operator.itemgetter(0 if s else slice(None))
 
-    return qty.sel(new_indexers, drop=drop)
+            try:
+                # Use only the values from `indexers` (not) appearing in `qty.coords`
+                idx[dim] = ig(list(filter(lambda x: op2(op1(x)), coords[dim].data)))
+            except IndexError:
+                raise KeyError(f"value {labels!r} not found in index {dim!r}")
+
+    return qty.sel(idx, drop=drop)
 
 
 def sub(a: Quantity, b: Quantity) -> Quantity:
