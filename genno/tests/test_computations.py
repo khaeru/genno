@@ -3,6 +3,7 @@ import random
 import re
 from contextlib import nullcontext
 from functools import partial
+from typing import Hashable, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -716,7 +717,7 @@ def test_round(data):
         ({"y": [2010]}, dict(inverse=True), ("t", "y"), (6, 6 - 1)),
     ),
 )
-def test_select0(data, indexers, kwargs, exp_dims, exp_shape):
+def test_select0(data, indexers, kwargs, exp_dims, exp_shape) -> None:
     *_, x = data
 
     result = computations.select(x, indexers=indexers, **kwargs)
@@ -725,7 +726,7 @@ def test_select0(data, indexers, kwargs, exp_dims, exp_shape):
     assert exp_shape == result.shape
 
 
-def test_select1(data):
+def test_select1(data) -> None:
     # Unpack
     *_, t_foo, t_bar, x = data
 
@@ -735,7 +736,7 @@ def test_select1(data):
     assert x.size == 6 * N_y
 
     # Selection with inverse=False
-    indexers = {"t": t_foo[0:1] + t_bar[0:1]}
+    indexers: Mapping[Hashable, Iterable[Hashable]] = {"t": t_foo[0:1] + t_bar[0:1]}
     result_0 = computations.select(x, indexers=indexers)
     assert result_0.size == 2 * N_y
     assert result_0.name == x.name and result_0.units == x.units  # Pass through

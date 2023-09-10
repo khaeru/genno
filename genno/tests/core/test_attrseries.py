@@ -73,7 +73,7 @@ class TestAttrSeries:
         assert foo.rename({"a": "c", "b": "d"}).dims == ("c", "d")
 
     @pytest.mark.parametrize("indexers_kwargs", (dict(a="a2"), dict(a=["a2"])))
-    def test_sel(self, bar, indexers_kwargs):
+    def test_sel(self, bar, indexers_kwargs) -> None:
         # Selecting 1 element from 1-D parameter still returns AttrSeries
         result = bar.sel(**indexers_kwargs)
         assert isinstance(result, AttrSeries)
