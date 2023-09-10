@@ -89,10 +89,9 @@ def test_add_units():
 
 
 @pytest.mark.parametrize("keep", (True, False))
-def test_aggregate(caplog, data, keep):
+def test_aggregate0(caplog, data, keep):
     *_, t_foo, t_bar, x = data
 
-    x.name = "x"
     t_groups = dict(foo=t_foo, bar=t_bar)
 
     result = computations.aggregate(x, dict(t=t_groups), keep)
@@ -106,7 +105,9 @@ def test_aggregate(caplog, data, keep):
     # Now with a group ID that duplicates one of the existing index names
     t_groups[t_foo[0]] = t_foo[:1]
     with (
-        assert_logs(caplog, f"t='{t_foo[0]}' is already present in quantity 'x'")
+        assert_logs(
+            caplog, f"t='{t_foo[0]}' is already present in quantity 'Quantity X'"
+        )
         if keep
         else nullcontext()
     ):
@@ -115,6 +116,26 @@ def test_aggregate(caplog, data, keep):
     # Two dimensions
     result = computations.aggregate(x, {"t": t_groups, "y": {"2k": [2000, 2010]}}, keep)
     assert "2k" in result.coords["y"]
+
+
+@pytest.mark.parametrize("keep", (True, False))
+def test_aggregate_regex(caplog, data, keep):
+    """:func:`aggregate` using regular expressions."""
+    *_, t_foo, t_bar, x = data
+
+    # Aggregate using regular expressions
+    t_groups = dict(foo=[re.compile("foo[123]")], bar=[re.compile("b[ar]{2}.")])
+
+    # Operation completes
+    result = computations.aggregate(x, dict(t=t_groups), keep)
+
+    # Name and units pass through
+    assert result.name == x.name and result.units == x.units
+
+    # Result has the expected dimensions
+    assert set(t_groups) | (set(t_foo + t_bar) if keep else set()) == set(
+        result.coords["t"].data
+    )
 
 
 def test_apply_units(data, caplog):

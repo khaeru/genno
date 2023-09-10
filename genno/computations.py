@@ -137,14 +137,16 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
 def aggregate(
     quantity: Quantity, groups: Mapping[str, Mapping], keep: bool
 ) -> Quantity:
-    """Aggregate *quantity* by *groups*.
+    """Aggregate `quantity` by `groups`.
 
     Parameters
     ----------
     groups: dict of dict
         Top-level keys are the names of dimensions in `quantity`. Second-level keys are
         group names; second-level values are lists of labels along the dimension to sum
-        into a group.
+        into a group. Labels may be literal values, or compiled :class:`re.Pattern`
+        objects; in the latter case, all matching labels (according to
+        :meth:`.Pattern.fullmatch`) are included in the group to be aggregated.
     keep : bool
         If True, the members that are aggregated into a group are returned with the
         group sums. If False, they are discarded.
@@ -153,7 +155,6 @@ def aggregate(
     -------
     :class:`Quantity <genno.utils.Quantity>`
         Same dimensionality as `quantity`.
-
     """
     result = quantity
 
@@ -161,18 +162,26 @@ def aggregate(
         # Optionally keep the original values
         values = [result] if keep else []
 
+        coords = result.coords[dim]
+
         # Aggregate each group
         for group, members in dim_groups.items():
-            if keep and group in values[0].coords[dim]:
+            if keep and group in coords:
                 log.warning(
                     f"{dim}={group!r} is already present in quantity {quantity.name!r} "
                     "with keep=True"
                 )
 
-            # Use computations.select() to tolerate missing elements in `members`
-            agg = (
-                select(result, {dim: members}).sum(dim=dim).expand_dims({dim: [group]})
-            )
+            # Handle regular expressions in `members`; skip items not in `coords`
+            mem: List[Hashable] = []
+            for m in members:
+                if isinstance(m, re.Pattern):
+                    mem.extend(filter(m.fullmatch, coords.data))
+                elif m in coords:
+                    mem.append(m)
+
+            # Select relevant members; sum along `dim`; label with the `group` ID
+            agg = result.sel({dim: mem}).sum(dim=dim).expand_dims({dim: [group]})
 
             if isinstance(agg, AttrSeries):
                 # .transpose() is necessary for AttrSeries
