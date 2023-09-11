@@ -1,8 +1,18 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Allow use of regular expressions in :func:`~.computations.aggregate` (:issue:`35`, :pull:`103`).
+- Improve documentation of :meth:`.add_queue` (:issue:`18`, :pull:`103`).
+- New compatibility module for :doc:`compat-sdmx` (:pull:`103`).
+- Ensure consistent :py:`drop=True` behaviour of :func:`.select` and :meth:`.AttrSeries.sel` with :meth:`.SparseDataArray.sel` (:pull:`103`).
+  See the docstring for details.
+- Creating a 1-D :class:`.AttrSeries` with an "anonymous" (un-named) dimension or index results in a dimension name :py:`"dim_0"`, consistent with :class:`xarray.DataArray` (:pull:`103`).
+- Don't allow exceptions to raise from :meth:`.Graph.__contains__`; return :obj:`False` (:pull:`103`).
+- Reduce verbosity of logging from :func:`.collect_units` (:pull:`103`).
+- Provide typed signatures for :meth:`.Quantity.shape` and :attr:`~.Quantity.size` for the benefit of downstream applications (:pull:`103`).
 
 v1.18.1 (2023-08-31)
 ====================

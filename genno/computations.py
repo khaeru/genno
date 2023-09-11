@@ -901,6 +901,11 @@ def select(
         appearing in the dimension coords are silently ignored.
     inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
+    drop : bool, optional
+        If :obj:`True`, drop dimensions that are indexed by a scalar value (for
+        instance, :py:`"foo"` or :py:`999`) in `indexers`. Note that dimensions indexed
+        by a length-1 list of labels (for instance :py:`["foo"]`) are not dropped; this
+        behaviour is consistent with :class:`xarray.DataArray`.
     """
     # Identify the type of the first value in `indexers`
     _t = type(next(chain(iter(indexers.values()), [None])))
