@@ -42,8 +42,9 @@ docs = ["IPython", "sphinx-book-theme"]
 # Specific packages for which compatibility is provided
 plotnine = ["plotnine"]
 pyam = ["pyam-iamc"]
+sdmx = ["sdmx1"]
 # All compat packages together
-compat = ["genno[plotnine]", "genno[pyam]"]
+compat = ["genno[plotnine]", "genno[pyam]", "genno[sdmx]"]
 tests = [
   "genno[compat,graphviz]",
   "bottleneck",

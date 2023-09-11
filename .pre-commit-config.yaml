@@ -8,6 +8,7 @@ repos:
     - nbclient
     - pint
     - pytest
+    - sdmx1
     - Sphinx
     - types-PyYAML
     - types-pytz
