@@ -150,14 +150,14 @@ def aggregate(
         group names; second-level values are lists of labels along the dimension to sum
         into a group. Labels may be literal values, or compiled :class:`re.Pattern`
         objects; in the latter case, all matching labels (according to
-        :meth:`.Pattern.fullmatch`) are included in the group to be aggregated.
+        :meth:`re.Pattern.fullmatch`) are included in the group to be aggregated.
     keep : bool
         If True, the members that are aggregated into a group are returned with the
         group sums. If False, they are discarded.
 
     Returns
     -------
-    :class:`Quantity <genno.utils.Quantity>`
+    :class:`.Quantity`
         Same dimensionality as `quantity`.
     """
     result = quantity

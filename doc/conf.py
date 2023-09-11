@@ -97,6 +97,7 @@ intersphinx_mapping = {
     "plotnine": ("https://plotnine.readthedocs.io/en/stable/", None),
     "pyam": ("https://pyam-iamc.readthedocs.io/en/stable/", None),
     "python": ("https://docs.python.org/3/", None),
+    "sdmx1": ("https://sdmx1.readthedocs.io/en/stable", None),
     "xarray": ("https://docs.xarray.dev/en/stable/", None),
 }
 

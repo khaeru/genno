@@ -24,6 +24,7 @@ Compatibility
 
 - :doc:`Plotnine <compat-plotnine>` (:mod:`.plotnine`), via :mod:`.compat.plotnine`.
 - :doc:`Pyam <compat-pyam>` (:mod:`.pyam`), via :mod:`.compat.pyam`.
+- :doc:`SDMX <compat-sdmx>` (:mod:`.sdmx`), via :mod:`.compat.sdmx`.
 
 .. toctree::
    :maxdepth: 1
@@ -32,6 +33,7 @@ Compatibility
 
    compat-plotnine
    compat-pyam
+   compat-sdmx
 
 Packages that extend :mod:`genno` include:
 
