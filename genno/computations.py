@@ -26,19 +26,20 @@ from typing import (
 import pandas as pd
 import pint
 from xarray.core.types import InterpOptions
-from xarray.core.utils import either_dict_or_kwargs, is_scalar
+from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.attrseries import AttrSeries
-from genno.core.key import Key, KeyLike, iter_keys, single_key
-from genno.core.operator import Operator
-from genno.core.quantity import (
+from .compat.xarray import is_scalar
+from .core.attrseries import AttrSeries
+from .core.key import Key, KeyLike, iter_keys, single_key
+from .core.operator import Operator
+from .core.quantity import (
     Quantity,
     assert_quantity,
     maybe_densify,
     possible_scalar,
 )
-from genno.core.sparsedataarray import SparseDataArray
-from genno.util import UnitLike, collect_units, filter_concat_args
+from .core.sparsedataarray import SparseDataArray
+from .util import UnitLike, collect_units, filter_concat_args
 
 if TYPE_CHECKING:
     from genno.core.computer import Computer

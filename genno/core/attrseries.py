@@ -24,10 +24,12 @@ import pandas.core.indexes.base as ibase
 import xarray as xr
 from xarray.core.coordinates import Coordinates
 from xarray.core.indexes import Indexes
-from xarray.core.utils import either_dict_or_kwargs, is_scalar
+from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.quantity import Quantity, possible_scalar
-from genno.core.types import Dims
+from genno.compat.xarray import is_scalar
+
+from .quantity import Quantity, possible_scalar
+from .types import Dims
 
 log = logging.getLogger(__name__)
 
