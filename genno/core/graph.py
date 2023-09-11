@@ -74,7 +74,10 @@ class Graph(dict):
 
     def __contains__(self, item) -> bool:
         """:obj:`True` if `item` *or* a key with the same dims in a different order."""
-        return super().__contains__(item) or bool(self.unsorted_key(item))
+        try:
+            return super().__contains__(item) or bool(self.unsorted_key(item))
+        except Exception:  # for instance, TypeError
+            return False
 
     def pop(self, *args):
         try:

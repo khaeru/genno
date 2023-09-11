@@ -317,9 +317,9 @@ class Computer:
 
         Parameters
         ----------
-        queue : iterable of 2-:class:`tuple`
-            The members of each tuple are the arguments (such as :class:`list` or tuple)
-            and keyword arguments (e.g :class:`dict`) to :meth:`add`.
+        queue : iterable of 2- or N-:class:`tuple`
+            The members of each tuple are the arguments (:class:`tuple`) and,
+            optionally, keyword arguments (e.g :class:`dict`) to :meth:`add`.
         max_tries : int, optional
             Retry adding elements up to this many times.
         fail : "raise" or str or :mod:`logging` level, optional

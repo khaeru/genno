@@ -18,10 +18,16 @@ import numpy as np
 import pandas as pd
 import xarray
 from xarray.core.types import InterpOptions
+from xarray.core.utils import is_scalar
 
 from genno.core.types import Dims
 
 T = TypeVar("T", covariant=True)
+
+__all__ = [
+    "DataArrayLike",
+    "is_scalar",
+]
 
 
 class DataArrayLike(Generic[T]):
@@ -80,6 +86,14 @@ class DataArrayLike(Generic[T]):
 
     @property
     def dims(self) -> Tuple[Hashable, ...]:
+        return NotImplemented
+
+    @property
+    def shape(self) -> Tuple[int, ...]:
+        return NotImplemented
+
+    @property
+    def size(self) -> int:
         return NotImplemented
 
     def assign_coords(

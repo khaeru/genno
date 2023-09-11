@@ -246,7 +246,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     # Value was loaded from the cache file
     assert f"Cache hit for myfunc2(<{hash[:8]}…>)" in caplog.messages
     # The function was NOT executed
-    assert not ("myfunc executing" in caplog.messages)
+    assert "myfunc executing" not in caplog.messages
 
     # With cache_skip
     caplog.clear()
@@ -501,10 +501,12 @@ def test_add_queue(caplog):
     # on the second pass, etc.
     strict = dict(strict=True)
     queue = [
+        # 2-tuples of (args, kwargs)
         (("foo-4", _product, "foo-3", 10), strict),
         (("foo-3", _product, "foo-2", 10), strict),
         (("foo-2", _product, "foo-1", 10), strict),
-        (("foo-1", _product, "foo-0", 10), {}),
+        # Tuple of positional args only
+        ("foo-1", _product, "foo-0", 10),
     ]
 
     # Maximum 3 attempts → foo-4 fails on the start of the 3rd pass

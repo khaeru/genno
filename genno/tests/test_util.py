@@ -1,3 +1,4 @@
+import logging
 import re
 
 import pandas as pd
@@ -23,13 +24,26 @@ def test_clean_units(input, exp):
     assert exp == clean_units(input)
 
 
-def test_collect_units(ureg):
+def test_collect_units(caplog, ureg):
     q1 = Quantity(pd.Series([42, 43]), units="kg")
     # Force string units
     q1.attrs["_unit"] = "kg"
 
     # Units are converted to pint.Unit
     assert (ureg.kg,) == collect_units(q1)
+
+    q2 = Quantity(pd.Series([42, 43]), name="foo")
+    with caplog.at_level(logging.DEBUG):
+        assert (ureg.dimensionless,) == collect_units(q2)
+    assert (
+        "AttrSeries 'foo' ('dim_0',) lacks units; assume dimensionless"
+        == caplog.messages[-1]
+    )
+
+    assert (ureg.dimensionless,) == collect_units(1.0)
+
+    # with pytest.raises(FileNotFoundError):
+    collect_units(object())
 
 
 def test_filter_concat_args(caplog):

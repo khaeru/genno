@@ -28,17 +28,18 @@ import pint
 from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.attrseries import AttrSeries
-from genno.core.key import Key, KeyLike, iter_keys, single_key
-from genno.core.operator import Operator
-from genno.core.quantity import (
+from .compat.xarray import is_scalar
+from .core.attrseries import AttrSeries
+from .core.key import Key, KeyLike, iter_keys, single_key
+from .core.operator import Operator
+from .core.quantity import (
     Quantity,
     assert_quantity,
     maybe_densify,
     possible_scalar,
 )
-from genno.core.sparsedataarray import SparseDataArray
-from genno.util import UnitLike, collect_units, filter_concat_args
+from .core.sparsedataarray import SparseDataArray
+from .util import UnitLike, collect_units, filter_concat_args
 
 if TYPE_CHECKING:
     from genno.core.computer import Computer
@@ -82,10 +83,13 @@ xr.set_options(keep_attrs=True)
 
 
 def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
+    """Copy `items` from `source` to `target`."""
     if "name" in items:
         target.name = source.name
     if "attrs" in items:
         target.attrs.update(source.attrs)
+    if "units" in items:  # Only units; not other attrs
+        target.units = source.units
     return target
 
 
@@ -137,23 +141,24 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
 def aggregate(
     quantity: Quantity, groups: Mapping[str, Mapping], keep: bool
 ) -> Quantity:
-    """Aggregate *quantity* by *groups*.
+    """Aggregate `quantity` by `groups`.
 
     Parameters
     ----------
     groups: dict of dict
         Top-level keys are the names of dimensions in `quantity`. Second-level keys are
         group names; second-level values are lists of labels along the dimension to sum
-        into a group.
+        into a group. Labels may be literal values, or compiled :class:`re.Pattern`
+        objects; in the latter case, all matching labels (according to
+        :meth:`re.Pattern.fullmatch`) are included in the group to be aggregated.
     keep : bool
         If True, the members that are aggregated into a group are returned with the
         group sums. If False, they are discarded.
 
     Returns
     -------
-    :class:`Quantity <genno.utils.Quantity>`
+    :class:`.Quantity`
         Same dimensionality as `quantity`.
-
     """
     result = quantity
 
@@ -161,18 +166,26 @@ def aggregate(
         # Optionally keep the original values
         values = [result] if keep else []
 
+        coords = result.coords[dim]
+
         # Aggregate each group
         for group, members in dim_groups.items():
-            if keep and group in values[0].coords[dim]:
+            if keep and group in coords:
                 log.warning(
                     f"{dim}={group!r} is already present in quantity {quantity.name!r} "
                     "with keep=True"
                 )
 
-            # Use computations.select() to tolerate missing elements in `members`
-            agg = (
-                select(result, {dim: members}).sum(dim=dim).expand_dims({dim: [group]})
-            )
+            # Handle regular expressions in `members`; skip items not in `coords`
+            mem: List[Hashable] = []
+            for m in members:
+                if isinstance(m, re.Pattern):
+                    mem.extend(filter(m.fullmatch, coords.data))
+                elif m in coords:
+                    mem.append(m)
+
+            # Select relevant members; sum along `dim`; label with the `group` ID
+            agg = result.sel({dim: mem}).sum(dim=dim).expand_dims({dim: [group]})
 
             if isinstance(agg, AttrSeries):
                 # .transpose() is necessary for AttrSeries
@@ -352,6 +365,8 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
     usually indicate that a quantity is referenced which is not in the Computer.
     """
     objs = tuple(filter_concat_args(objs))
+    to_preserve = "units" if len(set(collect_units(*objs))) == 1 else ""
+
     if isinstance(objs[0], AttrSeries):
         try:
             # Retrieve a "dim" keyword argument
@@ -373,7 +388,7 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
             map(lambda o: cast(AttrSeries, o).align_levels(_objs[0])[1], objs[1:])
         )
 
-        return pd.concat(_objs, **kwargs)
+        result = pd.concat(_objs, **kwargs)
     else:
         # xr.merge() and xr.combine_by_coords() are not usable with sparse ≤ 0.14; they
         # give "IndexError: Only one-dimensional iterable indices supported." when the
@@ -382,7 +397,9 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
         # FIXME this may result in non-unique indices; avoid this.
         kwargs.setdefault("dim", (objs[0].dims or [None])[0])
 
-        return xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
+        result = xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
+
+    return _preserve(to_preserve, result, objs[0])
 
 
 def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
@@ -884,6 +901,11 @@ def select(
         appearing in the dimension coords are silently ignored.
     inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
+    drop : bool, optional
+        If :obj:`True`, drop dimensions that are indexed by a scalar value (for
+        instance, :py:`"foo"` or :py:`999`) in `indexers`. Note that dimensions indexed
+        by a length-1 list of labels (for instance :py:`["foo"]`) are not dropped; this
+        behaviour is consistent with :class:`xarray.DataArray`.
     """
     # Identify the type of the first value in `indexers`
     _t = type(next(chain(iter(indexers.values()), [None])))
@@ -893,19 +915,27 @@ def select(
             raise NotImplementedError("select(…, inverse=True) with DataArray indexers")
 
         # Pass through
-        new_indexers = indexers
+        idx = indexers
     else:
         # Predicate for containment
-        op = operator.not_ if inverse else operator.truth
+        op2 = operator.not_ if inverse else operator.truth
 
-        # Use only the values from `indexers` (not) appearing in `qty.coords`
         coords = qty.coords
-        new_indexers = {
-            dim: list(filter(lambda x: op(x in labels), coords[dim].data))
-            for dim, labels in indexers.items()
-        }
+        idx = dict()
+        for dim, labels in indexers.items():
+            s = is_scalar(labels)
+            # Check coords equal to (scalar) label or contained in (iterable of) labels
+            op1 = partial(operator.eq if s else operator.contains, labels)
+            # Take either 1 item (scalar label) or all (collection of labels)
+            ig = operator.itemgetter(0 if s else slice(None))
 
-    return qty.sel(new_indexers, drop=drop)
+            try:
+                # Use only the values from `indexers` (not) appearing in `qty.coords`
+                idx[dim] = ig(list(filter(lambda x: op2(op1(x)), coords[dim].data)))
+            except IndexError:
+                raise KeyError(f"value {labels!r} not found in index {dim!r}")
+
+    return qty.sel(idx, drop=drop)
 
 
 def sub(a: Quantity, b: Quantity) -> Quantity:

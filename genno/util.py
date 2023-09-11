@@ -9,6 +9,7 @@ import pint
 from dask.core import literal
 
 from .compat.pint import PintError
+from .compat.xarray import is_scalar
 from .core.key import Key
 
 log = logging.getLogger(__name__)
@@ -47,16 +48,29 @@ def collect_units(*args):
     """Return the "_unit" attributes of the `args`."""
     registry = pint.get_application_registry()
 
+    result = []
     for arg in args:
-        unit = arg.attrs.get("_unit")
-        if unit is None:
-            log.debug(f"{arg} lacks units; assume dimensionless")
-            unit = registry.dimensionless
+        try:
+            unit = arg.attrs.get("_unit")
+        except AttributeError:
+            if is_scalar(arg):
+                result.append(registry.dimensionless)
+            else:
+                raise  # pragma: no cover
+        else:
+            if unit is None:
+                log.debug(
+                    f"{arg.__class__.__name__} '{arg.name or '(no name)'}' {arg.dims!r}"
+                    " lacks units; assume dimensionless"
+                )
+                unit = registry.dimensionless
 
-        # Convert a possible string or other expression to a pint.Unit object
-        arg.units = registry.Unit(unit)
+            # Convert a possible string or other expression to a pint.Unit object
+            arg.units = registry.Unit(unit)
 
-    return tuple(arg.units for arg in args)
+            result.append(arg.units)
+
+    return tuple(result)
 
 
 def filter_concat_args(args):

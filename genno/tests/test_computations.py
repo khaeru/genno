@@ -3,6 +3,7 @@ import random
 import re
 from contextlib import nullcontext
 from functools import partial
+from typing import Hashable, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -88,10 +89,9 @@ def test_add_units():
 
 
 @pytest.mark.parametrize("keep", (True, False))
-def test_aggregate(caplog, data, keep):
+def test_aggregate0(caplog, data, keep):
     *_, t_foo, t_bar, x = data
 
-    x.name = "x"
     t_groups = dict(foo=t_foo, bar=t_bar)
 
     result = computations.aggregate(x, dict(t=t_groups), keep)
@@ -105,7 +105,9 @@ def test_aggregate(caplog, data, keep):
     # Now with a group ID that duplicates one of the existing index names
     t_groups[t_foo[0]] = t_foo[:1]
     with (
-        assert_logs(caplog, f"t='{t_foo[0]}' is already present in quantity 'x'")
+        assert_logs(
+            caplog, f"t='{t_foo[0]}' is already present in quantity 'Quantity X'"
+        )
         if keep
         else nullcontext()
     ):
@@ -114,6 +116,26 @@ def test_aggregate(caplog, data, keep):
     # Two dimensions
     result = computations.aggregate(x, {"t": t_groups, "y": {"2k": [2000, 2010]}}, keep)
     assert "2k" in result.coords["y"]
+
+
+@pytest.mark.parametrize("keep", (True, False))
+def test_aggregate_regex(caplog, data, keep):
+    """:func:`aggregate` using regular expressions."""
+    *_, t_foo, t_bar, x = data
+
+    # Aggregate using regular expressions
+    t_groups = dict(foo=[re.compile("foo[123]")], bar=[re.compile("b[ar]{2}.")])
+
+    # Operation completes
+    result = computations.aggregate(x, dict(t=t_groups), keep)
+
+    # Name and units pass through
+    assert result.name == x.name and result.units == x.units
+
+    # Result has the expected dimensions
+    assert set(t_groups) | (set(t_foo + t_bar) if keep else set()) == set(
+        result.coords["t"].data
+    )
 
 
 def test_apply_units(data, caplog):
@@ -705,7 +727,40 @@ def test_round(data):
     assert 0 <= len(result1.to_series().unique()) <= 11
 
 
-def test_select(data):
+@pytest.mark.parametrize(
+    "indexers, kwargs, exp_dims, exp_shape",
+    (
+        # Length-1 indexer but drop=False (default) results in 2D data
+        ({"y": [2010]}, {}, ("t", "y"), (6, 1)),
+        # Same, with an additional non-existent label → same result
+        ({"y": [2010, 9999]}, {}, ("t", "y"), (6, 1)),
+        # Scalar indexer with drop=True results in 1D data
+        ({"y": 2010}, dict(drop=True), ("t",), (6,)),
+        # Length-1 indexer with drop=True results in 2D data
+        ({"y": [2010]}, dict(drop=True), ("t", "y"), (6, 1)),
+        # Scalar indexer with nonexistent label -> KeyError
+        pytest.param({"y": 9999}, {}, (), (), marks=pytest.mark.xfail(raises=KeyError)),
+        # Length-1 indexer with nonexistent label
+        # NB this gives shape (6, 0) with SparseDataArray; (0, 0) with AttrSeries; test
+        #    the size instead
+        ({"y": [9999]}, {}, ("t", "y"), 0),
+        # With inverse=True, the given label is dropped from the given dimension
+        ({"y": [2010]}, dict(inverse=True), ("t", "y"), (6, 6 - 1)),
+    ),
+)
+def test_select0(data, indexers, kwargs, exp_dims, exp_shape) -> None:
+    *_, x = data
+
+    result = computations.select(x, indexers=indexers, **kwargs)
+
+    assert exp_dims == result.dims
+    if isinstance(exp_shape, tuple):
+        assert exp_shape == result.shape
+    else:
+        assert exp_shape == result.size
+
+
+def test_select1(data) -> None:
     # Unpack
     *_, t_foo, t_bar, x = data
 
@@ -715,23 +770,14 @@ def test_select(data):
     assert x.size == 6 * N_y
 
     # Selection with inverse=False
-    indexers = {"t": t_foo[0:1] + t_bar[0:1]}
+    indexers: Mapping[Hashable, Iterable[Hashable]] = {"t": t_foo[0:1] + t_bar[0:1]}
     result_0 = computations.select(x, indexers=indexers)
     assert result_0.size == 2 * N_y
     assert result_0.name == x.name and result_0.units == x.units  # Pass through
 
-    # Single indexer along one dimension results in 1D data
-    indexers["y"] = [2010]
-    result_1 = computations.select(x, indexers=indexers)
-    assert result_1.size == 2 * 1
-
-    # Selection with inverse=True
-    result_2 = computations.select(x, indexers=indexers, inverse=True)
-    assert result_2.size == 4 * (N_y - 1)
-
     # Select with labels that do not appear in the data
-    result_3 = computations.select(x, indexers={"t": t_foo + ["MISSING"]})
-    assert result_3.size == len(t_foo) * N_y
+    result_1 = computations.select(x, indexers={"t": t_foo + ["MISSING"]})
+    assert result_1.size == len(t_foo) * N_y
 
     # Select with xarray indexers
     indexers = {
@@ -743,8 +789,8 @@ def test_select(data):
         ),
     }
     # NB with pandas 2.1, this triggers the RecursionError fixed in khaeru/genno#99
-    result_4 = computations.select(x, indexers)
-    assert ("new_dim",) == result_4.dims
+    result_2 = computations.select(x, indexers)
+    assert ("new_dim",) == result_2.dims
 
     with pytest.raises(NotImplementedError):
         computations.select(x, indexers, inverse=True)

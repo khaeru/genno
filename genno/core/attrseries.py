@@ -19,7 +19,6 @@ from typing import (
 if TYPE_CHECKING:  # pragma: no cover
     from _typeshed import SupportsRichComparisonT
 
-import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
@@ -27,8 +26,10 @@ from xarray.core.coordinates import Coordinates
 from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.quantity import Quantity, possible_scalar
-from genno.core.types import Dims
+from genno.compat.xarray import is_scalar
+
+from .quantity import Quantity, possible_scalar
+from .types import Dims
 
 log = logging.getLogger(__name__)
 
@@ -139,7 +140,11 @@ class AttrSeries(pd.Series, Quantity):
         try:
             self.index.levels
         except AttributeError:
-            self.index = pd.MultiIndex.from_product([self.index])
+            # Assign the dimension name "dim_0" if 1-D with no names
+            kw = {}
+            if len(self.index) > 1 and self.index.name is None:
+                kw["names"] = ["dim_0"]
+            self.index = pd.MultiIndex.from_product([self.index], **kw)
 
         # Update the attrs after initialization
         self.attrs.update(attrs)
@@ -220,6 +225,7 @@ class AttrSeries(pd.Series, Quantity):
     @property
     def dims(self) -> Tuple[Hashable, ...]:
         """Like :attr:`xarray.DataArray.dims`."""
+        # If 0-D, the single dimension has name `None` → discard
         return tuple(filter(None, self.index.names))
 
     @property
@@ -432,7 +438,7 @@ class AttrSeries(pd.Series, Quantity):
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
 
-                if np.isscalar(i) and drop:
+                if is_scalar(i) and (i != slice(None)) and drop:
                     to_drop.add(dim)
 
                 # Maybe unpack an xarray DataArray indexers, for pandas
