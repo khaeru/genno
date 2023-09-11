@@ -83,10 +83,13 @@ xr.set_options(keep_attrs=True)
 
 
 def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
+    """Copy `items` from `source` to `target`."""
     if "name" in items:
         target.name = source.name
     if "attrs" in items:
         target.attrs.update(source.attrs)
+    if "units" in items:  # Only units; not other attrs
+        target.units = source.units
     return target
 
 
@@ -362,6 +365,8 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
     usually indicate that a quantity is referenced which is not in the Computer.
     """
     objs = tuple(filter_concat_args(objs))
+    to_preserve = "units" if len(set(collect_units(*objs))) == 1 else ""
+
     if isinstance(objs[0], AttrSeries):
         try:
             # Retrieve a "dim" keyword argument
@@ -383,7 +388,7 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
             map(lambda o: cast(AttrSeries, o).align_levels(_objs[0])[1], objs[1:])
         )
 
-        return pd.concat(_objs, **kwargs)
+        result = pd.concat(_objs, **kwargs)
     else:
         # xr.merge() and xr.combine_by_coords() are not usable with sparse ≤ 0.14; they
         # give "IndexError: Only one-dimensional iterable indices supported." when the
@@ -392,7 +397,9 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
         # FIXME this may result in non-unique indices; avoid this.
         kwargs.setdefault("dim", (objs[0].dims or [None])[0])
 
-        return xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
+        result = xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
+
+    return _preserve(to_preserve, result, objs[0])
 
 
 def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
