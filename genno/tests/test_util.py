@@ -40,6 +40,11 @@ def test_collect_units(caplog, ureg):
         == caplog.messages[-1]
     )
 
+    assert (ureg.dimensionless,) == collect_units(1.0)
+
+    # with pytest.raises(FileNotFoundError):
+    collect_units(object())
+
 
 def test_filter_concat_args(caplog):
     with assert_logs(

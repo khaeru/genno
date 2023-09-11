@@ -56,7 +56,7 @@ def collect_units(*args):
             if is_scalar(arg):
                 result.append(registry.dimensionless)
             else:
-                raise
+                raise  # pragma: no cover
         else:
             if unit is None:
                 log.debug(
