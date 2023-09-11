@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.19.0 (2023-09-11)
+====================
 
 - Allow use of regular expressions in :func:`~.computations.aggregate` (:issue:`35`, :pull:`103`).
 - Improve documentation of :meth:`.add_queue` (:issue:`18`, :pull:`103`).
