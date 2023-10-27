@@ -36,6 +36,43 @@ def data():
 
 
 @pytest.mark.parametrize(
+    "op, expected_dims",
+    (
+        (operator.add, ("a", "b", "c")),
+        (operator.sub, ("a", "b", "c")),
+        (operator.mul, ("a", "b", "c")),
+        (operator.div, ("a", "b", "c")),
+    ),
+)
+def test_dims(op, expected_dims):
+    c = Computer()
+    x = c.add("x:a-b", None)
+    y = c.add("y:b-c", None)
+
+    key = c.add("z", op, x, y)
+    print(f"{key = }")
+    assert expected_dims == key.dims
+
+
+@pytest.mark.parametrize(
+    "expr, expected_dims",
+    (
+        ("z = x + y", ("a", "b", "c")),  # operator.add
+        ("z = x - y", ("a", "b", "c")),  # operator.sub
+        ("z = x * y", ("a", "b", "c")),  # operator.mul
+        ("z = x / y", ("a", "b", "c")),  # operator.div
+    ),
+)
+def test_dims_eval(expr, expected_dims):
+    c = Computer()
+    c.add("x:a-b", None)
+    c.add("y:b-c", None)
+
+    key, *_ = c.eval(expr)
+    assert expected_dims == key.dims
+
+
+@pytest.mark.parametrize(
     "operands, size",
     [
         (("a", "a"), 18),
