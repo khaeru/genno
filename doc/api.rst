@@ -21,7 +21,7 @@ Top-level classes and functions
    :exclude-members: add, add_queue, apply, eval, graph
 
    A Computer is used to prepare (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **computations** stored in a :attr:`graph`.
-   Advanced users may manipulate the graph directly; but most computations can be prepared can be handled by using Computer methods.
+   Advanced users may manipulate the graph directly; but most computations can be prepared using the methods of Computer.
 
    Instance attributes:
 
@@ -77,8 +77,7 @@ Top-level classes and functions
 
       1. Any other, existing key in the Computer. This functions as an alias.
       2. Any other literal value or constant, to be returned directly.
-      3. A *task* :class:`tuple`: a callable (e.g. function), followed by zero
-         or more computations, e.g. keys for other tasks.
+      3. A *task* :class:`tuple`: a callable (such as a function or any object with a :meth:`~object.__call__` method), followed by zero or more keys (referring to the output of other computations), or computations directly.
       4. A :class:`list` containing zero or more of (1), (2), and/or (3).
 
       :mod:`genno` reserves some keys for special usage:
@@ -86,7 +85,7 @@ Top-level classes and functions
       ``"config"``
          A :class:`dict` storing configuration settings.
          See :doc:`config`.
-         Because this information is stored *in* the :attr:`graph`, it can be used as one input to other computations.
+         Because this information is stored *in* the :attr:`graph`, it can be used as one input to other operators.
 
       Some inputs to tasks may be confused for (1) or (4), above.
       The recommended way to protect these is:
