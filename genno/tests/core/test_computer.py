@@ -418,10 +418,10 @@ def test_require_compat():
         c.require_compat("_test")
 
     # Other forms
-    c.require_compat("genno.compat.pyam.computations")
+    c.require_compat("genno.compat.pyam.operator")
     assert 2 == len(c.modules)
 
-    import genno.compat.pyam.computations as mod
+    import genno.compat.pyam.operator as mod
 
     c.require_compat(mod)
     assert 2 == len(c.modules)

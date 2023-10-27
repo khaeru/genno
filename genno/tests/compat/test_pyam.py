@@ -8,7 +8,7 @@ import pytest
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from genno import Computer, Key, Quantity
-from genno.compat.pyam import computations, util
+from genno.compat.pyam import operator, util
 from genno.operator import add, load_file
 
 # Skip this entire file if pyam is not installed
@@ -80,7 +80,7 @@ def test_as_pyam(dantzig_computer, scenario):
     qty = c.get(c.full_key("ACT"))
 
     # Call as_pyam() with an empty quantity
-    p = computations.as_pyam(scenario, qty[0:0], rename=dict(nl="region", ya="year"))
+    p = operator.as_pyam(scenario, qty[0:0], rename=dict(nl="region", ya="year"))
     assert isinstance(p, pyam.IamDataFrame)
 
     input = Quantity(
@@ -91,7 +91,7 @@ def test_as_pyam(dantzig_computer, scenario):
     )
 
     with pytest.raises(ValueError, match="Duplicate IAMC indices cannot be converted"):
-        computations.as_pyam(scenario, input)
+        operator.as_pyam(scenario, input)
 
 
 def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
@@ -107,7 +107,7 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     rename = dict(nl="region", ya="year")
     c.add(
         "ACT IAMC",
-        (partial(computations.as_pyam, rename=rename, drop=["yv"]), "scenario", ACT),
+        (partial(operator.as_pyam, rename=rename, drop=["yv"]), "scenario", ACT),
     )
 
     # Result is an IamDataFrame
@@ -169,7 +169,7 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     )
     assert_frame_equal(df2[["region", "variable"]], reg_var)
 
-    # pyam.computations.write_file() is used, calling pyam.IamDataFrame.to_csv()
+    # pyam.operator.write_file() is used, calling pyam.IamDataFrame.to_csv()
     path = tmp_path / "activity.csv"
     c.write(key2, path)
 
@@ -244,7 +244,7 @@ def test_deprecated_convert_pyam():
 
 
 def test_concat(dantzig_computer):
-    """pyam.computations.concat() passes through to base concat()."""
+    """pyam.operator.concat() passes through to base concat()."""
     c = dantzig_computer
 
     # Uses pyam.concat() for suitable types
@@ -252,15 +252,13 @@ def test_concat(dantzig_computer):
         year=2021, value=42.0, unit="kg"
     )
 
-    result = computations.concat(
+    result = operator.concat(
         pyam.IamDataFrame(input), pyam.IamDataFrame(input.assign(year=2022))
     )
     assert isinstance(result, pyam.IamDataFrame)
 
     # Other types pass through to base concat()
-    key = c.add(
-        "test", computations.concat, "fom:nl-t-ya", "vom:nl-t-ya", "tom:nl-t-ya"
-    )
+    key = c.add("test", operator.concat, "fom:nl-t-ya", "vom:nl-t-ya", "tom:nl-t-ya")
     c.get(key)
 
 
