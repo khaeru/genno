@@ -105,6 +105,15 @@ def add_binop(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     -------
     Key
         The full key of the new quantity.
+
+    Example
+    -------
+    >>> c = Computer()
+    >>> x = c.add("x:a-b-c", ...)
+    >>> y = c.add("y:c-d-e", ...)
+    >>> z = c.add("z", "mul", x, y)
+    >>> z
+    <z:a-b-c-d-e>
     """
     # Fetch the full key for each quantity
     base_keys = c.check_keys(*quantities, predicate=lambda v: isinstance(v, Quantity))
@@ -137,7 +146,7 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
 
     Returns
     -------
-    .Quantity
+    Quantity
         Units are the same as the first of `quantities`.
 
     See also
@@ -329,9 +338,9 @@ def broadcast_map(
 
     Parameters
     ----------
-    rename : dict (str -> str), optional
+    rename : dict (str -> str), *optional*
         Dimensions to rename on the result.
-    strict : bool, optional
+    strict : bool, *optional*
         Require that each element of ``d2`` is mapped from exactly 1 element of ``d1``.
     """
     if strict and int(map.sum().item()) != len(map.coords[map.dims[1]]):
@@ -485,8 +494,8 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
 
     Parameters
     ----------
-    numerator : .Quantity
-    denominator : .Quantity
+    numerator : Quantity
+    denominator : Quantity
 
     See also
     --------
@@ -609,7 +618,7 @@ def load_file(
     ----------
     path : pathlib.Path
         Path to the file to read.
-    dims : collections.abc.Collection or collections.abc.Mapping, optional
+    dims : collections.abc.Collection or collections.abc.Mapping, *optional*
         If a collection of names, other columns besides these and 'value' are discarded.
         If a mapping, the keys are the column labels in `path`, and the values are the
         target dimension names.
@@ -650,7 +659,7 @@ def add_load_file(func, c: "Computer", path, key=None, **kwargs):
     ----------
     path : os.PathLike
         Path to the file, e.g. '/path/to/foo.ext'.
-    key : str or .Key, optional
+    key : str or Key, *optional*
         Key for the quantity read from the file.
 
     Other parameters
@@ -768,7 +777,7 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
 
     Returns
     -------
-    .Quantity
+    Quantity
         If `b` is :class:`int` or a Quantity with all :class:`int` values that are equal
         to one another, then the quantity has the units of `a` raised to this power;
         for example, "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
@@ -888,9 +897,9 @@ def select(
         Elements to be selected from `qty`. Mapping from dimension names to coords along
         the respective dimension of `qty`, or to xarray-style indexers. Values not
         appearing in the dimension coords are silently ignored.
-    inverse : bool, optional
+    inverse : bool, *optional*
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
-    drop : bool, optional
+    drop : bool, *optional*
         If :obj:`True`, drop dimensions that are indexed by a scalar value (for
         instance, :py:`"foo"` or :py:`999`) in `indexers`. Note that dimensions indexed
         by a length-1 list of labels (for instance :py:`["foo"]`) are not dropped; this
@@ -948,10 +957,10 @@ def sum(
 
     Parameters
     ----------
-    weights : .Quantity, optional
+    weights : .Quantity, *optional*
         If `dimensions` is given, `weights` must have at least these dimensions.
         Otherwise, any dimensions are valid.
-    dimensions : list of str, optional
+    dimensions : list of str, *optional*
         If not provided, sum over all dimensions. If provided, sum over these
         dimensions.
     """
@@ -994,7 +1003,7 @@ def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:
 
     Parameters
     ----------
-    path : str or Path
+    path : str or ~.pathlib.Path
         Path to the file to be written.
     """
     path = Path(path)

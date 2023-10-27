@@ -137,7 +137,7 @@ def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
 
     Parameters
     ----------
-    chunk_size : int, optional
+    chunk_size : int, *optional*
         Read the file in chunks of this size; default 64 kB.
     """
     with Path(path).open("rb") as f:
@@ -154,13 +154,13 @@ def decorate(
 
     Parameters
     ----------
-    computer : Computer, optional
+    computer : Computer, *optional*
         If supplied, the ``config`` dictionary stored in the Computer is used to look
         up values for `cache_path` and `cache_skip`, at the moment when `func` is
         called.
-    cache_path : os.Pathlike, optional
+    cache_path : os.Pathlike, *optional*
         Directory in which to store cache files.
-    cache_skip : bool, optional
+    cache_skip : bool, *optional*
         If :obj:`True`, ignore existing cache entries and overwrite them with new
         values from `func`.
 

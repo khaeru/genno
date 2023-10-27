@@ -84,7 +84,7 @@ class Plot(ABC):
 
         Parameters
         ----------
-        inputs : sequence of :class:`.Key`, :class:`str`, or other hashable, optional
+        inputs : sequence of :class:`.Key`, :class:`str`, or other hashable, *optional*
             If provided, overrides the :attr:`inputs` property of the class.
 
         Returns

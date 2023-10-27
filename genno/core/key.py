@@ -117,11 +117,11 @@ class Key:
         ----------
         value : str or Key
             Value to use to generate a new Key.
-        drop : list of str or :obj:`True`, optional
+        drop : list of str or :obj:`True`, *optional*
             Existing dimensions of *value* to drop. See :meth:`drop`.
-        append : list of str, optional.
+        append : list of str, *optional*.
             New dimensions to append to the returned Key. See :meth:`append`.
-        tag : str, optional
+        tag : str, *optional*
             Tag for returned Key. If *value* has a tag, the two are joined
             using a '+' character. See :meth:`add_tag`.
 

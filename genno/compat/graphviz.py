@@ -51,11 +51,11 @@ def visualize(
     ----------
     dsk :
         The graph to display.
-    filename : Path or str, optional
+    filename : Path or str, *optional*
         The name of the file to write to disk. If the file name does not have a suffix,
         ".png" is used by default. If `filename` is :data:`None`, no file is written,
         and dask communicates with :program:`dot` using only pipes.
-    format : {'png', 'pdf', 'dot', 'svg', 'jpeg', 'jpg'}, optional
+    format : {'png', 'pdf', 'dot', 'svg', 'jpeg', 'jpg'}, *optional*
         Format in which to write output file, if not given by the suffix of `filename`.
         Default "png".
     data_attributes :
@@ -73,7 +73,7 @@ def visualize(
     edge_attr :
         Mapping of (attribute, value) pairs set for all edges. Passed directly to
         :class:`.graphviz.Digraph`.
-    collapse_outputs : bool, optional
+    collapse_outputs : bool, *optional*
         Omit nodes for keys that are the output of intermediate calculations.
     kwargs :
         All other keyword arguments are added to `graph_attr`.

@@ -16,7 +16,7 @@ def codelist_to_groups(
     codes
         Either a :class:`sdmx.Codelist <sdmx.model.common.Codelist>` object or any
         iterable of :class:`sdmx.Code <sdmx.model.common.Code>`.
-    dim : str, optional
+    dim : str, *optional*
         Dimension to aggregate. If `codes` is a code list and `dim` is not given, the
         ID of the code list is used; otherwise `dim` must be supplied.
     """

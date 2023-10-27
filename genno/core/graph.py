@@ -114,7 +114,7 @@ class Graph(dict):
 
         Parameters
         ----------
-        dims : list of str, optional
+        dims : list of str, *optional*
             Drop all but these dimensions from the returned key(s).
 
         Returns

@@ -57,20 +57,20 @@ def as_pyam(
     scenario :
         Any object with :attr:`model` and :attr:`scenario` attributes of type
         :class:`str`, for instance an :class:`ixmp.Scenario`.
-    rename : dict (str -> str), optional
+    rename : dict (str -> str), *optional*
         Mapping from dimension names in `quantity` to column names; either IAMC
         dimension names, or others that are consumed by `collapse`.
-    collapse : callable, optional
+    collapse : callable, *optional*
         Function that takes a :class:`pandas.DataFrame` and returns the same type.
         This function **may** collapse 2 or more dimensions, for example to construct
         labels for the IAMC ``variable`` dimension, or any other.
-    replace : optional
+    replace : *optional*
         Values to be replaced and their replaced. Passed directly to
         :meth:`pandas.DataFrame.replace`.
-    drop : str or collection of str, optional
+    drop : str or collection of str, *optional*
         Columns to drop. Passed to :func:`.util.drop`, so if not given, all non-IAMC
         columns are dropped.
-    unit : str, optional
+    unit : str, *optional*
         Label for the IAMC ``unit`` dimension. Passed to
         :func:`~.pyam.util.clean_units`.
 
@@ -133,7 +133,7 @@ def add_as_pyam(
     ----------
     quantities : str or Key or list of (str, Key)
         Keys for quantities to transform.
-    tag : str, optional
+    tag : str, *optional*
         Tag to append to new Keys.
 
     Other parameters
