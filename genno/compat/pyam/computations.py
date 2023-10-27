@@ -7,7 +7,7 @@ from warnings import warn
 
 import pyam
 
-import genno.computations
+import genno.operator
 from genno.core.key import Key, KeyLike
 from genno.core.operator import Operator
 
@@ -186,14 +186,14 @@ def add_as_pyam(
 def concat(*args, **kwargs):
     """Concatenate *args*, which must all be :class:`pyam.IamDataFrame`.
 
-    Otherwise, equivalent to :func:`genno.computations.concat`.
+    Otherwise, equivalent to :func:`genno.operator.concat`.
     """
     if isinstance(args[0], pyam.IamDataFrame):
         # pyam.concat() takes an iterable of args
         return pyam.concat(args, **kwargs)
     else:
-        # genno.computations.concat() takes a variable number of positional arguments
-        return genno.computations.concat(*args, **kwargs)
+        # genno.operator.concat() takes a variable number of positional arguments
+        return genno.operator.concat(*args, **kwargs)
 
 
 def write_report(obj, path: Union[str, PathLike]) -> None:
@@ -201,10 +201,10 @@ def write_report(obj, path: Union[str, PathLike]) -> None:
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",
     use :mod:`pyam` methods to write the file to CSV or Excel format, respectively.
-    Otherwise, equivalent to :func:`genno.computations.write_report`.
+    Otherwise, equivalent to :func:`genno.operator.write_report`.
     """
     if not isinstance(obj, pyam.IamDataFrame):
-        return genno.computations.write_report(obj, path)
+        return genno.operator.write_report(obj, path)
 
     path = Path(path)
 

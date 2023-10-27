@@ -18,7 +18,7 @@ from typing import (
 import pint
 import yaml
 
-import genno.computations as computations
+from genno import operator
 from genno.core.computer import Computer
 from genno.core.exceptions import KeyExistsError, MissingKeyError
 from genno.core.key import Key, iter_keys
@@ -229,7 +229,7 @@ def combine(c: Computer, info):
 
     # Computation
     task = tuple(
-        [partial(computations.combine, select=select, weights=weights)] + quantities
+        [partial(operator.combine, select=select, weights=weights)] + quantities
     )
 
     added = iter_keys(c.add(key, task, strict=True, sums=True))

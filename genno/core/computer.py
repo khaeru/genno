@@ -30,7 +30,7 @@ from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfaul
 from dask.optimization import cull
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno import caching, computations
+from genno import caching, operator
 from genno.util import partial_split
 
 from .describe import describe_recursive
@@ -56,10 +56,10 @@ class Computer:
     #: The default key to :meth:`.get` with no argument.
     default_key = None
 
-    #: List of modules containing pre-defined computations.
+    #: List of modules containing operators.
     #:
-    #: By default, this includes the :mod:`genno` built-in computations in
-    #: :mod:`genno.computations`. :meth:`require_compat` appends additional modules,
+    #: By default, this includes the :mod:`genno` built-in operators in
+    #: :mod:`genno.operator`. :meth:`require_compat` appends additional modules,
     #: for instance :mod:`.compat.pyam.computations`, to this list. User code may also
     #: add modules to this list.
     modules: MutableSequence[ModuleType] = []
@@ -70,7 +70,7 @@ class Computer:
 
     def __init__(self, **kwargs):
         self.graph = Graph(config=dict())
-        self.modules = [computations]
+        self.modules = [operator]
         self._queue_fail = deque([logging.ERROR])
         self.configure(**kwargs)
 
@@ -518,8 +518,8 @@ class Computer:
           using :meth:`full_key`.
         - Multiple statements on separate lines or separated by ";".
         - Python arithmetic operators including ``+``, ``-``, ``*``, ``/``, ``**``;
-          these are mapped to the corresponding :mod:`.computations`.
-        - Function calls, also mapped to the corresponding :mod:`.computations` via
+          these are mapped to the corresponding :mod:`.operator`.
+        - Function calls, also mapped to the corresponding :mod:`.operator` via
           :meth:`get_comp`. These may include simple positional (constants or key
           references) or keyword (constants only) arguments.
 
@@ -798,7 +798,7 @@ class Computer:
             DeprecationWarning,
             stacklevel=2,
         )
-        return computations.load_file.add_tasks(self, *args, **kwargs)
+        return operator.load_file.add_tasks(self, *args, **kwargs)
 
     def add_product(self, *args, **kwargs):
         """Deprecated.
@@ -815,7 +815,7 @@ class Computer:
             DeprecationWarning,
             stacklevel=2,
         )
-        return computations.mul.add_tasks(self, *args, **kwargs)
+        return operator.mul.add_tasks(self, *args, **kwargs)
 
     def aggregate(
         self,
@@ -857,7 +857,7 @@ class Computer:
         weights : :class:`xarray.DataArray`, optional
             Weights for weighted aggregation.
         keep : bool, optional
-            Passed to :meth:`computations.aggregate <genno.computations.aggregate>`.
+            Passed to :meth:`operator.aggregate <genno.operator.aggregate>`.
         sums : bool, optional
             Passed to :meth:`add`.
         fail : str or int, optional
@@ -875,7 +875,7 @@ class Computer:
 
             key = Key(qty).add_tag(tag)
             args: Tuple[Any, ...] = (
-                computations.aggregate,
+                operator.aggregate,
                 qty,
                 dask.core.quote(groups),
                 keep,

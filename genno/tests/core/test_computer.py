@@ -15,7 +15,7 @@ from genno import (
     KeyExistsError,
     MissingKeyError,
     Quantity,
-    computations,
+    operator,
 )
 from genno.compat.pint import ApplicationRegistry
 from genno.testing import (
@@ -50,7 +50,7 @@ class TestComputer:
         t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
 
         # Use the computation directly
-        agg1 = computations.aggregate(qty_x, {"t": t_groups}, True)
+        agg1 = operator.aggregate(qty_x, {"t": t_groups}, True)
 
         # Use Computer.add(…)
         x = Key("x:t-y")
@@ -99,7 +99,7 @@ class TestComputer:
         t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
 
         # Use the computation directly
-        agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
+        agg1 = operator.aggregate(Quantity(x), {"t": t_groups}, True)
 
         # Expected set of keys along the aggregated dimension
         assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
@@ -163,7 +163,7 @@ class TestComputer:
         with pytest.warns(DeprecationWarning):
             k1 = c.disaggregate(Key(x).rename("a"), "z", args=["z_shares"])
 
-        assert (computations.mul, "a:t-y", "z_shares") == c.graph[k1]
+        assert (operator.mul, "a:t-y", "z_shares") == c.graph[k1]
 
         # MissingKeyError is raised
         g = Key("g", "hi")
@@ -193,14 +193,14 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     kwargs = dict(bar="baz")
 
     # Expected value
-    exp = computations.load_file(test_data_path / "input0.csv")
+    exp = operator.load_file(test_data_path / "input0.csv")
     exp.attrs["args"] = repr(args)
     exp.attrs["kwargs"] = repr(kwargs)
 
     def myfunc1(*args, **kwargs):
         # Send something to the log for caplog to pick up when the function runs
         log.info("myfunc executing")
-        result = computations.load_file(args[0])
+        result = operator.load_file(args[0])
         result.attrs["args"] = repr(args)
         result.attrs["kwargs"] = repr(kwargs)
         return result
@@ -468,16 +468,16 @@ def test_add0():
     # add(..., strict=True) checks str or Key arguments
     g = Key("g", "hi")
     with pytest.raises(MissingKeyError, match=msg("b", g)):
-        c.add("foo", (computations.mul, "a", "b", g), strict=True)
+        c.add("foo", (operator.mul, "a", "b", g), strict=True)
 
     # add(..., sums=True) also adds partial sums
     c.add("foo:a-b-c", [], sums=True)
     assert "foo:b" in c
 
-    # add(name, ...) where name is the name of a computation
+    # add(name, ...) where name is the name of a operator
     c.add("select", "bar", "a", indexers={"dim": ["d0", "d1", "d2"]})
 
-    # add(name, ...) with keyword arguments not recognized by the computation raises an
+    # add(name, ...) with keyword arguments not recognized by the operator raises an
     # exception
     with pytest.raises(TypeError, match="unexpected keyword argument 'bad_kwarg'"):
         c.add("select", "bar", "a", bad_kwarg="foo")
@@ -493,7 +493,7 @@ def test_add_queue(caplog):
     c = Computer()
     c.add("foo-0", (lambda x: x, 42))
 
-    # A computation
+    # An operator
     def _product(a, b):
         return a * b
 
@@ -833,15 +833,15 @@ def test_units(ureg):
     c.add("efficiency", Quantity(xr.DataArray([0.9, 0.8, 0.95], **dims)))
 
     # Aggregation preserves units
-    c.add("energy", (computations.sum, "energy:x", None, ["x"]))
+    c.add("energy", (operator.sum, "energy:x", None, ["x"]))
     assert c.get("energy").units == ureg.parse_units("MJ")
 
     # Units are derived for a ratio of two quantities
-    c.add("power", (computations.ratio, "energy:x", "time"))
+    c.add("power", (operator.div, "energy:x", "time"))
     assert c.get("power").units == ureg.parse_units("MJ/hour")
 
     # Product of dimensioned and dimensionless quantities keeps the former
-    c.add("energy2", (computations.mul, "energy:x", "efficiency"))
+    c.add("energy2", (operator.mul, "energy:x", "efficiency"))
     assert c.get("energy2").units == ureg.parse_units("MJ")
 
 

@@ -11,7 +11,8 @@ import xarray as xr
 from numpy import nan
 from pytest import param
 
-from genno import Computer, Quantity, computations
+import genno.operator
+from genno import Computer, Quantity
 from genno.core.attrseries import AttrSeries
 from genno.core.quantity import assert_quantity, possible_scalar, unwrap_scalar
 from genno.core.sparsedataarray import SparseDataArray
@@ -253,7 +254,7 @@ class TestQuantity:
         )
 
     def test_pipe(self, ureg, tri):
-        result = tri.pipe(computations.assign_units, "km")
+        result = tri.pipe(genno.operator.assign_units, "km")
         assert ureg.Unit("km") == result.units
 
     def test_sel(self, tri):
@@ -297,7 +298,7 @@ class TestQuantity:
         keys = add_large_data(c, num_params=10)
 
         # Add a task to compute the product, i.e. requires all the q_*
-        c.add("bigmem", tuple([computations.mul] + keys))
+        c.add("bigmem", tuple([genno.operator.mul] + keys))
 
         # One quantity fits in memory
         c.get(keys[0])

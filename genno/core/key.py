@@ -295,12 +295,12 @@ class Key:
 
     def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
-        from genno import computations
+        from genno.operator import sum
 
         for agg_dims, others in combo_partition(self.dims):
             yield (
                 Key(self._name, agg_dims, self.tag, _fast=True),
-                partial(computations.sum, dimensions=others, weights=None),
+                partial(sum, dimensions=others, weights=None),
                 self,
             )
 

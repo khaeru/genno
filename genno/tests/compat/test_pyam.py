@@ -9,7 +9,7 @@ from pandas.testing import assert_frame_equal, assert_series_equal
 
 from genno import Computer, Key, Quantity
 from genno.compat.pyam import computations, util
-from genno.computations import add, load_file
+from genno.operator import add, load_file
 
 # Skip this entire file if pyam is not installed
 pyam = pytest.importorskip("pyam", reason="pyam-iamc not installed")
