@@ -62,8 +62,12 @@ class SparseAccessor:
     @property
     def dense(self):
         """Return a copy with dense (:class:`.ndarray`) data."""
-        # Use existing method xr.Variable._to_dense()
-        return self.da._replace(variable=self.da.variable._to_dense())
+        try:
+            # Use existing method xr.Variable._to_dense()
+            return self.da._replace(variable=self.da.variable._to_dense())
+        except TypeError:
+            # da.variable was already dense
+            return self.da
 
     @property
     def dense_super(self):
