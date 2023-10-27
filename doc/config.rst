@@ -9,6 +9,8 @@ As shown in :ref:`Concepts and usage <describe-tasks>`, a :class:`.Computer` can
 Overview
 ========
 
+.. automodule:: genno.config
+
 Ways to configure
 -----------------
 
