@@ -1,5 +1,6 @@
 from dask.core import quote
 
+from . import computations
 from .config import configure
 from .core.computer import Computer
 from .core.exceptions import ComputationError, KeyExistsError, MissingKeyError
@@ -15,6 +16,7 @@ __all__ = [
     "MissingKeyError",
     "Operator",
     "Quantity",
+    "computations",
     "configure",
     "quote",
 ]
