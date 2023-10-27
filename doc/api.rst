@@ -21,7 +21,7 @@ Top-level classes and functions
    :exclude-members: add, add_queue, apply, eval, graph
 
    A Computer is used to prepare (:meth:`add` and related methods) and then execute (:meth:`get` and related methods) **computations** stored in a :attr:`graph`.
-   Advanced users may manipulate the graph directly; but most computations can be prepared can be handled by using Computer methods.
+   Advanced users may manipulate the graph directly; but most computations can be prepared using the methods of Computer.
 
    Instance attributes:
 
@@ -57,7 +57,7 @@ Top-level classes and functions
       check_keys
       configure
       full_key
-      get_comp
+      get_operator
       infer_keys
       require_compat
 
@@ -77,8 +77,7 @@ Top-level classes and functions
 
       1. Any other, existing key in the Computer. This functions as an alias.
       2. Any other literal value or constant, to be returned directly.
-      3. A *task* :class:`tuple`: a callable (e.g. function), followed by zero
-         or more computations, e.g. keys for other tasks.
+      3. A *task* :class:`tuple`: a callable (such as a function or any object with a :meth:`~object.__call__` method), followed by zero or more keys (referring to the output of other computations), or computations directly.
       4. A :class:`list` containing zero or more of (1), (2), and/or (3).
 
       :mod:`genno` reserves some keys for special usage:
@@ -86,7 +85,7 @@ Top-level classes and functions
       ``"config"``
          A :class:`dict` storing configuration settings.
          See :doc:`config`.
-         Because this information is stored *in* the :attr:`graph`, it can be used as one input to other computations.
+         Because this information is stored *in* the :attr:`graph`, it can be used as one input to other operators.
 
       Some inputs to tasks may be confused for (1) or (4), above.
       The recommended way to protect these is:
@@ -103,7 +102,7 @@ Top-level classes and functions
          A list of computations, like :py:`[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]` → passed to :meth:`add_queue`.
 
       :class:`str` naming an operator
-         e.g. "select", retrievable with :meth:`get_comp`.
+         e.g. "select", retrievable with :meth:`get_operator`.
          :meth:`add_single` is called with :py:`(key=args[0], data, *args[1], **kwargs)`, that is, applying the named operator to the other parameters.
 
       :class:`.Key` or other :class:`str`:
@@ -162,7 +161,7 @@ Top-level classes and functions
       .. code-block:: python
 
          def my_gen1(**kwargs):
-             op = partial(computations.load_file, **kwargs)
+             op = partial(operator.load_file, **kwargs)
              yield from (f"file:{i}", (op, "file{i}.txt")) for i in range(2)
 
          rep.apply(my_gen1, units="kg")
@@ -236,7 +235,7 @@ Top-level classes and functions
 
    A Key has the same hash, and compares equal to its :class:`str` representation.
    A Key also compares equal to another key or :class:`str` with the same dimensions in any other order.
-   ``repr(key)`` prints the Key in angle brackets ('<>') to signify that it is a Key object.
+   :py:`repr(key)` prints the Key in angle brackets ('<>') to signify that it is a Key object.
 
    >>> str(k1)
    'foo:a-b-c'
@@ -256,6 +255,35 @@ Top-level classes and functions
    >>> foo('a b c')
    <foo:a-b-c>
 
+   .. _key-arithmethic:
+
+   Keys can also be manipulated using some of the Python arithmetic operators:
+
+   - :py:`+`: same as :meth:`.add_tag`:
+
+     >>> k1 = Key("foo", "abc")
+     >>> k1
+     <foo:a-b-c>
+     >>> k1 + "tag"
+     <foo:a-b-c:tag>
+
+   - :py:`*` with a single string, an iterable of strings, or another Key: similar to :meth:`.append` and :meth:`.product`:
+
+     >>> k1 * "d"
+     <foo:a-b-c-d>
+     >>> k1 * ("e", "f")
+     <foo:a-b-c-e-f>
+     >>> k1 * Key("bar", "ghi")
+     <foo:a-b-c-g-h-i>
+
+   - :py:`/` with a single string or iterable of strings: similar to :meth:`drop`:
+
+     >>> k1 / "a"
+     <foo:b-c>
+     >>> k1 / ("a", "c")
+     <foo:b>
+     >>> k1 / Key("baz", "cde")
+     <foo:a-b>
 
 .. autoclass:: genno.Quantity
    :members:
@@ -284,7 +312,7 @@ The goal is that all :mod:`genno`-based code, including built-in and user functi
 Operators
 =========
 
-.. automodule:: genno.computations
+.. automodule:: genno.operator
    :members:
 
    Unless otherwise specified, these functions accept and return :class:`.Quantity` objects for data arguments/return values.
@@ -304,7 +332,6 @@ Operators
       index_to
       interpolate
       mul
-      add_mul
       pow
       product
       ratio
@@ -333,9 +360,9 @@ Operators
 Helper functions for adding tasks to Computers
 ----------------------------------------------
 
+.. autofunction:: add_binop
 .. autofunction:: add_load_file
-.. autofunction:: add_mul
-
+.. autofunction:: add_sum
 
 Internal format for quantities
 ==============================

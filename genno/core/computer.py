@@ -30,7 +30,7 @@ from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfaul
 from dask.optimization import cull
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno import caching, computations
+from genno import caching, operator
 from genno.util import partial_split
 
 from .describe import describe_recursive
@@ -54,14 +54,14 @@ class Computer:
     graph: Graph = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
-    default_key = None
+    default_key: Optional[KeyLike] = None
 
-    #: List of modules containing pre-defined computations.
+    #: List of modules containing operators.
     #:
-    #: By default, this includes the :mod:`genno` built-in computations in
-    #: :mod:`genno.computations`. :meth:`require_compat` appends additional modules,
-    #: for instance :mod:`.compat.pyam.computations`, to this list. User code may also
-    #: add modules to this list.
+    #: By default, this includes the :mod:`genno` built-in operators in
+    #: :mod:`genno.operator`. :meth:`require_compat` appends additional modules,
+    #: for instance :mod:`.compat.pyam.operator`, to this list. User code may also add
+    #: modules to this list directly.
     modules: MutableSequence[ModuleType] = []
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
@@ -70,7 +70,7 @@ class Computer:
 
     def __init__(self, **kwargs):
         self.graph = Graph(config=dict())
-        self.modules = [computations]
+        self.modules = [operator]
         self._queue_fail = deque([logging.ERROR])
         self.configure(**kwargs)
 
@@ -108,9 +108,9 @@ class Computer:
 
         Parameters
         ----------
-        path : .Path, optional
+        path : .Path, *optional*
             Path to a configuration file in JSON or YAML format.
-        fail : "raise" or str or :mod:`logging` level, optional
+        fail : "raise" or str or :mod:`logging` level, *optional*
             Passed to :meth:`.add_queue`. If not "raise", then log messages are
             generated for config handlers that fail. The Computer may be only partially
             configured.
@@ -140,12 +140,12 @@ class Computer:
 
     # Manipulating callables
 
-    def get_comp(self, name) -> Optional[Callable]:
-        """Return a function or callable for use in computations.
+    def get_operator(self, name) -> Optional[Callable]:
+        """Return a function, :class:`.Operator`, or callable for use in a task.
 
-        :meth:`get_comp` checks each of the :attr:`modules` for a function or callable
-        with the given `name`. Modules at the end of the list take precedence over those
-        earlier in the lists.
+        :meth:`get_operator` checks each of the :attr:`modules` for a callable with the
+        given `name`. Modules at the end of the list take precedence over those earlier
+        in the list.
 
         Returns
         -------
@@ -162,8 +162,11 @@ class Computer:
                 return None  # `name` is not a string; can't be the name of a function
         return None
 
+    #: Alias of :meth:`get_operator`.
+    get_comp = get_operator
+
     def require_compat(self, pkg: Union[str, ModuleType]):
-        """Register computations from :mod:`genno.compat`/others for :meth:`.get_comp`.
+        """Register a module for :meth:`get_operator`.
 
         The specified module is appended to :attr:`modules`.
 
@@ -174,7 +177,7 @@ class Computer:
 
             - the name of a package (for instance "plotnine"), corresponding to a
               submodule of :mod:`genno.compat` (:mod:`genno.compat.plotnine`).
-              ``genno.compat.{pkg}.computations`` is added.
+              ``genno.compat.{pkg}.operator`` is added.
             - the name of any importable module, for instance "foo.bar".
             - a module object that has already been imported.
 
@@ -185,16 +188,16 @@ class Computer:
 
         Examples
         --------
-        Computations packaged with genno for compatibility:
+        Operators packaged with genno for compatibility:
 
         >>> c = Computer()
         >>> c.require_compat("pyam")
 
-        Computations in another module, using the module name:
+        Operators in another module, using the module name:
 
         >>> c.require_compat("ixmp.reporting.computations")
 
-        or using imported module:
+        or using imported module object directly:
 
         >>> import ixmp.reporting.computations as mod
         >>> c.require_compat(mod)
@@ -211,7 +214,7 @@ class Computer:
                 raise ModuleNotFoundError(
                     f"No module named '{pkg}', required by genno.compat.{pkg}"
                 )
-            mod = import_module(f"{name}.computations")
+            mod = import_module(f"{name}.operator")
 
         # Don't duplicate
         if mod not in self.modules:
@@ -228,7 +231,7 @@ class Computer:
 
         Returns
         -------
-        KeyLike or tuple of KeyLike
+        |KeyLike| or tuple of |KeyLike|
             Some or all of the keys added to the Computer.
 
         See also
@@ -249,7 +252,7 @@ class Computer:
 
         # Possibly identify a named or direct callable in `data` or `args[0]`
         func: Optional[Callable] = None
-        if func := self.get_comp(data):
+        if func := self.get_operator(data):
             # `data` is the name of a pre-defined computation
             # NB in the future, could raise some warning here to suggest the second form
             pass
@@ -261,7 +264,9 @@ class Computer:
                 raise TypeError("At least 1 argument required")
 
             # Check if the first element of `args` references a computation is callable
-            func = self.get_comp(args[0]) or (args[0] if callable(args[0]) else None)
+            func = self.get_operator(args[0]) or (
+                args[0] if callable(args[0]) else None
+            )
 
             # Located a callable in args[0], so `data` joins args[1:]
             if func:
@@ -320,9 +325,9 @@ class Computer:
         queue : iterable of 2- or N-:class:`tuple`
             The members of each tuple are the arguments (:class:`tuple`) and,
             optionally, keyword arguments (e.g :class:`dict`) to :meth:`add`.
-        max_tries : int, optional
+        max_tries : int, *optional*
             Retry adding elements up to this many times.
-        fail : "raise" or str or :mod:`logging` level, optional
+        fail : "raise" or str or :mod:`logging` level, *optional*
             Action to take when a computation from `queue` cannot be added after
             `max_tries`: "raise" an exception, or log messages on the indicated level
             and continue.
@@ -409,10 +414,10 @@ class Computer:
             A string, Key, or other value identifying the output of `computation`.
         computation : object
             Any computation. See :attr:`graph`.
-        strict : bool, optional
+        strict : bool, *optional*
             If True, `key` must not already exist in the Computer, and any keys
             referred to by `computation` must exist.
-        index : bool, optional
+        index : bool, *optional*
             If True, `key` is added to the index as a full-resolution key, so it can be
             later retrieved with :meth:`full_key`.
 
@@ -471,19 +476,34 @@ class Computer:
             )
         )
 
-    def apply(self, generator, *keys, **kwargs):
+    def apply(
+        self, generator: Callable, *keys, **kwargs
+    ) -> Union[KeyLike, Tuple[KeyLike, ...]]:
         """Add computations by applying `generator` to `keys`.
 
         Parameters
         ----------
         generator : .callable
-            Function to apply to `keys`.
+            Function to apply to `keys`. This function **may** take a first positional
+            argument annotated with :class:`.Computer` or a subtype; if so, then it is
+            provided with a reference to `self`.
+
+            The function **may**:
+
+            - :py:`yield` or return an iterable of (`key`, `computation`). These are
+              used to directly update the :attr:`graph`, and then :meth:`.apply` returns
+              the added keys.
+            - If it is provided with a reference to the Computer, call :meth:`.add` or
+              any other method to update the graph. In this case, it **should**
+              :py:`return` a :class:`.Key` or sequence of keys, indicating what was
+              added; these are in turn returned by :meth:`.apply`.
         keys : Hashable
-            The starting key(s).
+            The starting key(s). These are provided as positional arguments to
+            `generator`.
         kwargs
             Keyword arguments to `generator`.
         """
-        args = self.check_keys(*keys)
+        args: List[Any] = self.check_keys(*keys)
 
         try:
             # Inspect the generator function
@@ -500,12 +520,20 @@ class Computer:
         # Call the generator. Might return None, or yield some computations
         applied = generator(*args, **kwargs)
 
-        if applied:
+        if applied is None:
+            return ()
+        elif isinstance(applied, (Key, str)):
+            return applied
+        elif isinstance(applied, (list, tuple)) and isinstance(applied[0], (Key, str)):
+            return tuple(applied)
+        else:
             # Update the graph with the computations
-            self.graph.update(applied)
+            result = []
+            for key, comp in applied:
+                self.graph[key] = comp
+                result.append(key)
 
-        # FIXME capture and return the added keys
-        return ()
+            return tuple(result) if len(result) > 1 else result[0]
 
     def eval(self, expr: str) -> Tuple[Key, ...]:
         r"""Evaluate `expr` to add tasks and keys.
@@ -518,9 +546,9 @@ class Computer:
           using :meth:`full_key`.
         - Multiple statements on separate lines or separated by ";".
         - Python arithmetic operators including ``+``, ``-``, ``*``, ``/``, ``**``;
-          these are mapped to the corresponding :mod:`.computations`.
-        - Function calls, also mapped to the corresponding :mod:`.computations` via
-          :meth:`get_comp`. These may include simple positional (constants or key
+          these are mapped to the corresponding :mod:`.operator`.
+        - Function calls, also mapped to the corresponding :mod:`.operator` via
+          :meth:`get_operator`. These may include simple positional (constants or key
           references) or keyword (constants only) arguments.
 
         Parameters
@@ -560,7 +588,7 @@ class Computer:
 
         Parameters
         ----------
-        key : str, optional
+        key : str, *optional*
             If not provided, :attr:`default_key` is used.
 
         Raises
@@ -626,19 +654,18 @@ class Computer:
     ) -> List[KeyLike]:
         """Check that `keys` are in the Computer.
 
-
         Parameters
         ----------
-        keys : KeyLike
+        keys : |KeyLike|
             Some :class:`Keys <Key>` or strings.
-        predicate : callable, optional
+        predicate : callable, *optional*
             Function to run on each of `keys`; see below.
         action : "raise" or any other value
             Action to take on missing `keys`.
 
         Returns
         -------
-        list of KeyLike
+        list of |KeyLike|
             One item for each item ``k`` in `keys`:
 
             1. ``k`` itself, unchanged, if `predicate` is given and ``predicate(k)``
@@ -701,16 +728,16 @@ class Computer:
 
         Parameters
         ----------
-        key_or_keys : str or Key or list of str or Key
-        dims : list of str, optional
+        key_or_keys : |KeyLike| or list of |KeyLike|
+        dims : list of str, *optional*
             Drop all but these dimensions from the returned key(s).
 
         Returns
         -------
-        str or Key
-            If `key_or_keys` is a single :data:`KeyLike`.
-        list of str or Key
-            If `key_or_keys` is an iterable of :data:`KeyLike`.
+        |KeyLike|
+            If `key_or_keys` is a single |KeyLike|.
+        list of |KeyLike|
+            If `key_or_keys` is an iterable of |KeyLike|.
         """
         single = isinstance(key_or_keys, (Key, Hashable))
         keys = [key_or_keys] if single else tuple(cast(Iterable, key_or_keys))
@@ -773,11 +800,11 @@ class Computer:
         """Compute `key` and write the result directly to `path`."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
-        self.get_comp("write_report")(self.get(key), path)
+        self.get_operator("write_report")(self.get(key), path)
 
     @property
     def unit_registry(self):
-        """The :meth:`pint.UnitRegistry` used by the Computer."""
+        """The :class:`pint.UnitRegistry` used by the Computer."""
         return pint.get_application_registry()
 
     # Deprecated methods
@@ -799,7 +826,7 @@ class Computer:
             DeprecationWarning,
             stacklevel=2,
         )
-        return computations.load_file.add_tasks(self, *args, **kwargs)
+        return operator.load_file.add_tasks(self, *args, **kwargs)
 
     def add_product(self, *args, **kwargs):
         """Deprecated.
@@ -816,7 +843,7 @@ class Computer:
             DeprecationWarning,
             stacklevel=2,
         )
-        return computations.mul.add_tasks(self, *args, **kwargs)
+        return operator.mul.add_tasks(self, *args, **kwargs)
 
     def aggregate(
         self,
@@ -855,13 +882,13 @@ class Computer:
             quantity.
         dims_or_groups: str or iterable of str or dict
             Name(s) of the dimension(s) to sum over, or nested dict.
-        weights : :class:`xarray.DataArray`, optional
+        weights : :class:`xarray.DataArray`, *optional*
             Weights for weighted aggregation.
-        keep : bool, optional
-            Passed to :meth:`computations.aggregate <genno.computations.aggregate>`.
-        sums : bool, optional
+        keep : bool, *optional*
+            Passed to :meth:`operator.aggregate <genno.operator.aggregate>`.
+        sums : bool, *optional*
             Passed to :meth:`add`.
-        fail : str or int, optional
+        fail : str or int, *optional*
             Passed to :meth:`add_queue` via :meth:`add`.
 
         Returns
@@ -876,7 +903,7 @@ class Computer:
 
             key = Key(qty).add_tag(tag)
             args: Tuple[Any, ...] = (
-                computations.aggregate,
+                operator.aggregate,
                 qty,
                 dask.core.quote(groups),
                 keep,
@@ -928,7 +955,7 @@ class Computer:
             stacklevel=2,
         )
         self.require_compat("pyam")
-        return self.get_comp("as_pyam").add_tasks(self, *args, **kwargs)
+        return self.get_operator("as_pyam").add_tasks(self, *args, **kwargs)
 
     def disaggregate(self, qty, new_dim, method="shares", args=[]):
         """Deprecated.

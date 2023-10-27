@@ -7,7 +7,7 @@ from warnings import warn
 
 import pyam
 
-import genno.computations
+import genno.operator
 from genno.core.key import Key, KeyLike
 from genno.core.operator import Operator
 
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 __all__ = ["as_pyam", "concat", "write_report"]
 
 
-@Operator.define
+@Operator.define()
 def as_pyam(
     scenario,
     quantity: "Quantity",
@@ -57,20 +57,20 @@ def as_pyam(
     scenario :
         Any object with :attr:`model` and :attr:`scenario` attributes of type
         :class:`str`, for instance an :class:`ixmp.Scenario`.
-    rename : dict (str -> str), optional
+    rename : dict (str -> str), *optional*
         Mapping from dimension names in `quantity` to column names; either IAMC
         dimension names, or others that are consumed by `collapse`.
-    collapse : callable, optional
+    collapse : callable, *optional*
         Function that takes a :class:`pandas.DataFrame` and returns the same type.
         This function **may** collapse 2 or more dimensions, for example to construct
         labels for the IAMC ``variable`` dimension, or any other.
-    replace : optional
+    replace : *optional*
         Values to be replaced and their replaced. Passed directly to
         :meth:`pandas.DataFrame.replace`.
-    drop : str or collection of str, optional
+    drop : str or collection of str, *optional*
         Columns to drop. Passed to :func:`.util.drop`, so if not given, all non-IAMC
         columns are dropped.
-    unit : str, optional
+    unit : str, *optional*
         Label for the IAMC ``unit`` dimension. Passed to
         :func:`~.pyam.util.clean_units`.
 
@@ -93,7 +93,7 @@ def as_pyam(
         .reset_index()
         .assign(
             variable=quantity.name,
-            unit=quantity.attrs.get("_unit", ""),
+            unit=quantity.units,
             # TODO accept these from separate strings
             model=scenario.model,
             scenario=scenario.scenario,
@@ -133,7 +133,7 @@ def add_as_pyam(
     ----------
     quantities : str or Key or list of (str, Key)
         Keys for quantities to transform.
-    tag : str, optional
+    tag : str, *optional*
         Tag to append to new Keys.
 
     Other parameters
@@ -186,14 +186,14 @@ def add_as_pyam(
 def concat(*args, **kwargs):
     """Concatenate *args*, which must all be :class:`pyam.IamDataFrame`.
 
-    Otherwise, equivalent to :func:`genno.computations.concat`.
+    Otherwise, equivalent to :func:`genno.operator.concat`.
     """
     if isinstance(args[0], pyam.IamDataFrame):
         # pyam.concat() takes an iterable of args
         return pyam.concat(args, **kwargs)
     else:
-        # genno.computations.concat() takes a variable number of positional arguments
-        return genno.computations.concat(*args, **kwargs)
+        # genno.operator.concat() takes a variable number of positional arguments
+        return genno.operator.concat(*args, **kwargs)
 
 
 def write_report(obj, path: Union[str, PathLike]) -> None:
@@ -201,10 +201,10 @@ def write_report(obj, path: Union[str, PathLike]) -> None:
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",
     use :mod:`pyam` methods to write the file to CSV or Excel format, respectively.
-    Otherwise, equivalent to :func:`genno.computations.write_report`.
+    Otherwise, equivalent to :func:`genno.operator.write_report`.
     """
     if not isinstance(obj, pyam.IamDataFrame):
-        return genno.computations.write_report(obj, path)
+        return genno.operator.write_report(obj, path)
 
     path = Path(path)
 

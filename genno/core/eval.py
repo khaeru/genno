@@ -61,7 +61,7 @@ class Parser:
     def recurse(self, node):
         # Something else, probably an ast.BinOp
         try:
-            return self.computer.get_comp(BINOP[node.__class__])
+            return self.computer.get_operator(BINOP[node.__class__])
         except KeyError:
             raise NotImplementedError(f"ast.{node.__class__.__name__}")
 
@@ -96,7 +96,7 @@ class Parser:
     def _(self, node: ast.UnaryOp):
         # A unary operation: look up some portions of a task
         if isinstance(node.op, ast.USub):
-            op = (self.computer.get_comp("mul"), Quantity(-1.0))
+            op = (self.computer.get_operator("mul"), Quantity(-1.0))
         else:
             raise NotImplementedError(f"ast.{node.op.__class__.__name__}")
 
@@ -114,7 +114,7 @@ class Parser:
             )
 
         # Get the computation function
-        func = self.computer.get_comp(node.func.id)
+        func = self.computer.get_operator(node.func.id)
         if func is None:
             raise NameError(f"No computation named {node.func.id!r}")
 

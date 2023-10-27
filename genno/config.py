@@ -18,7 +18,7 @@ from typing import (
 import pint
 import yaml
 
-import genno.computations as computations
+from genno import operator
 from genno.core.computer import Computer
 from genno.core.exceptions import KeyExistsError, MissingKeyError
 from genno.core.key import Key, iter_keys
@@ -43,7 +43,7 @@ def configure(path: Optional[Union[Path, str]] = None, **config):
 
     Parameters
     ----------
-    path : pathlib.Path, optional
+    path : pathlib.Path, *optional*
         Path to a configuration file in JSON or YAML format.
     **config :
         Configuration keys/sections and values.
@@ -62,11 +62,11 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     section_name: str
         The name of the configuration section to handle. Using a name already present
         in :data:`HANDLERS` overrides that handler.
-    iterate : bool, optional
+    iterate : bool, *optional*
         If :obj:`True`, the handler is called once for each item (either list item, or
         (key, value) tuple) in the section. If :obj:`False`, the entire section
         contents, of whatever type, are passed to tha handler.
-    discard : bool, optional
+    discard : bool, *optional*
         If :obj:`True`, configuration section data is discarded after the handler is
         called. If :obj:`False`, the data is retained and stored on the Computer.
     """
@@ -229,7 +229,7 @@ def combine(c: Computer, info):
 
     # Computation
     task = tuple(
-        [partial(computations.combine, select=select, weights=weights)] + quantities
+        [partial(operator.combine, select=select, weights=weights)] + quantities
     )
 
     added = iter_keys(c.add(key, task, strict=True, sums=True))
@@ -286,7 +286,7 @@ def general(c: Computer, info):
         if info["comp"] is not None:
             _seq = tuple  # Task is a computation
             # Retrieve the function for the computation
-            f = c.get_comp(info["comp"])
+            f = c.get_operator(info["comp"])
             if f is None:
                 raise ValueError(info["comp"])
             task = [partial(f, **info.get("args", {}))]
@@ -307,7 +307,7 @@ def report(c: Computer, info):
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
     # Concatenate pyam data structures
-    c.add(info["key"], tuple([c.get_comp("concat")] + info["members"]), strict=True)
+    c.add(info["key"], tuple([c.get_operator("concat")] + info["members"]), strict=True)
 
 
 @handles("units", iterate=False)

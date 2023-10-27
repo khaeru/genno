@@ -1,10 +1,10 @@
 def test_import_pyam():
-    """.compat.pyam.computations is populated only if pyam itself is installed.
+    """.compat.pyam.operator is populated only if pyam itself is installed.
 
     Unlike the tests in :mod:`.test_pyam`, this test should pass regardless of whether
     or not pyam is installed.
     """
-    from genno.compat.pyam import HAS_PYAM, computations
+    from genno.compat.pyam import HAS_PYAM, operator
 
     # Same value, either True or False
-    assert HAS_PYAM is hasattr(computations, "as_pyam")
+    assert HAS_PYAM is hasattr(operator, "as_pyam")

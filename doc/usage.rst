@@ -262,7 +262,7 @@ Operators
 =========
 
 A operator is any Python function or callable that operates on Quantities or other data.
-:mod:`genno.computations` includes many common operators; see the API documentation for descriptions of each.
+:mod:`genno.operator` includes many common operators; see the API documentation for descriptions of each.
 
 The power of :mod:`genno` is the ability to link *any* code, no matter how complex, into the graph, and have it operate on the results of other code.
 Tasks can perform complex tasks such as:

@@ -76,5 +76,5 @@ def test_scalar():
     A = Quantity(1.0, units="kg")
     B = Quantity(2.0, units="kg")
 
-    # Fragment occurring in .computations.add()
+    # Fragment occurring in .operator.add()
     list(map(Quantity, xr.broadcast(A, B)))

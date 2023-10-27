@@ -1,6 +1,6 @@
 import logging
 import re
-from functools import partial, singledispatchmethod
+from functools import partial, singledispatch
 from itertools import chain, compress
 from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, Union
 from warnings import warn
@@ -14,6 +14,35 @@ EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*
 
 #: Regular expression for non-keylike strings.
 BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
+
+
+@singledispatch
+def _name_dims_tag(value) -> Tuple[str, Tuple[str, ...], Optional[str]]:
+    """Convert various `value`s into (name, dims, tag) tuples.
+
+    Helper for :meth:`.Key.__init__`.
+    """
+    raise TypeError(type(value))
+
+
+@_name_dims_tag.register
+def _(value: str):
+    """Parse a string that may contain a Key expression."""
+    match = EXPR.match(value)
+    if match is None:
+        raise ValueError(f"Invalid key expression: {repr(value)}")
+    groups = match.groupdict()
+    return (
+        groups["name"],
+        tuple() if not groups["dims"] else tuple(groups["dims"].split("-")),
+        groups["tag"],
+    )
+
+
+@_name_dims_tag.register
+def _(value: Quantity):
+    """Return (name, dims, tag) that describe an existing Quantity."""
+    return str(value.name), tuple(map(str, value.dims)), None
 
 
 class Key:
@@ -37,7 +66,8 @@ class Key:
             self._dims = tuple(dims)
             self._tag = tag or None
         else:
-            self._name, _dims, _tag = self._from(name_or_value)
+            # Convert various values into a (name, dims, tags)
+            self._name, _dims, _tag = _name_dims_tag(name_or_value)
 
             # Check for conflicts between dims inferred from name_or_value and any
             # direct argument
@@ -55,36 +85,13 @@ class Key:
             self._tag = _tag or tag
 
         # Pre-compute string representation and hash
-        self._str = "{}:{}{}".format(
-            self._name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
+        self._str = (
+            self._name
+            + ":"
+            + "-".join(self._dims)
+            + (f":{self._tag}" if self._tag else "")
         )
         self._hash = hash(self._str)
-
-    # _from() methods: convert various arguments into (name, dims, tag) tuples
-    @singledispatchmethod
-    @classmethod
-    def _from(cls, value) -> Tuple[str, Tuple[str, ...], Optional[str]]:
-        if isinstance(value, cls):
-            return value._name, value._dims, value._tag
-        else:
-            raise TypeError(type(value))
-
-    @_from.register
-    def _(cls, value: str):
-        # Parse a string
-        match = EXPR.match(value)
-        if match is None:
-            raise ValueError(f"Invalid key expression: {repr(value)}")
-        groups = match.groupdict()
-        return (
-            groups["name"],
-            tuple() if not groups["dims"] else tuple(groups["dims"].split("-")),
-            groups["tag"],
-        )
-
-    @_from.register
-    def _(cls, value: Quantity):
-        return str(value.name), tuple(map(str, value.dims)), None
 
     # Class methods
 
@@ -110,11 +117,11 @@ class Key:
         ----------
         value : str or Key
             Value to use to generate a new Key.
-        drop : list of str or :obj:`True`, optional
+        drop : list of str or :obj:`True`, *optional*
             Existing dimensions of *value* to drop. See :meth:`drop`.
-        append : list of str, optional.
+        append : list of str, *optional*.
             New dimensions to append to the returned Key. See :meth:`append`.
-        tag : str, optional
+        tag : str, *optional*
             Tag for returned Key. If *value* has a tag, the two are joined
             using a '+' character. See :meth:`add_tag`.
 
@@ -187,30 +194,38 @@ class Key:
         if isinstance(other, str):
             return self.append(other)
         else:
-            raise TypeError(type(other))
+            # Key or iterable of dims
+            other_dims = getattr(other, "dims", other)
+            try:
+                return self.append(*other_dims)
+            except Exception:
+                raise TypeError(type(other))
 
     def __truediv__(self, other) -> "Key":
         if isinstance(other, str):
             return self.drop(other)
         else:
-            raise TypeError(type(other))
+            # Key or iterable of dims
+            other_dims = getattr(other, "dims", other)
+            try:
+                return self.drop(*other_dims)
+            except Exception:
+                raise TypeError(type(other))
 
     def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""
         return f"<{self._str}>"
 
     def __str__(self) -> str:
-        """Representation of the Key, e.g. 'name:dim1-dim2-dim3:tag'."""
-        # Use a cache so this value is only generated once; otherwise the stored value
-        # is returned. This requires that the properties of the key be immutable.
-        return self._str
+        """String equivalent of the Key, e.g. 'name:dim1-dim2-dim3:tag'."""
+        return self._str  # Return the pre-computed value
 
     def __hash__(self):
-        """Key hashes the same as str(Key)."""
+        """Key hashes the same as :py:`str(Key)`."""
         return self._hash
 
     def __eq__(self, other) -> bool:
-        """Key is equal to str(Key)."""
+        """Key is equal to :py:`str(Key)`."""
         try:
             other = Key(other)
         except TypeError:
@@ -256,7 +271,7 @@ class Key:
 
     @property
     def sorted(self) -> "Key":
-        """A version of the Key with its :attr:`dims` sorted alphabetically."""
+        """A version of the Key with its :attr:`dims` :func:`sorted`."""
         return Key(self._name, sorted(self._dims), self._tag, _fast=True)
 
     def rename(self, name: str) -> "Key":
@@ -288,14 +303,20 @@ class Key:
 
     def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
-        from genno import computations
+        from genno.operator import sum
 
         for agg_dims, others in combo_partition(self.dims):
             yield (
                 Key(self._name, agg_dims, self.tag, _fast=True),
-                partial(computations.sum, dimensions=others, weights=None),
+                partial(sum, dimensions=others, weights=None),
                 self,
             )
+
+
+@_name_dims_tag.register
+def _(value: Key):
+    """Return the (name, dims, tag) of an existing Key."""
+    return value._name, value._dims, value._tag
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.

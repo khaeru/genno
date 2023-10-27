@@ -20,6 +20,7 @@ classifiers = [
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
   "Topic :: Scientific/Engineering :: Information Analysis",
 ]
@@ -86,9 +87,14 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=genno --cov-report="
+filterwarnings = [
+  "ignore:elementwise comparison failed.*:FutureWarning:genno.operator:211",
+  "ignore:Jupyter is migrating its paths.*:DeprecationWarning:jupyter_client.connect",
+]
 
 [tool.ruff]
 select = ["C9", "E", "F", "I", "W"]
+ignore = ["E501", "W191"]
 
 [tool.ruff.mccabe]
 max-complexity = 14

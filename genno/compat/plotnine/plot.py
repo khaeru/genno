@@ -9,6 +9,7 @@ from genno.core.quantity import Quantity
 
 if TYPE_CHECKING:
     from genno.core.computer import Computer
+    from genno.core.key import KeyLike
 
 log = logging.getLogger(__name__)
 
@@ -83,7 +84,7 @@ class Plot(ABC):
 
         Parameters
         ----------
-        inputs : sequence of :class:`.Key`, :class:`str`, or other hashable, optional
+        inputs : sequence of :class:`.Key`, :class:`str`, or other hashable, *optional*
             If provided, overrides the :attr:`inputs` property of the class.
 
         Returns
@@ -104,7 +105,9 @@ class Plot(ABC):
         return tuple([cls().save, "config"] + (list(inputs) if inputs else cls.inputs))
 
     @classmethod
-    def add_tasks(cls, c: "Computer", key, *inputs, strict: bool = False):
+    def add_tasks(
+        cls, c: "Computer", key: "KeyLike", *inputs, strict: bool = False
+    ) -> "KeyLike":
         """Add a task to `c` to generate and save the Plot.
 
         Analogous to :meth:`.Operator.add_tasks`.
@@ -112,7 +115,7 @@ class Plot(ABC):
         _inputs = list(inputs if inputs else cls.inputs)
         if strict:
             _inputs = c.check_keys(*_inputs)
-        c.add_single(key, cls().save, "config", *_inputs)
+        return c.add_single(key, cls().save, "config", *_inputs)
 
     @abstractmethod
     def generate(self, *args, **kwargs):

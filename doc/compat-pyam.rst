@@ -38,7 +38,7 @@ Pyam (:mod:`.compat.pyam`)
       keys = c.add(ACT, "as_pyam", "ya", collapse=m_t, drop=["t", "m"])
 
 
-.. automodule:: genno.compat.pyam.computations
+.. automodule:: genno.compat.pyam.operator
    :members:
 
    .. autosummary::
@@ -72,7 +72,7 @@ Configuration
    ``base:`` (:class:`str`)
       Key for the quantity to convert.
    ``select:`` (:class:`dict`, optional)
-      Keyword arguments to :func:`.computations.select`.
+      Keyword arguments to :func:`.operator.select`.
       This selection is performed while data is in :class:`.Quantity` format, before it is passed to :func:`.as_pyam`.
    ``rename:`` (:class:`dict`, optional)
       Passed to :func:`.as_pyam`.

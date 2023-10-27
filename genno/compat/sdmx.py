@@ -9,14 +9,14 @@ def codelist_to_groups(
 ) -> Mapping[str, Mapping[str, List[str]]]:
     """Convert `codes` into a mapping from parent items to their children.
 
-    The returned value is suitable for use with :func:`~.computations.aggregate`.
+    The returned value is suitable for use with :func:`~.operator.aggregate`.
 
     Parameters
     ----------
     codes
         Either a :class:`sdmx.Codelist <sdmx.model.common.Codelist>` object or any
         iterable of :class:`sdmx.Code <sdmx.model.common.Code>`.
-    dim : str, optional
+    dim : str, *optional*
         Dimension to aggregate. If `codes` is a code list and `dim` is not given, the
         ID of the code list is used; otherwise `dim` must be supplied.
     """

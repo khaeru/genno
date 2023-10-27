@@ -19,7 +19,7 @@ try:
     ApplicationRegistry: Type = pint.ApplicationRegistry
 except AttributeError:  # pragma: no cover
     # Older versions of pint, e.g. 0.17
-    PintError = (type("PintError", (Exception,), {}),)
+    PintError = (type("PintError", (Exception,), {}), pint.DefinitionSyntaxError)
     ApplicationRegistry = pint.UnitRegistry
 
 if version("Pint") >= "0.22":

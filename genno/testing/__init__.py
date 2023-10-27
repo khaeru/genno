@@ -16,6 +16,7 @@ from pandas.testing import assert_series_equal
 
 import genno.core.quantity
 from genno import ComputationError, Computer, Key, Quantity
+from genno.compat.pint import PintError
 from genno.core.sparsedataarray import HAS_SPARSE
 
 log = logging.getLogger(__name__)
@@ -233,7 +234,7 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
         The pytest caplog fixture.
     message_or_messages : str or list of str
         String(s) that must appear in log messages.
-    at_level : int, optional
+    at_level : int, *optional*
         Messages must appear on 'genno' or a sub-logger with at least this level.
     """
     __tracebackhide__ = True
@@ -288,12 +289,12 @@ def assert_qty_equal(
 
     Parameters
     ----------
-    check_type : bool, optional
+    check_type : bool, *optional*
         Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
-    check_attrs : bool, optional
+    check_attrs : bool, *optional*
         Also assert that check that attributes are identical.
-    ignore_extra_coords : bool, optional
+    ignore_extra_coords : bool, *optional*
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
         :class:`.SparseDataArray`.
     """
@@ -344,12 +345,12 @@ def assert_qty_allclose(
 
     Parameters
     ----------
-    check_type : bool, optional
+    check_type : bool, *optional*
         Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
-    check_attrs : bool, optional
+    check_attrs : bool, *optional*
         Also assert that check that attributes are identical.
-    ignore_extra_coords : bool, optional
+    ignore_extra_coords : bool, *optional*
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
         :class:`.SparseDataArray`.
     """
@@ -438,7 +439,9 @@ def ureg():
     for name in ("USD", "case"):
         try:
             registry.define(f"{name} = [{name}]")
-        except pint.RedefinitionError:  # pragma: no cover
+        except PintError:  # pragma: no cover
+            # pint.RedefinitionError with pint 0.22 on Python ≤ 3.11
+            # pint.DefinitionSyntaxError with pint 0.17 on Python 3.12
             pass
 
     yield registry
@@ -450,7 +453,7 @@ def ureg():
 )
 def parametrize_quantity_class(request):
     """Fixture to run tests twice, for both Quantity implementations."""
-    if not request.param[0]:
+    if not request.param[0]:  # pragma: no cover
         pytest.skip(reason="`sparse` not available → can't test SparseDataArray")
 
     pre = genno.core.quantity.CLASS

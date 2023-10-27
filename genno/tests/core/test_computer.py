@@ -15,7 +15,7 @@ from genno import (
     KeyExistsError,
     MissingKeyError,
     Quantity,
-    computations,
+    operator,
 )
 from genno.compat.pint import ApplicationRegistry
 from genno.testing import (
@@ -43,14 +43,14 @@ class TestComputer:
             c.add("foo")
 
     def test_add_aggregate(self, c):
-        """Using :func:`.computations.aggregate` through :meth:`.add`."""
+        """Using :func:`.operator.aggregate` through :meth:`.add`."""
         t, t_foo, t_bar, qty_x = add_test_data(c)
 
         # Define some groups
         t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
 
         # Use the computation directly
-        agg1 = computations.aggregate(qty_x, {"t": t_groups}, True)
+        agg1 = operator.aggregate(qty_x, {"t": t_groups}, True)
 
         # Use Computer.add(…)
         x = Key("x:t-y")
@@ -99,7 +99,7 @@ class TestComputer:
         t_groups = {"foo": t_foo, "bar": t_bar, "baz": ["foo1", "bar5", "bar6"]}
 
         # Use the computation directly
-        agg1 = computations.aggregate(Quantity(x), {"t": t_groups}, True)
+        agg1 = operator.aggregate(Quantity(x), {"t": t_groups}, True)
 
         # Expected set of keys along the aggregated dimension
         assert set(agg1.coords["t"].values) == set(t) | set(t_groups.keys())
@@ -163,7 +163,7 @@ class TestComputer:
         with pytest.warns(DeprecationWarning):
             k1 = c.disaggregate(Key(x).rename("a"), "z", args=["z_shares"])
 
-        assert (computations.mul, "a:t-y", "z_shares") == c.graph[k1]
+        assert (operator.mul, "a:t-y", "z_shares") == c.graph[k1]
 
         # MissingKeyError is raised
         g = Key("g", "hi")
@@ -193,14 +193,14 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     kwargs = dict(bar="baz")
 
     # Expected value
-    exp = computations.load_file(test_data_path / "input0.csv")
+    exp = operator.load_file(test_data_path / "input0.csv")
     exp.attrs["args"] = repr(args)
     exp.attrs["kwargs"] = repr(kwargs)
 
     def myfunc1(*args, **kwargs):
         # Send something to the log for caplog to pick up when the function runs
         log.info("myfunc executing")
-        result = computations.load_file(args[0])
+        result = operator.load_file(args[0])
         result.attrs["args"] = repr(args)
         result.attrs["kwargs"] = repr(kwargs)
         return result
@@ -374,9 +374,9 @@ def test_order():
     assert np.isclose(3.3, c.get(key))
 
 
-def test_get_comp():
+def test_get_operator():
     # Invalid name for a function returns None
-    assert Computer().get_comp(42) is None
+    assert Computer().get_operator(42) is None
 
 
 def test_infer_keys():
@@ -418,10 +418,10 @@ def test_require_compat():
         c.require_compat("_test")
 
     # Other forms
-    c.require_compat("genno.compat.pyam.computations")
+    c.require_compat("genno.compat.pyam.operator")
     assert 2 == len(c.modules)
 
-    import genno.compat.pyam.computations as mod
+    import genno.compat.pyam.operator as mod
 
     c.require_compat(mod)
     assert 2 == len(c.modules)
@@ -468,16 +468,16 @@ def test_add0():
     # add(..., strict=True) checks str or Key arguments
     g = Key("g", "hi")
     with pytest.raises(MissingKeyError, match=msg("b", g)):
-        c.add("foo", (computations.mul, "a", "b", g), strict=True)
+        c.add("foo", (operator.mul, "a", "b", g), strict=True)
 
     # add(..., sums=True) also adds partial sums
     c.add("foo:a-b-c", [], sums=True)
     assert "foo:b" in c
 
-    # add(name, ...) where name is the name of a computation
+    # add(name, ...) where name is the name of a operator
     c.add("select", "bar", "a", indexers={"dim": ["d0", "d1", "d2"]})
 
-    # add(name, ...) with keyword arguments not recognized by the computation raises an
+    # add(name, ...) with keyword arguments not recognized by the operator raises an
     # exception
     with pytest.raises(TypeError, match="unexpected keyword argument 'bad_kwarg'"):
         c.add("select", "bar", "a", bad_kwarg="foo")
@@ -493,7 +493,7 @@ def test_add_queue(caplog):
     c = Computer()
     c.add("foo-0", (lambda x: x, 42))
 
-    # A computation
+    # An operator
     def _product(a, b):
         return a * b
 
@@ -547,8 +547,11 @@ def test_apply():
         yield key + " qux", (_product, key, 1.1)
 
     # Apply the generator to two targets
-    c.apply(baz_qux, "foo")
-    c.apply(baz_qux, "bar")
+    result0 = c.apply(baz_qux, "foo")
+    result1 = c.apply(baz_qux, "bar")
+
+    assert ("foo baz", "foo qux") == result0
+    assert ("bar baz", "bar qux") == result1
 
     # Four computations were added
     N += 4
@@ -562,7 +565,9 @@ def test_apply():
     def twoarg(key1, key2):
         yield key1 + "__" + key2, (_product, key1, key2)
 
-    c.apply(twoarg, "foo baz", "bar qux")
+    result2 = c.apply(twoarg, "foo baz", "bar qux")
+
+    assert "foo baz__bar qux" == result2
 
     # One computation added
     N += 1
@@ -573,25 +578,35 @@ def test_apply():
     def useless():
         return
 
-    c.apply(useless)
+    result3 = c.apply(useless)
 
     # Also call via add()
-    c.add("apply", useless)
+    result4 = c.add("apply", useless)
 
     # Nothing new added
-    assert len(c.keys()) == N
+    assert () == result3 == result4
+    assert N == len(c.keys())
 
-    # Adding with a generator that takes Computer as the first argument
+    # Adding with a function that takes Computer as the first argument and returns keys
     def add_many(c_: Computer, max=5):
-        [c_.add(f"foo{x}", _product, "foo", x) for x in range(max)]
+        return [c_.add(f"foo{x}", _product, "foo", x) for x in range(max)]
 
-    c.apply(add_many, max=10)
+    result5 = c.apply(add_many, max=10)
 
     # Function was called, adding keys
-    assert len(c.keys()) == N + 10
+    assert 10 == len(result5)
+    assert N + 10 == len(c.keys())
 
     # Keys work
-    assert c.get("foo9") == 42 * 9
+    assert 42 * 9 == c.get("foo9") == c.get(result5[-1])
+
+    # Same, but with a single key returned
+    def add_one(c_: Computer):
+        return c_.add("foo10", _product, "foo", 10.0)
+
+    result6 = c.apply(add_one)
+
+    assert "foo10" == result6
 
 
 def test_add_product(ureg):
@@ -820,7 +835,7 @@ def test_full_key():
 
 
 def test_units(ureg):
-    """Test handling of units within computations."""
+    """Test handling of units within operators."""
     c = Computer()
 
     # One of the two classes may be referenced
@@ -833,15 +848,15 @@ def test_units(ureg):
     c.add("efficiency", Quantity(xr.DataArray([0.9, 0.8, 0.95], **dims)))
 
     # Aggregation preserves units
-    c.add("energy", (computations.sum, "energy:x", None, ["x"]))
+    c.add("energy", (operator.sum, "energy:x", None, ["x"]))
     assert c.get("energy").units == ureg.parse_units("MJ")
 
     # Units are derived for a ratio of two quantities
-    c.add("power", (computations.ratio, "energy:x", "time"))
+    c.add("power", (operator.div, "energy:x", "time"))
     assert c.get("power").units == ureg.parse_units("MJ/hour")
 
     # Product of dimensioned and dimensionless quantities keeps the former
-    c.add("energy2", (computations.mul, "energy:x", "efficiency"))
+    c.add("energy2", (operator.mul, "energy:x", "efficiency"))
     assert c.get("energy2").units == ureg.parse_units("MJ")
 
 

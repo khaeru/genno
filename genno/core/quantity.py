@@ -1,3 +1,4 @@
+import operator
 from functools import update_wrapper
 from numbers import Number
 from typing import Any, Hashable, Optional
@@ -42,6 +43,7 @@ class Quantity(DataArrayLike["Quantity"]):
         self._name = value  # pragma: no cover
 
     @property
+    # def units(self) -> pint.Unit:  # NB can't do this currently; see python/mypy#3004
     def units(self):
         """Retrieve or set the units of the Quantity.
 
@@ -63,7 +65,11 @@ class Quantity(DataArrayLike["Quantity"]):
         )
 
     @units.setter
-    def units(self, value):
+    def units(
+        self,
+        value,
+        # value: Union[pint.Unit, str], # NB ditto re: python/mypy#3004
+    ):
         self.attrs["_unit"] = pint.get_application_registry().Unit(value)
 
     # Internal methods
@@ -111,6 +117,23 @@ class Quantity(DataArrayLike["Quantity"]):
 
         return new_attrs
 
+    def _binop_units(self, name: str, other) -> pint.Unit:
+        """Determine result units for a binary operation between `self` and `other`."""
+        if name == "pow":
+            # Currently handled by operator.pow()
+            return self.units
+
+        # Retrieve units of `other`
+        other_units = other.units
+
+        # Ensure there is not a mix of pint.Unit and pint.registry.Unit; this throws
+        # off pint's internal logic
+        if other_units.__class__ is not self.units.__class__:
+            other_units = self.units.__class__(other_units)
+
+        # Allow pint to determine the output units
+        return getattr(operator, name)(self.units, other_units)
+
 
 def assert_quantity(*args):
     """Assert that each of `args` is a Quantity object.
@@ -128,7 +151,7 @@ def assert_quantity(*args):
 
 
 def maybe_densify(func):
-    """Wrapper for computations that densifies :class:`.SparseDataArray` input."""
+    """Wrapper for operations that densifies :class:`.SparseDataArray` input."""
 
     def wrapped(*args, **kwargs):
         if CLASS == "SparseDataArray":

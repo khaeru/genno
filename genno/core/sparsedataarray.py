@@ -7,13 +7,34 @@ try:
     import sparse
 
     HAS_SPARSE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     HAS_SPARSE = False
 import xarray as xr
 from xarray.core import dtypes
 from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.quantity import Quantity
+from genno.core.quantity import Quantity, possible_scalar
+
+
+def _binop(name: str, swap: bool = False):
+    """Create a method for binary operator `name`."""
+
+    def method(self, other):
+        # Handle the case where `other` is scalar
+        other = possible_scalar(other)
+
+        # For __r*__ methods
+        left, right = (other, self) if swap else (self, other)
+
+        # Invoke an xr.DataArray method like .__mul__()
+        result = getattr(super(xr.DataArray, left), f"__{name}__")(right)
+
+        # Determine resulting units
+        result.units = left._binop_units(name, right)
+
+        return result
+
+    return method
 
 
 @xr.register_dataarray_accessor("_sda")
@@ -62,8 +83,12 @@ class SparseAccessor:
     @property
     def dense(self):
         """Return a copy with dense (:class:`.ndarray`) data."""
-        # Use existing method xr.Variable._to_dense()
-        return self.da._replace(variable=self.da.variable._to_dense())
+        try:
+            # Use existing method xr.Variable._to_dense()
+            return self.da._replace(variable=self.da.variable._to_dense())
+        except TypeError:
+            # da.variable was already dense
+            return self.da
 
     @property
     def dense_super(self):
@@ -163,6 +188,11 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         """Convert a pandas.Series into a SparseDataArray."""
         # Call the parent method always with sparse=True, then re-wrap
         return xr.DataArray.from_series(obj, sparse=True)._sda.convert()
+
+    # Binary operations
+    __mul__ = _binop("mul")
+    __rtruediv__ = _binop("truediv", swap=True)
+    __truediv__ = _binop("truediv")
 
     def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
