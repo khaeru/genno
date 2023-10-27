@@ -235,7 +235,7 @@ Top-level classes and functions
 
    A Key has the same hash, and compares equal to its :class:`str` representation.
    A Key also compares equal to another key or :class:`str` with the same dimensions in any other order.
-   ``repr(key)`` prints the Key in angle brackets ('<>') to signify that it is a Key object.
+   :py:`repr(key)` prints the Key in angle brackets ('<>') to signify that it is a Key object.
 
    >>> str(k1)
    'foo:a-b-c'
@@ -255,6 +255,35 @@ Top-level classes and functions
    >>> foo('a b c')
    <foo:a-b-c>
 
+   .. _key-arithmethic:
+
+   Keys can also be manipulated using some of the Python arithmetic operators:
+
+   - :py:`+`: same as :meth:`.add_tag`:
+
+     >>> k1 = Key("foo", "abc")
+     >>> k1
+     <foo:a-b-c>
+     >>> k1 + "tag"
+     <foo:a-b-c:tag>
+
+   - :py:`*` with a single string, an iterable of strings, or another Key: similar to :meth:`.append` and :meth:`.product`:
+
+     >>> k1 * "d"
+     <foo:a-b-c-d>
+     >>> k1 * ("e", "f")
+     <foo:a-b-c-e-f>
+     >>> k1 * Key("bar", "ghi")
+     <foo:a-b-c-g-h-i>
+
+   - :py:`/` with a single string or iterable of strings: similar to :meth:`drop`:
+
+     >>> k1 / "a"
+     <foo:b-c>
+     >>> k1 / ("a", "c")
+     <foo:b>
+     >>> k1 / Key("baz", "cde")
+     <foo:a-b>
 
 .. autoclass:: genno.Quantity
    :members:
