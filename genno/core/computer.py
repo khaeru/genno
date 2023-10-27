@@ -626,7 +626,6 @@ class Computer:
     ) -> List[KeyLike]:
         """Check that `keys` are in the Computer.
 
-
         Parameters
         ----------
         keys : KeyLike

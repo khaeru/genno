@@ -1,6 +1,6 @@
 import logging
 import re
-from functools import partial, singledispatchmethod
+from functools import partial, singledispatch
 from itertools import chain, compress
 from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, Union
 from warnings import warn
@@ -14,6 +14,35 @@ EXPR = re.compile(r"^(?P<name>[^:]+)(:(?P<dims>([^:-]*-)*[^:-]+)?(:(?P<tag>[^:]*
 
 #: Regular expression for non-keylike strings.
 BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
+
+
+@singledispatch
+def _name_dims_tag(value) -> Tuple[str, Tuple[str, ...], Optional[str]]:
+    """Convert various `value`s into (name, dims, tag) tuples.
+
+    Helper for :meth:`.Key.__init__`.
+    """
+    raise TypeError(type(value))
+
+
+@_name_dims_tag.register
+def _(value: str):
+    """Parse a string that may contain a Key expression."""
+    match = EXPR.match(value)
+    if match is None:
+        raise ValueError(f"Invalid key expression: {repr(value)}")
+    groups = match.groupdict()
+    return (
+        groups["name"],
+        tuple() if not groups["dims"] else tuple(groups["dims"].split("-")),
+        groups["tag"],
+    )
+
+
+@_name_dims_tag.register
+def _(value: Quantity):
+    """Return (name, dims, tag) that describe an existing Quantity."""
+    return str(value.name), tuple(map(str, value.dims)), None
 
 
 class Key:
@@ -37,7 +66,8 @@ class Key:
             self._dims = tuple(dims)
             self._tag = tag or None
         else:
-            self._name, _dims, _tag = self._from(name_or_value)
+            # Convert various values into a (name, dims, tags)
+            self._name, _dims, _tag = _name_dims_tag(name_or_value)
 
             # Check for conflicts between dims inferred from name_or_value and any
             # direct argument
@@ -55,36 +85,13 @@ class Key:
             self._tag = _tag or tag
 
         # Pre-compute string representation and hash
-        self._str = "{}:{}{}".format(
-            self._name, "-".join(self._dims), f":{self._tag}" if self._tag else ""
+        self._str = (
+            self._name
+            + ":"
+            + "-".join(self._dims)
+            + (f":{self._tag}" if self._tag else "")
         )
         self._hash = hash(self._str)
-
-    # _from() methods: convert various arguments into (name, dims, tag) tuples
-    @singledispatchmethod
-    @classmethod
-    def _from(cls, value) -> Tuple[str, Tuple[str, ...], Optional[str]]:
-        if isinstance(value, cls):
-            return value._name, value._dims, value._tag
-        else:
-            raise TypeError(type(value))
-
-    @_from.register
-    def _(cls, value: str):
-        # Parse a string
-        match = EXPR.match(value)
-        if match is None:
-            raise ValueError(f"Invalid key expression: {repr(value)}")
-        groups = match.groupdict()
-        return (
-            groups["name"],
-            tuple() if not groups["dims"] else tuple(groups["dims"].split("-")),
-            groups["tag"],
-        )
-
-    @_from.register
-    def _(cls, value: Quantity):
-        return str(value.name), tuple(map(str, value.dims)), None
 
     # Class methods
 
@@ -296,6 +303,12 @@ class Key:
                 partial(computations.sum, dimensions=others, weights=None),
                 self,
             )
+
+
+@_name_dims_tag.register
+def _(value: Key):
+    """Return the (name, dims, tag) of an existing Key."""
+    return value._name, value._dims, value._tag
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
