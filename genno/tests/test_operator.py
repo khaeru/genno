@@ -195,7 +195,7 @@ def test_apply_units(data, caplog):
     ):
         result = operator.apply_units(x, "tonne")
     assert result.units == registry.Unit("tonne")
-    assert_series_equal(result.to_series(), x.to_series() * 0.001)
+    assert_series_equal(result.to_series(), 0.001 * x.to_series(), check_like=True)
 
     # Remove unit
     x.units = registry.Unit("dimensionless")
