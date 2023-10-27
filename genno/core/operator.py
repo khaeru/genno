@@ -1,6 +1,7 @@
 from functools import update_wrapper
 from inspect import signature
 from typing import TYPE_CHECKING, Any, Callable, ClassVar, Dict, Optional, Tuple, Union
+from warnings import warn
 
 if TYPE_CHECKING:
     from .computer import Computer
@@ -61,7 +62,9 @@ class Operator:
 
     @staticmethod
     def define(
-        *, helper: Optional[Callable] = None
+        deprecated_func_arg: Optional[Callable] = None,
+        *,
+        helper: Optional[Callable] = None,
     ) -> Callable[[Callable], "Operator"]:
         """Return a decorator that wraps `func` in a :class:`.Operator` instance.
 
@@ -96,6 +99,14 @@ class Operator:
                 result.helper(helper)
 
             return result
+
+        if deprecated_func_arg is not None:
+            warn(
+                "@Operator.define must be called: @Operator.define()",
+                DeprecationWarning,
+                2,
+            )
+            return decorator(deprecated_func_arg)
 
         return decorator
 
