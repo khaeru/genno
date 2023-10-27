@@ -438,7 +438,10 @@ def ureg():
     for name in ("USD", "case"):
         try:
             registry.define(f"{name} = [{name}]")
-        except pint.RedefinitionError:  # pragma: no cover
+        except (  # pragma: no cover
+            pint.RedefinitionError,  # pint 0.22 on Python ≤ 3.11
+            pint.DefinitionSyntaxError,  # pint 0.17 on Python 3.12
+        ):
             pass
 
     yield registry
