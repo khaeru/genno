@@ -32,12 +32,7 @@ from .compat.xarray import is_scalar
 from .core.attrseries import AttrSeries
 from .core.key import Key, KeyLike, iter_keys, single_key
 from .core.operator import Operator
-from .core.quantity import (
-    Quantity,
-    assert_quantity,
-    maybe_densify,
-    possible_scalar,
-)
+from .core.quantity import Quantity, assert_quantity, maybe_densify
 from .core.sparsedataarray import SparseDataArray
 from .util import UnitLike, collect_units, filter_concat_args
 
@@ -497,21 +492,7 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     --------
     add_binop
     """
-    numerator = possible_scalar(numerator)
-    denominator = possible_scalar(denominator)
-
-    # Handle units
-    u_num, u_denom = collect_units(numerator, denominator)
-
-    result = numerator / denominator
-
-    # This shouldn't be necessary; would instead prefer:
-    # result.units = u_num / u_denom
-    # … but is necessary to avoid an issue when the operands are different Unit classes
-    ureg = pint.get_application_registry()
-    result.units = ureg.Unit(u_num) / ureg.Unit(u_denom)
-
-    return result
+    return numerator / denominator
 
 
 #: Alias of :func:`div`, for backwards compatibility.
@@ -773,10 +754,7 @@ def mul(*quantities: Quantity) -> Quantity:
     --------
     add_binop
     """
-    result = reduce(operator.mul, quantities)
-    result.units = reduce(operator.mul, collect_units(*quantities))
-
-    return result
+    return reduce(operator.mul, quantities)
 
 
 #: Alias of :func:`mul`, for backwards compatibility.
