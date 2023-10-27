@@ -93,7 +93,7 @@ def as_pyam(
         .reset_index()
         .assign(
             variable=quantity.name,
-            unit=quantity.attrs.get("_unit", ""),
+            unit=quantity.units,
             # TODO accept these from separate strings
             model=scenario.model,
             scenario=scenario.scenario,
