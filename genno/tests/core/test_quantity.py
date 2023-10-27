@@ -291,39 +291,41 @@ class TestQuantity:
         assert (2,) == result.shape
         assert a.dtype == result.dtype
 
-    @pytest.mark.xfail(reason="Not implemented")
-    def test_operation_units(self, a: Quantity) -> None:
+    @pytest.mark.parametrize(
+        "op, left_units, right_units, exp_units",
+        (
+            (operator.add, "", "", ""),  # Both dimensionless
+            (operator.add, "kg", "kg", "kg"),  # Same units
+            (operator.add, "", "kg", ""),  # Different units—discarded
+            (operator.sub, "", "", ""),  # Both dimensionless
+            (operator.sub, "kg", "kg", "kg"),  # Same units
+            (operator.sub, "", "kg", ""),  # Different units—discarded
+            (operator.mul, "", "", ""),  # Both dimensionless
+            (operator.mul, "", "kg", "kg"),  # One dimensionless
+            (operator.mul, "kg", "kg", "kg **2"),  # Same units
+            (operator.mul, "kg", "litre", "kg * litre"),  # Different units
+            (operator.truediv, "", "", ""),  # Both dimensionless
+            (operator.truediv, "kg", "", "kg"),  # Denominator dimensionless
+            (operator.truediv, "", "kg", "1 / kg"),  # Numerator dimensionless
+            (operator.truediv, "kg", "kg", ""),  # Same units
+            (operator.truediv, "kg", "litre", "kg / litre"),  # Different units
+        ),
+    )
+    def test_operation_units(
+        self, a: Quantity, op, left_units, right_units, exp_units
+    ) -> None:
         """Test units pass through the standard binary operations +, -, *, /."""
-        a_kg = Quantity(a, units="kg")
-        a_litre = Quantity(a, units="litre")
-        # print(f"{a = }")
-        # print(f"{a_kg = }")
-        # print(f"{a_litre = }")
+        left = Quantity(a, units=left_units)
+        right = Quantity(a, units=right_units)
 
         # Binary operation succeeds
-        for op, left, right, exp_units in (
-            (operator.add, a, a, ""),  # Both dimensionless
-            (operator.add, a_kg, a_kg, "kg"),  # Same units
-            (operator.sub, a, a, ""),  # Both dimensionless
-            (operator.sub, a_kg, a_kg, "kg"),  # Same units
-            (operator.mul, a, a, ""),  # Both dimensionless
-            (operator.mul, a, a_kg, "kg"),  # One dimensionless
-            (operator.mul, a_kg, a_kg, "kg **2"),  # Same units
-            (operator.mul, a_kg, a_litre, "kg * litre"),  # Different units
-            (operator.truediv, a, a, ""),  # Both dimensionless
-            (operator.truediv, a_kg, a, "kg"),  # Denominator dimensionless
-            (operator.truediv, a, a_kg, "1 / kg"),  # Numerator dimensionless
-            (operator.truediv, a_kg, a_kg, ""),  # Same units
-            (operator.truediv, a_kg, a_litre, "kg / litre"),  # Different units
-        ):
-            result = op(left, right)
-            # print(f"{op = } {result = }")
+        result = op(left, right)
 
-            # Result is of the expected type
-            assert isinstance(result, a.__class__), type(result)
+        # Result is of the expected type
+        assert isinstance(result, a.__class__), type(result)
 
-            # Result has the expected units
-            assert_units(result, exp_units)
+        # Result has the expected units
+        assert_units(result, exp_units)
 
     def test_pipe(self, ureg, tri) -> None:
         result = tri.pipe(genno.operator.assign_units, "km")
