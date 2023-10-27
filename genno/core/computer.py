@@ -54,7 +54,7 @@ class Computer:
     graph: Graph = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
-    default_key = None
+    default_key: Optional[KeyLike] = None
 
     #: List of modules containing operators.
     #:
@@ -476,19 +476,34 @@ class Computer:
             )
         )
 
-    def apply(self, generator, *keys, **kwargs):
+    def apply(
+        self, generator: Callable, *keys, **kwargs
+    ) -> Union[KeyLike, Tuple[KeyLike, ...]]:
         """Add computations by applying `generator` to `keys`.
 
         Parameters
         ----------
         generator : .callable
-            Function to apply to `keys`.
+            Function to apply to `keys`. This function **may** take a first positional
+            argument annotated with :class:`.Computer` or a subtype; if so, then it is
+            provided with a reference to `self`.
+
+            The function **may**:
+
+            - :py:`yield` or return an iterable of (`key`, `computation`). These are
+              used to directly update the :attr:`graph`, and then :meth:`.apply` returns
+              the added keys.
+            - If it is provided with a reference to the Computer, call :meth:`.add` or
+              any other method to update the graph. In this case, it **should**
+              :py:`return` a :class:`.Key` or sequence of keys, indicating what was
+              added; these are in turn returned by :meth:`.apply`.
         keys : Hashable
-            The starting key(s).
+            The starting key(s). These are provided as positional arguments to
+            `generator`.
         kwargs
             Keyword arguments to `generator`.
         """
-        args = self.check_keys(*keys)
+        args: List[Any] = self.check_keys(*keys)
 
         try:
             # Inspect the generator function
@@ -505,12 +520,20 @@ class Computer:
         # Call the generator. Might return None, or yield some computations
         applied = generator(*args, **kwargs)
 
-        if applied:
+        if applied is None:
+            return ()
+        elif isinstance(applied, Key):
+            return applied
+        elif isinstance(applied, (list, tuple)) and isinstance(applied[0], (Key, str)):
+            return tuple(applied)
+        else:
             # Update the graph with the computations
-            self.graph.update(applied)
+            result = []
+            for key, comp in applied:
+                self.graph[key] = comp
+                result.append(key)
 
-        # FIXME capture and return the added keys
-        return ()
+            return tuple(result) if len(result) > 1 else result[0]
 
     def eval(self, expr: str) -> Tuple[Key, ...]:
         r"""Evaluate `expr` to add tasks and keys.

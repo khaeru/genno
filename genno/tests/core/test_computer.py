@@ -547,8 +547,11 @@ def test_apply():
         yield key + " qux", (_product, key, 1.1)
 
     # Apply the generator to two targets
-    c.apply(baz_qux, "foo")
-    c.apply(baz_qux, "bar")
+    result0 = c.apply(baz_qux, "foo")
+    result1 = c.apply(baz_qux, "bar")
+
+    assert ("foo baz", "foo qux") == result0
+    assert ("bar baz", "bar qux") == result1
 
     # Four computations were added
     N += 4
@@ -562,7 +565,9 @@ def test_apply():
     def twoarg(key1, key2):
         yield key1 + "__" + key2, (_product, key1, key2)
 
-    c.apply(twoarg, "foo baz", "bar qux")
+    result2 = c.apply(twoarg, "foo baz", "bar qux")
+
+    assert "foo baz__bar qux" == result2
 
     # One computation added
     N += 1
@@ -573,25 +578,27 @@ def test_apply():
     def useless():
         return
 
-    c.apply(useless)
+    result3 = c.apply(useless)
 
     # Also call via add()
-    c.add("apply", useless)
+    result4 = c.add("apply", useless)
 
     # Nothing new added
-    assert len(c.keys()) == N
+    assert () == result3 == result4
+    assert N == len(c.keys())
 
-    # Adding with a generator that takes Computer as the first argument
+    # Adding with a function that takes Computer as the first argument and returns keys
     def add_many(c_: Computer, max=5):
-        [c_.add(f"foo{x}", _product, "foo", x) for x in range(max)]
+        return [c_.add(f"foo{x}", _product, "foo", x) for x in range(max)]
 
-    c.apply(add_many, max=10)
+    result5 = c.apply(add_many, max=10)
 
     # Function was called, adding keys
-    assert len(c.keys()) == N + 10
+    assert 10 == len(result5)
+    assert N + 10 == len(c.keys())
 
     # Keys work
-    assert c.get("foo9") == 42 * 9
+    assert 42 * 9 == c.get("foo9") == c.get(result5[-1])
 
 
 def test_add_product(ureg):
