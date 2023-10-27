@@ -1,8 +1,26 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+As indicated in the :ref:`v1.18.0` release notes, :py:`genno.computations` is renamed :mod:`genno.operator` (:pull:`105`).
+The former module can still be imported and used to access particular operators, but will trigger a :class:`.FutureWarning`.
+
+Migration notes
+---------------
+
+Adjust imports of/from :py:`genno.computations` to :py:`genno.operator`.
+
+All changes
+-----------
+
+- :func:`.operator.add`, :func:`.div`, and :func:`.sub` gain the same "helper" functionality as :func:`.mul`: when used with :meth:`.Computer.add`, the returned key will automatically include the expected dimensions of the result (:pull:`105`).
+  See the documentation of :func:`.add_binop`.
+- The standard Python operators :py:`+`, :py:`-`, :py:`*`, and :py:`/` can be used with :class:`.Quantity` objects directly; the resulting values, units, and dimensions are the same as using :func:`.add` etc. respectively (:pull:`105`).
+- Improved :class:`.Key` arithmetic (:pull:`105`).
+  See the :ref:`documentation <key-arithmethic>`.
+- :meth:`.Computer.apply` will return any :class:`.Key` or keys that are returned or yielded by the function passed as its first argument (:pull:`105`).
 
 v1.19.0 (2023-09-11)
 ====================
@@ -27,6 +45,8 @@ v1.18.1 (2023-08-31)
   Giving ``_fail: warning`` (or anything less than "error") causes the behaviour to be permissive: missing keys are logged but tolerated.
   This functionality was broken in 1.18.0.
 - Allow for zero positional/only keyword arguments when formatting a :class:`DeprecationWarning` from :meth:`.Computer.convert_pyam` (:pull:`101`).
+
+.. _v1.18.0:
 
 v1.18.0 (2023-08-31)
 ====================
