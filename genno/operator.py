@@ -604,7 +604,7 @@ def load_file(
     units: Optional[UnitLike] = None,
     name: Optional[str] = None,
 ) -> Any:
-    """Read the file at *path* and return its contents as a :class:`.Quantity`.
+    """Read the file at `path` and return its contents as a :class:`.Quantity`.
 
     Some file formats are automatically converted into objects for direct use in genno
     computations:
@@ -613,6 +613,11 @@ def load_file(
        Converted to :class:`.Quantity`. CSV files must have a 'value' column; all others
        are treated as indices, except as given by `dims`. Lines beginning with '#' are
        ignored.
+
+    User code **may** define an operator with the same name ("load_file") in order to
+    override this behaviour and/or add tailored support for others data file formats,
+    for instance specific kinds of :file:`.json`, :file:`.xml`, :file:`.yaml`,
+    :file:`.ods`, :file:`.xlsx`, or other file types.
 
     Parameters
     ----------
@@ -633,15 +638,10 @@ def load_file(
     """
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
-    # TODO strip leading/trailing whitespace from column names
     if path.suffix == ".csv":
         return _load_file_csv(path, dims, units, name)
-    elif path.suffix in (".xls", ".xlsx"):
-        # TODO define expected Excel data input format
-        raise NotImplementedError  # pragma: no cover
-    elif path.suffix == ".yaml":
-        # TODO define expected YAML data input format
-        raise NotImplementedError  # pragma: no cover
+    elif path.suffix in (".xls", ".xlsx", ".yaml"):  # pragma: no cover
+        raise NotImplementedError  # To be handled by downstream code
     else:
         # Default
         return open(path).read()
