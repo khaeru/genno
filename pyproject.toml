@@ -88,6 +88,7 @@ ignore_missing_imports = true
 addopts = "--cov=genno --cov-report="
 filterwarnings = [
   "ignore:elementwise comparison failed.*:FutureWarning:genno.operator:211",
+  "ignore:Jupyter is migrating its paths.*:DeprecationWarning:jupyter_client.connect",
 ]
 
 [tool.ruff]
