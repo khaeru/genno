@@ -35,6 +35,11 @@ def data():
     yield [c] + list(add_test_data(c))
 
 
+def test_deprecated_import():
+    with pytest.warns(FutureWarning, match="use genno.operator instead"):
+        from genno.computations import add  # noqa: F401
+
+
 @pytest.mark.parametrize(
     "op, expected_dims",
     (

@@ -600,6 +600,14 @@ def test_apply():
     # Keys work
     assert 42 * 9 == c.get("foo9") == c.get(result5[-1])
 
+    # Same, but with a single key returned
+    def add_one(c_: Computer):
+        return c_.add("foo10", _product, "foo", 10.0)
+
+    result6 = c.apply(add_one)
+
+    assert "foo10" == result6
+
 
 def test_add_product(ureg):
     c = Computer()

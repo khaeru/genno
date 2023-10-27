@@ -7,7 +7,7 @@ try:
     import sparse
 
     HAS_SPARSE = True
-except ImportError:
+except ImportError:  # pragma: no cover
     HAS_SPARSE = False
 import xarray as xr
 from xarray.core import dtypes

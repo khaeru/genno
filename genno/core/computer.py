@@ -522,7 +522,7 @@ class Computer:
 
         if applied is None:
             return ()
-        elif isinstance(applied, Key):
+        elif isinstance(applied, (Key, str)):
             return applied
         elif isinstance(applied, (list, tuple)) and isinstance(applied[0], (Key, str)):
             return tuple(applied)

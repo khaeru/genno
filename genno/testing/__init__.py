@@ -450,7 +450,7 @@ def ureg():
 )
 def parametrize_quantity_class(request):
     """Fixture to run tests twice, for both Quantity implementations."""
-    if not request.param[0]:
+    if not request.param[0]:  # pragma: no cover
         pytest.skip(reason="`sparse` not available → can't test SparseDataArray")
 
     pre = genno.core.quantity.CLASS
