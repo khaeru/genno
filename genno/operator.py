@@ -102,14 +102,14 @@ def add_binop(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     Parameters
     ----------
     key : str or Key
-        Key of the new quantity. If a Key, any dimensions are ignored; the dimensions of
-        the result are the union of the dimensions of `quantities`.
-    sums : bool, optional
+        Key or name of the new quantity. If a Key, any dimensions are ignored; the
+        dimensions of the result are the union of the dimensions of `quantities`.
+    sums : bool, *optional*
         If :obj:`True`, all partial sums of the new quantity are also added.
 
     Returns
     -------
-    :class:`Key`
+    Key
         The full key of the new quantity.
     """
     # Fetch the full key for each quantity
@@ -145,6 +145,10 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
     -------
     .Quantity
         Units are the same as the first of `quantities`.
+
+    See also
+    --------
+    add_binop
     """
     # Ensure arguments are all quantities
     assert_quantity(*quantities)
@@ -488,6 +492,10 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     ----------
     numerator : .Quantity
     denominator : .Quantity
+
+    See also
+    --------
+    add_binop
     """
     numerator = possible_scalar(numerator)
     denominator = possible_scalar(denominator)
@@ -763,7 +771,7 @@ def mul(*quantities: Quantity) -> Quantity:
 
     See also
     --------
-    add_mul
+    add_binop
     """
     result = reduce(operator.mul, quantities)
     result.units = reduce(operator.mul, collect_units(*quantities))
@@ -942,7 +950,12 @@ def select(
 
 @Operator.define(helper=add_binop)
 def sub(a: Quantity, b: Quantity) -> Quantity:
-    """Subtract `b` from `a`."""
+    """Subtract `b` from `a`.
+
+    See also
+    --------
+    add_binop
+    """
     return add(a, -b)
 
 

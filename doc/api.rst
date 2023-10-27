@@ -303,7 +303,6 @@ Operators
       index_to
       interpolate
       mul
-      add_mul
       pow
       product
       ratio
@@ -332,9 +331,9 @@ Operators
 Helper functions for adding tasks to Computers
 ----------------------------------------------
 
+.. autofunction:: add_binop
 .. autofunction:: add_load_file
-.. autofunction:: add_mul
-
+.. autofunction:: add_sum
 
 Internal format for quantities
 ==============================
