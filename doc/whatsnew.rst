@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.20.0 (2023-10-28)
+====================
 
 As indicated in the :ref:`v1.18.0` release notes, :py:`genno.computations` is renamed :mod:`genno.operator` (:pull:`105`).
 The former module can still be imported and used to access particular operators, but will trigger a :class:`.FutureWarning`.
