@@ -111,11 +111,19 @@ class TestKey:
         # __mul__: add a dimension
         assert "x:a-b-c-d" == key * "d"
 
+        # Add multiple dimensions
+        assert "x:a-b-c-d-e" == key * ("d", "e")
+        assert "x:a-b-c-d-e" == key * Key("foo", "de")
+
         # Existing dimension → no change
         assert key == key * "c"
 
         # __truediv__: drop a dimension
         assert "x:a-c" == key / "b"
+
+        # Drop multiple dimensions
+        assert "x:b" == key / ("a", "c")
+        assert "x:b" == key / Key("foo", "ac")
 
         # Invalid
         with pytest.raises(TypeError):

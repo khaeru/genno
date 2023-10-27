@@ -194,30 +194,38 @@ class Key:
         if isinstance(other, str):
             return self.append(other)
         else:
-            raise TypeError(type(other))
+            # Key or iterable of dims
+            other_dims = getattr(other, "dims", other)
+            try:
+                return self.append(*other_dims)
+            except Exception:
+                raise TypeError(type(other))
 
     def __truediv__(self, other) -> "Key":
         if isinstance(other, str):
             return self.drop(other)
         else:
-            raise TypeError(type(other))
+            # Key or iterable of dims
+            other_dims = getattr(other, "dims", other)
+            try:
+                return self.drop(*other_dims)
+            except Exception:
+                raise TypeError(type(other))
 
     def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""
         return f"<{self._str}>"
 
     def __str__(self) -> str:
-        """Representation of the Key, e.g. 'name:dim1-dim2-dim3:tag'."""
-        # Use a cache so this value is only generated once; otherwise the stored value
-        # is returned. This requires that the properties of the key be immutable.
-        return self._str
+        """String equivalent of the Key, e.g. 'name:dim1-dim2-dim3:tag'."""
+        return self._str  # Return the pre-computed value
 
     def __hash__(self):
-        """Key hashes the same as str(Key)."""
+        """Key hashes the same as :py:`str(Key)`."""
         return self._hash
 
     def __eq__(self, other) -> bool:
-        """Key is equal to str(Key)."""
+        """Key is equal to :py:`str(Key)`."""
         try:
             other = Key(other)
         except TypeError:
@@ -263,7 +271,7 @@ class Key:
 
     @property
     def sorted(self) -> "Key":
-        """A version of the Key with its :attr:`dims` sorted alphabetically."""
+        """A version of the Key with its :attr:`dims` :func:`sorted`."""
         return Key(self._name, sorted(self._dims), self._tag, _fast=True)
 
     def rename(self, name: str) -> "Key":
