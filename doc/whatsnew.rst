@@ -25,7 +25,7 @@ All changes
 v1.19.0 (2023-09-11)
 ====================
 
-- Allow use of regular expressions in :func:`~.computations.aggregate` (:issue:`35`, :pull:`103`).
+- Allow use of regular expressions in :func:`~.operator.aggregate` (:issue:`35`, :pull:`103`).
 - Improve documentation of :meth:`.add_queue` (:issue:`18`, :pull:`103`).
 - New compatibility module for :doc:`compat-sdmx` (:pull:`103`).
 - Ensure consistent :py:`drop=True` behaviour of :func:`.select` and :meth:`.AttrSeries.sel` with :meth:`.SparseDataArray.sel` (:pull:`103`).
@@ -60,9 +60,9 @@ This release adjusts the documentation by using language more carefully and prec
 
 To complete this shift, in future releases of :mod:`.genno`:
 
-1. The module :mod:`.genno.computations` will be renamed to :mod:`.genno.operators`.
-   At this point, imports from :mod:`.genno.computations` will continue to function, but will trigger a :class:`.DeprecationWarning`.
-2. :mod:`.genno.computations` will be removed entirely.
+1. The module :py:`genno.computations` will be renamed to :mod:`.genno.operator`.
+   At this point, imports from :py:`genno.computations` will continue to function, but will trigger a :class:`.FutureWarning`.
+2. :py:`genno.computations` will be removed entirely.
    This will happen no sooner than 6 months after (1), and with at least 1 minor version in between.
 
 Migration notes
@@ -71,11 +71,11 @@ Migration notes
 Code that uses the deprecated :class:`.Computer` convenience methods can be adjusted to use the corresponding :meth:`~.Operator.add_tasks` helpers—which give equivalent behaviour—via :meth:`.Computer.add`.
 See the documentation of the deprecated methods and/or warnings at runtime for examples and hints.
 
-- :meth:`.Computer.add_file` → use :func:`~.computations.load_file` and its helper.
-- :meth:`.Computer.add_product` → use :func:`~.computations.mul` and its helper.
-- :meth:`.Computer.aggregate` → use :func:`~.computations.aggregate` or :func:`~.computations.sum` and its helper.
-- :meth:`.Computer.convert_pyam` → use :func:`~.computations.as_pyam` and its helper.
-- :meth:`.Computer.disaggregate` and :func:`~.computations.disaggregate_shares`: use :func:`~.computations.mul` and its helper.
+- :meth:`.Computer.add_file` → use :func:`~.operator.load_file` and its helper.
+- :meth:`.Computer.add_product` → use :func:`~.operator.mul` and its helper.
+- :meth:`.Computer.aggregate` → use :func:`~.operator.aggregate` or :func:`~.operator.sum` and its helper.
+- :meth:`.Computer.convert_pyam` → use :func:`~.operator.as_pyam` and its helper.
+- :meth:`.Computer.disaggregate` and :func:`~.operator.disaggregate_shares`: use :func:`~.operator.mul` and its helper.
 
 For :meth:`.Plot.make_task` similarly change, for instance, :py:`c.add("plot", DemoPlot.make_task("x:t", "y:t"))` to :py:`c.add("plot", DemoPlot, "x:t", "y:t")`.
 
@@ -91,10 +91,10 @@ All changes
   - New method :meth:`.Key.rename`.
   - Key supports the Python operations :py:`+` (= :meth:`.add_tag`), :py:`*` (= :meth:`.append` a dimension), :py:`/` (= :meth:`~.Key.drop` a dimension).
 
-- Add :func:`.computations.sub` (:pull:`97``).
+- Add :func:`.computations.sub <.operator.sub>` (:pull:`97``).
 - Provide typed signatures for :meth:`.Quantity.astype`, :attr:`~.Quantity.data`, and :meth:`~.Quantity.pipe`, and :meth:`~.Quantity.__neg__` for the benefit of downstream applications (:pull:`97`).
-- :func:`~.genno.computations.concat` handles N-dimensional quantities with dimensions in any order (:issue:`38`, :pull:`97`).
-- :func:`~.computations.pow` will derive units if the exponent is a Quantity with all identical integer values (:pull:`97`).
+- :func:`~.genno.computations.concat <genno.operator.concat>` handles N-dimensional quantities with dimensions in any order (:issue:`38`, :pull:`97`).
+- :func:`~.computations.pow <.pow>` will derive units if the exponent is a Quantity with all identical integer values (:pull:`97`).
 - Adjust for pandas 2.1.0 to prevent :class:`RecursionError` that could occur using :meth:`.AttrSeries.sel` (:pull:`99`).
 - Deprecations:
 
@@ -105,7 +105,7 @@ v1.17.2 (2023-07-11)
 ====================
 
 - Improve :meth:`.Computer.visualize`; see the :ref:`example usage and output <visualize-example>` (:pull:`92`, :pull:`95`).
-- :func:`~.computations.aggregate` tolerates missing labels along any of the dimensions to be aggregated (:pull:`95`).
+- :func:`~.operator.aggregate` tolerates missing labels along any of the dimensions to be aggregated (:pull:`95`).
   Previously, this would raise :class:`KeyError`.
 - Performance improvement: avoid creating a large, empty :class:`~xarray.DataArray` in order to provide :attr:`.AttrSeries.coords` (:pull:`95`).
   In some cases this would trigger :class:`MemoryError`, a segmentation fault, or similar, even though the actual data was smaller than available memory.
@@ -118,10 +118,10 @@ v1.17.1 (2023-05-30)
 v1.17.0 (2023-05-15)
 ====================
 
-- Bug fix: genno v1.16.1 (:pull:`85`) introduced :class:`ValueError` for some usages of :func:`.computations.sum` (:pull:`88`).
+- Bug fix: genno v1.16.1 (:pull:`85`) introduced :class:`ValueError` for some usages of :func:`.computations.sum <.operator.sum>` (:pull:`88`).
 - Provide typed signatures for :meth:`Quantity.bfill`, :meth:`~Quantity.cumprod`, :meth:`~Quantity.ffill` for the benefit of downstream applications (:pull:`88`).
-- Ensure and test that :attr:`.Quantity.name` and :attr:`~.Quantity.units` pass through all :mod:`~genno.computations`, in particular :func:`~.computations.aggregate`, :func:`~.computations.convert_units`, and :func:`~.computations.sum` (:pull:`88`).
-- Simplify arithmetic operations (:func:`~.computations.div`, :func:`~.computations.mul`, :func:`~.computations.pow`) so they are agnostic as to the :class:`.Quantity` class in use (:pull:`88`).
+- Ensure and test that :attr:`.Quantity.name` and :attr:`~.Quantity.units` pass through all :mod:`~genno.computations <genno.operator>`, in particular :func:`~.operator.aggregate`, :func:`~.operator.convert_units`, and :func:`~.operator.sum` (:pull:`88`).
+- Simplify arithmetic operations (:func:`~.operator.div`, :func:`~.operator.mul`, :func:`~.operator.pow`) so they are agnostic as to the :class:`.Quantity` class in use (:pull:`88`).
 - Ensure :attr:`.AttrSeries.index` is always :class:`pandas.MultiIndex` (:pull:`88`).
 
 v1.16.1 (2023-05-13)
@@ -130,7 +130,7 @@ v1.16.1 (2023-05-13)
 - Bug fix: :func:`.select` raised :class:`.KeyError` if the indexers contained values not appearing in the coords of the :class:`.Quantity` (:pull:`85`).
   This occurred with pandas 2.x, but not with earlier versions.
   The documentation now states explicitly that extraneous values are silently ignored.
-- All :mod:`~genno.computations` are type hinted for the benefit of downstream code (:pull:`85`).
+- All :mod:`~genno.computations <genno.operator>` are type hinted for the benefit of downstream code (:pull:`85`).
 - Implement :attr:`.AttrSeries.shape` (:pull:`85`).
 - Bug fix: :meth:`.Computer.add` now correctly handles positional-only keyword arguments to computations that specify these (:pull:`85`).
 
@@ -145,7 +145,7 @@ v1.16.0 (2023-04-29)
     Install this set in order to use :class:`.SparseDataArray` for :class:`.Quantity`.
 
     Note that sparse depends on :mod:`numba`, and thus :mod:`llvmlite`, and both of these package can lag new Python versions by several months.
-    For example, as of this release, they do not yet support Python 3.11, and thus :mod:`sparse` and :class:`genno.SparseDataArray` can only be used with Python 3.10 and earlier.
+    For example, as of this release, they do not yet support Python 3.11, and thus :mod:`sparse` and :class:`.SparseDataArray` can only be used with Python 3.10 and earlier.
   - ``genno[tests]``: :mod:`ixmp` is removed; :mod:`jupyter` and :mod:`nbclient` are added.
     Testing utilities in :mod:`genno.testing.jupyter` are duplicated from :mod:`ixmp.testing.jupyter`.
 
@@ -191,7 +191,7 @@ v1.13.0 (2022-08-17)
 
 - 1-dimensional quantities are handled in :func:`.relabel` and as weights in :func:`.sum` (:pull:`68`).
 - :func:`.load_file` will read a header comment like ``# Units: kg / s`` and apply the indicated units to the resulting quantity (:pull:`68`).
-- :func:`.div` and :func:`.mul` become the canonical names, matching :mod:`.operator` and other parts of the Python standard library (:pull:`68`).
+- :func:`.div` and :func:`.mul` become the canonical names, matching :mod:`python:operator` and other parts of the Python standard library (:pull:`68`).
   :func:`.ratio` and :func:`.product` are retained as aliases, for compatibility.
 - Ensure data passed to :meth:`.Plot.generate` has a "value" column; use short units format by default (:pull:`68`).
 
@@ -233,7 +233,7 @@ Care should be taken to avoid adding 2+ keys with the same name, tag, **and** nu
    c.add("foo:l-m-n", ...)
    c.add("foo:x-y-z", ...)
 
-This situation is ambiguous and the behaviour of :meth:`Computer.full_key` is undefined.
+This situation is ambiguous and the behaviour of :meth:`.Computer.full_key` is undefined.
 Instead, add a :attr:`~.Key.tag` to disambiguate.
 
 All changes
@@ -254,7 +254,7 @@ v1.10.0 (2022-03-31)
 v1.9.2 (2022-03-03)
 ===================
 
-- Silence :func:`collect_units` when units are explicitly `""`, rather than :obj:`None` (:pull:`56`).
+- Silence :func:`.collect_units` when units are explicitly `""`, rather than :obj:`None` (:pull:`56`).
 - Add explicit implementations of :meth:`~.object.__radd__`, :meth:`~.object.__rmul__`, :meth:`~.object.__rsub__` and :meth:`~.object.__rtruediv__` for e.g. ``4.2 * Quantity(...)`` (:pull:`55`)
 - Improve typing of :meth:`.Quantity.shift` (:pull:`55`)
 
@@ -279,7 +279,7 @@ v1.8.1 (2021-07-27)
 Bug fixes
 ---------
 
-- :class:`.Path` not serialized correctly in :mod:`.caching` (:pull:`51`).
+- :class:`pathlib.Path` not serialized correctly in :mod:`.caching` (:pull:`51`).
 
 v1.8.0 (2021-07-27)
 ===================
@@ -293,7 +293,7 @@ v1.8.0 (2021-07-27)
 v1.7.0 (2021-07-22)
 ===================
 
-- Add :func:`.computations.interpolate` and supporting :meth:`.AttrSeries.interp` (:pull:`48`).
+- Add :func:`.computations.interpolate <.operator.interpolate>` and supporting :meth:`.AttrSeries.interp` (:pull:`48`).
   This code works around issues `pandas#25460 <https://github.com/pandas-dev/pandas/issues/25460>`_ and `pandas#31949 <https://github.com/pandas-dev/pandas/issues/31949>`_.
 - :meth:`.Computer.cache` now also invalidates cache if the compiled bytecode of the decorated function changes (:pull:`48`).
 - Separate and expand docs of :doc:`cache` to show how to check modification time and/or contents of files (:issue:`49`, :pull:`48`).
@@ -304,12 +304,12 @@ v1.6.0 (2021-07-07)
 ===================
 
 - Add :meth:`Key.permute_dims` (:pull:`47`).
-- Improve performance of :meth:`Computer.check_keys` (:pull:`47`).
+- Improve performance of :meth:`.Computer.check_keys` (:pull:`47`).
 
 v1.5.2 (2021-07-06)
 ===================
 
-- Bug fix: order-insensitive :attr:`Key.dims` broke :meth:`~.Computer.get` in some circumstances (:pull:`46`).
+- Bug fix: order-insensitive :attr:`.Key.dims` broke :meth:`~.Computer.get` in some circumstances (:pull:`46`).
 
 v1.5.1 (2021-07-01)
 ===================
@@ -320,7 +320,7 @@ v1.5.0 (2021-06-27)
 ===================
 
 - Adjust :meth:`.test_assign_coords` for xarray 0.18.2 (:pull:`43`).
-- Make :attr:`Key.dims` order-insensitive so that ``Key("foo", "ab") == Key("foo", "ba")`` (:pull:`42`); make corresponding changes to :class:`Computer` (:pull:`44`).
+- Make :attr:`.Key.dims` order-insensitive so that ``Key("foo", "ab") == Key("foo", "ba")`` (:pull:`42`); make corresponding changes to :class:`.Computer` (:pull:`44`).
 - Fix “:class:`AttributeError`: 'COO' object has no attribute 'item'” on :meth:`SparseDataArray.item` (:pull:`41`).
 
 v1.4.0 (2021-04-26)
@@ -328,7 +328,7 @@ v1.4.0 (2021-04-26)
 
 - :meth:`.plotnine.Plot.save` automatically converts inputs (specified with :attr:`.Plot.inputs`) from :class:`.Quantity` to :class:`~pandas.DataFrame`, but others (e.g. basic Python types) are passed through unchanged (:pull:`40`).
 - :meth:`.plotnine.Plot.save` generates no output file if :meth:`~.plotnine.Plot.generate` returns :obj:`None`/empty :class:`list`.
-- Quote :class:`dict` argument to :meth:`.Computer.aggregrate` (for grouped aggregation) to avoid collisions between its contents and other graph keys.
+- Quote :class:`dict` argument to :meth:`.Computer.aggregate` (for grouped aggregation) to avoid collisions between its contents and other graph keys.
 
 v1.3.0 (2021-03-22)
 ===================
@@ -353,7 +353,7 @@ v1.2.0 (2021-03-08)
 
 - :class:`.Quantity` becomes an actual class, rather than a factory function; :class:`.AttrSeries` and :class:`.SparseDataArray` are subclasses (:pull:`37`).
 - :class:`.AttrSeries` gains methods :meth:`~.AttrSeries.bfill`, :meth:`~.AttrSeries.cumprod`, :meth:`~.AttrSeries.ffill`, and :meth:`~.AttrSeries.shift` (:pull:`37`)
-- :func:`.computations.load_file` uses the `skipinitialspace` parameter to :func:`pandas.read_csv`; extra dimensions not mentioned in the `dims` parameter are preserved (:pull:`37`).
+- :func:`.computations.load_file <.operator.load_file>` uses the `skipinitialspace` parameter to :func:`pandas.read_csv`; extra dimensions not mentioned in the `dims` parameter are preserved (:pull:`37`).
 - :meth:`.AttrSeries.sel` accepts :class:`xarray.DataArray` for xarray-style indexing (:pull:`37`).
 
 v1.1.1 (2021-02-22)
@@ -364,11 +364,11 @@ v1.1.1 (2021-02-22)
 v1.1.0 (2021-02-16)
 ===================
 
-- :func:`.computations.add` transforms compatible units, and raises an exception for incompatible units (:pull:`31`).
+- :func:`.computations.add <.operator.add>` transforms compatible units, and raises an exception for incompatible units (:pull:`31`).
 - Improve handling of scalar quantities (:pull:`31`).
 - :class:`~.plotnine.Plot` is fault-tolerant: if any of the input quantities are missing, it becomes a no-op (:pull:`31`).
 - :meth:`.Computer.configure` accepts a `fail` argument, allowing partial handling of configuration data/files, with errors logged but not raised (:pull:`31`).
-- New :func:`.computations.pow` (:pull:`31`).
+- New :func:`.computations.pow <.operator.pow>` (:pull:`31`).
 
 v1.0.0 (2021-02-13)
 ===================
@@ -382,12 +382,12 @@ v1.0.0 (2021-02-13)
   - Simplify the form & parsing of ``iamc:`` section entries in configuration files:
 
     - Remove unused feature to add :func:`group_sum` to the chain of tasks.
-    - Keys now conform more closely to the arguments of :meth:`Computer.convert_pyam`.
+    - Keys now conform more closely to the arguments of :meth:`.Computer.convert_pyam`.
 
   - Move argument-checking from :func:`.as_pyam` to :meth:`.convert_pyam()`.
   - Simplify semantics of :func:`genno.config.handles` decorator.
      Remove ``CALLBACKS`` feature, for now.
-  - :meth:`Computer.get_comp` and :meth:`.require_compat` are now public methods.
+  - :meth:`.Computer.get_comp` and :meth:`.require_compat` are now public methods.
   - Expand tests.
 
 - Protect :class:`.Computer` configuration from :func:`dask.optimization.cull`; this prevents infinite recursion if the configuration contains strings matching keys in the graph. Add :func:`.unquote` (:issue:`25`, :pull:`26`).
