@@ -214,7 +214,7 @@ class Computer:
                 raise ModuleNotFoundError(
                     f"No module named '{pkg}', required by genno.compat.{pkg}"
                 )
-            mod = import_module(f"{name}.computations")
+            mod = import_module(f"{name}.operator")
 
         # Don't duplicate
         if mod not in self.modules:
