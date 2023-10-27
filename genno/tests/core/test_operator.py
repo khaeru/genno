@@ -9,7 +9,7 @@ def null():
 
 class TestOperator:
     def test_add_tasks(self):
-        op = Operator.define(null)
+        op = Operator.define()(null)
 
         c = Computer()
         with pytest.raises(NotImplementedError):

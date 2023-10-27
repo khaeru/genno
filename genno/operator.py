@@ -93,10 +93,8 @@ def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
     return target
 
 
-def _binop_helper(func, c: "Computer", key, *quantities, **kwargs) -> Key:
+def add_binop(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     """:meth:`.Computer.add` helper for binary operations.
-
-    :meth:`.Computer.add` helper for .
 
     Add a computation that applies :func:`.add`, :func:`.div`, :func:`.mul`, or
     :func:`.sub` to `quantities`.
@@ -134,7 +132,7 @@ def _binop_helper(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     return next(keys) if kwargs["sums"] else single_key(keys)
 
 
-@Operator.define
+@Operator.define(helper=add_binop)
 def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
     """Sum across multiple `quantities`.
 
@@ -178,9 +176,6 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
             result = result + factor * q
 
     return result
-
-
-add.helper(_binop_helper)
 
 
 def aggregate(
@@ -485,7 +480,7 @@ def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
     return mul(quantity, shares)
 
 
-@Operator.define
+@Operator.define(helper=add_binop)
 def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     """Compute the ratio `numerator` / `denominator`.
 
@@ -510,8 +505,6 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
 
     return result
 
-
-div.helper(_binop_helper)
 
 #: Alias of :func:`div`, for backwards compatibility.
 #:
@@ -606,7 +599,7 @@ def interpolate(
     return qty.interp(coords, method, assume_sorted, kwargs, **coords_kwargs)
 
 
-@Operator.define
+@Operator.define()
 def load_file(
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
@@ -764,7 +757,7 @@ def _load_file_csv(
     )
 
 
-@Operator.define
+@Operator.define(helper=add_binop)
 def mul(*quantities: Quantity) -> Quantity:
     """Compute the product of any number of `quantities`.
 
@@ -776,9 +769,6 @@ def mul(*quantities: Quantity) -> Quantity:
     result.units = reduce(operator.mul, collect_units(*quantities))
 
     return result
-
-
-mul.helper(_binop_helper)
 
 
 #: Alias of :func:`mul`, for backwards compatibility.
@@ -950,16 +940,13 @@ def select(
     return qty.sel(idx, drop=drop)
 
 
-@Operator.define
+@Operator.define(helper=add_binop)
 def sub(a: Quantity, b: Quantity) -> Quantity:
     """Subtract `b` from `a`."""
     return add(a, -b)
 
 
-sub.helper(_binop_helper)
-
-
-@Operator.define
+@Operator.define()
 def sum(
     quantity: Quantity,
     weights: Optional[Quantity] = None,

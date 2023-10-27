@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 __all__ = ["as_pyam", "concat", "write_report"]
 
 
-@Operator.define
+@Operator.define()
 def as_pyam(
     scenario,
     quantity: "Quantity",

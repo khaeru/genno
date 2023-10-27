@@ -14,7 +14,7 @@ class Operator:
     -------
     >>> from genno import Operator
     >>>
-    >>> @Operator.define
+    >>> @Operator.define()
     ... def myfunc(q1: Quantity, q2: Quantity) -> Quantity:
     ...     # Operator code
     >>>
@@ -22,6 +22,17 @@ class Operator:
     ... def add_myfunc(f, computer, *args, **kwargs):
     ...     # Custom code to add tasks to `computer`
     ...     # Perform checks or handle `args` and `kwargs`.
+
+    Or:
+
+    >>> from genno import Operator
+    >>>
+    >>> def add_myfunc(f, computer, *args, **kwargs):
+    ...     # ... as above
+    >>>
+    >>> @Operator.define(helper=add_myfunc)
+    ... def myfunc(q1: Quantity, q2: Quantity) -> Quantity:
+    ...     # ... as above
     """
 
     # Use these specific attribute names to be intelligible to functools.partial()
@@ -49,25 +60,44 @@ class Operator:
         return f"<operator {self.__class__.__name__}>"
 
     @staticmethod
-    def define(func: Callable) -> "Operator":
-        """Create an Operator object that wraps `func`."""
-        # This follows the pattern of using a metaclass, except compressed
+    def define(
+        *, helper: Optional[Callable] = None
+    ) -> Callable[[Callable], "Operator"]:
+        """Return a decorator that wraps `func` in a :class:`.Operator` instance.
 
-        # - Create the class
-        #   - Same name as func, subclass of Operator
-        #   - Subclass of Operator
-        #   - func is a static method
-        #   - Signature of klass.__call__ is the signature of func.
-        klass = type(
-            func.__name__,
-            (Operator,),
-            {"func": staticmethod(func), "__signature__": signature(func)},
-        )
+        Parameters
+        ----------
+        helper : Callable, *optional*
+            Equivalent to calling :meth:`helper` on the Operator instance.
+        """
 
-        # Create an instance of the class, update __doc__ and other attributes, return
-        # NB these are updated on the instance, not on `klass`, to satisfy Sphinx, which
-        #    will skip documenting items that have the same __doc__ as their class
-        return update_wrapper(klass(), func, updated=())
+        def decorator(func: Callable) -> "Operator":
+            # This follows the pattern of using a metaclass, except compressed
+
+            # - Create the class
+            #   - Same name as func.
+            #   - Subclass of Operator.
+            #   - func is a static method.
+            #   - Signature of klass.__call__ is the signature of func.
+            klass = type(
+                func.__name__,
+                (Operator,),
+                {"func": staticmethod(func), "__signature__": signature(func)},
+            )
+
+            # Create an instance of the class, update __doc__ and other attributes,
+            # return
+            # NB these are updated on the instance, not on `klass`, to satisfy Sphinx,
+            #    which will skip documenting items that have the same __doc__ as their
+            #    class
+            result = update_wrapper(klass(), func, updated=())
+
+            if helper:
+                result.helper(helper)
+
+            return result
+
+        return decorator
 
     def helper(
         self, func: Callable[..., Union["KeyLike", Tuple["KeyLike", ...]]]
