@@ -286,7 +286,7 @@ def general(c: Computer, info):
         if info["comp"] is not None:
             _seq = tuple  # Task is a computation
             # Retrieve the function for the computation
-            f = c.get_comp(info["comp"])
+            f = c.get_operator(info["comp"])
             if f is None:
                 raise ValueError(info["comp"])
             task = [partial(f, **info.get("args", {}))]
@@ -307,7 +307,7 @@ def report(c: Computer, info):
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
     # Concatenate pyam data structures
-    c.add(info["key"], tuple([c.get_comp("concat")] + info["members"]), strict=True)
+    c.add(info["key"], tuple([c.get_operator("concat")] + info["members"]), strict=True)
 
 
 @handles("units", iterate=False)

@@ -55,11 +55,11 @@ def dantzig_computer(test_data_path, scenario, ureg):
 def test_require_compat():
     # New object does not understand "as_pyam" as the name of a computation
     c = Computer()
-    assert c.get_comp("as_pyam") is None
+    assert c.get_operator("as_pyam") is None
 
     # require_compat() loads it
     c.require_compat("pyam")
-    assert c.get_comp("as_pyam") is not None
+    assert c.get_operator("as_pyam") is not None
 
 
 def test_config(test_data_path):

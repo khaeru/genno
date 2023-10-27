@@ -46,7 +46,7 @@ def iamc(c: Computer, info):
             single_key(
                 c.add_single(
                     keys[-1].add_tag("sel"),
-                    (c.get_comp("select"), keys[-1], sel),
+                    (c.get_operator("select"), keys[-1], sel),
                     strict=True,
                 )
             )

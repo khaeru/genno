@@ -140,12 +140,12 @@ class Computer:
 
     # Manipulating callables
 
-    def get_comp(self, name) -> Optional[Callable]:
-        """Return a function or callable for use in computations.
+    def get_operator(self, name) -> Optional[Callable]:
+        """Return a function, :class:`.Operator`, or callable for use in a task.
 
-        :meth:`get_comp` checks each of the :attr:`modules` for a function or callable
-        with the given `name`. Modules at the end of the list take precedence over those
-        earlier in the lists.
+        :meth:`get_operator` checks each of the :attr:`modules` for a callable with the
+        given `name`. Modules at the end of the list take precedence over those earlier
+        in the list.
 
         Returns
         -------
@@ -161,6 +161,9 @@ class Computer:
             except TypeError:
                 return None  # `name` is not a string; can't be the name of a function
         return None
+
+    # TODO raise a warning
+    get_comp = get_operator
 
     def require_compat(self, pkg: Union[str, ModuleType]):
         """Register computations from :mod:`genno.compat`/others for :meth:`.get_comp`.
@@ -249,7 +252,7 @@ class Computer:
 
         # Possibly identify a named or direct callable in `data` or `args[0]`
         func: Optional[Callable] = None
-        if func := self.get_comp(data):
+        if func := self.get_operator(data):
             # `data` is the name of a pre-defined computation
             # NB in the future, could raise some warning here to suggest the second form
             pass
@@ -261,7 +264,9 @@ class Computer:
                 raise TypeError("At least 1 argument required")
 
             # Check if the first element of `args` references a computation is callable
-            func = self.get_comp(args[0]) or (args[0] if callable(args[0]) else None)
+            func = self.get_operator(args[0]) or (
+                args[0] if callable(args[0]) else None
+            )
 
             # Located a callable in args[0], so `data` joins args[1:]
             if func:
@@ -772,7 +777,7 @@ class Computer:
         """Compute `key` and write the result directly to `path`."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
-        self.get_comp("write_report")(self.get(key), path)
+        self.get_operator("write_report")(self.get(key), path)
 
     @property
     def unit_registry(self):
@@ -927,7 +932,7 @@ class Computer:
             stacklevel=2,
         )
         self.require_compat("pyam")
-        return self.get_comp("as_pyam").add_tasks(self, *args, **kwargs)
+        return self.get_operator("as_pyam").add_tasks(self, *args, **kwargs)
 
     def disaggregate(self, qty, new_dim, method="shares", args=[]):
         """Deprecated.

@@ -374,9 +374,9 @@ def test_order():
     assert np.isclose(3.3, c.get(key))
 
 
-def test_get_comp():
+def test_get_operator():
     # Invalid name for a function returns None
-    assert Computer().get_comp(42) is None
+    assert Computer().get_operator(42) is None
 
 
 def test_infer_keys():

@@ -57,7 +57,7 @@ Top-level classes and functions
       check_keys
       configure
       full_key
-      get_comp
+      get_operator
       infer_keys
       require_compat
 
