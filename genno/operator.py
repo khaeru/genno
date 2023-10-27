@@ -134,6 +134,7 @@ def _binop_helper(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     return next(keys) if kwargs["sums"] else single_key(keys)
 
 
+@Operator.define
 def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
     """Sum across multiple `quantities`.
 
@@ -177,6 +178,9 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
             result = result + factor * q
 
     return result
+
+
+add.helper(_binop_helper)
 
 
 def aggregate(
@@ -481,6 +485,7 @@ def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
     return mul(quantity, shares)
 
 
+@Operator.define
 def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     """Compute the ratio `numerator` / `denominator`.
 
@@ -505,6 +510,8 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
 
     return result
 
+
+div.helper(_binop_helper)
 
 #: Alias of :func:`div`, for backwards compatibility.
 #:
@@ -943,9 +950,13 @@ def select(
     return qty.sel(idx, drop=drop)
 
 
+@Operator.define
 def sub(a: Quantity, b: Quantity) -> Quantity:
     """Subtract `b` from `a`."""
     return add(a, -b)
+
+
+sub.helper(_binop_helper)
 
 
 @Operator.define
