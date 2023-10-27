@@ -93,6 +93,47 @@ def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
     return target
 
 
+def _binop_helper(func, c: "Computer", key, *quantities, **kwargs) -> Key:
+    """:meth:`.Computer.add` helper for binary operations.
+
+    :meth:`.Computer.add` helper for .
+
+    Add a computation that applies :func:`.add`, :func:`.div`, :func:`.mul`, or
+    :func:`.sub` to `quantities`.
+
+    Parameters
+    ----------
+    key : str or Key
+        Key of the new quantity. If a Key, any dimensions are ignored; the dimensions of
+        the result are the union of the dimensions of `quantities`.
+    sums : bool, optional
+        If :obj:`True`, all partial sums of the new quantity are also added.
+
+    Returns
+    -------
+    :class:`Key`
+        The full key of the new quantity.
+    """
+    # Fetch the full key for each quantity
+    base_keys = c.check_keys(*quantities, predicate=lambda v: isinstance(v, Quantity))
+
+    # Compute a key for the result
+    # Parse the name and tag of the target
+    key = Key(key)
+
+    # New key with dimensions of the product
+    candidate = Key.product(key.name, *base_keys, tag=key.tag)
+    # Only use this if it has greater dimensionality than `key`
+    if set(candidate.dims) >= set(key.dims):
+        key = candidate
+
+    # Add the basic result to the graph and index
+    kwargs.setdefault("sums", True)
+    keys = iter_keys(c.add(key, func, *base_keys, **kwargs))
+
+    return next(keys) if kwargs["sums"] else single_key(keys)
+
+
 def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
     """Sum across multiple `quantities`.
 
@@ -730,43 +771,7 @@ def mul(*quantities: Quantity) -> Quantity:
     return result
 
 
-@mul.helper
-def add_mul(func, c: "Computer", key, *quantities, **kwargs) -> Key:
-    """:meth:`.Computer.add` helper for :func:`.mul`.
-
-    Add a computation that takes the product of `quantities`.
-
-    Parameters
-    ----------
-    key : str or Key
-        Key of the new quantity. If a Key, any dimensions are ignored; the dimensions of
-        the product are the union of the dimensions of `quantities`.
-    sums : bool, optional
-        If :obj:`True`, all partial sums of the new quantity are also added.
-
-    Returns
-    -------
-    :class:`Key`
-        The full key of the new quantity.
-    """
-    # Fetch the full key for each quantity
-    base_keys = c.check_keys(*quantities, predicate=lambda v: isinstance(v, Quantity))
-
-    # Compute a key for the result
-    # Parse the name and tag of the target
-    key = Key(key)
-
-    # New key with dimensions of the product
-    candidate = Key.product(key.name, *base_keys, tag=key.tag)
-    # Only use this if it has greater dimensionality than `key`
-    if set(candidate.dims) >= set(key.dims):
-        key = candidate
-
-    # Add the basic product to the graph and index
-    kwargs.setdefault("sums", True)
-    keys = iter_keys(c.add(key, func, *base_keys, **kwargs))
-
-    return next(keys) if kwargs["sums"] else single_key(keys)
+mul.helper(_binop_helper)
 
 
 #: Alias of :func:`mul`, for backwards compatibility.
