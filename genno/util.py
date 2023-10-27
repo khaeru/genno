@@ -1,7 +1,7 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Callable, Iterable, Mapping, MutableMapping, Tuple, Type, Union
+from typing import Callable, Dict, Iterable, Mapping, MutableMapping, Tuple, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -169,27 +169,58 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
         raise _invalid(unit, e)
 
 
+_pars_cache: Dict[Tuple[Callable, int, Tuple], Mapping] = {}
+
+
+def free_parameters(func: Callable) -> Mapping:
+    """Retrieve information on the free parameters of `func`.
+
+    Identical to :py:`inspect.signature(func).parameters`; that is, to
+    :attr:`inspect.Signature.parameters`. :func:`free_pars` also:
+
+    - Handles functions that have been :func:`functools.partial`'d, returning only the
+      parameters that have *not* already been assigned a value by the
+      :func:`~functools.partial` call—the “free” parameters.
+    - Caches return values for better performance.
+    """
+
+    # Form a cache key; possibly unwrap information from a partialled function
+    key = (
+        getattr(func, "func", func),  # The base callable or function
+        len(getattr(func, "args", [])),  # Number of positional args partialled
+        tuple(sorted(getattr(func, "keywords", {}))),  # Names of partialled kw args
+    )
+
+    try:
+        return _pars_cache[key]
+    except KeyError:
+        try:
+            result: Mapping = signature(func).parameters
+        except ValueError:
+            # signature() raises for operator.itemgetter(…), built-ins, and similar
+            if not callable(func):  # pragma: no cover
+                raise TypeError(type(func))
+            result = {}
+
+        return _pars_cache.setdefault(key, result)
+
+
 def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMapping]:
     """Forgiving version of :func:`functools.partial`.
 
-    Returns a :class:`partial` object and leftover kwargs not applicable to `func`.
+    Returns a :ref:`partial object <python:partial-objects>` and leftover keyword
+    arguments that are not applicable to `func`.
     """
-    # Names of parameters to `func`
-    try:
-        par_names: Mapping = signature(func).parameters
-    except ValueError:
-        # signature() raises for operator.itemgetter(…), built-ins, and similar
-        if not callable(func):  # pragma: no cover
-            raise TypeError(type(func))
-        par_names = {}
+    # Retrieve information on the free parameters of `func`
+    pars = free_parameters(func)
 
     func_args, extra = {}, {}
     for name, value in kwargs.items():
-        if name in par_names and par_names[name].kind in (
+        if name in pars and pars[name].kind in (
             Parameter.POSITIONAL_OR_KEYWORD,
             Parameter.KEYWORD_ONLY,
         ):
-            # A keyword argument of `func`
+            # A keyword argument that can be passed to `func`
             func_args[name] = value
         else:
             extra[name] = value
