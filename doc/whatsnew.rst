@@ -15,6 +15,7 @@ Adjust imports of/from :py:`genno.computations` to :py:`genno.operator`.
 All changes
 -----------
 
+- genno supports and is tested on Python 3.12 (:pull:`105`).
 - :func:`.operator.add`, :func:`.div`, and :func:`.sub` gain the same "helper" functionality as :func:`.mul`: when used with :meth:`.Computer.add`, the returned key will automatically include the expected dimensions of the result (:pull:`105`).
   See the documentation of :func:`.add_binop`.
 - The standard Python operators :py:`+`, :py:`-`, :py:`*`, and :py:`/` can be used with :class:`.Quantity` objects directly; the resulting values, units, and dimensions are the same as using :func:`.add` etc. respectively (:pull:`105`).
