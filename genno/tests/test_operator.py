@@ -35,6 +35,9 @@ def data():
     yield [c] + list(add_test_data(c))
 
 
+@pytest.mark.xfail(
+    reason="Runs twice for parametrize_quantity_class, but only warns once"
+)
 def test_deprecated_import():
     with pytest.warns(FutureWarning, match="use genno.operator instead"):
         from genno.computations import add  # noqa: F401
