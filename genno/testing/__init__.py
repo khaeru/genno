@@ -16,6 +16,7 @@ from pandas.testing import assert_series_equal
 
 import genno.core.quantity
 from genno import ComputationError, Computer, Key, Quantity
+from genno.compat.pint import PintError
 from genno.core.sparsedataarray import HAS_SPARSE
 
 log = logging.getLogger(__name__)
@@ -438,10 +439,9 @@ def ureg():
     for name in ("USD", "case"):
         try:
             registry.define(f"{name} = [{name}]")
-        except (  # pragma: no cover
-            pint.RedefinitionError,  # pint 0.22 on Python ≤ 3.11
-            pint.DefinitionSyntaxError,  # pint 0.17 on Python 3.12
-        ):
+        except PintError:  # pragma: no cover
+            # pint.RedefinitionError with pint 0.22 on Python ≤ 3.11
+            # pint.DefinitionSyntaxError with pint 0.17 on Python 3.12
             pass
 
     yield registry
