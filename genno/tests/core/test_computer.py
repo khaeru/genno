@@ -43,7 +43,7 @@ class TestComputer:
             c.add("foo")
 
     def test_add_aggregate(self, c):
-        """Using :func:`.computations.aggregate` through :meth:`.add`."""
+        """Using :func:`.operator.aggregate` through :meth:`.add`."""
         t, t_foo, t_bar, qty_x = add_test_data(c)
 
         # Define some groups
@@ -820,7 +820,7 @@ def test_full_key():
 
 
 def test_units(ureg):
-    """Test handling of units within computations."""
+    """Test handling of units within operators."""
     c = Computer()
 
     # One of the two classes may be referenced

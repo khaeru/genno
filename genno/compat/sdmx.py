@@ -9,7 +9,7 @@ def codelist_to_groups(
 ) -> Mapping[str, Mapping[str, List[str]]]:
     """Convert `codes` into a mapping from parent items to their children.
 
-    The returned value is suitable for use with :func:`~.computations.aggregate`.
+    The returned value is suitable for use with :func:`~.operator.aggregate`.
 
     Parameters
     ----------

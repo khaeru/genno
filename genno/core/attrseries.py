@@ -84,9 +84,9 @@ class AttrSeries(pd.Series, Quantity):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
-    :class:`xarray.DataArray`, so that :mod:`genno.computations` functions and user
-    code can use xarray-like syntax. In particular, this allows such code to be agnostic
-    about the order of dimensions.
+    :class:`xarray.DataArray`, so that :mod:`genno.operator` functions and user code can
+    use xarray-like syntax. In particular, this allows such code to be agnostic about
+    the order of dimensions.
 
     Parameters
     ----------

@@ -128,7 +128,7 @@ def assert_quantity(*args):
 
 
 def maybe_densify(func):
-    """Wrapper for computations that densifies :class:`.SparseDataArray` input."""
+    """Wrapper for operations that densifies :class:`.SparseDataArray` input."""
 
     def wrapped(*args, **kwargs):
         if CLASS == "SparseDataArray":

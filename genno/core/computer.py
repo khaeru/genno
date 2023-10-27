@@ -60,8 +60,8 @@ class Computer:
     #:
     #: By default, this includes the :mod:`genno` built-in operators in
     #: :mod:`genno.operator`. :meth:`require_compat` appends additional modules,
-    #: for instance :mod:`.compat.pyam.computations`, to this list. User code may also
-    #: add modules to this list.
+    #: for instance :mod:`.compat.pyam.operator`, to this list. User code may also add
+    #: modules to this list directly.
     modules: MutableSequence[ModuleType] = []
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
@@ -166,7 +166,7 @@ class Computer:
     get_comp = get_operator
 
     def require_compat(self, pkg: Union[str, ModuleType]):
-        """Register computations from :mod:`genno.compat`/others for :meth:`.get_comp`.
+        """Register a module for :meth:`get_operator`.
 
         The specified module is appended to :attr:`modules`.
 
@@ -177,7 +177,7 @@ class Computer:
 
             - the name of a package (for instance "plotnine"), corresponding to a
               submodule of :mod:`genno.compat` (:mod:`genno.compat.plotnine`).
-              ``genno.compat.{pkg}.computations`` is added.
+              ``genno.compat.{pkg}.operator`` is added.
             - the name of any importable module, for instance "foo.bar".
             - a module object that has already been imported.
 
@@ -188,16 +188,16 @@ class Computer:
 
         Examples
         --------
-        Computations packaged with genno for compatibility:
+        Operators packaged with genno for compatibility:
 
         >>> c = Computer()
         >>> c.require_compat("pyam")
 
-        Computations in another module, using the module name:
+        Operators in another module, using the module name:
 
         >>> c.require_compat("ixmp.reporting.computations")
 
-        or using imported module:
+        or using imported module object directly:
 
         >>> import ixmp.reporting.computations as mod
         >>> c.require_compat(mod)
@@ -525,7 +525,7 @@ class Computer:
         - Python arithmetic operators including ``+``, ``-``, ``*``, ``/``, ``**``;
           these are mapped to the corresponding :mod:`.operator`.
         - Function calls, also mapped to the corresponding :mod:`.operator` via
-          :meth:`get_comp`. These may include simple positional (constants or key
+          :meth:`get_operator`. These may include simple positional (constants or key
           references) or keyword (constants only) arguments.
 
         Parameters

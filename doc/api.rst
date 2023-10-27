@@ -103,7 +103,7 @@ Top-level classes and functions
          A list of computations, like :py:`[(list(args1), dict(kwargs1)), (list(args2), dict(kwargs2)), ...]` → passed to :meth:`add_queue`.
 
       :class:`str` naming an operator
-         e.g. "select", retrievable with :meth:`get_comp`.
+         e.g. "select", retrievable with :meth:`get_operator`.
          :meth:`add_single` is called with :py:`(key=args[0], data, *args[1], **kwargs)`, that is, applying the named operator to the other parameters.
 
       :class:`.Key` or other :class:`str`:
@@ -162,7 +162,7 @@ Top-level classes and functions
       .. code-block:: python
 
          def my_gen1(**kwargs):
-             op = partial(computations.load_file, **kwargs)
+             op = partial(operator.load_file, **kwargs)
              yield from (f"file:{i}", (op, "file{i}.txt")) for i in range(2)
 
          rep.apply(my_gen1, units="kg")
@@ -284,7 +284,7 @@ The goal is that all :mod:`genno`-based code, including built-in and user functi
 Operators
 =========
 
-.. automodule:: genno.computations
+.. automodule:: genno.operator
    :members:
 
    Unless otherwise specified, these functions accept and return :class:`.Quantity` objects for data arguments/return values.

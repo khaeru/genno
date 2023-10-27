@@ -1,6 +1,6 @@
 """Elementary operators for genno."""
-# NB To avoid ambiguity, computations should not have default positional arguments.
-#    Define default values for the corresponding methods on the Computer class.
+# NB To avoid ambiguity, operators should not have default values for positional-only
+#    arguments; use keyword(-only) arguments for defaults.
 import logging
 import numbers
 import operator

@@ -136,7 +136,7 @@ Specific sections
 
 Computer-specific configuration.
 
-Invokes :meth:`.Computer.aggregate` add tasks with :func:`.computations.aggregate` or :func:`.computations.sum`, computing sums across labels within one dimension of a quantity.
+Invokes :meth:`.Computer.aggregate` add tasks with :func:`.operator.aggregate` or :func:`.operator.sum`, computing sums across labels within one dimension of a quantity.
 Each entry contains:
 
 ``_quantities:`` list of 0 or more keys
@@ -267,7 +267,7 @@ This sets :attr:`.Computer.default_key`, used when :meth:`.get` is called withou
 
 Computer-specific configuration.
 
-Invokes :meth:`.Computer.add_file` to add :func:`.computations.load_file`.
+Invokes :meth:`.Computer.add_file` to add :func:`.operator.load_file`.
 If the ``path:`` key is a relative path, it is resolved relative to the directory that contains the configuration file, else the current working directory.
 
 .. code-block:: yaml
@@ -297,8 +297,8 @@ This is, as the name implies, the most generalized section.
 Each item contains:
 
 ``comp:``
-  Refers to the name of a operator that is available in the namespace of :mod:`genno.computations`, or a custom operator registered by compatibility modules or third-party packages.
-  See :meth:`.Computer.add` and :meth:`.Computer.get_comp`.
+  Refers to the name of a operator that is available in the namespace of :mod:`genno.operator`, or a custom operator registered by compatibility modules or third-party packages.
+  See :meth:`.Computer.add` and :meth:`.Computer.get_operator`.
   For instance, if "product", then :meth:`.Computer.add_product` is called, which also automatically infers the correct dimensions for each input.
 
   If omitted, :data:`None`, or YAML ``null``, no specific callable is used, but instead ``key:`` is configured to retrieve a simple :class:`list` of the ``inputs:``.
