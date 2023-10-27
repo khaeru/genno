@@ -35,7 +35,10 @@ log = logging.getLogger(__name__)
 
 
 def _binop(name: str, swap: bool = False):
+    """Create a method for binary operator `name`."""
+
     def method(self, other):
+        # Handle the case where `other` is scalar
         other = possible_scalar(other)
 
         # For __r*__ methods
@@ -49,7 +52,13 @@ def _binop(name: str, swap: bool = False):
             right = b
             order, left = a.align_levels(right)
 
-        return getattr(left, name)(right).dropna().reorder_levels(order)
+        # Invoke a pd.Series method like .mul()
+        result = getattr(left, name)(right).dropna().reorder_levels(order)
+
+        # Determine resulting units
+        result.units = left._binop_units(name, right)
+
+        return result
 
     return method
 
@@ -152,8 +161,8 @@ class AttrSeries(pd.Series, Quantity):
     # Binary operations
     __mul__ = _binop("mul")
     __pow__ = _binop("pow")
-    __rtruediv__ = _binop("div", swap=True)
-    __truediv__ = _binop("div")
+    __rtruediv__ = _binop("truediv", swap=True)
+    __truediv__ = _binop("truediv")
 
     def __repr__(self):
         return (

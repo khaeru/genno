@@ -1,3 +1,4 @@
+import operator
 from functools import update_wrapper
 from numbers import Number
 from typing import Any, Hashable, Optional
@@ -115,6 +116,27 @@ class Quantity(DataArrayLike["Quantity"]):
             new_attrs["_unit"] = pint.Unit(units)
 
         return new_attrs
+
+    def _binop_units(self, name: str, other) -> pint.Unit:
+        """Determine result units for a binary operation between `self` and `other`."""
+        if name == "pow":
+            # Currently handled by operator.pow()
+            return self.units
+
+        try:
+            # Retrieve units of `other`
+            other_units = other.units
+
+            # Ensure there is not a mix of pint.Unit and pint.registry.Unit; this throws
+            # off pint's internal logic
+            if other_units.__class__ is not self.units.__class__:
+                other_units = self.units.__class__(other_units)
+        except AttributeError:
+            # Something other than Quantity without a `units` attribute
+            other_units = self.units.__class__("")
+
+        # Allow pint to determine the output units
+        return getattr(operator, name)(self.units, other_units)
 
 
 def assert_quantity(*args):
