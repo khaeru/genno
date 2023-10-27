@@ -25,6 +25,7 @@ from typing import (
 
 import pandas as pd
 import pint
+import xarray as xr
 from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
@@ -68,10 +69,8 @@ __all__ = [
     "write_report",
 ]
 
-
-import xarray as xr  # noqa: E402
-
 log = logging.getLogger(__name__)
+
 
 # Carry unit attributes automatically
 xr.set_options(keep_attrs=True)
@@ -205,7 +204,8 @@ def aggregate(
         # Optionally keep the original values
         values = [result] if keep else []
 
-        coords = result.coords[dim]
+        # This raises a spurious warning from numpy; see filter in pyproject.toml
+        coords = result.coords[dim].data
 
         # Aggregate each group
         for group, members in dim_groups.items():
@@ -219,7 +219,7 @@ def aggregate(
             mem: List[Hashable] = []
             for m in members:
                 if isinstance(m, re.Pattern):
-                    mem.extend(filter(m.fullmatch, coords.data))
+                    mem.extend(filter(m.fullmatch, coords))
                 elif m in coords:
                     mem.append(m)
 

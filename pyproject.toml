@@ -86,6 +86,9 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 addopts = "--cov=genno --cov-report="
+filterwarnings = [
+  "ignore:elementwise comparison failed.*:FutureWarning:genno.operator:211",
+]
 
 [tool.ruff]
 select = ["C9", "E", "F", "I", "W"]
