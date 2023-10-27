@@ -283,7 +283,7 @@ def apply_units(qty: Quantity, units: UnitLike) -> Quantity:
 
     result.units = new_units
 
-    return result
+    return _preserve("name", result, qty)
 
 
 def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
