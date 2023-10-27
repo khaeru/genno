@@ -38,6 +38,9 @@ class Operator:
         # The callable is stored as a static method; `self` is not passed
         return self.func(*args, **kwargs)
 
+    def __hash__(self):
+        return hash(self.func)
+
     def __eq__(self, other):
         """Compares equal to the wrapped `func`."""
         return other == self.func
