@@ -42,6 +42,7 @@ class Quantity(DataArrayLike["Quantity"]):
         self._name = value  # pragma: no cover
 
     @property
+    # def units(self) -> pint.Unit:  # NB can't do this currently; see python/mypy#3004
     def units(self):
         """Retrieve or set the units of the Quantity.
 
@@ -63,7 +64,11 @@ class Quantity(DataArrayLike["Quantity"]):
         )
 
     @units.setter
-    def units(self, value):
+    def units(
+        self,
+        value,
+        # value: Union[pint.Unit, str], # NB ditto re: python/mypy#3004
+    ):
         self.attrs["_unit"] = pint.get_application_registry().Unit(value)
 
     # Internal methods

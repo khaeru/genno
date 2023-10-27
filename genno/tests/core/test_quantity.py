@@ -53,11 +53,11 @@ class TestQuantity:
             ),
         ),
     )
-    def test_init(self, args, kwargs):
+    def test_init(self, args, kwargs) -> None:
         """Instantiated from a scalar object."""
         Quantity(*args, **kwargs)
 
-    def test_assert(self, a):
+    def test_assert(self, a) -> None:
         """Test assertions about Quantity.
 
         These are tests without `attr` property, in which case direct pd.Series
@@ -84,7 +84,7 @@ class TestQuantity:
         assert_qty_allclose(a, c, check_type=True)
         assert_qty_allclose(c, a, check_type=True)
 
-    def test_assert_with_attrs(self, a):
+    def test_assert_with_attrs(self, a) -> None:
         """Test assertions about Quantity with attrs.
 
         Here direct pd.Series and xr.DataArray comparisons are *not* possible.
@@ -108,7 +108,7 @@ class TestQuantity:
         a.attrs = {"bar": "foo"}
         assert_qty_equal(a, b, check_attrs=False)
 
-    def test_assign_coords(self, a):
+    def test_assign_coords(self, a) -> None:
         # Relabel an existing dimension
         q1 = a.assign_coords({"p": ["apple", "orange"]})
         assert ("p",) == q1.dims
@@ -144,11 +144,11 @@ class TestQuantity:
             units="kg",
         )
 
-    def test_astype(self, tri):
+    def test_astype(self, tri) -> None:
         result = tri.astype(float)
         assert float == result.dtype
 
-    def test_bfill(self, tri):
+    def test_bfill(self, tri) -> None:
         """Test Quantity.bfill()."""
         if Quantity._get_class() is SparseDataArray:
             pytest.xfail(reason="sparse.COO.flip() not implemented")
@@ -159,7 +159,7 @@ class TestQuantity:
         r2 = tri.bfill("y")
         assert r2.loc["x0", "y0"] == tri.loc["x0", "y2"]
 
-    def test_coords(self, tri):
+    def test_coords(self, tri) -> None:
         coords = tri.coords
         assert isinstance(coords, xr.core.coordinates.Coordinates)
         assert ["x", "y"] == list(coords)
@@ -170,7 +170,7 @@ class TestQuantity:
         coords = Quantity(3, units="kg").coords
         assert [] == list(coords)
 
-    def test_copy_modify(self, a):
+    def test_copy_modify(self, a) -> None:
         """Making a Quantity another produces a distinct attrs dictionary."""
         assert 0 == len(a.attrs)
 
@@ -181,7 +181,7 @@ class TestQuantity:
 
         assert pint.Unit("km") == a.units
 
-    def test_cumprod(self, caplog, tri):
+    def test_cumprod(self, caplog, tri) -> None:
         """Test Quantity.cumprod()."""
         if Quantity._get_class() is SparseDataArray:
             pytest.xfail(reason="sparse.COO.nancumprod() not implemented")
@@ -198,10 +198,10 @@ class TestQuantity:
         assert 2 * 3 == r2.loc["x1", "y2"]
         assert 5 * 6 * 7 * 8 * 9 == r2.loc["x2", "y4"]
 
-    def test_drop_vars(self, a):
+    def test_drop_vars(self, a) -> None:
         a.expand_dims({"phase": ["liquid"]}).drop_vars("phase")
 
-    def test_expand_dims(self, a):
+    def test_expand_dims(self, a) -> None:
         # Single label on a new dimension
         q0 = a.expand_dims({"phase": ["liquid"]})
         assert ("phase", "p") == q0.dims
@@ -236,7 +236,7 @@ class TestQuantity:
         q4 = a.expand_dims({"colour": ["red", "blue"], "phase": ["liquid", "solid"]})
         assert ("colour", "phase", "p") == q4.dims
 
-    def test_ffill(self, tri):
+    def test_ffill(self, tri) -> None:
         """Test Quantity.ffill()."""
 
         # Forward fill along "x" dimension results in no change
@@ -253,11 +253,11 @@ class TestQuantity:
             == tri.loc["x0", "y2"].item()
         )
 
-    def test_pipe(self, ureg, tri):
+    def test_pipe(self, ureg, tri) -> None:
         result = tri.pipe(genno.operator.assign_units, "km")
         assert ureg.Unit("km") == result.units
 
-    def test_sel(self, tri):
+    def test_sel(self, tri) -> None:
         # Create indexers
         newdim = [("newdim", ["nd0", "nd1", "nd2"])]
         x_idx = xr.DataArray(["x2", "x1", "x2"], coords=newdim)
@@ -275,7 +275,7 @@ class TestQuantity:
         with pytest.raises(IndexError, match="Dimensions of indexers mismatch"):
             tri.sel(x=x_idx[:-1], y=y_idx)
 
-    def test_shift(self, tri):
+    def test_shift(self, tri) -> None:
         """Test Quantity.shift()."""
         if Quantity._get_class() is SparseDataArray:
             pytest.xfail(reason="sparse.COO.pad() not implemented")
@@ -289,7 +289,7 @@ class TestQuantity:
         r3 = tri.shift(x=1, y=2)
         assert r3.loc["x2", "y4"] == tri.loc["x1", "y2"]
 
-    def test_size(self):
+    def test_size(self) -> None:
         """Stress-test reporting of large, sparse quantities."""
         # Create the Reporter
         c = Computer()
@@ -315,7 +315,7 @@ class TestQuantity:
         # Result can be converted to pd.Series
         result.to_series()
 
-    def test_to_dataframe(self, a):
+    def test_to_dataframe(self, a) -> None:
         """Test Quantity.to_dataframe()."""
         # Returns pd.DataFrame
         result = a.to_dataframe()
@@ -330,14 +330,14 @@ class TestQuantity:
         with pytest.raises(NotImplementedError):
             a.to_dataframe(dim_order=["foo", "bar"])
 
-    def test_to_series(self, a):
+    def test_to_series(self, a) -> None:
         """Test .to_series() on child classes, and Quantity.from_series."""
         s = a.to_series()
         assert isinstance(s, pd.Series)
 
         Quantity.from_series(s)
 
-    def test_units(self, a):
+    def test_units(self, a: Quantity) -> None:
         # Units can be retrieved; dimensionless by default
         assert a.units.dimensionless
 
@@ -347,13 +347,13 @@ class TestQuantity:
 
         # Can be set to dimensionless
         a.units = ""
-        assert a.units.dimensionless
+        assert a.units.dimensionless  # type: ignore [attr-defined]
 
     @pytest.mark.parametrize(
         "op", [operator.add, operator.mul, operator.sub, operator.truediv]
     )
     @pytest.mark.parametrize("type_", [int, float, param(str, marks=pytest.mark.xfail)])
-    def test_arithmetic(self, op, type_, a):
+    def test_arithmetic(self, op, type_, a) -> None:
         """Quantity can be added to int or float."""
         result = op(type_(4.2), a)
 
