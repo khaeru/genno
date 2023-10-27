@@ -16,9 +16,21 @@ from genno import Computer, Quantity
 from genno.core.attrseries import AttrSeries
 from genno.core.quantity import assert_quantity, possible_scalar, unwrap_scalar
 from genno.core.sparsedataarray import SparseDataArray
-from genno.testing import add_large_data, assert_qty_allclose, assert_qty_equal
+from genno.testing import (
+    add_large_data,
+    assert_qty_allclose,
+    assert_qty_equal,
+    assert_units,
+)
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
+
+SUPPORTED_BINOPS = [
+    operator.add,
+    operator.mul,
+    operator.sub,
+    operator.truediv,
+]
 
 
 class TestQuantity:
@@ -27,6 +39,24 @@ class TestQuantity:
     @pytest.fixture
     def a(self):
         yield Quantity(xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"]))
+
+    @pytest.fixture()
+    def tri(self):
+        """Fixture returning triangular data to test fill, shift, etc."""
+        return Quantity(
+            xr.DataArray(
+                [
+                    [nan, nan, 1.0, nan, nan],
+                    [nan, 2, 3, 4, nan],
+                    [5, 6, 7, 8, 9],
+                ],
+                coords=[
+                    ("x", ["x0", "x1", "x2"]),
+                    ("y", ["y0", "y1", "y2", "y3", "y4"]),
+                ],
+            ),
+            units="kg",
+        )
 
     @pytest.mark.parametrize(
         "args, kwargs",
@@ -125,24 +155,6 @@ class TestQuantity:
             match="conflicting sizes for dimension 'p': length 2 .* and length 1",
         ):
             a.assign_coords({"p": ["apple"]})
-
-    @pytest.fixture()
-    def tri(self):
-        """Fixture returning triangular data to test fill, shift, etc."""
-        return Quantity(
-            xr.DataArray(
-                [
-                    [nan, nan, 1.0, nan, nan],
-                    [nan, 2, 3, 4, nan],
-                    [5, 6, 7, 8, 9],
-                ],
-                coords=[
-                    ("x", ["x0", "x1", "x2"]),
-                    ("y", ["y0", "y1", "y2", "y3", "y4"]),
-                ],
-            ),
-            units="kg",
-        )
 
     def test_astype(self, tri) -> None:
         result = tri.astype(float)
@@ -253,6 +265,66 @@ class TestQuantity:
             == tri.loc["x0", "y2"].item()
         )
 
+    @pytest.mark.parametrize(
+        "left, right", (["float", "qty"], ["qty", "float"], ["qty", "qty"])
+    )
+    @pytest.mark.parametrize("op", SUPPORTED_BINOPS)
+    def test_operation(self, left, op, right, tri: Quantity) -> None:
+        """Test the standard binary operations +, -, *, /."""
+        values = {"float": 1.0, "qty": tri}
+        left = values[left]
+        right = values[right]
+
+        # Binary operation succeeds
+        result = op(left, right)
+
+        # Result is of the expected type
+        assert isinstance(result, tri.__class__), type(result)
+
+    @pytest.mark.parametrize("op", SUPPORTED_BINOPS)
+    @pytest.mark.parametrize("type_", [int, float, param(str, marks=pytest.mark.xfail)])
+    def test_operation_scalar(self, op, type_, a) -> None:
+        """Quantity can be added to int or float."""
+        result = op(type_(4.2), a)
+
+        # Result has the expected shape
+        assert (2,) == result.shape
+        assert a.dtype == result.dtype
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_operation_units(self, a: Quantity) -> None:
+        """Test units pass through the standard binary operations +, -, *, /."""
+        a_kg = Quantity(a, units="kg")
+        a_litre = Quantity(a, units="litre")
+        # print(f"{a = }")
+        # print(f"{a_kg = }")
+        # print(f"{a_litre = }")
+
+        # Binary operation succeeds
+        for op, left, right, exp_units in (
+            (operator.add, a, a, ""),  # Both dimensionless
+            (operator.add, a_kg, a_kg, "kg"),  # Same units
+            (operator.sub, a, a, ""),  # Both dimensionless
+            (operator.sub, a_kg, a_kg, "kg"),  # Same units
+            (operator.mul, a, a, ""),  # Both dimensionless
+            (operator.mul, a, a_kg, "kg"),  # One dimensionless
+            (operator.mul, a_kg, a_kg, "kg **2"),  # Same units
+            (operator.mul, a_kg, a_litre, "kg * litre"),  # Different units
+            (operator.truediv, a, a, ""),  # Both dimensionless
+            (operator.truediv, a_kg, a, "kg"),  # Denominator dimensionless
+            (operator.truediv, a, a_kg, "1 / kg"),  # Numerator dimensionless
+            (operator.truediv, a_kg, a_kg, ""),  # Same units
+            (operator.truediv, a_kg, a_litre, "kg / litre"),  # Different units
+        ):
+            result = op(left, right)
+            # print(f"{op = } {result = }")
+
+            # Result is of the expected type
+            assert isinstance(result, a.__class__), type(result)
+
+            # Result has the expected units
+            assert_units(result, exp_units)
+
     def test_pipe(self, ureg, tri) -> None:
         result = tri.pipe(genno.operator.assign_units, "km")
         assert ureg.Unit("km") == result.units
@@ -348,17 +420,6 @@ class TestQuantity:
         # Can be set to dimensionless
         a.units = ""
         assert a.units.dimensionless  # type: ignore [attr-defined]
-
-    @pytest.mark.parametrize(
-        "op", [operator.add, operator.mul, operator.sub, operator.truediv]
-    )
-    @pytest.mark.parametrize("type_", [int, float, param(str, marks=pytest.mark.xfail)])
-    def test_arithmetic(self, op, type_, a) -> None:
-        """Quantity can be added to int or float."""
-        result = op(type_(4.2), a)
-
-        assert (2,) == result.shape
-        assert a.dtype == result.dtype
 
 
 @pytest.mark.parametrize(
