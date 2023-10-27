@@ -39,6 +39,12 @@ class DataArrayLike(Generic[T]):
     these methods. In :class:`.AttrSeries`, the methods are implemented directly.
     """
 
+    # NB Most methods have a return type of "...) -> T:", but these cannot be defined in
+    #    this class because mypy complains about (a) conflicts with the definitions on
+    #    xarray.DataArrayOpsMixin and (b) empty function bodies.
+    # TODO Investigate whether there is a way to overcome this, perhaps by adjusting the
+    #      definition of `T`.
+
     # To silence a warning in xarray
     __slots__: Tuple[str, ...] = tuple()
 
@@ -49,10 +55,10 @@ class DataArrayLike(Generic[T]):
     def __mod__(self, other):
         ...
 
-    def __mul__(self, other):  # TODO set the return type
+    def __mul__(self, other):
         ...
 
-    def __pow__(self, other):  # TODO set the return type
+    def __pow__(self, other):
         ...
 
     def __radd__(self, other):
@@ -67,7 +73,7 @@ class DataArrayLike(Generic[T]):
     def __rtruediv__(self, other):
         ...
 
-    def __truediv__(self, other):  # TODO set the return type
+    def __truediv__(self, other):
         ...
 
     def __neg__(self):
@@ -122,14 +128,14 @@ class DataArrayLike(Generic[T]):
         self,
         dim: Hashable,
         limit: Optional[int] = None,
-    ):  # TODO set the return type
+    ):
         ...
 
     def copy(
         self,
         deep: bool = True,
         data: Any = None,
-    ):  # TODO set the return type
+    ):
         ...
 
     def cumprod(
@@ -139,7 +145,7 @@ class DataArrayLike(Generic[T]):
         skipna: Optional[bool] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
-    ):  # TODO set the return type
+    ):
         ...
 
     def drop_vars(
@@ -155,14 +161,14 @@ class DataArrayLike(Generic[T]):
         dim=None,
         axis=None,
         **dim_kwargs: Any,
-    ):  # TODO set the return type
+    ):
         ...
 
     def ffill(
         self,
         dim: Hashable,
         limit: Optional[int] = None,
-    ):  # TODO set the return type
+    ):
         return NotImplemented
 
     def groupby(
