@@ -779,9 +779,10 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
         unit_exponent = b if isinstance(b, int) else 0
         b = Quantity(float(b))
     elif isinstance(b, Quantity):
-        check = b / b.astype(int)
+        check = set((b % 1).data)  # Each exponent modulo 1 == 0 if exponents are int
         unique_values = set(b.data)
-        if (1.0 == check).all() and len(unique_values) == 1:
+        if check == {0.0} and len(unique_values) == 1:
+            # Single/common integer exponent; use this
             unit_exponent = unique_values.pop()
         else:
             unit_exponent = 0

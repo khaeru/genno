@@ -46,6 +46,9 @@ class DataArrayLike(Generic[T]):
     def __len__(self) -> int:
         return NotImplemented
 
+    def __mod__(self, other):
+        ...
+
     def __mul__(self, other):  # TODO set the return type
         ...
 
