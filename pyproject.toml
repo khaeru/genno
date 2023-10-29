@@ -54,6 +54,7 @@ tests = [
   "nbclient",
   "pytest",
   "pytest-cov",
+  "pytest-rerunfailures",
   "pytest-xdist",
 ]
 sparse = ["sparse >= 0.12"]
