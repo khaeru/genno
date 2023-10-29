@@ -1,4 +1,7 @@
+import os
 import re
+
+import pytest
 
 from genno import ComputationError, Computer
 from genno.testing import assert_logs
@@ -48,6 +51,12 @@ TypeError: can only concatenate str \(not "float"\) to str.*"""
 )
 
 
+@pytest.mark.flaky(
+    reruns=5,
+    rerun_delay=2,
+    condition="GITHUB_ACTIONS" in os.environ,
+    reason="Flaky; fails occasionally on GitHub Actions runners",
+)
 def test_computationerror_ipython(test_data_path, tmp_path):
     # NB this requires nbformat >= 5.0, because the output kind "evalue" was
     #    different pre-5.0
