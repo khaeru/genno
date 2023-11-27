@@ -65,12 +65,16 @@ def run_notebook(nb_path, tmp_path, env=None, **kwargs):
     kwargs.setdefault("kernel_name", kernel or f"python{sys.version_info[0]}")
     kwargs.setdefault("timeout", 10)
 
+    # Set up environment
+    env = env or os.environ.copy()
+    env.setdefault("PYDEVD_DISABLE_FILE_VALIDATION", "1")
+
     # Create a client and use it to execute the notebook
     client = NotebookClient(nb, **kwargs, resources=dict(metadata=dict(path=tmp_path)))
 
     # Execute the notebook.
     # `env` is passed from nbclient to jupyter_client.launcher.launch_kernel()
-    client.execute(env=env or os.environ.copy())
+    client.execute(env=env)
 
     # Retrieve error information from cells
     errors = [
