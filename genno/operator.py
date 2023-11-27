@@ -406,6 +406,7 @@ def combine(
     return result
 
 
+@singledispatch
 def concat(*objs: Quantity, **kwargs) -> Quantity:
     """Concatenate Quantity `objs`.
 
