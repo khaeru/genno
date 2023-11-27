@@ -58,7 +58,7 @@ def test_dims(op, expected_dims):
     y = c.add("y:b-c", None)
 
     key = c.add("z", op, x, y)
-    print(f"{key = }")
+    # print(f"{key = }")
     assert expected_dims == key.dims
 
 
