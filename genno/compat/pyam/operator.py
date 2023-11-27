@@ -215,3 +215,17 @@ def _(quantity: pyam.IamDataFrame, path, kwargs=None) -> None:
         raise ValueError(
             f"pyam.IamDataFrame can be written to .csv or .xlsx, not {path.suffix}"
         )
+
+
+def __getattr__(name: str):
+    if name in ("concat", "write_report"):
+        warn(
+            f"Importing {name!r} from genno.compat.pyam.operator; import from "
+            "genno.operator instead.",
+            DeprecationWarning,
+            2,
+        )
+
+        return getattr(genno.operator, name)
+    else:
+        raise AttributeError(name)
