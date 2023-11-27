@@ -5,7 +5,7 @@ import logging
 import numbers
 import operator
 import re
-from functools import partial, reduce
+from functools import partial, reduce, singledispatch
 from itertools import chain
 from os import PathLike
 from pathlib import Path
@@ -998,19 +998,55 @@ def add_sum(
     return c.add(key, func, qty, weights=weights, dimensions=dimensions, **kwargs)
 
 
-def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:
+def _format_header_comment(value: str) -> str:
+    if not len(value):
+        return value
+
+    from textwrap import indent
+
+    return indent(value + "\n", "# ", lambda line: True)
+
+
+@singledispatch
+def write_report(
+    quantity: pd.DataFrame, path: Union[str, PathLike], kwargs: Optional[dict] = None
+) -> None:
     """Write a quantity to a file.
 
     Parameters
     ----------
-    path : str or ~.pathlib.Path
+    quantity :
+    path : str or pathlib.Path
         Path to the file to be written.
+    kwargs :
+        Keyword arguments. For the default implementation, these are passed to
+        :meth:~pandas.DataFrame.to_csv` or :meth:~pandas.DataFrame.to_excel` (according
+        to `path`), except for:
+
+        - "header_comment": valid only for `path` ending in :file:`.csv`. Multi-line
+          text that is prepended to the file, with comment characters ("# ") before
+          each line.
     """
     path = Path(path)
 
     if path.suffix == ".csv":
-        quantity.to_dataframe().to_csv(path)
+        kwargs = kwargs or dict()
+        kwargs.setdefault("index", False)
+
+        with open(path, "w") as f:
+            f.write(_format_header_comment(kwargs.pop("header_comment", "")))
+            quantity.to_csv(f, **kwargs)
     elif path.suffix == ".xlsx":
-        quantity.to_dataframe().to_excel(path, merge_cells=False)
+        kwargs = kwargs or dict()
+        kwargs.setdefault("index", False)
+        kwargs.setdefault("merge_cells", False)
+
+        quantity.to_excel(path, **kwargs)
     else:
         path.write_text(quantity)  # type: ignore
+
+
+@write_report.register
+def _(quantity: Quantity, path, kwargs=None) -> None:
+    # Convert the Quantity to a pandas.DataFrame, then write
+    write_report(quantity.to_dataframe(), path, kwargs)
