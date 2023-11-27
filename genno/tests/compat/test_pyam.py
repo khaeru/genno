@@ -252,13 +252,18 @@ def test_concat(dantzig_computer):
         year=2021, value=42.0, unit="kg"
     )
 
-    result = operator.concat(
-        pyam.IamDataFrame(input), pyam.IamDataFrame(input.assign(year=2022))
-    )
+    with pytest.warns(DeprecationWarning):
+        result = operator.concat(
+            pyam.IamDataFrame(input), pyam.IamDataFrame(input.assign(year=2022))
+        )
     assert isinstance(result, pyam.IamDataFrame)
 
     # Other types pass through to base concat()
-    key = c.add("test", operator.concat, "fom:nl-t-ya", "vom:nl-t-ya", "tom:nl-t-ya")
+    with pytest.warns(DeprecationWarning):
+        key = c.add(
+            "test", operator.concat, "fom:nl-t-ya", "vom:nl-t-ya", "tom:nl-t-ya"
+        )
+
     c.get(key)
 
 
