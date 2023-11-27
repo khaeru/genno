@@ -1,6 +1,5 @@
 import logging
 from functools import partial
-from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Collection, Iterable, Optional, Union
 from warnings import warn
@@ -20,7 +19,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-__all__ = ["as_pyam", "concat", "write_report"]
+__all__ = ["as_pyam"]
 
 
 @Operator.define()
@@ -183,35 +182,35 @@ def add_as_pyam(
     return tuple(keys) if multi_arg else keys[0]
 
 
-def concat(*args, **kwargs):
-    """Concatenate *args*, which must all be :class:`pyam.IamDataFrame`.
+@genno.operator.concat.register
+def _(*args: pyam.IamDataFrame, **kwargs) -> pyam.IamDataFrame:
+    """Concatenate `args`, which must all be :class:`pyam.IamDataFrame`.
 
     Otherwise, equivalent to :func:`genno.operator.concat`.
     """
-    if isinstance(args[0], pyam.IamDataFrame):
-        # pyam.concat() takes an iterable of args
-        return pyam.concat(args, **kwargs)
-    else:
-        # genno.operator.concat() takes a variable number of positional arguments
-        return genno.operator.concat(*args, **kwargs)
+    # Use pyam.concat() top-level function
+    return pyam.concat(args, **kwargs)
 
 
-def write_report(obj, path: Union[str, PathLike]) -> None:
+@genno.operator.write_report.register
+def _(quantity: pyam.IamDataFrame, path, kwargs=None) -> None:
     """Write  `obj` to the file at `path`.
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",
     use :mod:`pyam` methods to write the file to CSV or Excel format, respectively.
     Otherwise, equivalent to :func:`genno.operator.write_report`.
     """
-    if not isinstance(obj, pyam.IamDataFrame):
-        return genno.operator.write_report(obj, path)
-
     path = Path(path)
 
+    if kwargs is not None and len(kwargs):
+        raise NotImplementedError(
+            "Keyword arguments to write_report(pyam.IamDataFrame, …)"
+        )
+
     if path.suffix == ".csv":
-        obj.to_csv(path)
+        quantity.to_csv(path)
     elif path.suffix == ".xlsx":
-        obj.to_excel(path)
+        quantity.to_excel(path)
     else:
         raise ValueError(
             f"pyam.IamDataFrame can be written to .csv or .xlsx, not {path.suffix}"
