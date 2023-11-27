@@ -307,7 +307,7 @@ Common :mod:`genno` usage, e.g. in :mod:`message_ix`, creates large, sparse data
 The goal is that all :mod:`genno`-based code, including built-in and user functions, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
 
 .. automodule:: genno
-   :members: MissingKeyError
+   :members: ComputationError, KeyExistsError, MissingKeyError
 
 Operators
 =========
