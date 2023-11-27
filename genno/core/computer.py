@@ -1,6 +1,6 @@
 import logging
 from collections import deque
-from functools import partial
+from functools import lru_cache, partial
 from importlib import import_module
 from inspect import signature
 from itertools import compress
@@ -21,7 +21,7 @@ from typing import (
     Union,
     cast,
 )
-from warnings import warn
+from warnings import catch_warnings, warn
 
 import dask
 import pint
@@ -153,13 +153,29 @@ class Computer:
         None
             If there is no callable with the given `name` in any of :attr:`modules`.
         """
+        if not isinstance(name, str):
+            # `name` is not a string; can't be the name of a function/class/object
+            return None
+
+        # Cached call with `name` guaranteed to be hashable
+        return self._get_operator(name)
+
+    @lru_cache()
+    def _get_operator(self, name: str) -> Optional[Callable]:
         for module in reversed(self.modules):
             try:
-                return getattr(module, name)
+                # Retrieve the operator from `module`
+                with catch_warnings(record=True) as cw:
+                    result = getattr(module, name)
             except AttributeError:
                 continue  # `name` not in this module
-            except TypeError:
-                return None  # `name` is not a string; can't be the name of a function
+            else:
+                if len(cw):
+                    continue  # Some DeprecationWarning raised; don't use this import
+                else:
+                    return result
+
+        # Nothing found
         return None
 
     #: Alias of :meth:`get_operator`.
@@ -219,6 +235,10 @@ class Computer:
         # Don't duplicate
         if mod not in self.modules:
             self.modules.append(mod)
+
+            # Clear the lookup cache
+            # TODO also clear on manual changes to self.modules
+            self._get_operator.cache_clear()
 
     # Add computations to the Computer
 
