@@ -295,7 +295,7 @@ class Computer:
         if func:
             try:
                 # Use an implementation of Computation.add_task()
-                return func.add_tasks(self, *args, **kwargs)  # type: ignore[union-attr]
+                return func.add_tasks(self, *args, **kwargs)  # type: ignore [attr-defined]
             except (AttributeError, NotImplementedError):
                 # Computation obj that doesn't implement .add_tasks(), or plain callable
                 _partialed_func, kw = partial_split(func, kwargs)
@@ -816,11 +816,11 @@ class Computer:
 
         return visualize(dsk, filename=filename, **kwargs)
 
-    def write(self, key, path):
+    def write(self, key, path, **kwargs):
         """Compute `key` and write the result directly to `path`."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
-        self.get_operator("write_report")(self.get(key), path)
+        self.get_operator("write_report")(self.get(key), path, kwargs)
 
     @property
     def unit_registry(self):
