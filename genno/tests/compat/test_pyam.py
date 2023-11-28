@@ -169,7 +169,7 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     )
     assert_frame_equal(df2[["region", "variable"]], reg_var)
 
-    # pyam.operator.write_file() is used, calling pyam.IamDataFrame.to_csv()
+    # pyam.operator.write_report() is used, calling pyam.IamDataFrame.to_csv()
     path = tmp_path / "activity.csv"
     c.write(key2, path)
 
@@ -182,6 +182,10 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     # Other file extensions raise exceptions
     with pytest.raises(ValueError, match=".csv or .xlsx, not .foo"):
         c.write(key2, tmp_path / "activity.foo")
+
+    # Giving keyword arguments raises exception
+    with pytest.raises(NotImplementedError):
+        c.write(key2, tmp_path / "activity.csv", index=False)
 
     # Non-pyam objects are written using base write_file()
     c.write(ACT, tmp_path / "ACT.csv")
