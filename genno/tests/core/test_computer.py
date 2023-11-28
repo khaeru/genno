@@ -798,7 +798,7 @@ def test_file_formats(test_data_path, tmp_path):
 
     # Write to CSV
     p3 = tmp_path / "output.csv"
-    c.write(k, p3, index=True)
+    c.write(k, p3)
 
     # Output is identical to input file, except for order
     assert sorted(p1.read_text().split("\n")) == sorted(p3.read_text().split("\n"))

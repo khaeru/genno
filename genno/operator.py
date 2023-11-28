@@ -1015,24 +1015,56 @@ def _format_header_comment(value: str) -> str:
 
 @singledispatch
 def write_report(
-    quantity: pd.DataFrame, path: Union[str, PathLike], kwargs: Optional[dict] = None
+    quantity: object, path: Union[str, PathLike], kwargs: Optional[dict] = None
 ) -> None:
     """Write a quantity to a file.
+
+    :py:`write_report()` is a :func:`~functools.singledispatch` function. This means
+    that user code can extend this operator to support different types for the
+    `quantity` argument:
+
+    .. code-block:: python
+
+       import genno.operator
+
+       @genno.operator.write_report.register
+       def my_writer(qty: MyClass, path, kwargs):
+           ... # Code to write MyClass to file
 
     Parameters
     ----------
     quantity :
+        Object to be written. The base implementation supports :class:`.Quantity` and
+        :class:`pandas.DataFrame`.
     path : str or pathlib.Path
         Path to the file to be written.
     kwargs :
-        Keyword arguments. For the default implementation, these are passed to
-        :meth:~pandas.DataFrame.to_csv` or :meth:~pandas.DataFrame.to_excel` (according
+        Keyword arguments. For the base implementation, these are passed to
+        :meth:`pandas.DataFrame.to_csv` or :meth:`pandas.DataFrame.to_excel` (according
         to `path`), except for:
 
         - "header_comment": valid only for `path` ending in :file:`.csv`. Multi-line
           text that is prepended to the file, with comment characters ("# ") before
           each line.
+
+    Raises
+    ------
+    NotImplementedError
+        If `quantity` is of a type not supported by the base implementation or any
+        overloads.
     """
+    raise NotImplementedError(f"Write {type(quantity)} to file")
+
+
+@write_report.register
+def _(quantity: str, path: Union[str, PathLike], kwargs: Optional[dict] = None):
+    Path(path).write_text(quantity)
+
+
+@write_report.register
+def _(
+    quantity: pd.DataFrame, path: Union[str, PathLike], kwargs: Optional[dict] = None
+) -> None:
     path = Path(path)
 
     if path.suffix == ".csv":
@@ -1044,15 +1076,17 @@ def write_report(
             quantity.to_csv(f, **kwargs)
     elif path.suffix == ".xlsx":
         kwargs = kwargs or dict()
-        kwargs.setdefault("index", False)
         kwargs.setdefault("merge_cells", False)
+        kwargs.setdefault("index", False)
 
         quantity.to_excel(path, **kwargs)
     else:
-        path.write_text(quantity)  # type: ignore
+        raise NotImplementedError(f"Write pandas.DataFrame to {path.suffix!r}")
 
 
 @write_report.register
-def _(quantity: Quantity, path, kwargs=None) -> None:
+def _(
+    quantity: Quantity, path: Union[str, PathLike], kwargs: Optional[dict] = None
+) -> None:
     # Convert the Quantity to a pandas.DataFrame, then write
-    write_report(quantity.to_dataframe(), path, kwargs)
+    write_report(quantity.to_dataframe().reset_index(), path, kwargs)
