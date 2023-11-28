@@ -1,8 +1,12 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- :func:`.write_report` and :func:`.concat` are single-dispatch functions for simpler extension in user code (:pull:`108`).
+- New argument to :func:`.write_report`: :py:`kwargs`, including "header_comment" to write a header comment at the start of a :file:`.csv` file (:pull:`108`).
+- Fix many cross-references in the documentation (:pull:`108`).
 
 v1.20.0 (2023-10-28)
 ====================
