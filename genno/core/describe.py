@@ -83,7 +83,8 @@ def label(arg, max_length=MAX_ITEM_LENGTH) -> str:
     The label depends on the type of `arg`:
 
     - :class:`.xarray.DataArray`: the first line of the string representation.
-    - :func:`.partial` object: a less-verbose version that omits None arguments.
+    - :func:`functools.partial` object: a less-verbose version that omits None
+      arguments.
     - Item protected with :func:`.dask.core.quote`: its literal value.
     - A callable, e.g. a function: its name.
     - Anything else: its :class:`str` representation.

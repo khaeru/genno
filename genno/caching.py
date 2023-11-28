@@ -53,7 +53,7 @@ class Encoder(json.JSONEncoder):
 
     @classmethod
     def register(cls, func):
-        """Register a `func` to serialize a type not handled by :class:`.JSONEncoder`.
+        """Register `func` to serialize a type not handled by :class:`json.JSONEncoder`.
 
         `func` should return a type that *is* handled by JSONEncoder; see the docs.
 
@@ -69,12 +69,12 @@ class Encoder(json.JSONEncoder):
         return _encode.register(func)
 
     def default(self, o):
-        """For `o`, return an object serializable by the base :class:`.JSONEncoder`.
+        """For `o`, return an object serializable by the base :class:`json.JSONEncoder`.
 
         - :class:`pathlib.Path`: the string representation of `o`.
-        - :class:`code` objects (from Python's built-in :mod:`inspect` module), e.g.
-          a function or lambda: :class:`blake2b` hash of the object's bytecode and its
-          serialized constants.
+        - :ref:`python:code-objects` (from Python's built-in :mod:`inspect` module), for
+          instance a function or lambda: :func:`~hashlib.blake2b` hash of the object's
+          bytecode and its serialized constants.
 
           .. warning:: This is not 100% guaranteed to change if the operation of `o` (or
              other code called in turn by `o`) changes. If relying on this behaviour,
@@ -102,7 +102,7 @@ class Encoder(json.JSONEncoder):
 
 
 def hash_args(*args, **kwargs):
-    """Return a 20-character :class:`blake2b` hex digest of `args` and `kwargs`.
+    """Return a 20-character :func:`hashlib.blake2b` hex digest of `args` and `kwargs`.
 
     Used by :func:`.decorate`.
 
@@ -121,7 +121,7 @@ def hash_args(*args, **kwargs):
 
 
 def hash_code(func: Callable) -> str:
-    """Return the :class:`.blake2b` hex digest of the compiled bytecode of `func`.
+    """Return the :func:`hashlib.blake2b` hex digest of the compiled bytecode of `func`.
 
     See also
     --------
@@ -133,11 +133,11 @@ def hash_code(func: Callable) -> str:
 
 
 def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
-    """Return the :class:`.blake2b` hex digest of the contents of the file at `path`.
+    """Return the :func:`hashlib.blake2b` hex digest the file contents of `path`.
 
     Parameters
     ----------
-    chunk_size : int, *optional*
+    chunk_size : int, optional
         Read the file in chunks of this size; default 64 kB.
     """
     with Path(path).open("rb") as f:
@@ -154,13 +154,13 @@ def decorate(
 
     Parameters
     ----------
-    computer : Computer, *optional*
+    computer : .Computer, optional
         If supplied, the ``config`` dictionary stored in the Computer is used to look
         up values for `cache_path` and `cache_skip`, at the moment when `func` is
         called.
-    cache_path : os.Pathlike, *optional*
+    cache_path : os.PathLike, optional
         Directory in which to store cache files.
-    cache_skip : bool, *optional*
+    cache_skip : bool, optional
         If :obj:`True`, ignore existing cache entries and overwrite them with new
         values from `func`.
 

@@ -58,7 +58,7 @@ def test_dims(op, expected_dims):
     y = c.add("y:b-c", None)
 
     key = c.add("z", op, x, y)
-    print(f"{key = }")
+    # print(f"{key = }")
     assert expected_dims == key.dims
 
 
@@ -887,3 +887,29 @@ def test_sum(data, dimensions):
     result = operator.sum(x, dimensions=dimensions)
 
     assert result.name == x.name and result.units == x.units  # Pass through
+
+
+def test_write_report0(tmp_path, data) -> None:
+    p = tmp_path.joinpath("foo.txt")
+    *_, x = data
+
+    # Unsupported type
+    with pytest.raises(NotImplementedError, match="Write <class 'list'> to file"):
+        operator.write_report(list(), p)
+
+    # Unsupported path suffix
+    with pytest.raises(NotImplementedError, match="Write pandas.DataFrame to '.bar'"):
+        operator.write_report(x, tmp_path.joinpath("foo.bar"))
+
+    # Plain text
+    operator.write_report("Hello, world!", p)
+    assert "Hello, world!" == p.read_text()
+
+
+def test_write_report1(tmp_path, data) -> None:
+    p = tmp_path.joinpath("foo.csv")
+    *_, x = data
+
+    # Header comment is written
+    operator.write_report(x, p, dict(header_comment="Hello, world!\n"))
+    assert p.read_text().startswith("# Hello, world!\n#")

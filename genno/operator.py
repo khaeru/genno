@@ -4,8 +4,9 @@
 import logging
 import numbers
 import operator
+import os
 import re
-from functools import partial, reduce
+from functools import partial, reduce, singledispatch
 from itertools import chain
 from os import PathLike
 from pathlib import Path
@@ -95,15 +96,15 @@ def add_binop(func, c: "Computer", key, *quantities, **kwargs) -> Key:
 
     Parameters
     ----------
-    key : str or Key
+    key : str or .Key
         Key or name of the new quantity. If a Key, any dimensions are ignored; the
         dimensions of the result are the union of the dimensions of `quantities`.
-    sums : bool, *optional*
+    sums : bool, optional
         If :obj:`True`, all partial sums of the new quantity are also added.
 
     Returns
     -------
-    Key
+    .Key
         The full key of the new quantity.
 
     Example
@@ -146,7 +147,7 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
 
     Returns
     -------
-    Quantity
+    .Quantity
         Units are the same as the first of `quantities`.
 
     See also
@@ -329,8 +330,8 @@ def broadcast_map(
     """Broadcast `quantity` using a `map`.
 
     The `map` must be a 2-dimensional Quantity with dimensions (``d1``, ``d2``), such as
-    returned by :func:`map_as_qty`. `quantity` must also have a dimension ``d1``.
-    Typically ``len(d2) > len(d1)``.
+    returned by :func:`ixmp.report.operator.map_as_qty`. `quantity` must also have a
+    dimension ``d1``. Typically ``len(d2) > len(d1)``.
 
     `quantity` is 'broadcast' by multiplying it with `map`, and then summing on the
     common dimension ``d1``. The result has the dimensions of `quantity`, but with
@@ -338,9 +339,10 @@ def broadcast_map(
 
     Parameters
     ----------
-    rename : dict (str -> str), *optional*
-        Dimensions to rename on the result.
-    strict : bool, *optional*
+    rename : dict, optional
+        Dimensions to rename on the result; mapping from original dimension
+        (:class:`str`) to target name (:class:`str`).
+    strict : bool, optional
         Require that each element of ``d2`` is mapped from exactly 1 element of ``d1``.
     """
     if strict and int(map.sum().item()) != len(map.coords[map.dims[1]]):
@@ -354,11 +356,11 @@ def combine(
     select: Optional[List[Mapping]] = None,
     weights: Optional[List[float]] = None,
 ) -> Quantity:  # noqa: F811
-    """Sum distinct *quantities* by *weights*.
+    """Sum distinct `quantities` by `weights`.
 
     Parameters
     ----------
-    *quantities : Quantity
+    *quantities : .Quantity
         The quantities to be added.
     select : list of dict
         Elements to be selected from each quantity. Must have the same number of
@@ -370,7 +372,7 @@ def combine(
     Raises
     ------
     ValueError
-        If the *quantities* have mismatched units.
+        If the `quantities` have mismatched units.
     """
     # Handle arguments
     if select is None:
@@ -406,6 +408,7 @@ def combine(
     return result
 
 
+@singledispatch
 def concat(*objs: Quantity, **kwargs) -> Quantity:
     """Concatenate Quantity `objs`.
 
@@ -494,8 +497,8 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
 
     Parameters
     ----------
-    numerator : Quantity
-    denominator : Quantity
+    numerator : .Quantity
+    denominator : .Quantity
 
     See also
     --------
@@ -504,7 +507,7 @@ def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
     return numerator / denominator
 
 
-#: Alias of :func:`div`, for backwards compatibility.
+#: Alias of :func:`~genno.operator.div`, for backwards compatibility.
 #:
 #: .. note:: This may be deprecated and possibly removed in a future version.
 ratio = div
@@ -604,7 +607,7 @@ def load_file(
     units: Optional[UnitLike] = None,
     name: Optional[str] = None,
 ) -> Any:
-    """Read the file at `path` and return its contents as a :class:`.Quantity`.
+    """Read the file at `path` and return its contents as a :class:`~genno.Quantity`.
 
     Some file formats are automatically converted into objects for direct use in genno
     computations:
@@ -623,7 +626,7 @@ def load_file(
     ----------
     path : pathlib.Path
         Path to the file to read.
-    dims : collections.abc.Collection or collections.abc.Mapping, *optional*
+    dims : collections.abc.Collection or collections.abc.Mapping, optional
         If a collection of names, other columns besides these and 'value' are discarded.
         If a mapping, the keys are the column labels in `path`, and the values are the
         target dimension names.
@@ -659,7 +662,7 @@ def add_load_file(func, c: "Computer", path, key=None, **kwargs):
     ----------
     path : os.PathLike
         Path to the file, e.g. '/path/to/foo.ext'.
-    key : str or Key, *optional*
+    key : str or .Key, optional
         Key for the quantity read from the file.
 
     Other parameters
@@ -766,7 +769,7 @@ def mul(*quantities: Quantity) -> Quantity:
     return reduce(operator.mul, quantities)
 
 
-#: Alias of :func:`mul`, for backwards compatibility.
+#: Alias of :func:`~genno.operator.mul`, for backwards compatibility.
 #:
 #: .. note:: This may be deprecated and possibly removed in a future version.
 product = mul
@@ -777,7 +780,7 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
 
     Returns
     -------
-    Quantity
+    .Quantity
         If `b` is :class:`int` or a Quantity with all :class:`int` values that are equal
         to one another, then the quantity has the units of `a` raised to this power;
         for example, "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
@@ -893,13 +896,17 @@ def select(
 
     Parameters
     ----------
-    indexers : dict (str -> xarray.DataArray or list of str)
-        Elements to be selected from `qty`. Mapping from dimension names to coords along
-        the respective dimension of `qty`, or to xarray-style indexers. Values not
-        appearing in the dimension coords are silently ignored.
-    inverse : bool, *optional*
+    indexers : dict
+        Elements to be selected from `qty`. Mapping from dimension names (:class:`str`)
+        to either:
+
+        - :class:`list` of `str`: coords along the respective dimension of `qty`, or
+        - :class:`xarray.DataArray`: xarray-style indexers.
+
+        Values not appearing in the dimension coords are silently ignored.
+    inverse : bool, optional
         If :obj:`True`, *remove* the items in indexers instead of keeping them.
-    drop : bool, *optional*
+    drop : bool, optional
         If :obj:`True`, drop dimensions that are indexed by a scalar value (for
         instance, :py:`"foo"` or :py:`999`) in `indexers`. Note that dimensions indexed
         by a length-1 list of labels (for instance :py:`["foo"]`) are not dropped; this
@@ -957,10 +964,10 @@ def sum(
 
     Parameters
     ----------
-    weights : .Quantity, *optional*
+    weights : .Quantity, optional
         If `dimensions` is given, `weights` must have at least these dimensions.
         Otherwise, any dimensions are valid.
-    dimensions : list of str, *optional*
+    dimensions : list of str, optional
         If not provided, sum over all dimensions. If provided, sum over these
         dimensions.
     """
@@ -998,19 +1005,89 @@ def add_sum(
     return c.add(key, func, qty, weights=weights, dimensions=dimensions, **kwargs)
 
 
-def write_report(quantity: Quantity, path: Union[str, PathLike]) -> None:
+def _format_header_comment(value: str) -> str:
+    if not len(value):
+        return value
+
+    from textwrap import indent
+
+    return indent(value + os.linesep, "# ", lambda line: True)
+
+
+@singledispatch
+def write_report(
+    quantity: object, path: Union[str, PathLike], kwargs: Optional[dict] = None
+) -> None:
     """Write a quantity to a file.
+
+    :py:`write_report()` is a :func:`~functools.singledispatch` function. This means
+    that user code can extend this operator to support different types for the
+    `quantity` argument:
+
+    .. code-block:: python
+
+       import genno.operator
+
+       @genno.operator.write_report.register
+       def my_writer(qty: MyClass, path, kwargs):
+           ... # Code to write MyClass to file
 
     Parameters
     ----------
-    path : str or ~.pathlib.Path
+    quantity :
+        Object to be written. The base implementation supports :class:`.Quantity` and
+        :class:`pandas.DataFrame`.
+    path : str or pathlib.Path
         Path to the file to be written.
+    kwargs :
+        Keyword arguments. For the base implementation, these are passed to
+        :meth:`pandas.DataFrame.to_csv` or :meth:`pandas.DataFrame.to_excel` (according
+        to `path`), except for:
+
+        - "header_comment": valid only for `path` ending in :file:`.csv`. Multi-line
+          text that is prepended to the file, with comment characters ("# ") before
+          each line.
+
+    Raises
+    ------
+    NotImplementedError
+        If `quantity` is of a type not supported by the base implementation or any
+        overloads.
     """
+    raise NotImplementedError(f"Write {type(quantity)} to file")
+
+
+@write_report.register
+def _(quantity: str, path: Union[str, PathLike], kwargs: Optional[dict] = None):
+    Path(path).write_text(quantity)
+
+
+@write_report.register
+def _(
+    quantity: pd.DataFrame, path: Union[str, PathLike], kwargs: Optional[dict] = None
+) -> None:
     path = Path(path)
 
     if path.suffix == ".csv":
-        quantity.to_dataframe().to_csv(path)
+        kwargs = kwargs or dict()
+        kwargs.setdefault("index", False)
+
+        with open(path, "wb") as f:
+            f.write(_format_header_comment(kwargs.pop("header_comment", "")).encode())
+            quantity.to_csv(f, **kwargs)
     elif path.suffix == ".xlsx":
-        quantity.to_dataframe().to_excel(path, merge_cells=False)
+        kwargs = kwargs or dict()
+        kwargs.setdefault("merge_cells", False)
+        kwargs.setdefault("index", False)
+
+        quantity.to_excel(path, **kwargs)
     else:
-        path.write_text(quantity)  # type: ignore
+        raise NotImplementedError(f"Write pandas.DataFrame to {path.suffix!r}")
+
+
+@write_report.register
+def _(
+    quantity: Quantity, path: Union[str, PathLike], kwargs: Optional[dict] = None
+) -> None:
+    # Convert the Quantity to a pandas.DataFrame, then write
+    write_report(quantity.to_dataframe().reset_index(), path, kwargs)

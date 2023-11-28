@@ -1,8 +1,12 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- :func:`.write_report` and :func:`.concat` are single-dispatch functions for simpler extension in user code (:pull:`108`).
+- New argument to :func:`.write_report`: :py:`kwargs`, including "header_comment" to write a header comment at the start of a :file:`.csv` file (:pull:`108`).
+- Fix many cross-references in the documentation (:pull:`108`).
 
 v1.20.0 (2023-10-28)
 ====================
@@ -123,7 +127,7 @@ v1.17.0 (2023-05-15)
 ====================
 
 - Bug fix: genno v1.16.1 (:pull:`85`) introduced :class:`ValueError` for some usages of :func:`.computations.sum <.operator.sum>` (:pull:`88`).
-- Provide typed signatures for :meth:`Quantity.bfill`, :meth:`~Quantity.cumprod`, :meth:`~Quantity.ffill` for the benefit of downstream applications (:pull:`88`).
+- Provide typed signatures for :meth:`.Quantity.bfill`, :meth:`~.Quantity.cumprod`, :meth:`~.Quantity.ffill` for the benefit of downstream applications (:pull:`88`).
 - Ensure and test that :attr:`.Quantity.name` and :attr:`~.Quantity.units` pass through all :mod:`~genno.computations <genno.operator>`, in particular :func:`~.operator.aggregate`, :func:`~.operator.convert_units`, and :func:`~.operator.sum` (:pull:`88`).
 - Simplify arithmetic operations (:func:`~.operator.div`, :func:`~.operator.mul`, :func:`~.operator.pow`) so they are agnostic as to the :class:`.Quantity` class in use (:pull:`88`).
 - Ensure :attr:`.AttrSeries.index` is always :class:`pandas.MultiIndex` (:pull:`88`).
@@ -144,13 +148,13 @@ v1.16.0 (2023-04-29)
 - genno supports and is tested on Python 3.11 (:pull:`83`).
 - Update dependencies (:pull:`83`):
 
-  - General: :mod:`importlib_resources` (the independent backport of :mod:`importlib.resources`) is added for Python 3.9 and earlier.
+  - General: :py:`importlib_resources` (the independent backport of :mod:`importlib.resources`) is added for Python 3.9 and earlier.
   - ``genno[sparse]``: new set of optional dependencies, including :mod:`sparse`.
     Install this set in order to use :class:`.SparseDataArray` for :class:`.Quantity`.
 
-    Note that sparse depends on :mod:`numba`, and thus :mod:`llvmlite`, and both of these package can lag new Python versions by several months.
+    Note that sparse depends on :py:`numba`, and thus :py:`llvmlite`, and both of these package can lag new Python versions by several months.
     For example, as of this release, they do not yet support Python 3.11, and thus :mod:`sparse` and :class:`.SparseDataArray` can only be used with Python 3.10 and earlier.
-  - ``genno[tests]``: :mod:`ixmp` is removed; :mod:`jupyter` and :mod:`nbclient` are added.
+  - ``genno[tests]``: :mod:`ixmp` is removed; :py:`jupyter` and :py:`nbclient` are added.
     Testing utilities in :mod:`genno.testing.jupyter` are duplicated from :mod:`ixmp.testing.jupyter`.
 
 - Adjust :meth:`.AttrSeries.interp` for compatibility with pandas 2.0.0 (released 2023-04-03) (:pull:`81`).
@@ -268,7 +272,7 @@ v1.9.1 (2022-01-27)
 Note that installing ``genno[pyam]`` (including via ``genno[compat]``) currently forces the installation of an old version of :mod:`pint`; version 0.17 or earlier.
 Users wishing to use :mod:`genno.compat.pyam` should first install ``genno[pyam]``, then ``pip install --upgrade pint`` to restore a recent version of pint (0.18 or newer) that is usable with genno.
 
-- :func:`computations.concat` works with :class:`.AttrSeries` with misaligned dimensions (:pull:`53`).
+- :func:`.computations.concat <.operator.concat>` works with :class:`.AttrSeries` with misaligned dimensions (:pull:`53`).
 - Improve typing of :class:`.Quantity` and :class:`.Computer` to help with using `mypy <https://mypy.readthedocs.io>`_ on code that uses :mod:`genno` (:pull:`53`).
 
 v1.9.0 (2021-11-23)
@@ -307,7 +311,7 @@ v1.7.0 (2021-07-22)
 v1.6.0 (2021-07-07)
 ===================
 
-- Add :meth:`Key.permute_dims` (:pull:`47`).
+- Add :py:`Key.permute_dims()` (:pull:`47`).
 - Improve performance of :meth:`.Computer.check_keys` (:pull:`47`).
 
 v1.5.2 (2021-07-06)
@@ -323,9 +327,9 @@ v1.5.1 (2021-07-01)
 v1.5.0 (2021-06-27)
 ===================
 
-- Adjust :meth:`.test_assign_coords` for xarray 0.18.2 (:pull:`43`).
+- Adjust :func:`.test_assign_coords` for xarray 0.18.2 (:pull:`43`).
 - Make :attr:`.Key.dims` order-insensitive so that ``Key("foo", "ab") == Key("foo", "ba")`` (:pull:`42`); make corresponding changes to :class:`.Computer` (:pull:`44`).
-- Fix “:class:`AttributeError`: 'COO' object has no attribute 'item'” on :meth:`SparseDataArray.item` (:pull:`41`).
+- Fix “:class:`AttributeError`: 'COO' object has no attribute 'item'” on :meth:`.SparseDataArray.item` (:pull:`41`).
 
 v1.4.0 (2021-04-26)
 ===================
@@ -339,18 +343,18 @@ v1.3.0 (2021-03-22)
 
 - Bump minimum version of :mod:`sparse` from 0.10 to 0.12 and adjust to changes in this version (:pull:`39`)
 
-  - Remove :meth:`.SparseDataArray.equals`, obviated by improvements in :mod:`sparse`.
+  - Remove :py:`SparseDataArray.equals()`, obviated by improvements in :mod:`sparse`.
 
 - Improve :class:`.AttrSeries` (:pull:`39`)
 
   - Implement :meth:`~.AttrSeries.drop_vars` and :meth:`~.AttrSeries.expand_dims`.
   - :meth:`~.AttrSeries.assign_coords` can relabel an entire dimension.
-  - :meth:`~.AttrSeries.sel` can accept :class:`.DataArray` indexers and rename/combine dimensions.
+  - :meth:`~.AttrSeries.sel` can accept :class:`~xarray.DataArray` indexers and rename/combine dimensions.
 
 v1.2.1 (2021-03-08)
 ===================
 
-- Bug fix: Provide abstract :class:`.Quantity.to_series` method for type checking in packages that depend on :mod:`genno`.
+- Bug fix: Provide abstract :meth:`.Quantity.to_series` method for type checking in packages that depend on :mod:`genno`.
 
 v1.2.0 (2021-03-08)
 ===================
@@ -377,15 +381,15 @@ v1.1.0 (2021-02-16)
 v1.0.0 (2021-02-13)
 ===================
 
-- Adjust for usage by :mod:`ixmp.reporting` and :mod:`message_ix.reporting` (:pull:`28`):
+- Adjust for usage by :mod:`ixmp.reporting <ixmp.report>` and :mod:`message_ix.reporting <message_ix.report>` (:pull:`28`):
 
   - Reduce minimum Python version to 3.6.
     This is lower than the minimum version for xarray (3.7), but matches ixmp, etc.
-  - Remove :mod:`compat.ixmp`; this code has been moved to :mod:`ixmp.reporting`, replacing what was there.
-    Likewise, remove :mod:`compat.message_ix`.
+  - Remove submodule :py:`compat.ixmp`; this code has been moved to :mod:`ixmp.reporting <ixmp.report>`, replacing what was there.
+    Likewise, remove submodule :py:`compat.message_ix`.
   - Simplify the form & parsing of ``iamc:`` section entries in configuration files:
 
-    - Remove unused feature to add :func:`group_sum` to the chain of tasks.
+    - Remove unused feature to add :py:`group_sum()` to the chain of tasks.
     - Keys now conform more closely to the arguments of :meth:`.Computer.convert_pyam`.
 
   - Move argument-checking from :func:`.as_pyam` to :meth:`.convert_pyam()`.
@@ -416,11 +420,11 @@ v0.2.0 (2021-01-18)
 -------------------
 
 - Increase test coverage to 100% (:pull:`12`).
-- Port code from :mod:`message_ix.reporting` (:pull:`11`).
+- Port code from :mod:`message_ix.reporting <message_ix.report>` (:pull:`11`).
 - Add :mod:`.compat.pyam`.
 - Add a `name` parameter to :func:`.load_file`.
 
 v0.1.0 (2021-01-10)
 -------------------
 
-- Initial code port from :mod:`ixmp.reporting`.
+- Initial code port from :mod:`ixmp.reporting <ixmp.report>`.

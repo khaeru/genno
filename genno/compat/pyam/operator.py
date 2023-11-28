@@ -1,8 +1,15 @@
 import logging
 from functools import partial
-from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Collection, Iterable, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Collection,
+    Iterable,
+    Mapping,
+    Optional,
+    Union,
+)
 from warnings import warn
 
 import pyam
@@ -20,7 +27,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-__all__ = ["as_pyam", "concat", "write_report"]
+__all__ = ["as_pyam"]
 
 
 @Operator.define()
@@ -28,7 +35,7 @@ def as_pyam(
     scenario,
     quantity: "Quantity",
     *,
-    rename=dict(),
+    rename: Optional[Mapping[str, str]] = None,
     collapse: Optional[Callable] = None,
     replace=dict(),
     drop: Union[Collection[str], str] = "auto",
@@ -55,22 +62,24 @@ def as_pyam(
     Parameters
     ----------
     scenario :
-        Any object with :attr:`model` and :attr:`scenario` attributes of type
-        :class:`str`, for instance an :class:`ixmp.Scenario`.
-    rename : dict (str -> str), *optional*
-        Mapping from dimension names in `quantity` to column names; either IAMC
-        dimension names, or others that are consumed by `collapse`.
-    collapse : callable, *optional*
+        Any object with :py:`model` and :py:`scenario` attributes of type :class:`str`,
+        for instance an :class:`ixmp.Scenario` or
+        :class:`~message_ix_models.util.scenarioinfo.ScenarioInfo`.
+    rename : dict, optional
+        Mapping from dimension names in `quantity` (:class:`str`) to column names
+        (:class:`str`); either IAMC dimension names, or others that are consumed by
+        `collapse`.
+    collapse : callable, optional
         Function that takes a :class:`pandas.DataFrame` and returns the same type.
         This function **may** collapse 2 or more dimensions, for example to construct
         labels for the IAMC ``variable`` dimension, or any other.
-    replace : *optional*
+    replace : optional
         Values to be replaced and their replaced. Passed directly to
         :meth:`pandas.DataFrame.replace`.
-    drop : str or collection of str, *optional*
+    drop : str or collection of str, optional
         Columns to drop. Passed to :func:`.util.drop`, so if not given, all non-IAMC
         columns are dropped.
-    unit : str, *optional*
+    unit : str, optional
         Label for the IAMC ``unit`` dimension. Passed to
         :func:`~.pyam.util.clean_units`.
 
@@ -98,7 +107,7 @@ def as_pyam(
             model=scenario.model,
             scenario=scenario.scenario,
         )
-        .rename(columns=rename)
+        .rename(columns=rename or dict())
         .pipe(collapse or util.collapse)
         .replace(replace, regex=True)
         .pipe(util.drop, columns=drop)
@@ -131,9 +140,9 @@ def add_as_pyam(
 
     Parameters
     ----------
-    quantities : str or Key or list of (str, Key)
+    quantities : str or .Key or list of str or .Key
         Keys for quantities to transform.
-    tag : str, *optional*
+    tag : str, optional
         Tag to append to new Keys.
 
     Other parameters
@@ -143,7 +152,7 @@ def add_as_pyam(
 
     Returns
     -------
-    list of Key
+    list of .Key
         Each task converts a :class:`.Quantity` into a :class:`pyam.IamDataFrame`.
     """
     # Handle single vs. iterable of inputs
@@ -183,36 +192,50 @@ def add_as_pyam(
     return tuple(keys) if multi_arg else keys[0]
 
 
-def concat(*args, **kwargs):
-    """Concatenate *args*, which must all be :class:`pyam.IamDataFrame`.
+@genno.operator.concat.register
+def _(*args: pyam.IamDataFrame, **kwargs) -> pyam.IamDataFrame:
+    """Concatenate `args`, which must all be :class:`pyam.IamDataFrame`.
 
     Otherwise, equivalent to :func:`genno.operator.concat`.
     """
-    if isinstance(args[0], pyam.IamDataFrame):
-        # pyam.concat() takes an iterable of args
-        return pyam.concat(args, **kwargs)
-    else:
-        # genno.operator.concat() takes a variable number of positional arguments
-        return genno.operator.concat(*args, **kwargs)
+    # Use pyam.concat() top-level function
+    return pyam.concat(args, **kwargs)
 
 
-def write_report(obj, path: Union[str, PathLike]) -> None:
+@genno.operator.write_report.register
+def _(quantity: pyam.IamDataFrame, path, kwargs=None) -> None:
     """Write  `obj` to the file at `path`.
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",
     use :mod:`pyam` methods to write the file to CSV or Excel format, respectively.
     Otherwise, equivalent to :func:`genno.operator.write_report`.
     """
-    if not isinstance(obj, pyam.IamDataFrame):
-        return genno.operator.write_report(obj, path)
-
     path = Path(path)
 
+    if kwargs is not None and len(kwargs):
+        raise NotImplementedError(
+            "Keyword arguments to write_report(pyam.IamDataFrame, …)"
+        )
+
     if path.suffix == ".csv":
-        obj.to_csv(path)
+        quantity.to_csv(path)
     elif path.suffix == ".xlsx":
-        obj.to_excel(path)
+        quantity.to_excel(path)
     else:
         raise ValueError(
             f"pyam.IamDataFrame can be written to .csv or .xlsx, not {path.suffix}"
         )
+
+
+def __getattr__(name: str):
+    if name in ("concat", "write_report"):
+        warn(
+            f"Importing {name!r} from genno.compat.pyam.operator; import from "
+            "genno.operator instead.",
+            DeprecationWarning,
+            2,
+        )
+
+        return getattr(genno.operator, name)
+    else:
+        raise AttributeError(name)

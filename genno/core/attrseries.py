@@ -99,10 +99,10 @@ class AttrSeries(pd.Series, Quantity):
 
     Parameters
     ----------
-    units : str or pint.Unit, *optional*
+    units : str or pint.Unit, optional
         Set the units attribute. The value is converted to :class:`pint.Unit` and added
         to `attrs`.
-    attrs : :class:`~collections.abc.Mapping`, *optional*
+    attrs : :class:`~collections.abc.Mapping`, optional
         Set the :attr:`~pandas.Series.attrs` of the AttrSeries. This attribute was added
         in `pandas 1.0 <https://pandas.pydata.org/docs/whatsnew/v1.0.0.html>`_, but is
         not currently supported by the Series constructor.

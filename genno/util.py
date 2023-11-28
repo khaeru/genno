@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 #: - The '%' symbol cannot be supported by pint, because it is a Python operator; it is
 #:   replaced with “percent”.
 #:
-#: Additional values can be added with :func:`configure`; see :ref:`config-units`.
+#: Additional values can be added with :func:`.configure`; see :ref:`config-units`.
 REPLACE_UNITS = {
     "%": "percent",
 }
@@ -176,7 +176,7 @@ def free_parameters(func: Callable) -> Mapping:
     """Retrieve information on the free parameters of `func`.
 
     Identical to :py:`inspect.signature(func).parameters`; that is, to
-    :attr:`inspect.Signature.parameters`. :func:`free_pars` also:
+    :attr:`inspect.Signature.parameters`. :py:`free_parameters` also:
 
     - Handles functions that have been :func:`functools.partial`'d, returning only the
       parameters that have *not* already been assigned a value by the

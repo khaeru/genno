@@ -80,12 +80,14 @@ class Graph(dict):
             return False
 
     def pop(self, *args):
+        """Overload :meth:`dict.pop` to also call :meth:`_deindex`."""
         try:
             return super().pop(*args)
         finally:
             self._deindex(args[0])
 
     def update(self, arg=None, **kwargs):
+        """Overload :meth:`dict.pop` to also call :meth:`_index`."""
         if isinstance(arg, (Sequence, Generator)):
             arg0, arg1 = tee(arg)
             arg_keys = map(itemgetter(0), arg0)
@@ -114,14 +116,14 @@ class Graph(dict):
 
         Parameters
         ----------
-        dims : list of str, *optional*
+        dims : list of str, optional
             Drop all but these dimensions from the returned key(s).
 
         Returns
         -------
         str
             If `key` is not found in the Graph.
-        Key
+        .Key
             `key` with either its full dimensions (cf. :meth:`full_key`) or, if `dims`
             are given, with only these dims.
         """

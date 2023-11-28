@@ -26,21 +26,20 @@ extensions = [
     "sphinx.ext.viewcode",
 ]
 
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
-
 # List of patterns, relative to source directory, that match files and directories to
 # ignore when looking for source files. This pattern also affects html_static_path and
 # html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+nitpicky = True
 
 rst_prolog = """
 .. role:: py(code)
    :language: python
-
-.. |KeyLike| replace:: :obj:`~genno.core.key.KeyLike`
 """
+
+# Paths that contain templates, relative to the current directory.
+templates_path = ["_templates"]
 
 
 def setup(app):
@@ -89,19 +88,41 @@ extlinks_detect_hardcoded_links = False
 # -- Options for sphinx.ext.intersphinx ------------------------------------------------
 
 intersphinx_mapping = {
-    "dask": ("https://docs.dask.org/en/stable/", None),
+    "dask": ("https://docs.dask.org/en/stable", None),
     "ixmp": ("https://docs.messageix.org/projects/ixmp/en/latest", None),
-    "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
-    "graphviz": ("https://graphviz.readthedocs.io/en/stable/", None),
+    "joblib": ("https://joblib.readthedocs.io/en/latest", None),
+    "graphviz": ("https://graphviz.readthedocs.io/en/stable", None),
     "message_ix": ("https://docs.messageix.org/en/latest", None),
-    "pandas": ("https://pandas.pydata.org/docs/", None),
-    "pint": ("https://pint.readthedocs.io/en/stable/", None),
-    "plotnine": ("https://plotnine.readthedocs.io/en/stable/", None),
-    "pyam": ("https://pyam-iamc.readthedocs.io/en/stable/", None),
-    "python": ("https://docs.python.org/3/", None),
+    "message-ix-models": ("https://docs.messageix.org/projects/models/en/latest", None),
+    "nbclient": ("https://nbclient.readthedocs.io/en/latest", None),
+    "nbformat": ("https://nbformat.readthedocs.io/en/latest", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "pandas": ("https://pandas.pydata.org/docs", None),
+    "pint": ("https://pint.readthedocs.io/en/stable", None),
+    "plotnine": ("https://plotnine.readthedocs.io/en/stable", None),
+    "pyam": ("https://pyam-iamc.readthedocs.io/en/stable", None),
+    "python": ("https://docs.python.org/3", None),
     "sdmx1": ("https://sdmx1.readthedocs.io/en/stable", None),
     "sparse": ("https://sparse.pydata.org/en/stable", None),
-    "xarray": ("https://docs.xarray.dev/en/stable/", None),
+    "xarray": ("https://docs.xarray.dev/en/stable", None),
+}
+
+# -- Options for sphinx.ext.napoleon ---------------------------------------------------
+
+napoleon_preprocess_types = True
+napoleon_type_aliases = {
+    # Standard library
+    "callable": "typing.Callable",
+    "collection": "collections.abc.Collection",
+    "hashable": "collections.abc.Hashable",
+    "iterable": "collections.abc.Iterable",
+    "mapping": "collections.abc.Mapping",
+    "sequence": "collections.abc.Sequence",
+    "Path": "pathlib.Path",
+    # This package
+    "KeyLike": "genno.core.key.KeyLike",
+    # Others
+    "Code": "sdmx.model.common.Code",
 }
 
 # -- Options for sphinx.ext.todo -------------------------------------------------------

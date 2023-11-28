@@ -4,7 +4,7 @@
 **genno** is a Python package for describing and executing complex calculations on labelled, multi-dimensional data.
 It aims to make these calculations efficient, transparent, and easily validated as part of scientific research.
 
-genno is built on high-quality Python data packages including ``dask``, ``xarray``, and ``pint``; and provides (current or planned) compatibility with packages including ``pandas``, ``matplotlib``, ``plotnine``, ``ixmp``, ``sdmx1``, and ``pyam``.
+genno is built on high-quality Python data packages including :py:`dask`, :mod:`xarray`, and ```pint``; and provides (current or planned) compatibility with packages including :mod:`pandas`, :mod:`matplotlib`, :mod:`plotnine <.compat.plotnine>`, :mod:`ixmp`, :mod:`sdmx1 <.compat.sdmx>`, and :mod:`pyam <.compat.pyam>`.
 
 .. toctree::
    :maxdepth: 2
@@ -22,9 +22,9 @@ Compatibility
 
 :mod:`.genno` provides built-in support for interaction with:
 
-- :doc:`Plotnine <compat-plotnine>` (:mod:`.plotnine`), via :mod:`.compat.plotnine`.
-- :doc:`Pyam <compat-pyam>` (:mod:`.pyam`), via :mod:`.compat.pyam`.
-- :doc:`SDMX <compat-sdmx>` (:mod:`.sdmx`), via :mod:`.compat.sdmx`.
+- :doc:`Plotnine <compat-plotnine>` (:mod:`plotnine`), via :mod:`.compat.plotnine`.
+- :doc:`Pyam <compat-pyam>` (:mod:`pyam`), via :mod:`.compat.pyam`.
+- :doc:`SDMX <compat-sdmx>` (:mod:`sdmx`), via :mod:`.compat.sdmx`.
 
 .. toctree::
    :maxdepth: 1
@@ -37,8 +37,8 @@ Compatibility
 
 Packages that extend :mod:`genno` include:
 
-- :mod:`ixmp.reporting`
-- :mod:`message_ix.reporting`
+- :mod:`ixmp.report`
+- :mod:`message_ix.report`
 
 .. toctree::
    :maxdepth: 2

@@ -82,7 +82,7 @@ class SparseAccessor:
 
     @property
     def dense(self):
-        """Return a copy with dense (:class:`.ndarray`) data."""
+        """Return a copy with dense (:class:`numpy.ndarray`) data."""
         try:
             # Use existing method xr.Variable._to_dense()
             return self.da._replace(variable=self.da.variable._to_dense())
@@ -92,7 +92,7 @@ class SparseAccessor:
 
     @property
     def dense_super(self):
-        """Return a proxy to a :class:`.ndarray`-backed :class:`.DataArray`."""
+        """Return a proxy to a :class:`numpy.ndarray`-backed :class:`xarray.DataArray`."""
         return super(SparseDataArray, self.dense)
 
 
@@ -118,10 +118,11 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
     """:class:`~xarray.DataArray` with sparse data.
 
     SparseDataArray uses :class:`sparse.COO` for storage with :data:`numpy.nan`
-    as its :attr:`sparse.COO.fill_value`. Some methods of :class:`~xarray.DataArray`
-    are overridden to ensure data is in sparse, or dense, format as necessary, to
-    provide expected functionality not currently supported by :mod:`sparse`, and to
-    avoid exhausting memory for some operations that require dense data.
+    as its :attr:`sparse.SparseArray.fill_value`. Some methods of
+    :class:`~xarray.DataArray` are overridden to ensure data is in sparse, or dense,
+    format as necessary, to provide expected functionality not currently supported by
+    :mod:`sparse`, and to avoid exhausting memory for some operations that require dense
+    data.
     """
 
     __slots__: Tuple[str, ...] = tuple()
@@ -245,7 +246,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         name: Optional[Hashable] = None,
         dim_order: Optional[Sequence[Hashable]] = None,
     ) -> pd.DataFrame:
-        """Convert this array and its coords into a :class:`~xarray.DataFrame`.
+        """Convert this array and its coords into a :class:`pandas.DataFrame`.
 
         Overrides :meth:`~xarray.DataArray.to_dataframe`.
         """

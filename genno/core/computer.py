@@ -1,12 +1,13 @@
 import logging
+import types
 from collections import deque
-from functools import partial
+from functools import lru_cache, partial
 from importlib import import_module
 from inspect import signature
 from itertools import compress
 from pathlib import Path
-from types import ModuleType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -21,7 +22,7 @@ from typing import (
     Union,
     cast,
 )
-from warnings import warn
+from warnings import catch_warnings, warn
 
 import dask
 import pint
@@ -38,6 +39,11 @@ from .exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .graph import Graph
 from .key import Key, KeyLike
 
+if TYPE_CHECKING:
+    import genno.core.graph
+    import genno.core.key
+
+
 log = logging.getLogger(__name__)
 
 
@@ -51,18 +57,18 @@ class Computer:
     """
 
     #: A dask-format graph (see :doc:`1 <dask:graphs>`, :doc:`2 <dask:spec>`).
-    graph: Graph = Graph(config=dict())
+    graph: "genno.core.graph.Graph" = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
-    default_key: Optional[KeyLike] = None
+    default_key: Optional["genno.core.key.KeyLike"] = None
 
     #: List of modules containing operators.
     #:
     #: By default, this includes the :mod:`genno` built-in operators in
     #: :mod:`genno.operator`. :meth:`require_compat` appends additional modules,
-    #: for instance :mod:`.compat.pyam.operator`, to this list. User code may also add
+    #: for instance :mod:`genno.compat.plotnine`, to this list. User code may also add
     #: modules to this list directly.
-    modules: MutableSequence[ModuleType] = []
+    modules: MutableSequence[types.ModuleType] = []
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
     # element is current; the leftmost is the default.
@@ -108,9 +114,9 @@ class Computer:
 
         Parameters
         ----------
-        path : .Path, *optional*
+        path : pathlib.Path, optional
             Path to a configuration file in JSON or YAML format.
-        fail : "raise" or str or :mod:`logging` level, *optional*
+        fail : "raise" or str or :mod:`logging` level, optional
             Passed to :meth:`.add_queue`. If not "raise", then log messages are
             generated for config handlers that fail. The Computer may be only partially
             configured.
@@ -149,23 +155,39 @@ class Computer:
 
         Returns
         -------
-        .callable
+        callable
         None
             If there is no callable with the given `name` in any of :attr:`modules`.
         """
+        if not isinstance(name, str):
+            # `name` is not a string; can't be the name of a function/class/object
+            return None
+
+        # Cached call with `name` guaranteed to be hashable
+        return self._get_operator(name)
+
+    @lru_cache()
+    def _get_operator(self, name: str) -> Optional[Callable]:
         for module in reversed(self.modules):
             try:
-                return getattr(module, name)
+                # Retrieve the operator from `module`
+                with catch_warnings(record=True) as cw:
+                    result = getattr(module, name)
             except AttributeError:
                 continue  # `name` not in this module
-            except TypeError:
-                return None  # `name` is not a string; can't be the name of a function
+            else:
+                if len(cw):
+                    continue  # Some DeprecationWarning raised; don't use this import
+                else:
+                    return result
+
+        # Nothing found
         return None
 
     #: Alias of :meth:`get_operator`.
     get_comp = get_operator
 
-    def require_compat(self, pkg: Union[str, ModuleType]):
+    def require_compat(self, pkg: Union[str, types.ModuleType]):
         """Register a module for :meth:`get_operator`.
 
         The specified module is appended to :attr:`modules`.
@@ -203,7 +225,7 @@ class Computer:
         >>> c.require_compat(mod)
 
         """
-        if isinstance(pkg, ModuleType):
+        if isinstance(pkg, types.ModuleType):
             mod = pkg
         elif "." in pkg:
             mod = import_module(pkg)
@@ -220,6 +242,10 @@ class Computer:
         if mod not in self.modules:
             self.modules.append(mod)
 
+            # Clear the lookup cache
+            # TODO also clear on manual changes to self.modules
+            self._get_operator.cache_clear()
+
     # Add computations to the Computer
 
     def add(self, data, *args, **kwargs) -> Union[KeyLike, Tuple[KeyLike, ...]]:
@@ -231,7 +257,7 @@ class Computer:
 
         Returns
         -------
-        |KeyLike| or tuple of |KeyLike|
+        KeyLike or tuple of KeyLike
             Some or all of the keys added to the Computer.
 
         See also
@@ -275,7 +301,7 @@ class Computer:
         if func:
             try:
                 # Use an implementation of Computation.add_task()
-                return func.add_tasks(self, *args, **kwargs)  # type: ignore[union-attr]
+                return func.add_tasks(self, *args, **kwargs)  # type: ignore [attr-defined]
             except (AttributeError, NotImplementedError):
                 # Computation obj that doesn't implement .add_tasks(), or plain callable
                 _partialed_func, kw = partial_split(func, kwargs)
@@ -322,12 +348,13 @@ class Computer:
 
         Parameters
         ----------
-        queue : iterable of 2- or N-:class:`tuple`
-            The members of each tuple are the arguments (:class:`tuple`) and,
-            optionally, keyword arguments (e.g :class:`dict`) to :meth:`add`.
-        max_tries : int, *optional*
+        queue : iterable of tuple
+            Each item is either a N-:class:`tuple` of positional arguments to
+            :meth:`add`, or a 2-:class:`tuple` of (:class:`.tuple` of positional
+            arguments, :class:`dict` of keyword arguments).
+        max_tries : int, optional
             Retry adding elements up to this many times.
-        fail : "raise" or str or :mod:`logging` level, *optional*
+        fail : "raise" or str or :mod:`logging` level, optional
             Action to take when a computation from `queue` cannot be added after
             `max_tries`: "raise" an exception, or log messages on the indicated level
             and continue.
@@ -414,20 +441,20 @@ class Computer:
             A string, Key, or other value identifying the output of `computation`.
         computation : object
             Any computation. See :attr:`graph`.
-        strict : bool, *optional*
+        strict : bool, optional
             If True, `key` must not already exist in the Computer, and any keys
             referred to by `computation` must exist.
-        index : bool, *optional*
+        index : bool, optional
             If True, `key` is added to the index as a full-resolution key, so it can be
             later retrieved with :meth:`full_key`.
 
         Raises
         ------
-        KeyExistsError
+        ~genno.KeyExistsError
             If `strict` is :obj:`True` and either (a) `key` already exists; or (b)
             `sums` is :obj:`True` and the key for one of the partial sums of `key`
             already exists.
-        MissingKeyError
+        ~genno.MissingKeyError
             If `strict` is :obj:`True` and any key referred to by `computation` does
             not exist.
         """
@@ -483,7 +510,7 @@ class Computer:
 
         Parameters
         ----------
-        generator : .callable
+        generator : callable
             Function to apply to `keys`. This function **may** take a first positional
             argument annotated with :class:`.Computer` or a subtype; if so, then it is
             provided with a reference to `self`.
@@ -588,7 +615,7 @@ class Computer:
 
         Parameters
         ----------
-        key : str, *optional*
+        key : str, optional
             If not provided, :attr:`default_key` is used.
 
         Raises
@@ -626,7 +653,7 @@ class Computer:
     # Convenience methods for the graph and its keys
 
     def keys(self):
-        """Return the keys of :attr:`graph`."""
+        """Return the keys of :attr:`~genno.Computer.graph`."""
         return self.graph.keys()
 
     def full_key(self, name_or_key: KeyLike) -> KeyLike:
@@ -656,16 +683,16 @@ class Computer:
 
         Parameters
         ----------
-        keys : |KeyLike|
+        keys : KeyLike
             Some :class:`Keys <Key>` or strings.
-        predicate : callable, *optional*
+        predicate : callable, optional
             Function to run on each of `keys`; see below.
-        action : "raise" or any other value
+        action : "raise" or str
             Action to take on missing `keys`.
 
         Returns
         -------
-        list of |KeyLike|
+        list of KeyLike
             One item for each item ``k`` in `keys`:
 
             1. ``k`` itself, unchanged, if `predicate` is given and ``predicate(k)``
@@ -678,7 +705,7 @@ class Computer:
 
         Raises
         ------
-        MissingKeyError
+        ~genno.MissingKeyError
             If `action` is "raise" and 1 or more of `keys` do not appear (either in
             different dimension order, or full dimensionality) in the :attr:`graph`.
         """
@@ -728,16 +755,16 @@ class Computer:
 
         Parameters
         ----------
-        key_or_keys : |KeyLike| or list of |KeyLike|
-        dims : list of str, *optional*
+        key_or_keys : KeyLike or list of KeyLike
+        dims : list of str, optional
             Drop all but these dimensions from the returned key(s).
 
         Returns
         -------
-        |KeyLike|
-            If `key_or_keys` is a single |KeyLike|.
-        list of |KeyLike|
-            If `key_or_keys` is an iterable of |KeyLike|.
+        KeyLike
+            If `key_or_keys` is a single KeyLike.
+        list of KeyLike
+            If `key_or_keys` is an iterable of KeyLike.
         """
         single = isinstance(key_or_keys, (Key, Hashable))
         keys = [key_or_keys] if single else tuple(cast(Iterable, key_or_keys))
@@ -796,11 +823,11 @@ class Computer:
 
         return visualize(dsk, filename=filename, **kwargs)
 
-    def write(self, key, path):
+    def write(self, key, path, **kwargs):
         """Compute `key` and write the result directly to `path`."""
         # Call the method directly without adding it to the graph
         key = self.check_keys(key)[0]
-        self.get_operator("write_report")(self.get(key), path)
+        self.get_operator("write_report")(self.get(key), path, kwargs)
 
     @property
     def unit_registry(self):
@@ -832,7 +859,7 @@ class Computer:
         """Deprecated.
 
         .. deprecated:: 1.18.0
-           Instead use :func:`.add_mul` via:
+           Instead use :func:`.add_binop` via:
 
            .. code-block:: python
 
@@ -882,13 +909,13 @@ class Computer:
             quantity.
         dims_or_groups: str or iterable of str or dict
             Name(s) of the dimension(s) to sum over, or nested dict.
-        weights : :class:`xarray.DataArray`, *optional*
+        weights : :class:`xarray.DataArray`, optional
             Weights for weighted aggregation.
-        keep : bool, *optional*
+        keep : bool, optional
             Passed to :meth:`operator.aggregate <genno.operator.aggregate>`.
-        sums : bool, *optional*
+        sums : bool, optional
             Passed to :meth:`add`.
-        fail : str or int, *optional*
+        fail : str or int, optional
             Passed to :meth:`add_queue` via :meth:`add`.
 
         Returns
