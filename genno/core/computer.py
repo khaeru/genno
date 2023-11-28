@@ -1,12 +1,13 @@
 import logging
+import types
 from collections import deque
 from functools import lru_cache, partial
 from importlib import import_module
 from inspect import signature
 from itertools import compress
 from pathlib import Path
-from types import ModuleType
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Hashable,
@@ -38,6 +39,11 @@ from .exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .graph import Graph
 from .key import Key, KeyLike
 
+if TYPE_CHECKING:
+    import genno.core.graph
+    import genno.core.key
+
+
 log = logging.getLogger(__name__)
 
 
@@ -51,18 +57,18 @@ class Computer:
     """
 
     #: A dask-format graph (see :doc:`1 <dask:graphs>`, :doc:`2 <dask:spec>`).
-    graph: Graph = Graph(config=dict())
+    graph: "genno.core.graph.Graph" = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
-    default_key: Optional[KeyLike] = None
+    default_key: Optional["genno.core.key.KeyLike"] = None
 
     #: List of modules containing operators.
     #:
     #: By default, this includes the :mod:`genno` built-in operators in
     #: :mod:`genno.operator`. :meth:`require_compat` appends additional modules,
-    #: for instance :mod:`.compat.pyam.operator`, to this list. User code may also add
+    #: for instance :mod:`genno.compat.plotnine`, to this list. User code may also add
     #: modules to this list directly.
-    modules: MutableSequence[ModuleType] = []
+    modules: MutableSequence[types.ModuleType] = []
 
     # Action to take on failed items on add_queue(). This is a stack; the rightmost
     # element is current; the leftmost is the default.
@@ -181,7 +187,7 @@ class Computer:
     #: Alias of :meth:`get_operator`.
     get_comp = get_operator
 
-    def require_compat(self, pkg: Union[str, ModuleType]):
+    def require_compat(self, pkg: Union[str, types.ModuleType]):
         """Register a module for :meth:`get_operator`.
 
         The specified module is appended to :attr:`modules`.
@@ -219,7 +225,7 @@ class Computer:
         >>> c.require_compat(mod)
 
         """
-        if isinstance(pkg, ModuleType):
+        if isinstance(pkg, types.ModuleType):
             mod = pkg
         elif "." in pkg:
             mod = import_module(pkg)
@@ -444,11 +450,11 @@ class Computer:
 
         Raises
         ------
-        KeyExistsError
+        ~genno.KeyExistsError
             If `strict` is :obj:`True` and either (a) `key` already exists; or (b)
             `sums` is :obj:`True` and the key for one of the partial sums of `key`
             already exists.
-        MissingKeyError
+        ~genno.MissingKeyError
             If `strict` is :obj:`True` and any key referred to by `computation` does
             not exist.
         """
@@ -699,7 +705,7 @@ class Computer:
 
         Raises
         ------
-        MissingKeyError
+        ~genno.MissingKeyError
             If `action` is "raise" and 1 or more of `keys` do not appear (either in
             different dimension order, or full dimensionality) in the :attr:`graph`.
         """

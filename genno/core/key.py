@@ -271,7 +271,7 @@ class Key:
 
     @property
     def sorted(self) -> "Key":
-        """A version of the Key with its :attr:`dims` :func:`sorted`."""
+        """A version of the Key with its :attr:`.dims` :func:`sorted`."""
         return Key(self._name, sorted(self._dims), self._tag, _fast=True)
 
     def rename(self, name: str) -> "Key":
