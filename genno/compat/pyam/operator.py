@@ -35,7 +35,7 @@ def as_pyam(
     scenario,
     quantity: "Quantity",
     *,
-    rename=Mapping[str, str],
+    rename: Optional[Mapping[str, str]] = None,
     collapse: Optional[Callable] = None,
     replace=dict(),
     drop: Union[Collection[str], str] = "auto",
@@ -107,7 +107,7 @@ def as_pyam(
             model=scenario.model,
             scenario=scenario.scenario,
         )
-        .rename(columns=rename)
+        .rename(columns=rename or dict())
         .pipe(collapse or util.collapse)
         .replace(replace, regex=True)
         .pipe(util.drop, columns=drop)
