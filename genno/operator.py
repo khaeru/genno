@@ -4,6 +4,7 @@
 import logging
 import numbers
 import operator
+import os
 import re
 from functools import partial, reduce, singledispatch
 from itertools import chain
@@ -1010,7 +1011,7 @@ def _format_header_comment(value: str) -> str:
 
     from textwrap import indent
 
-    return indent(value + "\n", "# ", lambda line: True)
+    return indent(value + os.linesep, "# ", lambda line: True)
 
 
 @singledispatch
@@ -1071,8 +1072,8 @@ def _(
         kwargs = kwargs or dict()
         kwargs.setdefault("index", False)
 
-        with open(path, "w") as f:
-            f.write(_format_header_comment(kwargs.pop("header_comment", "")))
+        with open(path, "wb") as f:
+            f.write(_format_header_comment(kwargs.pop("header_comment", "")).encode())
             quantity.to_csv(f, **kwargs)
     elif path.suffix == ".xlsx":
         kwargs = kwargs or dict()
