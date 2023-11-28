@@ -1,7 +1,15 @@
 import logging
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Collection, Iterable, Optional, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Collection,
+    Iterable,
+    Mapping,
+    Optional,
+    Union,
+)
 from warnings import warn
 
 import pyam
@@ -27,7 +35,7 @@ def as_pyam(
     scenario,
     quantity: "Quantity",
     *,
-    rename=dict(),
+    rename=Mapping[str, str],
     collapse: Optional[Callable] = None,
     replace=dict(),
     drop: Union[Collection[str], str] = "auto",
@@ -54,22 +62,24 @@ def as_pyam(
     Parameters
     ----------
     scenario :
-        Any object with :attr:`model` and :attr:`scenario` attributes of type
-        :class:`str`, for instance an :class:`ixmp.Scenario`.
-    rename : dict (str -> str), *optional*
-        Mapping from dimension names in `quantity` to column names; either IAMC
-        dimension names, or others that are consumed by `collapse`.
-    collapse : callable, *optional*
+        Any object with :py:`model` and :py:`scenario` attributes of type :class:`str`,
+        for instance an :class:`ixmp.Scenario` or
+        :class:`~message_ix_models.util.scenarioinfo.ScenarioInfo`.
+    rename : dict, optional
+        Mapping from dimension names in `quantity` (:class:`str`) to column names
+        (:class:`str`); either IAMC dimension names, or others that are consumed by
+        `collapse`.
+    collapse : callable, optional
         Function that takes a :class:`pandas.DataFrame` and returns the same type.
         This function **may** collapse 2 or more dimensions, for example to construct
         labels for the IAMC ``variable`` dimension, or any other.
-    replace : *optional*
+    replace : optional
         Values to be replaced and their replaced. Passed directly to
         :meth:`pandas.DataFrame.replace`.
-    drop : str or collection of str, *optional*
+    drop : str or collection of str, optional
         Columns to drop. Passed to :func:`.util.drop`, so if not given, all non-IAMC
         columns are dropped.
-    unit : str, *optional*
+    unit : str, optional
         Label for the IAMC ``unit`` dimension. Passed to
         :func:`~.pyam.util.clean_units`.
 
@@ -130,9 +140,9 @@ def add_as_pyam(
 
     Parameters
     ----------
-    quantities : str or Key or list of (str, Key)
+    quantities : str or .Key or list of str or .Key
         Keys for quantities to transform.
-    tag : str, *optional*
+    tag : str, optional
         Tag to append to new Keys.
 
     Other parameters
@@ -142,7 +152,7 @@ def add_as_pyam(
 
     Returns
     -------
-    list of Key
+    list of .Key
         Each task converts a :class:`.Quantity` into a :class:`pyam.IamDataFrame`.
     """
     # Handle single vs. iterable of inputs

@@ -287,6 +287,7 @@ Top-level classes and functions
 
 .. autoclass:: genno.Quantity
    :members:
+   :inherited-members: pipe, shape, size
 
 The :class:`.Quantity` constructor converts its arguments to an internal, :class:`xarray.DataArray`-like data format:
 
@@ -424,3 +425,6 @@ Utilities for testing
 .. automodule:: genno.testing
    :members:
    :exclude-members: parametrize_quantity_class
+
+.. automodule:: genno.testing.jupyter
+   :members:

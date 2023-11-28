@@ -85,6 +85,7 @@ class DataArrayLike(Generic[T]):
 
     @property
     def data(self) -> Any:
+        """Like :attr:`xarray.DataArray.data`."""
         return NotImplemented
 
     @property
@@ -99,10 +100,12 @@ class DataArrayLike(Generic[T]):
 
     @property
     def shape(self) -> Tuple[int, ...]:
+        """Like :attr:`xarray.DataArray.shape`."""
         return NotImplemented
 
     @property
     def size(self) -> int:
+        """Like :attr:`xarray.DataArray.size`."""
         return NotImplemented
 
     def assign_coords(
@@ -122,6 +125,7 @@ class DataArrayLike(Generic[T]):
         copy=None,
         keep_attrs=True,
     ):
+        """Like :meth:`xarray.DataArray.astype`."""
         ...
 
     def bfill(
@@ -129,6 +133,7 @@ class DataArrayLike(Generic[T]):
         dim: Hashable,
         limit: Optional[int] = None,
     ):
+        """Like :meth:`xarray.DataArray.bfill`."""
         ...
 
     def copy(
@@ -146,6 +151,7 @@ class DataArrayLike(Generic[T]):
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
     ):
+        """Like :meth:`xarray.DataArray.cumprod`."""
         ...
 
     def drop_vars(
@@ -169,6 +175,7 @@ class DataArrayLike(Generic[T]):
         dim: Hashable,
         limit: Optional[int] = None,
     ):
+        """Like :meth:`xarray.DataArray.ffill`."""
         return NotImplemented
 
     def groupby(
@@ -198,6 +205,7 @@ class DataArrayLike(Generic[T]):
         *args: Any,
         **kwargs: Any,
     ) -> T:
+        """Like :meth:`xarray.DataArray.pipe`."""
         return NotImplemented
 
     def rename(
@@ -226,6 +234,7 @@ class DataArrayLike(Generic[T]):
         fill_value: Any = None,
         **shifts_kwargs: int,
     ):
+        """Like :attr:`xarray.DataArray.shift`."""
         ...
 
     def sum(

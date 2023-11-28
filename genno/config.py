@@ -43,7 +43,7 @@ def configure(path: Optional[Union[Path, str]] = None, **config):
 
     Parameters
     ----------
-    path : pathlib.Path, *optional*
+    path : pathlib.Path, optional
         Path to a configuration file in JSON or YAML format.
     **config :
         Configuration keys/sections and values.
@@ -62,11 +62,11 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     section_name: str
         The name of the configuration section to handle. Using a name already present
         in :data:`HANDLERS` overrides that handler.
-    iterate : bool, *optional*
+    iterate : bool, optional
         If :obj:`True`, the handler is called once for each item (either list item, or
         (key, value) tuple) in the section. If :obj:`False`, the entire section
         contents, of whatever type, are passed to tha handler.
-    discard : bool, *optional*
+    discard : bool, optional
         If :obj:`True`, configuration section data is discarded after the handler is
         called. If :obj:`False`, the data is retained and stored on the Computer.
     """
@@ -264,6 +264,8 @@ def files(c: Computer, info):
 def general(c: Computer, info):
     """Handle one entry from the ``general:`` config section."""
     # Inputs
+    # TODO allow to specify a more narrow key and *not* have infer_keys applied; perhaps
+    #      using "*"
     inputs = c.infer_keys(info.get("inputs", []))
 
     if info["comp"] in ("mul", "product"):

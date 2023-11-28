@@ -45,10 +45,8 @@ Pyam (:mod:`.compat.pyam`)
 
       as_pyam
       add_as_pyam
-      concat
-      write_report
 
-   .. .. autofunction:: as_pyam
+   This module also registers implementations of :func:`.concat` and :func:`.write_report` that handle :class:`pyam.IamDataFrame` objects.
 
    .. autofunction:: add_as_pyam
 

@@ -108,9 +108,9 @@ class Computer:
 
         Parameters
         ----------
-        path : .Path, *optional*
+        path : pathlib.Path, optional
             Path to a configuration file in JSON or YAML format.
-        fail : "raise" or str or :mod:`logging` level, *optional*
+        fail : "raise" or str or :mod:`logging` level, optional
             Passed to :meth:`.add_queue`. If not "raise", then log messages are
             generated for config handlers that fail. The Computer may be only partially
             configured.
@@ -149,7 +149,7 @@ class Computer:
 
         Returns
         -------
-        .callable
+        callable
         None
             If there is no callable with the given `name` in any of :attr:`modules`.
         """
@@ -251,7 +251,7 @@ class Computer:
 
         Returns
         -------
-        |KeyLike| or tuple of |KeyLike|
+        KeyLike or tuple of KeyLike
             Some or all of the keys added to the Computer.
 
         See also
@@ -342,12 +342,13 @@ class Computer:
 
         Parameters
         ----------
-        queue : iterable of 2- or N-:class:`tuple`
-            The members of each tuple are the arguments (:class:`tuple`) and,
-            optionally, keyword arguments (e.g :class:`dict`) to :meth:`add`.
-        max_tries : int, *optional*
+        queue : iterable of tuple
+            Each item is either a N-:class:`tuple` of positional arguments to
+            :meth:`add`, or a 2-:class:`tuple` of (:class:`.tuple` of positional
+            arguments, :class:`dict` of keyword arguments).
+        max_tries : int, optional
             Retry adding elements up to this many times.
-        fail : "raise" or str or :mod:`logging` level, *optional*
+        fail : "raise" or str or :mod:`logging` level, optional
             Action to take when a computation from `queue` cannot be added after
             `max_tries`: "raise" an exception, or log messages on the indicated level
             and continue.
@@ -434,10 +435,10 @@ class Computer:
             A string, Key, or other value identifying the output of `computation`.
         computation : object
             Any computation. See :attr:`graph`.
-        strict : bool, *optional*
+        strict : bool, optional
             If True, `key` must not already exist in the Computer, and any keys
             referred to by `computation` must exist.
-        index : bool, *optional*
+        index : bool, optional
             If True, `key` is added to the index as a full-resolution key, so it can be
             later retrieved with :meth:`full_key`.
 
@@ -503,7 +504,7 @@ class Computer:
 
         Parameters
         ----------
-        generator : .callable
+        generator : callable
             Function to apply to `keys`. This function **may** take a first positional
             argument annotated with :class:`.Computer` or a subtype; if so, then it is
             provided with a reference to `self`.
@@ -608,7 +609,7 @@ class Computer:
 
         Parameters
         ----------
-        key : str, *optional*
+        key : str, optional
             If not provided, :attr:`default_key` is used.
 
         Raises
@@ -646,7 +647,7 @@ class Computer:
     # Convenience methods for the graph and its keys
 
     def keys(self):
-        """Return the keys of :attr:`graph`."""
+        """Return the keys of :attr:`~genno.Computer.graph`."""
         return self.graph.keys()
 
     def full_key(self, name_or_key: KeyLike) -> KeyLike:
@@ -676,16 +677,16 @@ class Computer:
 
         Parameters
         ----------
-        keys : |KeyLike|
+        keys : KeyLike
             Some :class:`Keys <Key>` or strings.
-        predicate : callable, *optional*
+        predicate : callable, optional
             Function to run on each of `keys`; see below.
-        action : "raise" or any other value
+        action : "raise" or str
             Action to take on missing `keys`.
 
         Returns
         -------
-        list of |KeyLike|
+        list of KeyLike
             One item for each item ``k`` in `keys`:
 
             1. ``k`` itself, unchanged, if `predicate` is given and ``predicate(k)``
@@ -748,16 +749,16 @@ class Computer:
 
         Parameters
         ----------
-        key_or_keys : |KeyLike| or list of |KeyLike|
-        dims : list of str, *optional*
+        key_or_keys : KeyLike or list of KeyLike
+        dims : list of str, optional
             Drop all but these dimensions from the returned key(s).
 
         Returns
         -------
-        |KeyLike|
-            If `key_or_keys` is a single |KeyLike|.
-        list of |KeyLike|
-            If `key_or_keys` is an iterable of |KeyLike|.
+        KeyLike
+            If `key_or_keys` is a single KeyLike.
+        list of KeyLike
+            If `key_or_keys` is an iterable of KeyLike.
         """
         single = isinstance(key_or_keys, (Key, Hashable))
         keys = [key_or_keys] if single else tuple(cast(Iterable, key_or_keys))
@@ -852,7 +853,7 @@ class Computer:
         """Deprecated.
 
         .. deprecated:: 1.18.0
-           Instead use :func:`.add_mul` via:
+           Instead use :func:`.add_binop` via:
 
            .. code-block:: python
 
@@ -902,13 +903,13 @@ class Computer:
             quantity.
         dims_or_groups: str or iterable of str or dict
             Name(s) of the dimension(s) to sum over, or nested dict.
-        weights : :class:`xarray.DataArray`, *optional*
+        weights : :class:`xarray.DataArray`, optional
             Weights for weighted aggregation.
-        keep : bool, *optional*
+        keep : bool, optional
             Passed to :meth:`operator.aggregate <genno.operator.aggregate>`.
-        sums : bool, *optional*
+        sums : bool, optional
             Passed to :meth:`add`.
-        fail : str or int, *optional*
+        fail : str or int, optional
             Passed to :meth:`add_queue` via :meth:`add`.
 
         Returns

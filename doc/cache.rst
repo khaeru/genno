@@ -31,7 +31,7 @@ A cache key is computed from:
 
 1. the name of `func`.
 2. the arguments to `func`, and
-3. the compiled bytecode of `func` (see :func:`hash_code`).
+3. the compiled bytecode of `func` (see :func:`.hash_code`).
 
 If a file exists in ``cache_path`` with a matching key, it is loaded and returned instead of calling `func`.
 
@@ -61,12 +61,12 @@ Consider a function that loads a very large file, or performs some slow processi
         # … further processing …
         return Quantity(result)
 
-We want to cache the result of :func:`slow_data_load`, but have the cache refreshed when the file contents change.
+We want to cache the result of :py:`slow_data_load`, but have the cache refreshed when the file contents change.
 We do this using the `_extra_cache_key` argument to the function.
 This argument is not used in the function, but *does* affect the value of the cache key.
 
 When calling the function, pass some value that indicates whether the contents of `path` have changed.
-One possibility is the modification time, via :meth:`.Path.stat`:
+One possibility is the modification time, via :meth:`pathlib.Path.stat`:
 
 .. code-block:: python
 
@@ -74,7 +74,7 @@ One possibility is the modification time, via :meth:`.Path.stat`:
         return slow_data_load(path, path.stat().st_mtime)
 
 Another possibility is to hash the entire file.
-:func:`hash_contents` is provided for this purpose:
+:func:`.hash_contents` is provided for this purpose:
 
 .. code-block:: python
 

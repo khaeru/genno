@@ -1,11 +1,10 @@
 from functools import update_wrapper
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, ClassVar, Dict, Optional, Tuple, Union
+from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Union
 from warnings import warn
 
-if TYPE_CHECKING:
-    from .computer import Computer
-    from .key import KeyLike
+from .computer import Computer
+from .key import KeyLike
 
 
 class Operator:
@@ -70,7 +69,7 @@ class Operator:
 
         Parameters
         ----------
-        helper : Callable, *optional*
+        helper : Callable, optional
             Equivalent to calling :meth:`helper` on the Operator instance.
         """
 
@@ -111,13 +110,13 @@ class Operator:
         return decorator
 
     def helper(
-        self, func: Callable[..., Union["KeyLike", Tuple["KeyLike", ...]]]
+        self, func: Callable[..., Union[KeyLike, Tuple[KeyLike, ...]]]
     ) -> Callable:
         """Register `func` as the convenience method for adding task(s)."""
         self.__class__._add_tasks = staticmethod(func)
         return func
 
-    def add_tasks(self, c: "Computer", *args, **kwargs) -> Tuple["KeyLike", ...]:
+    def add_tasks(self, c: "Computer", *args, **kwargs) -> Tuple[KeyLike, ...]:
         """Invoke :attr:`_add_task` to add tasks to `c`."""
         if self._add_tasks is None:
             raise NotImplementedError

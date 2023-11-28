@@ -1,11 +1,12 @@
 from typing import TYPE_CHECKING, Iterable, List, Mapping, Optional, Union
 
 if TYPE_CHECKING:
-    from sdmx.model.common import Code, Codelist
+    import sdmx.model.common
 
 
 def codelist_to_groups(
-    codes: Union["Codelist", Iterable["Code"]], dim: Optional[str] = None
+    codes: Union["sdmx.model.common.Codelist", Iterable["sdmx.model.common.Code"]],
+    dim: Optional[str] = None,
 ) -> Mapping[str, Mapping[str, List[str]]]:
     """Convert `codes` into a mapping from parent items to their children.
 
@@ -16,14 +17,14 @@ def codelist_to_groups(
     codes
         Either a :class:`sdmx.Codelist <sdmx.model.common.Codelist>` object or any
         iterable of :class:`sdmx.Code <sdmx.model.common.Code>`.
-    dim : str, *optional*
+    dim : str, optional
         Dimension to aggregate. If `codes` is a code list and `dim` is not given, the
         ID of the code list is used; otherwise `dim` must be supplied.
     """
     from sdmx.model.common import Codelist
 
     if isinstance(codes, Codelist):
-        items: Iterable["Code"] = codes.items.values()
+        items: Iterable["sdmx.model.common.Code"] = codes.items.values()
         dim = dim or codes.id
     else:
         items = codes

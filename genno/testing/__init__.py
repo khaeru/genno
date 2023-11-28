@@ -60,7 +60,7 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
     The result is a matrix wherein the Cartesian product of all the keys is very large—
     about 2e17 elements for N_dim = 6—but the contents are very sparse. This can be
     handled by :class:`.SparseDataArray`, but not by :class:`xarray.DataArray` backed
-    by :class:`np.array`.
+    by :class:`numpy.ndarray`.
     """
 
     def _fib():
@@ -234,7 +234,7 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
         The pytest caplog fixture.
     message_or_messages : str or list of str
         String(s) that must appear in log messages.
-    at_level : int, *optional*
+    at_level : int, optional
         Messages must appear on 'genno' or a sub-logger with at least this level.
     """
     __tracebackhide__ = True
@@ -289,12 +289,12 @@ def assert_qty_equal(
 
     Parameters
     ----------
-    check_type : bool, *optional*
+    check_type : bool, optional
         Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
-    check_attrs : bool, *optional*
+    check_attrs : bool, optional
         Also assert that check that attributes are identical.
-    ignore_extra_coords : bool, *optional*
+    ignore_extra_coords : bool, optional
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
         :class:`.SparseDataArray`.
     """
@@ -345,12 +345,12 @@ def assert_qty_allclose(
 
     Parameters
     ----------
-    check_type : bool, *optional*
+    check_type : bool, optional
         Assert that `a` and `b` are both :class:`.Quantity` instances. If :obj:`False`,
         the arguments are converted to Quantity.
-    check_attrs : bool, *optional*
+    check_attrs : bool, optional
         Also assert that check that attributes are identical.
-    ignore_extra_coords : bool, *optional*
+    ignore_extra_coords : bool, optional
         Ignore extra coords that are not dimensions. Only meaningful when Quantity is
         :class:`.SparseDataArray`.
     """
@@ -392,19 +392,20 @@ def assert_units(qty: Quantity, exp: str) -> None:
     ).dimensionless, f"Units '{qty.units:~}'; expected {repr(exp)}"
 
 
-def random_qty(shape: Dict[str, int], **kwargs):
+def random_qty(shape: Dict[str, int], **kwargs) -> Quantity:
     """Return a Quantity with `shape` and random contents.
 
     Parameters
     ----------
-    shape : dict (str -> int)
-        Mapping from dimension names to lengths along each dimension.
+    shape : dict
+        Mapping from dimension names (:class:`str`) to lengths along each dimension
+        (:class:`int`).
     **kwargs
-        Other keyword arguments to :class:`Quantity`.
+        Other keyword arguments to :class:`.Quantity`.
 
     Returns
     -------
-    Quantity
+    .Quantity
         Random data with one dimension for each key in `shape`, and coords along those
         dimensions like "foo1", "foo2", with total length matching the value from
         `shape`. If `shape` is empty, a scalar (0-dimensional) Quantity.

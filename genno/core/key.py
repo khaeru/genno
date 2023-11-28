@@ -113,22 +113,6 @@ class Key:
     ) -> "Key":
         """Return a new Key from *value*.
 
-        Parameters
-        ----------
-        value : str or Key
-            Value to use to generate a new Key.
-        drop : list of str or :obj:`True`, *optional*
-            Existing dimensions of *value* to drop. See :meth:`drop`.
-        append : list of str, *optional*.
-            New dimensions to append to the returned Key. See :meth:`append`.
-        tag : str, *optional*
-            Tag for returned Key. If *value* has a tag, the two are joined
-            using a '+' character. See :meth:`add_tag`.
-
-        Returns
-        -------
-        :class:`Key`
-
         .. versionchanged:: 1.18.0
 
            Calling :meth:`from_str_or_key` with a single argument is no longer
@@ -141,6 +125,22 @@ class Key:
 
               k1 = Key("foo:a-b-c:t1", drop="b", append="d", tag="t2")
               k2 = Key("foo:a-b-c:t1").drop("b").append("d)"
+
+        Parameters
+        ----------
+        value : str or .Key
+            Value to use to generate a new Key.
+        drop : list of str or :obj:`True`, optional
+            Existing dimensions of *value* to drop. See :meth:`drop`.
+        append : list of str, optional
+            New dimensions to append to the returned Key. See :meth:`append`.
+        tag : str, optional
+            Tag for returned Key. If *value* has a tag, the two are joined
+            using a '+' character. See :meth:`add_tag`.
+
+        Returns
+        -------
+        :class:`Key`
         """
         base = cls(value)
 

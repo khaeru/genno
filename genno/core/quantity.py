@@ -16,7 +16,7 @@ CLASS = "AttrSeries"
 class Quantity(DataArrayLike["Quantity"]):
     """A sparse data structure that behaves like :class:`xarray.DataArray`.
 
-    Depending on the value of :data:`CLASS`, Quantity is either :class:`.AttrSeries` or
+    Depending on the value of :data:`.CLASS`, Quantity is either :class:`.AttrSeries` or
     :class:`.SparseDataArray`.
     """
 
