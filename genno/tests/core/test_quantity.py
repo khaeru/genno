@@ -344,7 +344,24 @@ class TestQuantity:
         result = tri.pipe(genno.operator.assign_units, "km")
         assert ureg.Unit("km") == result.units
 
-    def test_sel(self, tri) -> None:
+    @pytest.mark.parametrize(
+        "args, dropped",
+        (
+            (dict(x="x1"), True),  # default drop=False
+            (dict(x=["x1"]), False),  # default drop=False
+            (dict(x="x1", drop=False), True),
+            (dict(x=["x1"], drop=False), False),
+            (dict(x="x1", drop=True), True),
+            (dict(x=["x1"], drop=True), False),
+        ),
+    )
+    def test_sel(self, tri, args, dropped) -> None:
+        result = tri.sel(**args)
+
+        assert ({"y"} if dropped else {"x", "y"}) == set(result.dims)
+
+    def test_sel_xarray(self, tri) -> None:
+        """xarray-style indexing works."""
         # Create indexers
         newdim = [("newdim", ["nd0", "nd1", "nd2"])]
         x_idx = xr.DataArray(["x2", "x1", "x2"], coords=newdim)
