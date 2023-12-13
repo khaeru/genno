@@ -264,7 +264,11 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         # Use SparseArray.coords and .data (each already 1-D) to construct the pd.Series
 
         # Construct a pd.MultiIndex without using .from_product
-        index = pd.MultiIndex.from_arrays(self.data.coords, names=self.dims).set_levels(
-            [self.coords[d].values for d in self.dims]
-        )
+        if self.dims:
+            index = pd.MultiIndex.from_arrays(
+                self.data.coords, names=self.dims
+            ).set_levels([self.coords[d].values for d in self.dims])
+        else:
+            index = pd.MultiIndex.from_arrays([[0]], names=[None])
+
         return pd.Series(self.data.data, index=index, name=self.name)
