@@ -94,41 +94,6 @@ class TestAttrSeries:
         foo.shift(a=1)
         foo.shift(b=1)
 
-    @pytest.mark.parametrize(
-        "sel_kw, dims, values",
-        (
-            (dict(a=["a1"]), ("b",), [0, 1]),
-            (dict(a="a1"), ("b",), [0, 1]),
-            (dict(a="a2", b="b1"), (), 2),
-            (dict(a=["a2"], b="b1"), (), 2),
-            (dict(a=["a2"], b=["b1"]), (), 2),
-        ),
-    )
-    def test_squeeze0(self, foo, sel_kw, dims, values) -> None:
-        # Method succeeds
-        result = foo.sel(**sel_kw).squeeze()
-
-        # Dimensions as expected
-        assert dims == result.dims
-
-        # Values as expected
-        assert all(values == result.values)
-
-    @pytest.mark.parametrize(
-        "dim, exc_type, match",
-        (
-            (
-                "b",
-                ValueError,
-                "dimension to squeeze out which has length greater than one",
-            ),
-            ("c", KeyError, "c"),
-        ),
-    )
-    def test_squeeze1(self, foo, dim, exc_type, match) -> None:
-        with pytest.raises(exc_type, match=match):
-            foo.squeeze(dim=dim)
-
     def test_sum(self, foo, bar):
         # AttrSeries can be summed across all dimensions
         result = foo.sum(dim=["a", "b"])

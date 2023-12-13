@@ -5,6 +5,7 @@ import re
 
 import numpy as np
 import pandas as pd
+import pandas.testing as pdt
 import pint
 import pytest
 import xarray as xr
@@ -39,6 +40,18 @@ class TestQuantity:
     @pytest.fixture
     def a(self):
         yield Quantity(xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"]))
+
+    @pytest.fixture
+    def foo(self):
+        # NB 0.0 because sparse cannot handle data that is all int
+        yield Quantity(
+            xr.DataArray(
+                [[0.0, 1], [2, 3]],
+                coords=[("a", ["a1", "a2"]), ("b", ["b1", "b2"])],
+                name="Foo",
+            ),
+            units="kg",
+        )
 
     @pytest.fixture()
     def tri(self):
@@ -388,6 +401,47 @@ class TestQuantity:
 
         # Result can be converted to pd.Series
         result.to_series()
+
+    @pytest.mark.parametrize(
+        "sel_kw, dims, values",
+        (
+            (dict(a=["a1"]), ("b",), [0, 1]),
+            (dict(a="a1"), ("b",), [0, 1]),
+            (dict(a="a2", b="b1"), (), [2]),
+            (dict(a=["a2"], b="b1"), (), [2]),
+            (dict(a=["a2"], b=["b1"]), (), [2]),
+        ),
+    )
+    def test_squeeze0(self, foo, sel_kw, dims, values) -> None:
+        # Method succeeds
+        result = foo.sel(**sel_kw).squeeze()
+
+        # Dimensions as expected
+        assert dims == result.dims
+
+        # Values as expected
+        pdt.assert_series_equal(
+            pd.Series(values, name="Foo"),
+            result.to_series(),
+            check_series_type=False,
+            check_index=False,
+            check_dtype=False,
+        )
+
+    @pytest.mark.parametrize(
+        "dim, exc_type, match",
+        (
+            (
+                "b",
+                ValueError,
+                "dimension to squeeze out which has length greater than one",
+            ),
+            ("c", KeyError, "c"),
+        ),
+    )
+    def test_squeeze1(self, foo, dim, exc_type, match) -> None:
+        with pytest.raises(exc_type, match=match):
+            print(foo.squeeze(dim=dim))
 
     def test_to_dataframe(self, a) -> None:
         """Test Quantity.to_dataframe()."""
