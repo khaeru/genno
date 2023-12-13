@@ -165,6 +165,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         if isinstance(data, xr.DataArray):
             # Possibly converted from pd.Series, above
             coords = data._coords
+            name = name or data.name
             data = data.variable
 
         # Invoke the xr.DataArray constructor
