@@ -20,11 +20,14 @@ class Plot(ABC):
     basename = ""
     #: File extension; determines file format.
     suffix = ".pdf"
-    #: Path for file output. :meth:`save` populates this if it is not set.
-    #: :meth:`generate` may mutate the value.
+    #: Path for file output. If it is not set, :meth:`save` will populate it with a
+    #: value constructed from :py:`config["output_dir"]`, :attr:`basename`, and
+    #: :attr:`suffix`. The implementation of :meth:`generate` in a Plot sub-class may
+    #: assign any other value, for instance one constructed at runtime from the
+    #: :attr:`inputs`.
     path: Optional[Path] = None
-    #: Keys of :class:`Quantities <.Quantity>` or other inputs needed by
-    #: :meth:`generate`.
+    #: :class:`Keys <.Key>` referring to :class:`Quantities <.Quantity>` or other inputs
+    #: accepted by :meth:`generate`.
     inputs: Sequence[Hashable] = []
     #: Keyword arguments for :meth:`plotnine.ggplot.save`.
     save_args = dict(verbose=False)
@@ -126,12 +129,14 @@ class Plot(ABC):
     def generate(self, *args, **kwargs):
         """Generate and return the plot.
 
-        Must be implemented by subclasses.
+        A subclass of Plot **must** implement this method.
 
         Parameters
         ----------
-        args : sequence of pandas.DataFrame
+        args : sequence of pandas.DataFrame or other
+            One argument is given corresponding to each of the :attr:`inputs`.
+
             Because :doc:`plotnine <plotnine:index>` operates on pandas data structures,
-            :meth:`save` automatically converts :obj:`.Quantity` before they are passed
-            to :meth:`generate`.
+            :meth:`save` automatically converts any :class:`.Quantity` inputs to
+            :class:`pandas.DataFrame` before they are passed to :meth:`generate`.
         """

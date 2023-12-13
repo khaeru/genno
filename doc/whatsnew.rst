@@ -1,8 +1,20 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- New attribute :attr:`.Plot.path`, allowing control of the full path used to write plots (:pull:`110`).
+- Bugfix: :meth:`.AttrSeries.sel` with a scalar indexer (for instance, :py:`qty.sel(x="foo")`) formerly did *not* drop the selected dimension; this was in contrast to :meth:`xarray.DataArray.sel`.
+  The behaviour is now consistent (:pull:`110`):
+
+  - :py:`qty.sel(x=["foo"])`, a length-1 sequence of indexers: the dimension is retained.
+  - :py:`qty.sel(x="foo")`, a single scalar indexer: the dimension is dropped.
+- Small fixes in :class:`.SparseDataArray` (:pull:`110`):
+
+  - The :attr:`.Quantity.name` is preserved when an :class:`xarray.DataArray` is passed to the constructor.
+  - :meth:`~.SparseDataArray.to_series` works with 0-D (scalar) quantities.
+- Provide typed signature for :meth:`.Quantity.squeeze` for the benefit of downstream applications (:pull:`110`).
 
 v1.21.0 (2023-11-28)
 ====================
