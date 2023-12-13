@@ -156,7 +156,9 @@ class DataArrayLike(Generic[T]):
 
     def drop_vars(
         self,
-        names: Union[Hashable, Iterable[Hashable]],
+        names: Union[
+            str, Iterable[Hashable], Callable[[Any], Union[str, Iterable[Hashable]]]
+        ],
         *,
         errors="raise",
     ):
