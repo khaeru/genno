@@ -435,8 +435,13 @@ def test_index_to(ureg):
     q.name = "Foo"
     q.units = ureg.kg
 
-    exp = q / q.sel(x="x0")
+    # Ensure that the dimension "x" is dropped from the denominator
+    denom = q.sel(x="x0")
+    assert "x" not in denom.dims
+
+    exp = q / denom
     exp.units = ""  # Indexed values are dimensionless
+    assert exp.dims == q.dims
 
     # Called with a mapping
     result = operator.index_to(q, dict(x="x0"))
