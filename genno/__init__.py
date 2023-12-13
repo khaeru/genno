@@ -1,4 +1,4 @@
-from dask.core import quote
+from dask.core import literal, quote
 
 from . import computations
 from .config import configure
@@ -19,4 +19,5 @@ __all__ = [
     "computations",
     "configure",
     "quote",
+    "literal",
 ]
