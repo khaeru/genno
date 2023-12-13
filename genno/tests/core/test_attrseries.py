@@ -94,18 +94,40 @@ class TestAttrSeries:
         foo.shift(a=1)
         foo.shift(b=1)
 
-    def test_squeeze(self, foo):
-        assert foo.sel(a="a1").squeeze().dims == ("b",)
-        assert foo.sel(a="a2", b="b1").squeeze().values == 2
+    @pytest.mark.parametrize(
+        "sel_kw, dims, values",
+        (
+            (dict(a=["a1"]), ("b",), [0, 1]),
+            (dict(a="a1"), ("b",), [0, 1]),
+            (dict(a="a2", b="b1"), (), 2),
+            (dict(a=["a2"], b="b1"), (), 2),
+            (dict(a=["a2"], b=["b1"]), (), 2),
+        ),
+    )
+    def test_squeeze0(self, foo, sel_kw, dims, values) -> None:
+        # Method succeeds
+        result = foo.sel(**sel_kw).squeeze()
 
-        with pytest.raises(
-            ValueError,
-            match="dimension to squeeze out which has length greater than one",
-        ):
-            foo.squeeze(dim="b")
+        # Dimensions as expected
+        assert dims == result.dims
 
-        with pytest.raises(KeyError, match="c"):
-            foo.squeeze(dim="c")
+        # Values as expected
+        assert all(values == result.values)
+
+    @pytest.mark.parametrize(
+        "dim, exc_type, match",
+        (
+            (
+                "b",
+                ValueError,
+                "dimension to squeeze out which has length greater than one",
+            ),
+            ("c", KeyError, "c"),
+        ),
+    )
+    def test_squeeze1(self, foo, dim, exc_type, match) -> None:
+        with pytest.raises(exc_type, match=match):
+            foo.squeeze(dim=dim)
 
     def test_sum(self, foo, bar):
         # AttrSeries can be summed across all dimensions

@@ -538,10 +538,13 @@ class AttrSeries(pd.Series, Quantity):
             to_drop.append(name)
 
         if dim and not to_drop:
-            # Specified dimension does not exist
-            raise KeyError(dim)
+            raise KeyError(dim)  # Specified dimension does not exist
 
-        return self.droplevel(to_drop)
+        if set(to_drop) == set(self.dims):
+            # Dropping all dimensions → 0-D quantity; simply reset
+            return self.reset_index(drop=True)
+        else:
+            return self.droplevel(to_drop)
 
     def transpose(self, *dims):
         """Like :meth:`xarray.DataArray.transpose`."""
