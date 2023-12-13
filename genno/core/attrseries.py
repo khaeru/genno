@@ -516,9 +516,8 @@ class AttrSeries(pd.Series, Quantity):
         # Create the object on which to .sum()
         return self._replace(self._maybe_groupby(dim).sum(**kwargs))
 
-    def squeeze(self, dim=None, *args, **kwargs):
+    def squeeze(self, dim=None, drop=False, axis=None):
         """Like :meth:`xarray.DataArray.squeeze`."""
-        assert kwargs.pop("drop", True)
 
         idx = self.index.remove_unused_levels()
 

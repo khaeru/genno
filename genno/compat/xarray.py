@@ -239,6 +239,15 @@ class DataArrayLike(Generic[T]):
         """Like :attr:`xarray.DataArray.shift`."""
         ...
 
+    def squeeze(
+        self,
+        dim: Union[Hashable, Iterable[Hashable], None] = None,
+        drop: bool = False,
+        axis: Union[int, Iterable[int], None] = None,
+    ):
+        """Like :meth:`xarray.DataArray.squeeze`."""
+        ...
+
     def sum(
         self,
         dim: Dims = None,
