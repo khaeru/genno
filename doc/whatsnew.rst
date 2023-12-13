@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.22.0 (2023-12-13)
+====================
 
 - New attribute :attr:`.Plot.path`, allowing control of the full path used to write plots (:pull:`110`).
 - Bugfix: :meth:`.AttrSeries.sel` with a scalar indexer (for instance, :py:`qty.sel(x="foo")`) formerly did *not* drop the selected dimension; this was in contrast to :meth:`xarray.DataArray.sel`.
