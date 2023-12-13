@@ -1,4 +1,5 @@
 from typing import Any, Dict, Hashable, Mapping, Optional, Sequence, Tuple, Union
+from warnings import filterwarnings
 
 import numpy as np
 import pandas as pd
@@ -9,11 +10,21 @@ try:
     HAS_SPARSE = True
 except ImportError:  # pragma: no cover
     HAS_SPARSE = False
+
 import xarray as xr
 from xarray.core import dtypes
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity, possible_scalar
+
+# sparse.COO raises this warning when the data is 0-D / length-1; self.coords.size is
+# then 0 (no dimensions = no coordinates)
+filterwarnings(
+    "ignore",
+    "coords should be an ndarray.*",
+    DeprecationWarning,
+    "sparse._coo.core",
+)
 
 
 def _binop(name: str, swap: bool = False):
