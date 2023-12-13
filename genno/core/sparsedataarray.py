@@ -242,6 +242,11 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
                 ._sda.convert()
             )
 
+    def squeeze(self, dim=None, drop=False, axis=None):
+        return self._sda.dense_super.squeeze(
+            dim=dim, drop=drop, axis=axis
+        )._sda.convert()
+
     def to_dataframe(
         self,
         name: Optional[Hashable] = None,
