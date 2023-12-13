@@ -30,6 +30,10 @@ else:
 # Pytest hooks
 
 
+def pytest_sessionstart(session):
+    logging.getLogger("numba").setLevel(logging.INFO)
+
+
 def pytest_runtest_makereport(item, call):
     """Pytest hook to unwrap :class:`genno.ComputationError`.
 

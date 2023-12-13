@@ -5,6 +5,7 @@ import re
 
 import numpy as np
 import pandas as pd
+import pandas.testing as pdt
 import pint
 import pytest
 import xarray as xr
@@ -39,6 +40,18 @@ class TestQuantity:
     @pytest.fixture
     def a(self):
         yield Quantity(xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"]))
+
+    @pytest.fixture
+    def foo(self):
+        # NB 0.0 because sparse cannot handle data that is all int
+        yield Quantity(
+            xr.DataArray(
+                [[0.0, 1], [2, 3]],
+                coords=[("a", ["a1", "a2"]), ("b", ["b1", "b2"])],
+                name="Foo",
+            ),
+            units="kg",
+        )
 
     @pytest.fixture()
     def tri(self):
@@ -331,7 +344,24 @@ class TestQuantity:
         result = tri.pipe(genno.operator.assign_units, "km")
         assert ureg.Unit("km") == result.units
 
-    def test_sel(self, tri) -> None:
+    @pytest.mark.parametrize(
+        "args, dropped",
+        (
+            (dict(x="x1"), True),  # default drop=False
+            (dict(x=["x1"]), False),  # default drop=False
+            (dict(x="x1", drop=False), True),
+            (dict(x=["x1"], drop=False), False),
+            (dict(x="x1", drop=True), True),
+            (dict(x=["x1"], drop=True), False),
+        ),
+    )
+    def test_sel(self, tri, args, dropped) -> None:
+        result = tri.sel(**args)
+
+        assert ({"y"} if dropped else {"x", "y"}) == set(result.dims)
+
+    def test_sel_xarray(self, tri) -> None:
+        """xarray-style indexing works."""
         # Create indexers
         newdim = [("newdim", ["nd0", "nd1", "nd2"])]
         x_idx = xr.DataArray(["x2", "x1", "x2"], coords=newdim)
@@ -388,6 +418,47 @@ class TestQuantity:
 
         # Result can be converted to pd.Series
         result.to_series()
+
+    @pytest.mark.parametrize(
+        "sel_kw, dims, values",
+        (
+            (dict(a=["a1"]), ("b",), [0, 1]),
+            (dict(a="a1"), ("b",), [0, 1]),
+            (dict(a="a2", b="b1"), (), [2]),
+            (dict(a=["a2"], b="b1"), (), [2]),
+            (dict(a=["a2"], b=["b1"]), (), [2]),
+        ),
+    )
+    def test_squeeze0(self, foo, sel_kw, dims, values) -> None:
+        # Method succeeds
+        result = foo.sel(**sel_kw).squeeze()
+
+        # Dimensions as expected
+        assert dims == result.dims
+
+        # Values as expected
+        pdt.assert_series_equal(
+            pd.Series(values, name="Foo"),
+            result.to_series(),
+            check_series_type=False,
+            check_index=False,
+            check_dtype=False,
+        )
+
+    @pytest.mark.parametrize(
+        "dim, exc_type, match",
+        (
+            (
+                "b",
+                ValueError,
+                "dimension to squeeze out which has length greater than one",
+            ),
+            ("c", KeyError, "c"),
+        ),
+    )
+    def test_squeeze1(self, foo, dim, exc_type, match) -> None:
+        with pytest.raises(exc_type, match=match):
+            print(foo.squeeze(dim=dim))
 
     def test_to_dataframe(self, a) -> None:
         """Test Quantity.to_dataframe()."""

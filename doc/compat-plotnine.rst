@@ -40,7 +40,8 @@ To use :class:`.Plot`:
          ...:             + p9.geom_point(color="blue")
          ...:         )
 
-2. Call :meth:`.make_task` to get a task tuple suitable for adding to a :class:`.Computer`:
+2. :meth:`~.Computer.add` the class to a :class:`.Computer` directly.
+   The :meth:`.Plot.add_tasks` method handles connecting the :attr:`.Plot.inputs` to :meth:`.Plot.save`:
 
    .. ipython:: python
 

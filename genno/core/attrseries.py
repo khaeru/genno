@@ -1,5 +1,4 @@
 import logging
-import warnings
 from functools import partial
 from itertools import tee
 from typing import (
@@ -381,13 +380,6 @@ class AttrSeries(pd.Series, Quantity):
 
         indexers = either_dict_or_kwargs(indexers, indexers_kwargs, "sel")
 
-        if len(indexers) == 1:
-            level, key = list(indexers.items())[0]
-            if isinstance(key, str) and not drop:
-                # When using .loc[] to select 1 label on 1 level, pandas drops the
-                # level. Use .xs() to avoid this behaviour unless drop=True
-                return AttrSeries(self.xs(key, level=level, drop_level=False))
-
         if len(indexers) and all(
             isinstance(i, xr.DataArray) for i in indexers.values()
         ):
@@ -447,22 +439,14 @@ class AttrSeries(pd.Series, Quantity):
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
 
-                if is_scalar(i) and (i != slice(None)) and drop:
+                if is_scalar(i) and (i != slice(None)):
                     to_drop.add(dim)
 
                 # Maybe unpack an xarray DataArray indexers, for pandas
                 idx.append(i.data if isinstance(i, xr.DataArray) else i)
 
-            # Silence a warning from pandas ≥1.4 that may be spurious
-            # FIXME investigate, adjust the code, remove the filter
-            with warnings.catch_warnings():
-                warnings.filterwarnings(
-                    "ignore",
-                    ".*indexing on a MultiIndex with a nested sequence.*",
-                    FutureWarning,
-                )
-                # Select
-                data = self.loc[tuple(idx)]
+            # Select
+            data = self.loc[tuple(idx)]
 
             # Only drop if not returning a scalar value
             if isinstance(data, pd.Series):
@@ -523,9 +507,8 @@ class AttrSeries(pd.Series, Quantity):
         # Create the object on which to .sum()
         return self._replace(self._maybe_groupby(dim).sum(**kwargs))
 
-    def squeeze(self, dim=None, *args, **kwargs):
+    def squeeze(self, dim=None, drop=False, axis=None):
         """Like :meth:`xarray.DataArray.squeeze`."""
-        assert kwargs.pop("drop", True)
 
         idx = self.index.remove_unused_levels()
 
@@ -545,10 +528,13 @@ class AttrSeries(pd.Series, Quantity):
             to_drop.append(name)
 
         if dim and not to_drop:
-            # Specified dimension does not exist
-            raise KeyError(dim)
+            raise KeyError(dim)  # Specified dimension does not exist
 
-        return self.droplevel(to_drop)
+        if set(to_drop) == set(self.dims):
+            # Dropping all dimensions → 0-D quantity; simply reset
+            return self.reset_index(drop=True)
+        else:
+            return self.droplevel(to_drop)
 
     def transpose(self, *dims):
         """Like :meth:`xarray.DataArray.transpose`."""

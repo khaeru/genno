@@ -1,4 +1,5 @@
 from typing import Any, Dict, Hashable, Mapping, Optional, Sequence, Tuple, Union
+from warnings import filterwarnings
 
 import numpy as np
 import pandas as pd
@@ -9,11 +10,21 @@ try:
     HAS_SPARSE = True
 except ImportError:  # pragma: no cover
     HAS_SPARSE = False
+
 import xarray as xr
 from xarray.core import dtypes
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity, possible_scalar
+
+# sparse.COO raises this warning when the data is 0-D / length-1; self.coords.size is
+# then 0 (no dimensions = no coordinates)
+filterwarnings(
+    "ignore",
+    "coords should be an ndarray.*",
+    DeprecationWarning,
+    "sparse._coo.core",
+)
 
 
 def _binop(name: str, swap: bool = False):
@@ -165,6 +176,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         if isinstance(data, xr.DataArray):
             # Possibly converted from pd.Series, above
             coords = data._coords
+            name = name or data.name
             data = data.variable
 
         # Invoke the xr.DataArray constructor
@@ -241,6 +253,11 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
                 ._sda.convert()
             )
 
+    def squeeze(self, dim=None, drop=False, axis=None):
+        return self._sda.dense_super.squeeze(
+            dim=dim, drop=drop, axis=axis
+        )._sda.convert()
+
     def to_dataframe(
         self,
         name: Optional[Hashable] = None,
@@ -263,7 +280,11 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         # Use SparseArray.coords and .data (each already 1-D) to construct the pd.Series
 
         # Construct a pd.MultiIndex without using .from_product
-        index = pd.MultiIndex.from_arrays(self.data.coords, names=self.dims).set_levels(
-            [self.coords[d].values for d in self.dims]
-        )
+        if self.dims:
+            index = pd.MultiIndex.from_arrays(
+                self.data.coords, names=self.dims
+            ).set_levels([self.coords[d].values for d in self.dims])
+        else:
+            index = pd.MultiIndex.from_arrays([[0]], names=[None])
+
         return pd.Series(self.data.data, index=index, name=self.name)

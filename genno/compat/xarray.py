@@ -156,7 +156,9 @@ class DataArrayLike(Generic[T]):
 
     def drop_vars(
         self,
-        names: Union[Hashable, Iterable[Hashable]],
+        names: Union[
+            str, Iterable[Hashable], Callable[[Any], Union[str, Iterable[Hashable]]]
+        ],
         *,
         errors="raise",
     ):
@@ -235,6 +237,15 @@ class DataArrayLike(Generic[T]):
         **shifts_kwargs: int,
     ):
         """Like :attr:`xarray.DataArray.shift`."""
+        ...
+
+    def squeeze(
+        self,
+        dim: Union[Hashable, Iterable[Hashable], None] = None,
+        drop: bool = False,
+        axis: Union[int, Iterable[int], None] = None,
+    ):
+        """Like :meth:`xarray.DataArray.squeeze`."""
         ...
 
     def sum(

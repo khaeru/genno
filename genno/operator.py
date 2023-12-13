@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
+    Callable,
     Collection,
     Hashable,
     Iterable,
@@ -515,7 +516,9 @@ ratio = div
 
 def drop_vars(
     qty: Quantity,
-    names: Union[Hashable, Iterable[Hashable]],
+    names: Union[
+        str, Iterable[Hashable], Callable[[Quantity], Union[str, Iterable[Hashable]]]
+    ],
     *,
     errors="raise",
 ) -> Quantity:
