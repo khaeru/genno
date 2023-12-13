@@ -381,13 +381,6 @@ class AttrSeries(pd.Series, Quantity):
 
         indexers = either_dict_or_kwargs(indexers, indexers_kwargs, "sel")
 
-        if len(indexers) == 1:
-            level, key = list(indexers.items())[0]
-            if isinstance(key, str) and not drop:
-                # When using .loc[] to select 1 label on 1 level, pandas drops the
-                # level. Use .xs() to avoid this behaviour unless drop=True
-                return AttrSeries(self.xs(key, level=level, drop_level=False))
-
         if len(indexers) and all(
             isinstance(i, xr.DataArray) for i in indexers.values()
         ):
@@ -447,7 +440,7 @@ class AttrSeries(pd.Series, Quantity):
                 # Get an indexer for this dimension
                 i = indexers.get(dim, slice(None))
 
-                if is_scalar(i) and (i != slice(None)) and drop:
+                if is_scalar(i) and (i != slice(None)):
                     to_drop.add(dim)
 
                 # Maybe unpack an xarray DataArray indexers, for pandas
