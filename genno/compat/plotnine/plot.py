@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Hashable, Optional, Sequence
+from typing import Any, Dict, Hashable, Optional, Sequence
 from warnings import warn
 
 import plotnine as p9
@@ -30,7 +30,7 @@ class Plot(ABC):
     #: accepted by :meth:`generate`.
     inputs: Sequence[Hashable] = []
     #: Keyword arguments for :meth:`plotnine.ggplot.save`.
-    save_args = dict(verbose=False)
+    save_args: Dict[str, Any] = dict(verbose=False)
 
     # TODO add static geoms automatically in generate()
     __static: Sequence = []

@@ -142,7 +142,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         self,
         data: Any = dtypes.NA,
         coords: Union[Sequence[Tuple], Mapping[Hashable, Any], None] = None,
-        dims: Union[Hashable, Sequence[Hashable], None] = None,
+        dims: Union[str, Sequence[Hashable], None] = None,
         name: Hashable = None,
         attrs: Optional[Mapping] = None,
         # internal parameters

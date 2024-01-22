@@ -1,7 +1,3 @@
-from typing import Hashable, Iterable, Union
-
-# Duplicating xarray 2022.10.0
-Dims = Union[str, Iterable[Hashable], None]
-
+from xarray.core.types import Dims
 
 __all__ = ["Dims"]

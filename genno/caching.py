@@ -5,14 +5,14 @@ from functools import partial, singledispatch, update_wrapper
 from hashlib import blake2b
 from inspect import getmembers, iscode
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Set, Union
 
 from .util import unquote
 
 log = logging.getLogger(__name__)
 
 # Types to ignore in Encoder.default()
-IGNORE = set()
+IGNORE: Set[type] = set()
 
 
 @singledispatch
@@ -114,7 +114,7 @@ def hash_args(*args, **kwargs):
         (
             ""
             if len(args) + len(kwargs) == 0
-            else json.dumps((args, kwargs), cls=Encoder)
+            else json.dumps((args, kwargs), cls=Encoder, sort_keys=True)
         ).encode(),
         digest_size=20,
     ).hexdigest()
