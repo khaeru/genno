@@ -7,6 +7,7 @@ from genno.compat.sdmx import (
     codelist_to_groups,
     dataset_to_quantity,
     quantity_to_dataset,
+    quantity_to_message,
 )
 from genno.testing import add_test_data
 
@@ -91,3 +92,17 @@ def test_quantity_to_dataset(dsd, dm):
 
     # Dataset is associated with its DSD
     assert dsd is ds.structured_by
+
+
+def test_quantity_to_message(dsd, dm):
+    ds = dm.data[0]
+    qty = dataset_to_quantity(ds)
+
+    header = dm.header
+
+    result = quantity_to_message(qty, structure=dsd, header=header)
+
+    # Currently False because `result.observation_dimension` is not set
+    with pytest.raises(AssertionError):
+        # Resulting message compares equal to the original ("round trip")
+        assert dm.compare(result)

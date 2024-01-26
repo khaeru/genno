@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Iterable, List, Mapping, Optional, Union
+from typing import Dict, Iterable, List, Mapping, Optional, Union
 
 from genno import Quantity
 
@@ -9,9 +9,6 @@ except ModuleNotFoundError:  # pragma: no cover
 else:
     HAS_SDMX = True
 
-
-if TYPE_CHECKING:
-    import sdmx.model.common
 
 __all__ = [
     "codelist_to_groups",
@@ -94,10 +91,7 @@ def quantity_to_dataset(
 ) -> "sdmx.model.v21.Dataset":
     """Convert :class:`.Quantity to :class:`DataSet <sdmx.model.common.BaseDataSet>`.
 
-    Currently:
-
-    - `structure` must be provided.
-    - The resulting data set is structure-specific and flat (not grouped into Series).
+    The resulting data set is structure-specific and flat (not grouped into Series).
     """
     try:
         # URN of DSD stored on `qty` matches `structure`
@@ -124,3 +118,12 @@ def quantity_to_dataset(
     ds.obs.extend(as_obs(key, value) for key, value in qty.to_series().items())
 
     return ds
+
+
+def quantity_to_message(
+    qty: Quantity, structure: "sdmx.model.v21.DataStructureDefinition", **kwargs
+) -> "sdmx.message.DataMessage":
+    """Convert :class:`.Quantity to :class:`DataMessage <sdmx.message.DataMessage>`."""
+    dm = sdmx.message.DataMessage(**kwargs)
+    dm.data.append(quantity_to_dataset(qty, structure))
+    return dm
