@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--NSI Web Service v8.4.1.0-->
+<message:StructureSpecificData xmlns:ss="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/data/structurespecific"
+    xmlns:footer="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message/footer"
+    xmlns:ns1="urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=IT1:DCIS_POPRES1(1.0):ObsLevelDim:TIME_PERIOD"
+    xmlns:message="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/message"
+    xmlns:common="http://www.sdmx.org/resources/sdmxml/schemas/v2_1/common"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <message:Header>
+        <message:ID>IREF000001</message:ID>
+        <message:Test>true</message:Test>
+        <message:Prepared>2022-11-07T12:07:26</message:Prepared>
+        <message:Sender id="NOT_CONFIGURED"/>
+        <message:Structure structureID="IT1_22_289_1_0" namespace="urn:sdmx:org.sdmx.infomodel.datastructure.DataStructure=IT1:DCIS_POPRES1(1.0):ObsLevelDim:TIME_PERIOD" dimensionAtObservation="TIME_PERIOD">
+            <common:StructureUsage>
+                <Ref agencyID="IT1" id="22_289" version="1.0"/>
+            </common:StructureUsage>
+        </message:Structure>
+        <message:DataSetAction>Information</message:DataSetAction>
+        <message:DataSetID>DCIS_POPRES1</message:DataSetID>
+    </message:Header>
+    <message:DataSet action="Information" ss:dataScope="DataStructure" xsi:type="ns1:DataSetType" ss:structureRef="IT1_DCIS_POPRES1_1_0">
+        <Series FREQ="A" REF_AREA="IT" DATA_TYPE="JAN" SEX="1" AGE="TOTAL" MARITAL_STATUS="99">
+            <Obs TIME_PERIOD="2019" OBS_VALUE="29131195"/>
+            <Obs TIME_PERIOD="2020" OBS_VALUE="29050096"/>
+            <Obs TIME_PERIOD="2021" OBS_VALUE="28866226"/>
+            <Obs TIME_PERIOD="2022" OBS_VALUE="28747417" OBS_STATUS="e"/>
+        </Series>
+        <Series FREQ="A" REF_AREA="IT" DATA_TYPE="JAN" SEX="2" AGE="TOTAL" MARITAL_STATUS="99">
+            <Obs TIME_PERIOD="2019" OBS_VALUE="30685478"/>
+            <Obs TIME_PERIOD="2020" OBS_VALUE="30591392"/>
+            <Obs TIME_PERIOD="2021" OBS_VALUE="30369987"/>
+            <Obs TIME_PERIOD="2022" OBS_VALUE="30235705" OBS_STATUS="e"/>
+        </Series>
+    </message:DataSet>
+</message:StructureSpecificData>
