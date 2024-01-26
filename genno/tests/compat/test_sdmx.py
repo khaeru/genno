@@ -1,5 +1,6 @@
 import pytest
 import sdmx
+from sdmx.format import Version
 from sdmx.model.common import Code, Codelist
 
 from genno import Computer
@@ -61,7 +62,7 @@ def dm(test_data_path, dsd):
     yield sdmx.read_sdmx(test_data_path.joinpath("22_289.xml"), structure=dsd)
 
 
-def test_dataset_to_quantity(dsd, dm):
+def test_dataset_to_quantity(dsd, dm) -> None:
     # Select the data set
     ds = dm.data[0]
 
@@ -81,11 +82,19 @@ def test_dataset_to_quantity(dsd, dm):
     assert len(ds.obs) == result.size
 
 
-def test_quantity_to_dataset(dsd, dm):
+VERSION = (None, Version["2.1"], Version["3.0"], "2.1", "3.0")
+
+
+@pytest.mark.parametrize("version", VERSION)
+@pytest.mark.parametrize("with_attrs", (True, False))
+def test_quantity_to_dataset(dsd, dm, version, with_attrs) -> None:
     ds = dm.data[0]
     qty = dataset_to_quantity(ds)
 
-    result = quantity_to_dataset(qty, structure=dsd)
+    if not with_attrs:
+        qty.attrs.pop("structure_urn")
+
+    result = quantity_to_dataset(qty, structure=dsd, version=version)
 
     # All observations are converted
     assert len(ds.obs) == len(result.obs)
@@ -94,13 +103,14 @@ def test_quantity_to_dataset(dsd, dm):
     assert dsd is ds.structured_by
 
 
-def test_quantity_to_message(dsd, dm):
+@pytest.mark.parametrize("version", VERSION)
+def test_quantity_to_message(dsd, dm, version) -> None:
     ds = dm.data[0]
     qty = dataset_to_quantity(ds)
 
     header = dm.header
 
-    result = quantity_to_message(qty, structure=dsd, header=header)
+    result = quantity_to_message(qty, version=version, structure=dsd, header=header)
 
     # Currently False because `result.observation_dimension` is not set
     with pytest.raises(AssertionError):

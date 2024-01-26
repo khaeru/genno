@@ -1,4 +1,5 @@
-from typing import Dict, Iterable, List, Mapping, Optional, Union
+from types import ModuleType
+from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
 
 from genno import Quantity
 
@@ -53,10 +54,26 @@ def codelist_to_groups(
 
 
 def _urn(obj: "sdmx.model.common.MaintainableArtefact") -> str:
-    if result := obj.urn:
+    if result := obj.urn:  # pragma: no cover
         return result
     else:
         return sdmx.urn.make(obj)
+
+
+def _version_mod(
+    version: Union["sdmx.format.Version", str, None],
+) -> Tuple["sdmx.format.Version", ModuleType]:
+    """Handle `version` argument."""
+    from sdmx.format import Version
+
+    # Ensure a Version enum member
+    if not isinstance(version, Version):
+        version = Version[version or "2.1"]
+
+    # Retrieve information model module
+    im = {Version["2.1"]: sdmx.model.v21, Version["3.0.0"]: sdmx.model.v30}[version]
+
+    return version, im
 
 
 def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
@@ -78,7 +95,7 @@ def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
     """
     # Assemble attributes
     attrs: Dict[str, str] = {}
-    if ds.described_by:
+    if ds.described_by:  # pragma: no cover
         attrs.update(dataflow_urn=_urn(ds.described_by))
     if ds.structured_by:
         attrs.update(structure_urn=_urn(ds.structured_by))
@@ -87,12 +104,32 @@ def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
 
 
 def quantity_to_dataset(
-    qty: Quantity, structure: "sdmx.model.v21.DataStructureDefinition"
-) -> "sdmx.model.v21.Dataset":
+    qty: Quantity,
+    structure: "sdmx.model.common.BaseDataStructureDefinition",
+    *,
+    version: Union["sdmx.format.Version", str, None] = None,
+) -> "sdmx.model.common.BaseDataSet":
     """Convert :class:`.Quantity to :class:`DataSet <sdmx.model.common.BaseDataSet>`.
 
     The resulting data set is structure-specific and flat (not grouped into Series).
     """
+    # Handle `version` argument, identify classes
+    _, m = _version_mod(version)
+    DataSet = m.get_class("StructureSpecificDataSet")
+    Observation = m.get_class("Observation")
+    Key = sdmx.model.common.Key
+
+    # Narrow type
+    # NB This is necessary because BaseDataStructureDefinition.measures is not defined
+    # TODO Remove once addressed upstream
+    assert isinstance(
+        structure,
+        (
+            sdmx.model.v21.DataStructureDefinition,
+            sdmx.model.v30.DataStructureDefinition,
+        ),
+    )
+
     try:
         # URN of DSD stored on `qty` matches `structure`
         assert qty.attrs["structure_urn"] == _urn(structure)
@@ -103,14 +140,17 @@ def quantity_to_dataset(
     dims = qty.dims
 
     # Create data set
-    ds = sdmx.model.v21.StructureSpecificDataSet(structured_by=structure)
-    m = structure.measures[0]
+    ds = DataSet(structured_by=structure)
+    measure = structure.measures[0]
 
     def as_obs(key, value):
         """Convert a single pd.Series element to an sdmx Observation."""
         # Convert `key` tuple to an sdmx Key
-        key = structure.make_key(sdmx.model.v21.Key, dict(zip(dims, key)))
-        return sdmx.model.v21.Observation(dimension=key, value_for=m, value=value)
+        return Observation(
+            dimension=structure.make_key(Key, dict(zip(dims, key))),
+            value_for=measure,
+            value=value,
+        )
 
     # - Convert `qty` to pd.Series.
     # - Convert each item to an sdmx Observation.
@@ -124,6 +164,7 @@ def quantity_to_message(
     qty: Quantity, structure: "sdmx.model.v21.DataStructureDefinition", **kwargs
 ) -> "sdmx.message.DataMessage":
     """Convert :class:`.Quantity to :class:`DataMessage <sdmx.message.DataMessage>`."""
+    kwargs["version"], _ = _version_mod(kwargs.get("version"))
     dm = sdmx.message.DataMessage(**kwargs)
     dm.data.append(quantity_to_dataset(qty, structure))
     return dm
