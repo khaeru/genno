@@ -116,12 +116,14 @@ class AttrSeries(pd.Series, Quantity):
 
     def __init__(self, data=None, *args, name=None, attrs=None, **kwargs):
         # Emulate behaviour of Series.__init__
-        if isinstance(data, DataManager):
+        if isinstance(data, DataManager) and "fastpath" not in kwargs:
             if not (
-                0 == len(args) == len(kwargs) and name is attrs is None
+                0 == len(args) == len(kwargs) and attrs is None
             ):  # pragma: no cover
                 raise NotImplementedError
             NDFrame.__init__(self, data)
+            if name:
+                self.name = name
             return
 
         attrs = Quantity._collect_attrs(data, attrs, kwargs)
