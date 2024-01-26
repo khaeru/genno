@@ -16,6 +16,7 @@ __all__ = [
     "codelist_to_groups",
     "dataset_to_quantity",
     "quantity_to_dataset",
+    "quantity_to_message",
 ]
 
 
@@ -55,21 +56,22 @@ def codelist_to_groups(
 
 
 def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
-    """Convert :class:`DataSet <sdmx.model.common.BaseDataSet>` to :class:`.Quantity.
+    """Convert :class:`DataSet <sdmx.model.common.BaseDataSet>` to :class:`.Quantity`.
 
     Returns
     -------
-    Quantity
+    .Quantity
         The quantity may have the attributes:
 
-        - "dataflow_urn": :attr:`urn <sdmx.model.common.MaintainableArtefact.urn>` of
-          the :class:`Dataflow` referenced by the :attr:`described_by
-          <sdmx.model.common.DataSet.described_by>` attribute of `ds`, if any.
-        - "structure_urn": :attr:`urn <sdmx.model.common.MaintainableArtefact.urn>` of
+        - "dataflow_urn": :attr:`urn <sdmx.model.common.IdentifiableArtefact.urn>` of
+          the :class:`Dataflow <sdmx.model.common.BaseDataflow` referenced by the
+          :attr:`described_by <sdmx.model.common.BaseDataSet.described_by>` attribute of
+          `ds`, if any.
+        - "structure_urn": :attr:`urn <sdmx.model.common.IdentifiableArtefact.urn>` of
           the :class:`DataStructureDefinition
           <sdmx.model.common.BaseDataStructureDefinition>` referenced by the
-          :attr:`structured_by <sdmx.model.common.DataSet.structured_by>` attribute of
-          `ds`, if any.
+          :attr:`structured_by <sdmx.model.common.BaseDataSet.structured_by>` attribute
+          of `ds`, if any.
     """
     # Assemble attributes
     attrs: Dict[str, str] = {}
@@ -88,9 +90,18 @@ def quantity_to_dataset(
     observation_dimension: Optional[str] = None,
     version: Union["sdmx.format.Version", str, None] = None,
 ) -> "sdmx.model.common.BaseDataSet":
-    """Convert :class:`.Quantity to :class:`DataSet <sdmx.model.common.BaseDataSet>`.
+    """Convert :class:`.Quantity` to :class:`DataSet <sdmx.model.common.BaseDataSet>`.
 
-    The resulting data set is structure-specific and flat (not grouped into Series).
+    The resulting data set is structure-specific.
+
+    Parameters
+    ----------
+    observation_dimension : str or sdmx.model.common.DimensionComponent, optional
+        If given, the resulting data set is arranged in series, with the
+        `observation_dimension` varying across observations within each series. If not
+        given, the data set is flat, with all dimensions specified for each observation.
+    version : str or sdmx.format.Version, optional
+        SDMX data model version to use; default 2.1.
     """
     # Handle `version` argument, identify classes
     _, DataSet, Observation = util.handle_version(version)
@@ -160,7 +171,14 @@ def quantity_to_dataset(
 def quantity_to_message(
     qty: Quantity, structure: "sdmx.model.v21.DataStructureDefinition", **kwargs
 ) -> "sdmx.message.DataMessage":
-    """Convert :class:`.Quantity to :class:`DataMessage <sdmx.message.DataMessage>`."""
+    """Convert :class:`.Quantity` to :class:`DataMessage <sdmx.message.DataMessage>`.
+
+    Parameters
+    ----------
+    kwargs :
+        `observation_dimension` and `version` parameters are both used and passed on
+        to :func:`.quantity_to_dataset`.
+    """
     kwargs.update(
         version=util.handle_version(kwargs.get("version"))[0],
         observation_dimension=util.handle_od(
