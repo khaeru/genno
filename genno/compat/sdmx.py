@@ -1,5 +1,5 @@
 from types import ModuleType
-from typing import Dict, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Dict, Hashable, Iterable, List, Mapping, Optional, Tuple, Union
 
 from genno import Quantity
 
@@ -51,6 +51,16 @@ def codelist_to_groups(
         groups[code.id] = list(map(str, code.child))
 
     return {dim: groups}
+
+
+def _od(
+    value: Union[str, "sdmx.model.common.DimensionComponent", None],
+    structure: "sdmx.model.common.BaseDataStructureDefinition",
+) -> Optional["sdmx.model.common.DimensionComponent"]:
+    if isinstance(value, sdmx.model.common.Dimension) or value is None:
+        return value
+    elif value is not None:
+        return structure.dimensions.get(value)
 
 
 def _urn(obj: "sdmx.model.common.MaintainableArtefact") -> str:
@@ -107,6 +117,7 @@ def quantity_to_dataset(
     qty: Quantity,
     structure: "sdmx.model.common.BaseDataStructureDefinition",
     *,
+    observation_dimension: Optional[str] = None,
     version: Union["sdmx.format.Version", str, None] = None,
 ) -> "sdmx.model.common.BaseDataSet":
     """Convert :class:`.Quantity to :class:`DataSet <sdmx.model.common.BaseDataSet>`.
@@ -118,6 +129,7 @@ def quantity_to_dataset(
     DataSet = m.get_class("StructureSpecificDataSet")
     Observation = m.get_class("Observation")
     Key = sdmx.model.common.Key
+    SeriesKey = sdmx.model.common.SeriesKey
 
     # Narrow type
     # NB This is necessary because BaseDataStructureDefinition.measures is not defined
@@ -143,19 +155,38 @@ def quantity_to_dataset(
     ds = DataSet(structured_by=structure)
     measure = structure.measures[0]
 
+    if od := _od(observation_dimension, structure):
+        # Index of `observation_dimension`
+        od_index = dims.index(od.id)
+        # Group data / construct SeriesKey all *except* the observation_dimension
+        series_dims = list(dims[:od_index] + dims[od_index + 1 :])
+        grouped: Iterable = qty.to_series().groupby(series_dims)
+        # For as_obs()
+        obs_dims: Tuple[Hashable, ...] = (od.id,)
+        key_slice = slice(od_index, od_index + 1)
+    else:
+        # Pseudo-groupby object
+        grouped = [(None, qty.to_series())]
+        obs_dims, key_slice = dims, slice(None)
+
     def as_obs(key, value):
         """Convert a single pd.Series element to an sdmx Observation."""
-        # Convert `key` tuple to an sdmx Key
         return Observation(
-            dimension=structure.make_key(Key, dict(zip(dims, key))),
+            # Select some or all elements of the SeriesGroupBy key
+            dimension=structure.make_key(Key, dict(zip(obs_dims, key[key_slice]))),
             value_for=measure,
             value=value,
         )
 
-    # - Convert `qty` to pd.Series.
-    # - Convert each item to an sdmx Observation.
-    # - Add to `ds`.
-    ds.obs.extend(as_obs(key, value) for key, value in qty.to_series().items())
+    for series_key, data in grouped:
+        if series_key:
+            sk = structure.make_key(SeriesKey, dict(zip(series_dims, series_key)))
+        else:
+            sk = None
+
+        # - Convert each item to an sdmx Observation.
+        # - Add to `ds`, associating with sk
+        ds.add_obs([as_obs(key, value) for key, value in data.items()], series_key=sk)
 
     return ds
 
@@ -164,7 +195,16 @@ def quantity_to_message(
     qty: Quantity, structure: "sdmx.model.v21.DataStructureDefinition", **kwargs
 ) -> "sdmx.message.DataMessage":
     """Convert :class:`.Quantity to :class:`DataMessage <sdmx.message.DataMessage>`."""
-    kwargs["version"], _ = _version_mod(kwargs.get("version"))
-    dm = sdmx.message.DataMessage(**kwargs)
-    dm.data.append(quantity_to_dataset(qty, structure))
-    return dm
+    kwargs.update(
+        version=_version_mod(kwargs.get("version"))[0],
+        observation_dimension=_od(kwargs.get("observation_dimension"), structure),
+    )
+
+    ds = quantity_to_dataset(
+        qty,
+        structure,
+        observation_dimension=kwargs["observation_dimension"],
+        version=kwargs["version"],
+    )
+
+    return sdmx.message.DataMessage(data=[ds], **kwargs)

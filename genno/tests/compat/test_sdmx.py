@@ -85,34 +85,46 @@ def test_dataset_to_quantity(dsd, dm) -> None:
 VERSION = (None, Version["2.1"], Version["3.0"], "2.1", "3.0")
 
 
+@pytest.mark.parametrize("observation_dimension", (None, "TIME_PERIOD"))
 @pytest.mark.parametrize("version", VERSION)
 @pytest.mark.parametrize("with_attrs", (True, False))
-def test_quantity_to_dataset(dsd, dm, version, with_attrs) -> None:
+def test_quantity_to_dataset(
+    dsd, dm, observation_dimension, version, with_attrs
+) -> None:
     ds = dm.data[0]
     qty = dataset_to_quantity(ds)
 
     if not with_attrs:
         qty.attrs.pop("structure_urn")
 
-    result = quantity_to_dataset(qty, structure=dsd, version=version)
+    result = quantity_to_dataset(
+        qty, structure=dsd, observation_dimension=observation_dimension, version=version
+    )
 
     # All observations are converted
     assert len(ds.obs) == len(result.obs)
 
     # Dataset is associated with its DSD
-    assert dsd is ds.structured_by
+    assert dsd is result.structured_by
 
 
+@pytest.mark.parametrize("observation_dimension", (None, "TIME_PERIOD"))
 @pytest.mark.parametrize("version", VERSION)
-def test_quantity_to_message(dsd, dm, version) -> None:
+def test_quantity_to_message(dsd, dm, observation_dimension, version) -> None:
     ds = dm.data[0]
     qty = dataset_to_quantity(ds)
 
     header = dm.header
 
-    result = quantity_to_message(qty, version=version, structure=dsd, header=header)
+    result = quantity_to_message(
+        qty,
+        structure=dsd,
+        observation_dimension=observation_dimension,
+        version=version,
+        header=header,
+    )
 
-    # Currently False because `result.observation_dimension` is not set
+    # Currently False because OBS_STATUS attributes are not preserved
     with pytest.raises(AssertionError):
         # Resulting message compares equal to the original ("round trip")
         assert dm.compare(result)
