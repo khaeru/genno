@@ -5,6 +5,7 @@ repos:
   - id: mypy
     additional_dependencies:
     - importlib_resources
+    - lxml-stubs
     - nbclient
     - pint
     - pytest

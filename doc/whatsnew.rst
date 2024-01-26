@@ -1,8 +1,10 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- New operators in :doc:`compat-sdmx`: :func:`.dataset_to_quantity`, :func:`.quantity_to_dataset`, :func:`.quantity_to_message` (:issue:`21`, :pull:`115`).
 
 v1.22.0 (2023-12-13)
 ====================

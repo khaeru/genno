@@ -21,6 +21,8 @@ if TYPE_CHECKING:  # pragma: no cover
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
+from pandas.core.generic import NDFrame
+from pandas.core.internals.base import DataManager
 from xarray.core.coordinates import Coordinates
 from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
@@ -113,6 +115,17 @@ class AttrSeries(pd.Series, Quantity):
         return AttrSeries
 
     def __init__(self, data=None, *args, name=None, attrs=None, **kwargs):
+        # Emulate behaviour of Series.__init__
+        if isinstance(data, DataManager) and "fastpath" not in kwargs:
+            if not (
+                0 == len(args) == len(kwargs) and attrs is None
+            ):  # pragma: no cover
+                raise NotImplementedError
+            NDFrame.__init__(self, data)
+            if name:
+                self.name = name
+            return
+
         attrs = Quantity._collect_attrs(data, attrs, kwargs)
 
         if isinstance(data, (pd.Series, xr.DataArray)):
