@@ -1,5 +1,6 @@
 from typing import Dict, Hashable, Iterable, List, Mapping, Optional, Tuple, Union
 
+import genno
 from genno import Quantity
 
 try:
@@ -175,3 +176,21 @@ def quantity_to_message(
     )
 
     return sdmx.message.DataMessage(data=[ds], **kwargs)
+
+
+@genno.operator.write_report.register
+def _(obj: "sdmx.message.DataMessage", path, kwargs=None) -> None:
+    """Write  `obj` to the file at `path`.
+
+    If `obj` is a :class:`sdmx.message.DataMessage` and `path` ends with ".xml", use
+    use :mod:`sdmx` methods to write the file to SDMX-ML. Otherwise, equivalent to
+    :func:`genno.operator.write_report`.
+    """
+    import genno.compat.sdmx.operator  # noqa: F401
+
+    assert path.suffix.lower() == ".xml"
+
+    kwargs = kwargs or {}
+    kwargs.setdefault("pretty_print", True)
+
+    path.write_bytes(sdmx.to_xml(obj, **kwargs))

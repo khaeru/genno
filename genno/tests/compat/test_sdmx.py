@@ -3,6 +3,7 @@ import sdmx
 from sdmx.format import Version
 from sdmx.model.common import Code, Codelist
 
+import genno.operator
 from genno import Computer
 from genno.compat.sdmx import operator
 from genno.testing import add_test_data
@@ -123,3 +124,45 @@ def test_quantity_to_message(dsd, dm, observation_dimension, version) -> None:
     with pytest.raises(AssertionError):
         # Resulting message compares equal to the original ("round trip")
         assert dm.compare(result)
+
+
+@pytest.mark.parametrize("observation_dimension", (None, "TIME_PERIOD"))
+@pytest.mark.parametrize(
+    "version",
+    (
+        None,
+        Version["2.1"],
+        pytest.param(
+            Version["3.0"],
+            marks=pytest.mark.xfail(
+                raises=NotImplementedError, reason="Not implemented in sdmx1"
+            ),
+        ),
+        "2.1",
+        pytest.param(
+            "3.0",
+            marks=pytest.mark.xfail(
+                raises=NotImplementedError, reason="Not implemented in sdmx1"
+            ),
+        ),
+    ),
+)
+def test_write_report(tmp_path, dsd, dm, observation_dimension, version) -> None:
+    ds = dm.data[0]
+    qty = operator.dataset_to_quantity(ds)
+
+    header = dm.header
+
+    obj = operator.quantity_to_message(
+        qty,
+        structure=dsd,
+        observation_dimension=observation_dimension,
+        version=version,
+        header=header,
+    )
+
+    path = tmp_path.joinpath("foo.xml")
+
+    genno.operator.write_report(obj, path)
+
+    print(f"{path.read_text() = }")
