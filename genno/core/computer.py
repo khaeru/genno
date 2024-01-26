@@ -176,7 +176,8 @@ class Computer:
             except AttributeError:
                 continue  # `name` not in this module
             else:
-                if len(cw):
+                if len(cw) and any(wm.category is DeprecationWarning for wm in cw):
+                    # TODO Re-emit any non-DeprecationWarning
                     continue  # Some DeprecationWarning raised; don't use this import
                 else:
                     return result
