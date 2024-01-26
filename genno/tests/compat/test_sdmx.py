@@ -4,12 +4,7 @@ from sdmx.format import Version
 from sdmx.model.common import Code, Codelist
 
 from genno import Computer
-from genno.compat.sdmx import (
-    codelist_to_groups,
-    dataset_to_quantity,
-    quantity_to_dataset,
-    quantity_to_message,
-)
+from genno.compat.sdmx import operator
 from genno.testing import add_test_data
 
 
@@ -23,8 +18,8 @@ def test_codelist_to_groups() -> None:
 
     # Operator runs
     for result0 in (
-        codelist_to_groups(cl),
-        codelist_to_groups(iter(cl), dim="t"),
+        operator.codelist_to_groups(cl),
+        operator.codelist_to_groups(iter(cl), dim="t"),
     ):
         # Result has the expected contents
         assert {"t"} == set(result0.keys())
@@ -34,7 +29,7 @@ def test_codelist_to_groups() -> None:
         assert set(t_bar) == set(result_t["bar"])
 
     with pytest.raises(ValueError, match="Must provide a dimension"):
-        codelist_to_groups(iter(cl))
+        operator.codelist_to_groups(iter(cl))
 
     # Output is usable in Computer() with aggregate
     c.require_compat("genno.compat.sdmx")
@@ -67,7 +62,7 @@ def test_dataset_to_quantity(dsd, dm) -> None:
     ds = dm.data[0]
 
     # Operator runs
-    result = dataset_to_quantity(ds)
+    result = operator.dataset_to_quantity(ds)
 
     # Dimensions of the quantity match the dimensions of the data frame
     assert set(d.id for d in dsd.dimensions.components) == set(result.dims)
@@ -92,12 +87,12 @@ def test_quantity_to_dataset(
     dsd, dm, observation_dimension, version, with_attrs
 ) -> None:
     ds = dm.data[0]
-    qty = dataset_to_quantity(ds)
+    qty = operator.dataset_to_quantity(ds)
 
     if not with_attrs:
         qty.attrs.pop("structure_urn")
 
-    result = quantity_to_dataset(
+    result = operator.quantity_to_dataset(
         qty, structure=dsd, observation_dimension=observation_dimension, version=version
     )
 
@@ -112,11 +107,11 @@ def test_quantity_to_dataset(
 @pytest.mark.parametrize("version", VERSION)
 def test_quantity_to_message(dsd, dm, observation_dimension, version) -> None:
     ds = dm.data[0]
-    qty = dataset_to_quantity(ds)
+    qty = operator.dataset_to_quantity(ds)
 
     header = dm.header
 
-    result = quantity_to_message(
+    result = operator.quantity_to_message(
         qty,
         structure=dsd,
         observation_dimension=observation_dimension,
