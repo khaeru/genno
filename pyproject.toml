@@ -31,7 +31,6 @@ dependencies = [
   "pandas >= 1.0",
   "pint",
   "PyYAML",
-  "setuptools >= 41",
   # 2022.6.0 is affected by pydata/xarray#6822
   "xarray >= 0.17, != 2022.6.0",
 ]
