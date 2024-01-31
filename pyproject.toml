@@ -95,6 +95,8 @@ filterwarnings = [
   # Upstream changes that won't affect genno
   "ignore:configure_currency.*will no longer be the default:DeprecationWarning:iam_units",
   "ignore:Jupyter is migrating its paths.*:DeprecationWarning:jupyter_client.connect",
+  # https://github.com/dateutil/dateutil/issues/1314
+  "ignore:datetime.datetime.utcfromtimestamp.. is deprecated.*:DeprecationWarning:dateutil",
 ]
 
 [tool.ruff]
