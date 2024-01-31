@@ -2,6 +2,7 @@ import pytest
 
 from genno import Key
 from genno.core.key import iter_keys, single_key
+from genno.testing import raises_or_warns
 
 
 def test_key():
@@ -31,8 +32,7 @@ def test_key():
     assert Key("foo", tag="baz") == "foo::baz"
 
 
-_invalid = pytest.mark.xfail(raises=ValueError, reason="Invalid key expression")
-
+_invalid = pytest.raises(ValueError, match="Invalid key expression")
 
 CASES = (
     ("foo", Key("foo")),
@@ -46,20 +46,21 @@ CASES = (
     # Weird but not invalid
     ("foo::++", Key("foo", tag="++")),
     # Invalid
-    pytest.param(":", None, marks=_invalid),
-    pytest.param("::", None, marks=_invalid),
-    pytest.param("::bar", None, marks=_invalid),
-    pytest.param(":a-b:bar", None, marks=_invalid),
-    pytest.param("foo:a-b-", None, marks=_invalid),
+    (":", _invalid),
+    ("::", _invalid),
+    ("::bar", _invalid),
+    (":a-b:bar", _invalid),
+    ("foo:a-b-", _invalid),
     # Bad arguments
-    pytest.param(42.1, None, marks=pytest.mark.xfail(raises=TypeError)),
+    (42.1, pytest.raises(TypeError)),
 )
 
 
 class TestKey:
     @pytest.mark.parametrize("value, expected", CASES)
-    def test_init0(self, value, expected):
-        assert expected == Key(value)
+    def test_init0(self, value, expected) -> None:
+        with raises_or_warns(expected, None):
+            assert expected == Key(value)
 
     @pytest.mark.parametrize(
         "args, expected",
@@ -81,8 +82,8 @@ class TestKey:
         assert expected == Key(*args)
 
     @pytest.mark.parametrize("value, expected", CASES)
-    def test_from_str_or_key0(self, value, expected):
-        with pytest.warns(FutureWarning, match="no longer necessary"):
+    def test_from_str_or_key0(self, value, expected) -> None:
+        with raises_or_warns(expected, FutureWarning, match="no longer necessary"):
             assert expected == Key.from_str_or_key(value)
 
     @pytest.mark.parametrize(
