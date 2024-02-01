@@ -94,6 +94,19 @@ class TestAttrSeries:
         foo.shift(a=1)
         foo.shift(b=1)
 
+    def test_squeeze(self, foo) -> None:
+        """:meth:`squeeze` results in MultiIndex.
+
+        https://github.com/khaeru/genno/issues/120
+        https://github.com/iiasa/message_ix/issues/788
+        """
+        # Squeeze the length-1 dimension "a"
+        result = foo.sel(a=["a1"]).squeeze()
+
+        # Result is 1-D but multi-indexed
+        assert 1 == len(result.dims)
+        assert isinstance(result.index, pd.MultiIndex)
+
     def test_sum(self, foo, bar):
         # AttrSeries can be summed across all dimensions
         result = foo.sum(dim=["a", "b"])

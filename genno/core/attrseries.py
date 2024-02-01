@@ -64,6 +64,19 @@ def _binop(name: str, swap: bool = False):
     return method
 
 
+def _ensure_multiindex(obj):
+    """Ensure `obj` has a pd.MultiIndex, even if 1D."""
+    try:
+        obj.index.levels  # Access an Attribute of MultiIndex that Index does not have
+    except AttributeError:
+        # Assign the dimension name "dim_0" if 1-D with no names
+        kw = {}
+        if len(obj.index) > 1 and obj.index.name is None:
+            kw["names"] = ["dim_0"]
+        obj.index = pd.MultiIndex.from_product([obj.index], **kw)
+    return obj
+
+
 class AttrSeriesCoordinates(Coordinates):
     def __init__(self, obj):
         self._data = obj
@@ -158,14 +171,7 @@ class AttrSeries(pd.Series, Quantity):
         pd.Series.__init__(self, data, *args, name=name, **kwargs)
 
         # Ensure a MultiIndex
-        try:
-            self.index.levels
-        except AttributeError:
-            # Assign the dimension name "dim_0" if 1-D with no names
-            kw = {}
-            if len(self.index) > 1 and self.index.name is None:
-                kw["names"] = ["dim_0"]
-            self.index = pd.MultiIndex.from_product([self.index], **kw)
+        _ensure_multiindex(self)
 
         # Update the attrs after initialization
         self.attrs.update(attrs)
@@ -547,7 +553,7 @@ class AttrSeries(pd.Series, Quantity):
             # Dropping all dimensions → 0-D quantity; simply reset
             return self.reset_index(drop=True)
         else:
-            return self.droplevel(to_drop)
+            return self.droplevel(to_drop).pipe(_ensure_multiindex)
 
     def transpose(self, *dims):
         """Like :meth:`xarray.DataArray.transpose`."""

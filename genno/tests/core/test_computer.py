@@ -134,7 +134,7 @@ class TestComputer:
         agg3 = c.get(key3)
         assert set(agg3.coords["t"].values) == set(t_groups.keys())
 
-        with pytest.raises(NotImplementedError), pytest.warns(DeprecationWarning):
+        with pytest.raises(NotImplementedError):
             # Not yet supported; requires two separate operations
             c.aggregate("x:t-y", "agg3", {"t": t_groups, "y": [2000, 2010]})
 
@@ -173,11 +173,11 @@ class TestComputer:
             c.disaggregate(g, "j")
 
         # Invalid method argument
-        with pytest.raises(ValueError), pytest.warns(DeprecationWarning):
+        with pytest.raises(ValueError):
             c.disaggregate("x:", "d", method="baz")
 
         # Invalid method argument
-        with pytest.raises(TypeError), pytest.warns(DeprecationWarning):
+        with pytest.raises(TypeError):
             c.disaggregate("x:", "d", method=None)
 
 

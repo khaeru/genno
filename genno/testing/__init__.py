@@ -1,10 +1,11 @@
 import contextlib
 import logging
 import sys
+from contextlib import nullcontext
 from copy import copy
 from functools import partial
 from itertools import chain, islice
-from typing import Dict
+from typing import ContextManager, Dict
 
 import numpy as np
 import pandas as pd
@@ -424,6 +425,43 @@ def random_qty(shape: Dict[str, int], **kwargs) -> Quantity:
         ),
         **kwargs,
     )
+
+
+def raises_or_warns(value, *args, **kwargs) -> ContextManager:
+    """Context manager for tests that :func:`.pytest.raises` or :func:`.pytest.warns`.
+
+    If `value` is a context manager—such as returned by :func:`.pytest.raises`, it is
+    used directly.
+
+    Examples
+    --------
+    @pytest.mark.parametrize(
+        "input, output", (("FOO", 1), ("BAR", pytest.raises(ValueError)))
+    )
+    def test_myfunc0(input, expected):
+        with raises_or_warns(expected, DeprecationWarning, match="FOO"):
+            assert expected == myfunc(input)
+
+    In this example:
+
+    - :py:`myfunc("FOO")` is expected to emit :class:`DeprecationWarning` and return 1.
+    - :py:`myfunc("BAR")` is expected to raise :class:`ValueError` and issue no warning.
+
+    @pytest.mark.parametrize(
+        "input, output", (("FOO", 1), ("BAR", pytest.raises(ValueError)))
+    )
+    def test_myfunc1(input, expected):
+        with raises_or_warns(expected, None):
+            assert expected == myfunc(input)
+
+    In this example, no warnings are expected from :py:`myfunc("FOO")`.
+    """
+    if isinstance(value, ContextManager):
+        return value
+    elif args == (None,) and kwargs == {}:
+        return nullcontext()
+    else:
+        return pytest.warns(*args, **kwargs)
 
 
 # Fixtures
