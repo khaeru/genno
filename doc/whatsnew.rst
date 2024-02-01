@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.23.1 (2024-02-01)
+====================
 
 - Bugfix: genno 1.23.0 would return :class:`.AttrSeries` with :class:`pandas.Index` (instead of 1-D :class:`pandas.MultiIndex`) from :meth:`~.AttrSeries.squeeze` (:issue:`120`, :pull:`122`).
 
