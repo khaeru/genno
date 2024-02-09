@@ -1,6 +1,6 @@
 import pytest
 
-from genno import Key
+from genno import Key, KeySeq
 from genno.core.key import iter_keys, single_key
 from genno.testing import raises_or_warns
 
@@ -133,6 +133,72 @@ class TestKey:
             key * 2.2
         with pytest.raises(TypeError):
             key / 3.3
+
+
+class TestKeySeq:
+    @pytest.fixture
+    def ks(self) -> KeySeq:
+        return KeySeq("foo:x-y-z:bar")
+
+    def test_call(self, ks) -> None:
+        assert "foo:x-y-z:bar+0" == ks()
+        assert "foo:x-y-z:bar+1" == ks()
+        assert "foo:x-y-z:bar+2" == ks()
+        assert "foo:x-y-z:bar+2" == ks.prev
+
+        # Continues from interruption
+        ks[5]
+        assert "foo:x-y-z:bar+6" == next(ks)
+
+    def test_getitem(self, ks) -> None:
+        assert "foo:x-y-z:bar+baz" == ks["baz"]
+        assert "foo:x-y-z:bar+qux" == ks["qux"]
+        assert "foo:x-y-z:bar+qux" == ks.prev
+        assert "foo:x-y-z:bar+0" == next(ks)
+        assert "foo:x-y-z:bar+0" == ks.prev
+
+    def test_keys(sefl, ks) -> None:
+        ks["foo"]
+        ks[5]
+        next(ks)
+        ks["baz"]
+        ks[0]
+
+        # .keys preserves order of creation
+        assert ("foo", 5, 6, "baz", 0) == tuple(ks.keys)
+
+    def test_next(self, ks) -> None:
+        assert "foo:x-y-z:bar+0" == next(ks)
+        assert "foo:x-y-z:bar+1" == next(ks)
+        assert "foo:x-y-z:bar+2" == next(ks)
+        assert "foo:x-y-z:bar+2" == ks.prev
+
+        # Continues from interruption
+        ks[5]
+        assert "foo:x-y-z:bar+6" == next(ks)
+
+    def test_repr(self, ks) -> None:
+        assert "<KeySeq from 'foo:x-y-z:bar'>" == repr(ks)
+
+    def test_key_attrs(self, ks) -> None:
+        assert "foo" == ks.name
+        assert ("x", "y", "z") == ks.dims
+        assert "bar" == ks.tag
+
+    def test_key_ops(self, ks) -> None:
+        # __add__
+        assert "foo:x-y-z:bar+baz" == (ks + "baz").base
+
+        # __mul__
+        assert "foo:w-x-y-z:bar" == (ks * "w").base
+
+        # __sub__
+        assert "foo:x-y-z" == (ks - "bar").base
+        with pytest.raises(ValueError):
+            ks - "qux"
+
+        # __truediv__
+        assert "foo:x-z:bar" == (ks / "y").base
 
 
 def test_sorted():

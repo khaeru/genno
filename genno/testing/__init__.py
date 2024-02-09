@@ -435,24 +435,28 @@ def raises_or_warns(value, *args, **kwargs) -> ContextManager:
 
     Examples
     --------
-    @pytest.mark.parametrize(
-        "input, output", (("FOO", 1), ("BAR", pytest.raises(ValueError)))
-    )
-    def test_myfunc0(input, expected):
-        with raises_or_warns(expected, DeprecationWarning, match="FOO"):
-            assert expected == myfunc(input)
+    .. code-block:: python
+
+       @pytest.mark.parametrize(
+           "input, output", (("FOO", 1), ("BAR", pytest.raises(ValueError)))
+       )
+       def test_myfunc0(input, expected):
+           with raises_or_warns(expected, DeprecationWarning, match="FOO"):
+               assert expected == myfunc(input)
 
     In this example:
 
     - :py:`myfunc("FOO")` is expected to emit :class:`DeprecationWarning` and return 1.
     - :py:`myfunc("BAR")` is expected to raise :class:`ValueError` and issue no warning.
 
-    @pytest.mark.parametrize(
-        "input, output", (("FOO", 1), ("BAR", pytest.raises(ValueError)))
-    )
-    def test_myfunc1(input, expected):
-        with raises_or_warns(expected, None):
-            assert expected == myfunc(input)
+    .. code-block:: python
+
+       @pytest.mark.parametrize(
+           "input, output", (("FOO", 1), ("BAR", pytest.raises(ValueError)))
+       )
+       def test_myfunc1(input, expected):
+           with raises_or_warns(expected, None):
+               assert expected == myfunc(input)
 
     In this example, no warnings are expected from :py:`myfunc("FOO")`.
     """

@@ -2,7 +2,20 @@ import logging
 import re
 from functools import partial, singledispatch
 from itertools import chain, compress
-from typing import Callable, Generator, Iterable, Iterator, Optional, Tuple, Union
+from types import MappingProxyType
+from typing import (
+    Callable,
+    Dict,
+    Generator,
+    Hashable,
+    Iterable,
+    Iterator,
+    Optional,
+    Sequence,
+    SupportsInt,
+    Tuple,
+    Union,
+)
 from warnings import warn
 
 from genno.core.quantity import Quantity
@@ -184,33 +197,37 @@ class Key:
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
 
-    def __add__(self, other) -> "Key":
+    def __add__(self, other: str) -> "Key":
+        if not isinstance(other, str):
+            raise TypeError(type(other))
+        return self.add_tag(other)
+
+    def __sub__(self, other: Union[str, Iterable[str]]) -> "Key":
+        return self.remove_tag(*((other,) if isinstance(other, str) else other))
+
+    def __mul__(self, other: Union[str, "Key", Sequence[str]]) -> "Key":
         if isinstance(other, str):
-            return self.add_tag(other)
+            other_dims: Sequence[str] = (other,)
+        elif isinstance(other, Key):
+            other_dims = other.dims
+        elif isinstance(other, Sequence):
+            other_dims = other
         else:
             raise TypeError(type(other))
 
-    def __mul__(self, other) -> "Key":
-        if isinstance(other, str):
-            return self.append(other)
-        else:
-            # Key or iterable of dims
-            other_dims = getattr(other, "dims", other)
-            try:
-                return self.append(*other_dims)
-            except Exception:
-                raise TypeError(type(other))
+        return self.append(*other_dims)
 
-    def __truediv__(self, other) -> "Key":
+    def __truediv__(self, other: Union[str, "Key", Sequence[str]]) -> "Key":
         if isinstance(other, str):
-            return self.drop(other)
+            other_dims: Sequence[str] = (other,)
+        elif isinstance(other, Key):
+            other_dims = other.dims
+        elif isinstance(other, Sequence):
+            other_dims = other
         else:
-            # Key or iterable of dims
-            other_dims = getattr(other, "dims", other)
-            try:
-                return self.drop(*other_dims)
-            except Exception:
-                raise TypeError(type(other))
+            raise TypeError(type(other))
+
+        return self.drop(*other_dims)
 
     def __repr__(self) -> str:
         """Representation of the Key, e.g. '<name:dim1-dim2-dim3:tag>."""
@@ -295,7 +312,7 @@ class Key:
         """Return a new Key with additional dimensions `dims`."""
         return Key(self._name, list(self._dims) + list(dims), self._tag, _fast=True)
 
-    def add_tag(self, tag) -> "Key":
+    def add_tag(self, tag: Optional[str]) -> "Key":
         """Return a new Key with `tag` appended."""
         return Key(
             self._name, self._dims, "+".join(filter(None, [self._tag, tag])), _fast=True
@@ -312,11 +329,98 @@ class Key:
                 self,
             )
 
+    def remove_tag(self, *tags: str) -> "Key":
+        """Return a key with any of `tags` dropped.
+
+        Raises
+        ------
+        ValueError
+            If none of `tags` are in :attr:`.tags`.
+        """
+        new_tags = tuple(filter(lambda t: t not in tags, (self.tag or "").split("+")))
+        new_tag = "+".join(new_tags) if new_tags else None
+        if new_tag == self.tag:
+            raise ValueError(f"No existing tags {tags!r} to remove")
+        return Key(self._name, self._dims, new_tag, _fast=True)
+
 
 @_name_dims_tag.register
 def _(value: Key):
     """Return the (name, dims, tag) of an existing Key."""
     return value._name, value._dims, value._tag
+
+
+class KeySeq:
+    """Utility class for generating similar :class:`Keys <.Key>`."""
+
+    #: Base :class:`.Key` of the sequence.
+    base: Key
+
+    # Keys that have been created.
+    _keys: Dict[Hashable, Key]
+
+    def __init__(self, *args, **kwargs):
+        self.base = Key(*args, **kwargs)
+        self._keys = {}
+
+    def _next_int_tag(self) -> int:
+        return max([-1] + [t for t in self._keys if isinstance(t, int)]) + 1
+
+    def __next__(self) -> Key:
+        return self[self._next_int_tag()]
+
+    def __call__(self, value: Optional[Hashable] = None) -> Key:
+        return next(self) if value is None else self[value]
+
+    def __getitem__(self, value: Hashable) -> Key:
+        tag = int(value) if isinstance(value, SupportsInt) else str(value)
+        result = self._keys[tag] = self.base + str(tag)
+        return result
+
+    def __repr__(self) -> str:
+        return f"<KeySeq from '{self.base!s}'>"
+
+    @property
+    def keys(self) -> MappingProxyType:
+        """Read-only view of previously-created :class:`Keys <.Key>`.
+
+        In the form of a :class:`dict` mapping tags (:class:`int` or :class:`str`) to
+        :class:`.Key` values.
+        """
+        return MappingProxyType(self._keys)
+
+    @property
+    def prev(self) -> Key:
+        """The most recently created :class:`.Key`."""
+        return next(reversed(self._keys.values()))
+
+    # Access to Key properties
+    @property
+    def name(self) -> str:
+        """Name of the :attr:`.base` Key."""
+        return self.base.name
+
+    @property
+    def dims(self) -> Tuple[str, ...]:
+        """Dimensions of the :attr:`.base` Key."""
+        return self.base.dims
+
+    @property
+    def tag(self) -> Optional[str]:
+        """Tag of the :attr:`.base` Key."""
+        return self.base.tag
+
+    def __add__(self, other: str) -> "KeySeq":
+        return KeySeq(self.base + other)
+
+    def __mul__(self, other) -> "KeySeq":
+        return KeySeq(self.base * other)
+
+    def __sub__(self, other: Union[str, Iterable[str]]) -> "KeySeq":
+        return KeySeq(self.base - other)
+
+    def __truediv__(self, other) -> "KeySeq":
+        return KeySeq(self.base / other)
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.

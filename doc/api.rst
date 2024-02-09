@@ -11,6 +11,7 @@ Top-level classes and functions
    configure
    Computer
    Key
+   KeySeq
    Quantity
 
 .. autofunction:: configure
@@ -259,15 +260,19 @@ Top-level classes and functions
 
    Keys can also be manipulated using some of the Python arithmetic operators:
 
-   - :py:`+`: same as :meth:`.add_tag`:
+   - :py:`+`: and :py:`-`: manipulate :attr:`.tag`, same as :meth:`.add_tag` and :meth:`.remove_tag` respectively:
 
-     >>> k1 = Key("foo", "abc")
+     >>> k1 = Key("foo", "abc", "bar+baz+qux")
      >>> k1
-     <foo:a-b-c>
-     >>> k1 + "tag"
-     <foo:a-b-c:tag>
+     <foo:a-b-c:bar+baz+qux>
+     >>> k2 + "newtag"
+     <foo:a-b-c:bar+baz+qux+newtag>
+     >>> k1 - "baz"
+     <foo:a-b-c:bar+qux>
+     >>> k1 - ("bar", "baz")
+     <foo:a-b-c:qux>
 
-   - :py:`*` with a single string, an iterable of strings, or another Key: similar to :meth:`.append` and :meth:`.product`:
+   - :py:`*` and :py:`/`: manipulate :attr:`dims`, similar to :meth:`.append`/:attr:`.product` and :attr:`.drop`, respectively:
 
      >>> k1 * "d"
      <foo:a-b-c-d>
@@ -276,14 +281,78 @@ Top-level classes and functions
      >>> k1 * Key("bar", "ghi")
      <foo:a-b-c-g-h-i>
 
-   - :py:`/` with a single string or iterable of strings: similar to :meth:`drop`:
-
      >>> k1 / "a"
      <foo:b-c>
      >>> k1 / ("a", "c")
      <foo:b>
      >>> k1 / Key("baz", "cde")
      <foo:a-b>
+
+.. autoclass:: genno.KeySeq
+   :members:
+
+   When preparing chains or complicated graphs of computations, it can be useful to use a sequence or set of similar keys to refer to the intermediate steps.
+   The :class:`.KeySeq` class is provided for this purpose.
+   It supports several ways to create related keys starting from a *base key*:
+
+   >>> ks = KeySeq("foo:x-y-z:bar")
+
+   One may:
+
+   - Use item access syntax:
+
+     >>> ks["a"]
+     <foo:x-y-z:bar+a>
+     >>> ks["b"]
+     <foo:x-y-z:bar+b>
+
+   - Use the Python built-in :func:`.next`.
+     This always returns the next key in a sequence of integers, starting with :py:`0` and continuing from the *highest previously created Key*:
+
+     >>> next(ks)
+     <foo:x-y-z:bar+0>
+
+     # Skip some values
+     >>> ks[5]
+     <foo:x-y-z:bar+5>
+
+     # next() continues from the highest
+     >>> next(ks)
+     <foo:x-y-z:bar+6>
+
+   - Treat the KeySeq as callable, optionally with any value that has a :class:`.str` representation:
+
+     >>> ks("c")
+     <foo:x-y-z:bar+c>
+
+     # Same as next()
+     >>> ks()
+     <foo:x-y-z:bar+7>
+
+   - Access the most recently generated item:
+
+     >>> ks.prev
+     <foo:x-y-z:bar+7>
+
+   - Access the base Key or its properties:
+
+     >>> ks.base
+     <foo:x-y-z:bar>
+     >>> ks.name
+     "foo"
+
+   - Access a :class:`dict` of all previously-created keys.
+     Because :class:`dict` is order-preserving, the order of keys and values reflects the order in which they were created:
+
+     >>> tuple(ks.keys)
+     ("a", "b", 0, 5, 6, "a", 7)
+
+   The same Python arithmetic operators usable with Key are usable with KeySeq; they return a new KeySeq with a different :attr:`~.KeySeq.base`:
+
+   >>> ks * "w"
+   <KeySeq from 'foo:x-y-z-w:bar'>
+   >>> ks / ("x", "z")
+   <KeySeq from 'foo:z:bar'>
 
 .. autoclass:: genno.Quantity
    :members:
