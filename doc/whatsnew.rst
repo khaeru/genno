@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.24.0 (2024-02-09)
+====================
 
 - Add :class:`.KeySeq` class for creating sequences or sets of similar :class:`Keys <.Key>` (:pull:`126`).
 - Add :meth:`.Key.remove_tag` method and support for :py:`k - "foo"` syntax for removing tags from :class:`.Key` (:pull:`126`).
