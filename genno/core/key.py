@@ -2,13 +2,17 @@ import logging
 import re
 from functools import partial, singledispatch
 from itertools import chain, compress
+from types import MappingProxyType
 from typing import (
     Callable,
+    Dict,
     Generator,
+    Hashable,
     Iterable,
     Iterator,
     Optional,
     Sequence,
+    SupportsInt,
     Tuple,
     Union,
 )
@@ -344,6 +348,79 @@ class Key:
 def _(value: Key):
     """Return the (name, dims, tag) of an existing Key."""
     return value._name, value._dims, value._tag
+
+
+class KeySeq:
+    """Utility class for generating similar :class:`Keys <.Key>`."""
+
+    #: Base :class:`.Key` of the sequence.
+    base: Key
+
+    # Keys that have been created.
+    _keys: Dict[Hashable, Key]
+
+    def __init__(self, *args, **kwargs):
+        self.base = Key(*args, **kwargs)
+        self._keys = {}
+
+    def _next_int_tag(self) -> int:
+        return max([-1] + [t for t in self._keys if isinstance(t, int)]) + 1
+
+    def __next__(self) -> Key:
+        return self[self._next_int_tag()]
+
+    def __call__(self, value: Optional[Hashable] = None) -> Key:
+        return next(self) if value is None else self[value]
+
+    def __getitem__(self, value: Hashable) -> Key:
+        tag = int(value) if isinstance(value, SupportsInt) else str(value)
+        result = self._keys[tag] = self.base + str(tag)
+        return result
+
+    def __repr__(self) -> str:
+        return f"<KeySeq from '{self.base!s}'>"
+
+    @property
+    def keys(self) -> MappingProxyType:
+        """Read-only view of previously-created :class:`Keys <.Key>`.
+
+        In the form of a :class:`dict` mapping tags (:class:`int` or :class:`str`) to
+        :class:`.Key` values.
+        """
+        return MappingProxyType(self._keys)
+
+    @property
+    def prev(self) -> Key:
+        """The most recently created :class:`.Key`."""
+        return next(reversed(self._keys.values()))
+
+    # Access to Key properties
+    @property
+    def name(self) -> str:
+        """Name of the :attr:`.base` Key."""
+        return self.base.name
+
+    @property
+    def dims(self) -> Tuple[str, ...]:
+        """Dimensions of the :attr:`.base` Key."""
+        return self.base.dims
+
+    @property
+    def tag(self) -> Optional[str]:
+        """Tag of the :attr:`.base` Key."""
+        return self.base.tag
+
+    def __add__(self, other: str) -> "KeySeq":
+        return KeySeq(self.base + other)
+
+    def __mul__(self, other) -> "KeySeq":
+        return KeySeq(self.base * other)
+
+    def __sub__(self, other: Union[str, Iterable[str]]) -> "KeySeq":
+        return KeySeq(self.base - other)
+
+    def __truediv__(self, other) -> "KeySeq":
+        return KeySeq(self.base / other)
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
