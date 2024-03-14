@@ -1,8 +1,16 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Handle pandas :ref:`pandas:copy_on_write` set to :any:`True` (:pull:`133`).
+  This setting will be the default in pandas v3.0 (expected April or May 2024).
+  It is already pre-emptively enabled in some packages (such as `dask-expr <https://pypi.org/project/dask-expr>`_) sometimes used with :mod:`genno`.
+  This can cause errors in other packages that expect the setting to be :any:`False`.
+
+  - Add :func:`.disable_copy_on_write` compatibility function, :func:`.parametrize_copy_on_write` test fixture.
+  - Use :func:`.disable_copy_on_write` in :meth:`.Plot.save`.
 
 v1.24.0 (2024-02-09)
 ====================

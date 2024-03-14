@@ -6,7 +6,10 @@ log = logging.getLogger(__name__)
 
 @contextmanager
 def disable_copy_on_write(name):
-    """Context manager to disable pandas copy-on-write."""
+    """Context manager to disable Pandas :ref:`pandas:copy_on_write`.
+
+    A message is logged with level :any:`logging.DEBUG` if the setting is changed.
+    """
     import pandas
 
     stored = pandas.options.mode.copy_on_write
