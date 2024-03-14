@@ -10,11 +10,12 @@ def disable_copy_on_write(name):
     import pandas
 
     stored = pandas.options.mode.copy_on_write
+    override_value = "warn" if pandas.__version__ >= "2.2.0" else False
 
     try:
         if stored is True:
             log.debug(f"Override pandas.mode.options.copy_on_write = True for {name}")
-            pandas.options.mode.copy_on_write = "warn"
+            pandas.options.mode.copy_on_write = override_value
         yield
     finally:
         pandas.options.mode.copy_on_write = stored
