@@ -97,6 +97,9 @@ filterwarnings = [
   # https://github.com/dateutil/dateutil/issues/1314
   "ignore:datetime.datetime.utcfromtimestamp.. is deprecated.*:DeprecationWarning:dateutil",
 ]
+# commented: This doubles the number of tests in the entire suite.
+# Use only to identify more narrow applications of the same fixture.
+# usefixtures = "parametrize_copy_on_write"
 
 [tool.ruff]
 select = ["C9", "E", "F", "I", "W"]
