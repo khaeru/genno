@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.24.1 (2024-03-14)
+====================
 
 - Handle pandas :ref:`pandas:copy_on_write` set to :any:`True` (:pull:`133`).
   This setting will be the default in pandas v3.0 (expected April or May 2024).
