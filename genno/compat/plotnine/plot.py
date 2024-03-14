@@ -6,6 +6,7 @@ from warnings import warn
 
 import plotnine as p9
 
+from genno.compat.pandas import disable_copy_on_write
 from genno.core.computer import Computer
 from genno.core.key import KeyLike
 from genno.core.quantity import Quantity
@@ -73,12 +74,13 @@ class Plot(ABC):
 
         log.info(f"Save to {self.path}")
 
-        try:
-            # Single plot
-            plot_or_plots.save(self.path, **self.save_args)
-        except AttributeError:
-            # Iterator containing 0 or more plots
-            p9.save_as_pdf_pages(plot_or_plots, self.path, **self.save_args)
+        with disable_copy_on_write(f"{__name__}.Plot.save()"):
+            try:
+                # Single plot
+                plot_or_plots.save(self.path, **self.save_args)
+            except AttributeError:
+                # Iterator containing 0 or more plots
+                p9.save_as_pdf_pages(plot_or_plots, self.path, **self.save_args)
 
         return self.path
 
