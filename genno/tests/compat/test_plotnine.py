@@ -39,6 +39,7 @@ class Plot4(Plot3):
     inputs = ["x:t", "notakey"]
 
 
+@pytest.mark.usefixtures("parametrize_copy_on_write")
 def test_Plot(caplog, tmp_path):
     c = Computer(output_dir=tmp_path)
     t = [("t", [-1, 0, 1])]
