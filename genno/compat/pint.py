@@ -9,6 +9,7 @@ Notes:
 - In pint <0.22, certain expressions raise DefinitionSyntaxError.
   In pint ≥0.22, they instead raise AssertionError.
 """
+
 from importlib.metadata import version
 from typing import Tuple, Type
 

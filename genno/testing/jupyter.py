@@ -2,6 +2,7 @@
 
 Copied 2023-04-27 from the corresponding module in ixmp.
 """
+
 import os
 import sys
 from warnings import warn

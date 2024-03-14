@@ -1,4 +1,5 @@
 """Elementary operators for genno."""
+
 # NB To avoid ambiguity, operators should not have default values for positional-only
 #    arguments; use keyword(-only) arguments for defaults.
 import logging
