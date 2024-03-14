@@ -104,7 +104,12 @@ filterwarnings = [
 [tool.ruff.lint]
 select = ["C9", "E", "F", "I", "W"]
 ignore = ["E501", "W191"]
-mccabe.max-complexity = 14
+# Exceptions:
+# - .compat.graphviz.visualize: 14
+# - .config.parse_config: 14
+# - .core.computer.add_queue: 11
+# - .operator._load_file_csv: 12
+mccabe.max-complexity = 10
 
 [tool.setuptools.packages]
 find = {}

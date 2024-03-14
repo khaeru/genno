@@ -85,7 +85,7 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     return wrapper
 
 
-def parse_config(
+def parse_config(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
     c: Optional[Computer],
     data: MutableMapping[str, Any],
     fail: Optional[Union[str, int]] = None,

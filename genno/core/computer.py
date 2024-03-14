@@ -339,7 +339,7 @@ class Computer:
         """
         return caching.decorate(func, computer=self)
 
-    def add_queue(
+    def add_queue(  # noqa: C901  FIXME reduce complexity from 11 → ≤10
         self,
         queue: Iterable[Tuple],
         max_tries: int = 1,
