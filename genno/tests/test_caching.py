@@ -1,4 +1,5 @@
 import logging
+from types import new_class
 
 import pytest
 
@@ -6,11 +7,12 @@ import genno.caching
 from genno.caching import Encoder, decorate, hash_args, hash_code, hash_contents
 
 
-class Bar:
-    """For TestEncoder.test_{ignore,register}."""
-
-
 class TestEncoder:
+    @pytest.fixture
+    def Bar(self):
+        """Temporary class, for .test_{ignore,register}."""
+        return new_class("Bar")
+
     def test_default(self, tmp_path):
         # Different paths encode differently
         assert Encoder().default(tmp_path / "x ") != Encoder().default(tmp_path / "y")
@@ -19,21 +21,23 @@ class TestEncoder:
         with pytest.raises(TypeError):
             Encoder().default(lambda foo: foo)
 
-    @pytest.mark.parametrize("types", [Bar, object])
-    def test_ignore(self, monkeypatch, types):
+    @pytest.mark.parametrize("type_index", (0, 1))
+    def test_ignore(self, monkeypatch, type_index, Bar):
         monkeypatch.setattr(genno.caching, "IGNORE", set())
+
+        type_ = {0: Bar, 1: object}[type_index]
 
         # Raises TypeError for a type that can't be serialized
         with pytest.raises(TypeError):
             Encoder().default(Bar())
 
         # Ignore certain types
-        Encoder.ignore(types)
+        Encoder.ignore(type_)
 
         # Now returns empty tuple
         assert tuple() == Encoder().default(Bar())
 
-    def test_register(self):
+    def test_register(self, Bar):
         # Raises TypeError for a type that can't be serialized
         with pytest.raises(TypeError):
             Encoder().default(Bar())

@@ -1,4 +1,5 @@
 """Compatibility with :mod:`xarray`."""
+
 from typing import (
     Any,
     Callable,
@@ -52,32 +53,15 @@ class DataArrayLike(Generic[T]):
     def __len__(self) -> int:
         return NotImplemented
 
-    def __mod__(self, other):
-        ...
-
-    def __mul__(self, other):
-        ...
-
-    def __pow__(self, other):
-        ...
-
-    def __radd__(self, other):
-        ...
-
-    def __rmul__(self, other):
-        ...
-
-    def __rsub__(self, other):
-        ...
-
-    def __rtruediv__(self, other):
-        ...
-
-    def __truediv__(self, other):
-        ...
-
-    def __neg__(self):
-        ...
+    def __mod__(self, other): ...
+    def __mul__(self, other): ...
+    def __neg__(self): ...
+    def __pow__(self, other): ...
+    def __radd__(self, other): ...
+    def __rmul__(self, other): ...
+    def __rsub__(self, other): ...
+    def __rtruediv__(self, other): ...
+    def __truediv__(self, other): ...
 
     @property
     def attrs(self) -> Dict[Any, Any]:
@@ -112,8 +96,7 @@ class DataArrayLike(Generic[T]):
         self,
         coords: Optional[Mapping[Any, Any]] = None,
         **coords_kwargs: Any,
-    ):
-        ...
+    ): ...
 
     def astype(
         self,
@@ -126,7 +109,6 @@ class DataArrayLike(Generic[T]):
         keep_attrs=True,
     ):
         """Like :meth:`xarray.DataArray.astype`."""
-        ...
 
     def bfill(
         self,
@@ -134,14 +116,12 @@ class DataArrayLike(Generic[T]):
         limit: Optional[int] = None,
     ):
         """Like :meth:`xarray.DataArray.bfill`."""
-        ...
 
     def copy(
         self,
         deep: bool = True,
         data: Any = None,
-    ):
-        ...
+    ): ...
 
     def cumprod(
         self,
@@ -152,7 +132,6 @@ class DataArrayLike(Generic[T]):
         **kwargs: Any,
     ):
         """Like :meth:`xarray.DataArray.cumprod`."""
-        ...
 
     def drop_vars(
         self,
@@ -161,16 +140,14 @@ class DataArrayLike(Generic[T]):
         ],
         *,
         errors="raise",
-    ):
-        ...
+    ): ...
 
     def expand_dims(
         self,
         dim=None,
         axis=None,
         **dim_kwargs: Any,
-    ):
-        ...
+    ): ...
 
     def ffill(
         self,
@@ -185,8 +162,7 @@ class DataArrayLike(Generic[T]):
         group,
         squeeze: bool = True,
         restore_coord_dims: bool = False,
-    ):
-        ...
+    ): ...
 
     def interp(
         self,
@@ -195,11 +171,9 @@ class DataArrayLike(Generic[T]):
         assume_sorted: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         **coords_kwargs: Any,
-    ):
-        ...
+    ): ...
 
-    def item(self, *args):
-        ...
+    def item(self, *args): ...
 
     def pipe(
         self,
@@ -214,11 +188,9 @@ class DataArrayLike(Generic[T]):
         self,
         new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
         **names: Hashable,
-    ):
-        ...
+    ): ...
 
-    def round(self, *args, **kwargs):
-        ...
+    def round(self, *args, **kwargs): ...
 
     def sel(
         self,
@@ -237,7 +209,6 @@ class DataArrayLike(Generic[T]):
         **shifts_kwargs: int,
     ):
         """Like :attr:`xarray.DataArray.shift`."""
-        ...
 
     def squeeze(
         self,
@@ -246,7 +217,6 @@ class DataArrayLike(Generic[T]):
         axis: Union[int, Iterable[int], None] = None,
     ):
         """Like :meth:`xarray.DataArray.squeeze`."""
-        ...
 
     def sum(
         self,
@@ -257,15 +227,13 @@ class DataArrayLike(Generic[T]):
         min_count: Optional[int] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
-    ):
-        ...
+    ): ...
 
     def to_dataframe(
         self,
         name: Optional[Hashable] = None,
         dim_order: Optional[Sequence[Hashable]] = None,
-    ) -> pd.DataFrame:
-        ...
+    ) -> pd.DataFrame: ...
 
     def to_numpy(self) -> np.ndarray:
         return NotImplemented

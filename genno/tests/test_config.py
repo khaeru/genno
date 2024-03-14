@@ -79,8 +79,9 @@ def test_global(test_data_path):
         configure(path=test_data_path / "config-global.yaml")
 
 
-def test_handles(caplog):
+def test_handles(caplog, monkeypatch):
     """:func:`handles` raises a warning when used twice."""
+    monkeypatch.delitem(HANDLERS, "foo", raising=False)
     caplog.set_level(logging.DEBUG)
 
     @handles("foo")

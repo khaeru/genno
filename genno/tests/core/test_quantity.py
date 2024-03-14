@@ -1,4 +1,5 @@
 """Tests for genno.quantity."""
+
 import logging
 import operator
 import re

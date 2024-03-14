@@ -29,7 +29,7 @@ def unwrap(label: str) -> str:
             label = result
 
 
-def visualize(
+def visualize(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
     dsk: Mapping,
     filename: Optional[Union[str, PathLike]] = None,
     format: Optional[str] = None,

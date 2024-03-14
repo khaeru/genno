@@ -97,13 +97,19 @@ filterwarnings = [
   # https://github.com/dateutil/dateutil/issues/1314
   "ignore:datetime.datetime.utcfromtimestamp.. is deprecated.*:DeprecationWarning:dateutil",
 ]
+# commented: This doubles the number of tests in the entire suite.
+# Use only to identify more narrow applications of the same fixture.
+# usefixtures = "parametrize_copy_on_write"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["C9", "E", "F", "I", "W"]
 ignore = ["E501", "W191"]
-
-[tool.ruff.mccabe]
-max-complexity = 14
+# Exceptions:
+# - .compat.graphviz.visualize: 14
+# - .config.parse_config: 14
+# - .core.computer.add_queue: 11
+# - .operator._load_file_csv: 12
+mccabe.max-complexity = 10
 
 [tool.setuptools.packages]
 find = {}

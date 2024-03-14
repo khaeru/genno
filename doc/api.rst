@@ -473,6 +473,9 @@ Internals and utilities
 .. automodule:: genno.compat.graphviz
    :members:
 
+.. automodule:: genno.compat.pandas
+   :members:
+
 .. automodule:: genno.core.describe
    :members:
 
@@ -493,7 +496,6 @@ Utilities for testing
 
 .. automodule:: genno.testing
    :members:
-   :exclude-members: parametrize_quantity_class
 
 .. automodule:: genno.testing.jupyter
    :members:

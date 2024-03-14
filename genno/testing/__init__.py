@@ -511,6 +511,13 @@ def parametrize_quantity_class(request):
     genno.core.quantity.CLASS = pre
 
 
+@pytest.fixture(params=[True, False], ids=["cow-true", "cow-false"])
+def parametrize_copy_on_write(monkeypatch, request):
+    """Fixture to run tests with pandas copy-on-write either enabled or disabled."""
+    monkeypatch.setattr(pd.options.mode, "copy_on_write", request.param)
+    yield
+
+
 @pytest.fixture(scope="function")
 def quantity_is_sparsedataarray(request):
     pre = copy(genno.core.quantity.CLASS)

@@ -1,4 +1,5 @@
 """Tests of AttrSeries in particular."""
+
 import pandas as pd
 import pandas.testing as pdt
 import pytest

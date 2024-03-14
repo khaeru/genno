@@ -1,4 +1,5 @@
 """Elementary operators for genno."""
+
 # NB To avoid ambiguity, operators should not have default values for positional-only
 #    arguments; use keyword(-only) arguments for defaults.
 import logging
@@ -690,7 +691,7 @@ def add_load_file(func, c: "Computer", path, key=None, **kwargs):
 UNITS_RE = re.compile(r"# Units?: (.*)\s+")
 
 
-def _load_file_csv(
+def _load_file_csv(  # noqa: C901  FIXME reduce complexity from 12 → ≤10
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
     units: Optional[UnitLike] = None,
