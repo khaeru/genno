@@ -15,9 +15,6 @@ from typing import (
     Union,
 )
 
-import pint
-import yaml
-
 from genno import operator
 from genno.core.computer import Computer
 from genno.core.exceptions import KeyExistsError, MissingKeyError
@@ -90,6 +87,8 @@ def parse_config(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
     data: MutableMapping[str, Any],
     fail: Optional[Union[str, int]] = None,
 ):
+    import yaml
+
     # Assemble a queue of (args, kwargs) for Computer.add_queue()
     queue: List[Tuple[Tuple, Dict]] = []
 
@@ -315,6 +314,7 @@ def report(c: Computer, info):
 @handles("units", iterate=False)
 def units(c: Computer, info):
     """Handle the ``units:`` config section."""
+    import pint
 
     # Define units
     registry = pint.get_application_registry()
