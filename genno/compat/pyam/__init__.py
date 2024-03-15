@@ -1,12 +1,6 @@
-try:
-    import pyam  # noqa: F401
-except ModuleNotFoundError:  # pragma: no cover
-    HAS_PYAM = False
-else:
-    HAS_PYAM = True
-
 import logging
 from functools import partial
+from importlib.util import find_spec
 from typing import List
 
 from genno import Computer, Key
@@ -14,6 +8,9 @@ from genno.config import handles
 from genno.core.key import single_key
 
 log = logging.getLogger(__name__)
+
+#: :class:`bool` indicating whether :mod:`pyam` is available.
+HAS_PYAM = find_spec("pyam") is not None
 
 
 @handles("iamc")
