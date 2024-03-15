@@ -3,12 +3,15 @@ from typing import Collection, Mapping, Sequence, Union
 
 import pandas as pd
 import pint
-import pyam
 
 log = logging.getLogger(__name__)
 
 
-IAMC_IDX = frozenset(pyam.IAMC_IDX + ["year", "time"])
+#: Dimensions of the IAMC data structure used by :mod:`pyam`.
+IAMC_DIMS = frozenset("model scenario region variable unit year time".split())
+
+# Deprecated alias
+IAMC_IDX = IAMC_DIMS
 
 
 def clean_units(df: pd.DataFrame, unit=None) -> pd.DataFrame:
@@ -45,7 +48,7 @@ def collapse(
     to_drop = set()
 
     for target_col, values in columns.items():
-        if target_col not in IAMC_IDX:
+        if target_col not in IAMC_DIMS:
             raise ValueError(f"non-IAMC column {repr(target_col)}")
 
         entries = []
@@ -68,7 +71,7 @@ def collapse(
 
 def _extra(obj):
     """Extra columns in `obj`."""
-    return sorted(set(obj.columns) - IAMC_IDX - {"value"})
+    return sorted(set(obj.columns) - IAMC_DIMS - {"value"})
 
 
 def drop(df: pd.DataFrame, columns: Union[Collection[str], str]) -> pd.DataFrame:

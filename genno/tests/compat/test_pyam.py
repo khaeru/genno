@@ -252,7 +252,8 @@ def test_concat(dantzig_computer):
     c = dantzig_computer
 
     # Uses pyam.concat() for suitable types
-    input = pd.DataFrame([["foo"] * len(pyam.IAMC_IDX)], columns=pyam.IAMC_IDX).assign(
+    cols = util.IAMC_DIMS - {"time"}
+    input = pd.DataFrame([["foo"] * len(cols)], columns=cols).assign(
         year=2021, value=42.0, unit="kg"
     )
 
