@@ -86,6 +86,11 @@ class TestQuantity:
                 (pd.DataFrame([[0], [1]], index=["a", "b"], columns=["foo"]),),
                 dict(units="kg"),
             ),
+            # xarray-style arguments
+            (
+                ([[0.0, 1], [2, 3]],),
+                dict(coords={"a": ["a1", "a2"], "b": ["b1", "b2"]}),
+            ),
             pytest.param(
                 (
                     pd.DataFrame(
