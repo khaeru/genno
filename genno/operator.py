@@ -864,6 +864,12 @@ def relabel(
         )
 
 
+def set_name(qty: Quantity, name: str) -> Quantity:
+    """Change the name of `qty`."""
+    qty.name = name
+    return qty
+
+
 def rename_dims(
     qty: Quantity,
     new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
