@@ -6,7 +6,7 @@ import pytest
 
 from genno import Computer, Key, MissingKeyError, configure
 from genno.compat.pyam import HAS_PYAM
-from genno.config import HANDLERS, handles
+from genno.config import HANDLERS, ConfigHandler, handles
 
 
 def test_handlers():
@@ -21,11 +21,11 @@ def test_handlers():
         third_party_handlers += 2
 
     # Expected config handlers are available
-    assert 8 + (1 * HAS_PYAM) + third_party_handlers == len(HANDLERS)
+    assert 11 + (1 * HAS_PYAM) + third_party_handlers == len(HANDLERS)
 
     # Handlers are all callable
-    for key, func in HANDLERS.items():
-        assert isinstance(key, str) and callable(func)
+    for key, ch in HANDLERS.items():
+        assert isinstance(key, str) and isinstance(ch, ConfigHandler)
 
 
 @pytest.mark.parametrize(
@@ -96,6 +96,8 @@ def test_handles(caplog, monkeypatch):
 
     assert 1 == len(caplog.messages)
     assert re.match(
-        "Override handler <function test_handles.<locals>.foo1 [^>]*> for  'foo:'",
+        r"Override ConfigHandler\(key='foo', "
+        "callback=<function test_handles.<locals>.foo1 [^>]*>, iterate=True, "
+        r"discard=True\)",
         caplog.messages[0],
     )
