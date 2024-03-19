@@ -38,7 +38,7 @@ from .core.key import Key, KeyLike, iter_keys, single_key
 from .core.operator import Operator
 from .core.quantity import Quantity, assert_quantity, maybe_densify
 from .core.sparsedataarray import SparseDataArray
-from .util import UnitLike, collect_units, filter_concat_args
+from .util import UnitLike, collect_units, filter_concat_args, units_with_multiplier
 
 if TYPE_CHECKING:
     from genno.core.computer import Computer
@@ -691,7 +691,7 @@ def add_load_file(func, c: "Computer", path, key=None, **kwargs):
 UNITS_RE = re.compile(r"# Units?: (.*)\s+")
 
 
-def _load_file_csv(  # noqa: C901  FIXME reduce complexity from 12 → ≤10
+def _load_file_csv(
     path: Path,
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
     units: Optional[UnitLike] = None,
@@ -747,19 +747,11 @@ def _load_file_csv(  # noqa: C901  FIXME reduce complexity from 12 → ≤10
         index_columns = list(data.columns)
         index_columns.pop(index_columns.index("value"))
 
-    # Prepare a Quantity object with the (bare) units and any conversion factor
-    registry = pint.get_application_registry()
-    units = units or "1.0 dimensionless"
-    if isinstance(units, str):
-        uq = registry(units)
-    elif isinstance(units, pint.Unit):
-        uq = registry.Quantity(1.0, units)
-    else:
-        uq = units
+    # Decode units and multiplier
+    units, k = units_with_multiplier(units)
 
-    return Quantity(
-        uq.magnitude * data.set_index(index_columns)["value"], units=uq.units, name=name
-    )
+    # Prepare a quantity object
+    return Quantity(k * data.set_index(index_columns)["value"], units=units, name=name)
 
 
 @Operator.define(helper=add_binop)
