@@ -14,7 +14,6 @@ from typing import (
     Iterable,
     List,
     Mapping,
-    MutableMapping,
     MutableSequence,
     Optional,
     Sequence,
@@ -136,11 +135,10 @@ class Computer:
             str(k): v
             for k, v in either_dict_or_kwargs(config, config_kw, "configure").items()
         }
-
-        # Maybe load from a path
         if path:
-            assert isinstance(config, MutableMapping)
-            config["path"] = Path(path)
+            if "path" in config:
+                raise ValueError('cannot give both path= and a "path" key in config=…')
+            config.setdefault("path", Path(path))
 
         parse_config(self, data=config, fail=fail)
 
