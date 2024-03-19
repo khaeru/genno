@@ -539,7 +539,8 @@ class Computer:
         except IndexError:
             pass  # No parameters to generator
         else:
-            if issubclass(par[par_0].annotation, Computer):
+            a = par[par_0].annotation
+            if isinstance(a, str) and a.endswith("Computer") or issubclass(a, Computer):
                 # First parameter wants a reference to the Computer object
                 args.insert(0, self)
 
