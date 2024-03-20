@@ -15,16 +15,17 @@ from typing import (
     cast,
 )
 
-if TYPE_CHECKING:  # pragma: no cover
+if TYPE_CHECKING:
     from _typeshed import SupportsRichComparisonT
 
+import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
+import xarray.core.coordinates
 from pandas.core.generic import NDFrame
 from pandas.core.internals.base import DataManager
 from xarray.core import dtypes
-from xarray.core.coordinates import Coordinates
 from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
 
@@ -78,7 +79,7 @@ def _ensure_multiindex(obj):
     return obj
 
 
-class AttrSeriesCoordinates(Coordinates):
+class AttrSeriesCoordinates(xarray.core.coordinates.Coordinates):
     def __init__(self, obj):
         self._data = obj
         self._idx = obj.index.remove_unused_levels()
@@ -147,7 +148,7 @@ class AttrSeries(pd.Series, Quantity):
             name = ibase.maybe_extract_name(name, data, type(self))
 
             try:
-                # Pre-convert to pd.Series from xr.DataArray to preserve names and
+                # Pre-convert from xr.DataArray to pd.Series to preserve names and
                 # labels. For AttrSeries, this is a no-op (see below).
                 data = data.to_series()
             except AttributeError:
@@ -160,13 +161,17 @@ class AttrSeries(pd.Series, Quantity):
                     data = data.data
                 else:  # pragma: no cover
                     raise
-            else:
-                attrs.update()
 
         data, name = Quantity._single_column_df(data, name)
 
         if data is None:
             kwargs["dtype"] = float
+        elif coords := kwargs.pop("coords", None):
+            # Handle xarray-style coords arg
+            data = np.array(data).ravel()
+            kwargs["index"] = pd.MultiIndex.from_product(
+                list(coords.values()), names=list(coords.keys())
+            )
 
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
         pd.Series.__init__(self, data, *args, name=name, **kwargs)
