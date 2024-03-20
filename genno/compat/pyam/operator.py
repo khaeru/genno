@@ -1,4 +1,5 @@
 import logging
+import re
 from functools import partial
 from pathlib import Path
 from typing import (
@@ -21,6 +22,8 @@ from genno.core.operator import Operator
 from . import util
 
 if TYPE_CHECKING:
+    import pandas as pd
+
     from genno.core.computer import Computer
     from genno.core.quantity import Quantity
 
@@ -89,6 +92,8 @@ def as_pyam(
         If the resulting data frame has duplicate keys in the IAMC dimensions.
         :class:`pyam.IamDataFrame` cannot handle such data.
     """
+    import pyam
+
     # - Convert to pd.DataFrame
     # - Rename one dimension to 'year' or 'time'
     # - Fill variable, unit, model, and scenario columns
@@ -193,13 +198,84 @@ def add_as_pyam(
 
 
 @genno.operator.concat.register
-def _(*args: pyam.IamDataFrame, **kwargs) -> pyam.IamDataFrame:
+def _(*args: pyam.IamDataFrame, **kwargs) -> "pyam.IamDataFrame":
     """Concatenate `args`, which must all be :class:`pyam.IamDataFrame`.
 
     Otherwise, equivalent to :func:`genno.operator.concat`.
     """
     # Use pyam.concat() top-level function
     return pyam.concat(args, **kwargs)
+
+
+def quantity_from_iamc(
+    qty: Union["Quantity", "pyam.IamDataFrame", "pd.DataFrame"], variable: str
+) -> "Quantity":
+    """Extract data for a single measure from `qty` with IAMC-like structure.
+
+    Parameters
+    ----------
+    qty :
+        Must have at least dimensions ‘v’ (or ‘variable’, any case) and ‘u’ (or ‘unit’,
+        any case).
+    variable : str
+        Regular expression to match full labels on the ``v`` dimension of `qty`. If the
+        expression contains match groups, they are used to rewrite ``v`` labels. This
+        may be used to discard a portion of the label.
+
+    Returns
+    -------
+    .Quantity
+        The ‘variable’ dimension contains reduced labels.
+        The :attr:`.Quantity.units` attribute contains the unique units for the subset
+        of data.
+    """
+    import pandas as pd
+
+    from genno.core.quantity import Quantity
+    from genno.operator import relabel, select, unique_units_from_dim
+
+    from .util import IAMC_DIMS
+
+    if isinstance(qty, pd.DataFrame):
+        # Convert pandas.DataFrame to pyam.IamDataFrame
+        qty = pyam.IamDataFrame(qty)
+    if isinstance(qty, pyam.IamDataFrame):
+        # Convert IamDataFrame to Quantity
+        df = qty.as_pandas()
+        qty = Quantity(df.set_index(list(IAMC_DIMS & set(df.columns)))["value"])
+
+    # Identify a dimension whose name is in `targets`
+    def identify_dim(targets: Collection[str]) -> str:
+        result = list(filter(lambda d: d.lower() in targets, qty.dims))
+        if len(result) != 1:
+            raise ValueError(
+                f"cannot identify 1 unique dimension for {targets!r} among "
+                f"{qty.dims!r}; found {result!r}"
+            )
+        return result[0]
+
+    v_dim = identify_dim(("v", "variable"))
+    u_dim = identify_dim(("u", "unit"))
+
+    # Compile expression
+    expr = re.compile(variable)
+    variables, replacements = [], {}
+    for var in qty.coords[v_dim].data:
+        if match := expr.fullmatch(var):
+            variables.append(match.group(0))
+            replacements[match.group(0)] = match.group(1)
+
+    if not variables:
+        log.warning(
+            f"0 of {len(qty.coords[v_dim])} labels on dimension {v_dim!r} were a full "
+            f"match for {expr!r}"
+        )
+
+    return (
+        qty.pipe(select, {v_dim: variables})
+        .pipe(relabel, {v_dim: replacements})
+        .pipe(unique_units_from_dim, u_dim)
+    )
 
 
 @genno.operator.write_report.register
