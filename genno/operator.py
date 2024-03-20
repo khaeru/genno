@@ -1020,13 +1020,16 @@ def add_sum(
     return c.add(key, func, qty, weights=weights, dimensions=dimensions, **kwargs)
 
 
-def _format_header_comment(value: str) -> str:
-    if not len(value):
-        return value
+def unique_units_from_dim(qty: Quantity, dim: str) -> Quantity:
+    """Assign :attr:`.Quantity.units` using labels from dimension `dim`."""
+    if not qty.size:
+        return qty
 
-    from textwrap import indent
+    units = qty.coords[dim].data
+    if len(units) != 1:
+        raise ValueError(f"Non-unique units {units!r} for {qty}")
 
-    return indent(value + os.linesep, "# ", lambda line: True)
+    return qty.sel({dim: units[0]}, drop=True).pipe(assign_units, units[0])
 
 
 def where(
@@ -1034,6 +1037,15 @@ def where(
 ) -> Quantity:
     """Like :meth:`.pandas.Series.where`."""
     return qty.where(cond, other, drop)
+
+
+def _format_header_comment(value: str) -> str:
+    if not len(value):
+        return value
+
+    from textwrap import indent
+
+    return indent(value + os.linesep, "# ", lambda line: True)
 
 
 @singledispatch
