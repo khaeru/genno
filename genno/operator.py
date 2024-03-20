@@ -355,6 +355,17 @@ def broadcast_map(
     return product(quantity, map).sum([map.dims[0]]).rename(rename)
 
 
+def clip(
+    qty: Quantity,
+    min: Optional["xarray.core.types.ScalarOrArray"] = None,
+    max: Optional["xarray.core.types.ScalarOrArray"] = None,
+    *,
+    keep_attrs: Optional[bool] = None,
+) -> Quantity:
+    """Call :meth:`.Quantity.clip`."""
+    return qty.clip(min, max, keep_attrs=keep_attrs)
+
+
 def combine(
     *quantities: Quantity,
     select: Optional[List[Mapping]] = None,

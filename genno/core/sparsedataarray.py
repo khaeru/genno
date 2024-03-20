@@ -207,6 +207,10 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
     __rtruediv__ = _binop("truediv", swap=True)
     __truediv__ = _binop("truediv")
 
+    def clip(self, min=None, max=None, *, keep_attrs=None):
+        """Override :meth:`~xarray.DataArray.clip` to return SparseDataArray."""
+        return super().clip(min, max, keep_attrs=keep_attrs)._sda.convert()
+
     def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
         return self._sda.dense_super.ffill(dim, limit)._sda.convert()

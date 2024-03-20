@@ -121,6 +121,14 @@ class DataArrayLike(Generic[T]):
     ):
         """Like :meth:`xarray.DataArray.bfill`."""
 
+    def clip(
+        self,
+        min: Optional["xarray.core.types.ScalarOrArray"] = None,
+        max: Optional["xarray.core.types.ScalarOrArray"] = None,
+        *,
+        keep_attrs: Optional[bool] = None,
+    ): ...
+
     def copy(
         self,
         deep: bool = True,

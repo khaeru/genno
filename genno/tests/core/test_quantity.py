@@ -190,6 +190,22 @@ class TestQuantity:
         r2 = tri.bfill("y")
         assert r2.loc["x0", "y0"] == tri.loc["x0", "y2"]
 
+    def test_clip(self, tri) -> None:
+        # Only min=
+        assert 1.0 == tri.loc["x0", "y2"].item()
+        r1 = tri.clip(2.0)
+        assert 2.0 == r1.loc["x0", "y2"].item()
+
+        # Only max=
+        assert 9.0 == tri.loc["x2", "y4"].item()
+        r2 = tri.clip(max=8.0)
+        assert 8.0 == r2.loc["x2", "y4"].item()
+
+        # Both min= and max=
+        r3 = tri.clip(2.0, 8.0)
+        assert 2.0 == r3.loc["x0", "y2"].item()
+        assert 8.0 == r3.loc["x2", "y4"].item()
+
     def test_coords(self, tri) -> None:
         coords = tri.coords
         assert isinstance(coords, xr.core.coordinates.Coordinates)

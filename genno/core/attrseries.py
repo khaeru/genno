@@ -262,6 +262,25 @@ class AttrSeries(pd.Series, Quantity):
         idx = self.index.remove_unused_levels()
         return tuple(len(idx.levels[i]) for i in map(idx.names.index, self.dims))
 
+    def clip(
+        self,
+        min=None,
+        max=None,
+        *,
+        keep_attrs: Optional[bool] = None,
+    ):
+        """Like :meth:`.xarray.DataArray.clip`.
+
+        :meth:`.pandas.Series.clip` has arguments named `lower` and `upper` instead of
+        `min` and `max`, respectively.
+
+        :py:`keep_attrs=False` is not implemented.
+        """
+        if keep_attrs is False:
+            raise NotImplementedError("clip(…, keep_attrs=False)")
+        #
+        return super(pd.Series, self).clip(min, max)
+
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
@@ -576,13 +595,22 @@ class AttrSeries(pd.Series, Quantity):
         """Like :meth:`xarray.DataArray.to_series`."""
         return self
 
-    def where(self, cond: Any, other: Any = dtypes.NA, drop: bool = False):
+    def where(
+        self,
+        cond: Any,
+        other: Any = dtypes.NA,
+        drop: bool = False,
+        *,
+        inplace: bool = False,  # Needed internally to pd.Series.clip()
+    ):
         """Like :meth:`xarray.DataArray.where`.
 
         Passing :any:`True` for `drop` is not implemented.
         """
         if drop is True:
             raise NotImplementedError("where(…, drop=True)")
+        elif inplace is not False:
+            raise NotImplementedError(f"where(…, inplace={inplace})")
         return super().where(cond, other)
 
     @property

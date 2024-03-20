@@ -35,6 +35,25 @@ def data():
     yield [c] + list(add_test_data(c))
 
 
+def test_clip(data):
+    *_, x = data
+
+    # Only min=
+    r1 = operator.clip(x, 0.49)
+    assert 0.49 == r1.min()
+    assert x.name == r1.name
+    assert x.units == r1.units
+
+    # Only max=
+    r2 = operator.clip(x, None, 0.51)
+    assert 0.51 == r2.max()
+
+    # Both min= and max=
+    r3 = operator.clip(x, 0.49, 0.51)
+    assert 0.49 == r3.min()
+    assert 0.51 == r2.max()
+
+
 @pytest.mark.xfail(
     reason="Runs twice for parametrize_quantity_class, but only warns once"
 )
