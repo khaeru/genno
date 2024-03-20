@@ -57,6 +57,8 @@ def test_item():
     with pytest.raises(ValueError, match="can only convert an array of size 1"):
         random_qty(dict(x=2)).item()
 
+    assert 0 <= random_qty(dict(x=9, y=9, z=9)).sel(x="x8", y="y8", z="z8").item() <= 1
+
 
 def test_loc():
     """SparseDataArray.loc[] accessor works.

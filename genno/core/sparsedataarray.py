@@ -218,16 +218,16 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
     def _item(self, *args):
         """Like :meth:`~xarray.DataArray.item`."""
         # See OverrideItem
-        if len(args):  # pragma: no cover
-            super().item(*args)
-        elif len(self.data.shape) == 0:
-            return (
-                self.data.data[0]
-                if isinstance(self.data, sparse.COO)
-                else self.data.item()
-            )
-        else:
+        d = self.data
+        if args:
+            raise NotImplementedError("item() with args")
+        elif d.size > 1:
             raise ValueError("can only convert an array of size 1 to a Python scalar")
+        elif isinstance(d, sparse.COO):
+            # sparse.COO.item() does not exist
+            return d.fill_value if d.nnz == 0 else d.data.tolist()[0]
+        else:  # numpy.ndarray or something else
+            return d.item()
 
     def sel(
         self,
