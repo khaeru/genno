@@ -23,6 +23,7 @@ import pandas.core.indexes.base as ibase
 import xarray as xr
 from pandas.core.generic import NDFrame
 from pandas.core.internals.base import DataManager
+from xarray.core import dtypes
 from xarray.core.coordinates import Coordinates
 from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
@@ -574,6 +575,15 @@ class AttrSeries(pd.Series, Quantity):
     def to_series(self):
         """Like :meth:`xarray.DataArray.to_series`."""
         return self
+
+    def where(self, cond: Any, other: Any = dtypes.NA, drop: bool = False):
+        """Like :meth:`xarray.DataArray.where`.
+
+        Passing :any:`True` for `drop` is not implemented.
+        """
+        if drop is True:
+            raise NotImplementedError("where(…, drop=True)")
+        return super().where(cond, other)
 
     @property
     def xindexes(self):  # pragma: no cover

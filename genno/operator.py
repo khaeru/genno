@@ -29,7 +29,6 @@ from typing import (
 import pandas as pd
 import pint
 import xarray as xr
-from xarray.core.types import InterpOptions
 from xarray.core.utils import either_dict_or_kwargs
 
 from .compat.xarray import is_scalar
@@ -41,6 +40,9 @@ from .core.sparsedataarray import SparseDataArray
 from .util import UnitLike, collect_units, filter_concat_args, units_with_multiplier
 
 if TYPE_CHECKING:
+    import xarray.core.dtypes
+    import xarray.core.types
+
     from genno.core.computer import Computer
 
 __all__ = [
@@ -587,7 +589,7 @@ def index_to(
 def interpolate(
     qty: Quantity,
     coords: Optional[Mapping[Hashable, Any]] = None,
-    method: InterpOptions = "linear",
+    method: "xarray.core.types.InterpOptions" = "linear",
     assume_sorted: bool = True,
     kwargs: Optional[Mapping[str, Any]] = None,
     **coords_kwargs: Any,
@@ -1014,6 +1016,13 @@ def _format_header_comment(value: str) -> str:
     from textwrap import indent
 
     return indent(value + os.linesep, "# ", lambda line: True)
+
+
+def where(
+    qty: Quantity, cond: Any, other: Any = "xarray.core.dtypes.NA", drop: bool = False
+) -> Quantity:
+    """Like :meth:`.pandas.Series.where`."""
+    return qty.where(cond, other, drop)
 
 
 @singledispatch

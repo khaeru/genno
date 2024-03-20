@@ -288,3 +288,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
             index = pd.MultiIndex.from_arrays([[0]], names=[None])
 
         return pd.Series(self.data.data, index=index, name=self.name)
+
+    def where(self, cond: Any, other: Any = dtypes.NA, drop: bool = False):
+        """Override :meth:`~xarray.DataArray.where` to auto-densify."""
+        return self._sda.dense_super.where(cond, other, drop)._sda.convert()

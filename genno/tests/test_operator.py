@@ -894,6 +894,19 @@ def test_sum(data, dimensions):
     assert result.name == x.name and result.units == x.units  # Pass through
 
 
+def test_where(data) -> None:
+    *_, x = data
+
+    value = x.sel(t="foo1", y=2020).item()
+
+    # cond=lambda function, other=scalar
+    result = operator.where(x, lambda v: v == value, 99.9)
+    assert value == result.sel(t="foo1", y=2020).item()
+    assert 99.9 == result.sel(t="foo2", y=2020).item()
+    assert x.name == result.name
+    assert x.units == result.units
+
+
 def test_write_report0(tmp_path, data) -> None:
     p = tmp_path.joinpath("foo.txt")
     *_, x = data

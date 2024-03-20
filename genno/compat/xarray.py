@@ -1,6 +1,7 @@
 """Compatibility with :mod:`xarray`."""
 
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -18,10 +19,13 @@ from typing import (
 import numpy as np
 import pandas as pd
 import xarray
-from xarray.core.types import InterpOptions
+from xarray.core import dtypes
 from xarray.core.utils import is_scalar
 
 from genno.core.types import Dims
+
+if TYPE_CHECKING:
+    import xarray.core.types
 
 T = TypeVar("T", covariant=True)
 
@@ -167,7 +171,7 @@ class DataArrayLike(Generic[T]):
     def interp(
         self,
         coords: Optional[Mapping[Any, Any]] = None,
-        method: InterpOptions = "linear",
+        method: "xarray.core.types.InterpOptions" = "linear",
         assume_sorted: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         **coords_kwargs: Any,
@@ -237,6 +241,8 @@ class DataArrayLike(Generic[T]):
 
     def to_numpy(self) -> np.ndarray:
         return NotImplemented
+
+    def where(self, cond: Any, other: Any = dtypes.NA, drop: bool = False): ...
 
     def to_series(self) -> pd.Series:
         """Like :meth:`xarray.DataArray.to_series`."""

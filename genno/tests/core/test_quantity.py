@@ -500,6 +500,19 @@ class TestQuantity:
         a.units = ""
         assert a.units.dimensionless  # type: ignore [attr-defined]
 
+    def test_where(self, tri: Quantity) -> None:
+        assert np.isnan(tri.sel(x="x0", y="y0").item())
+
+        # cond=Callable, other=scalar
+        value = 8.8
+        q0 = tri.where(np.isfinite, value)
+        assert value == q0.sel(x="x0", y="y0").item()
+
+        # cond=lambda function, other=scalar
+        value = 0.1
+        q1 = tri.where(lambda v: v % 2 != 0, 0.1)
+        assert value == q1.sel(x="x2", y="y1").item()
+
 
 @pytest.mark.parametrize(
     "value",
