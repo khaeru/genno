@@ -310,7 +310,7 @@ class AttrSeries(pd.Series, Quantity):
             N = len(values)
             if N == 0:  # Dimension without labels
                 N, values = 1, [None]
-            result = pd.concat([result] * N, keys=values, names=[name])
+            result = pd.concat([result] * N, keys=values, names=[name], sort=False)
 
         # Ensure `result` is multiindexed
         try:
