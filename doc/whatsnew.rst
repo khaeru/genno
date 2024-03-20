@@ -1,8 +1,16 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- The :class:`.Quantity` constructor can now use :class:`xarray.DataArray`-style arguments (:py:`data` and :py:`coords`) directly, without needing to first instantiate a DataArray (:pull:`135`).
+- New operators: :func:`.as_quantity`, :func:`.clip`, :func:`.unique_units_from_dim`, :func:`.where` (:pull:`135`).
+  New corresponding methods :meth:`.Quantity.clip` and :meth:`.Quantity.where`.
+- New operator in :doc:`compat-pyam`: :func:`.quantity_from_iamc` (:pull:`135`).
+- :mod:`.caching` now uses the :doc:`pandas:parquet` file format instead of Python's :mod:`pickle` for :class:`.Quantity` and :class:`pandas.DataFrame` (:pull:`135`).
+  This reduces file size and increases input/output speed.
+- :class:`.SparseDataArray` can be instantiated with :class:`int` dtype; values are automatically cast to :class:`float` and a warning is logged (:pull:`135`).
 
 v1.24.1 (2024-03-14)
 ====================

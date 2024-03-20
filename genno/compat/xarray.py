@@ -127,7 +127,8 @@ class DataArrayLike(Generic[T]):
         max: Optional["xarray.core.types.ScalarOrArray"] = None,
         *,
         keep_attrs: Optional[bool] = None,
-    ): ...
+    ):
+        """Like :meth:`xarray.DataArray.clip`."""
 
     def copy(
         self,
@@ -194,7 +195,8 @@ class DataArrayLike(Generic[T]):
         skipna: Optional[bool] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
-    ): ...
+    ):
+        """Like :meth:`xarray.DataArray.max`."""
 
     def min(
         self,
@@ -203,7 +205,8 @@ class DataArrayLike(Generic[T]):
         skipna: Optional[bool] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
-    ): ...
+    ):
+        """Like :meth:`xarray.DataArray.min`."""
 
     def pipe(
         self,
@@ -268,7 +271,8 @@ class DataArrayLike(Generic[T]):
     def to_numpy(self) -> np.ndarray:
         return NotImplemented
 
-    def where(self, cond: Any, other: Any = dtypes.NA, drop: bool = False): ...
+    def where(self, cond: Any, other: Any = dtypes.NA, drop: bool = False):
+        """Like :meth:`xarray.DataArray.where`."""
 
     def to_series(self) -> pd.Series:
         """Like :meth:`xarray.DataArray.to_series`."""

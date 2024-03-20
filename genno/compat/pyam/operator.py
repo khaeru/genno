@@ -30,7 +30,10 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-__all__ = ["as_pyam"]
+__all__ = [
+    "as_pyam",
+    "quantity_from_iamc",
+]
 
 
 @Operator.define()

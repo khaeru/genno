@@ -49,8 +49,10 @@ __all__ = [
     "add",
     "aggregate",
     "apply_units",
+    "as_quantity",
     "assign_units",
     "broadcast_map",
+    "clip",
     "combine",
     "concat",
     "convert_units",
@@ -71,6 +73,8 @@ __all__ = [
     "select",
     "sub",
     "sum",
+    "unique_units_from_dim",
+    "where",
     "write_report",
 ]
 
