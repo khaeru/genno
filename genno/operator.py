@@ -544,13 +544,13 @@ def drop_vars(
 
 
 def group_sum(qty: Quantity, group: str, sum: str) -> Quantity:
-    """Group by dimension *group*, then sum across dimension *sum*.
+    """Group by dimension `group`, then sum across dimension `sum`.
 
     The result drops the latter dimension.
     """
+    kw = dict(squeeze=False) if isinstance(qty, SparseDataArray) else {}
     return concat(
-        *[values.sum(dim=[sum]) for _, values in qty.groupby(group)],
-        dim=group,
+        *[values.sum(dim=[sum]) for _, values in qty.groupby(group, **kw)], dim=group
     )
 
 
