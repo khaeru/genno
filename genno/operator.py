@@ -300,6 +300,52 @@ def apply_units(qty: Quantity, units: UnitLike) -> Quantity:
     return _preserve("name", result, qty)
 
 
+def as_quantity(info: Union[dict, float, str]) -> Quantity:
+    """Convert various values to Quantity.
+
+    This operator can be useful when handling values from user input or various file
+    formats.
+
+    Examples
+    --------
+    :class:`str`, via :mod:`pint`:
+
+    >>> as_quantity("3.0 kg")
+
+    :class:`dict`: A ‘_dim’ key is removed and treated as :attr:`Quantity.dims`. A
+    ‘_unit’ key is removed and treated as :attr:`Quantity.units`.
+
+    >>> value = {
+    ...     ("x0", "y0"): 1.0,
+    ...     ("x1", "y1"): 2.0,
+    ...     "_dim": ("x", "y"),
+    ...     "_unit": "km",
+    ... }
+    >>> as_quantity(value)
+
+    For other values, the :class:`Quantity` constructor can be used directly:
+
+    >>> Quantity(1.2)
+
+    """
+    if isinstance(info, str):
+        import pint
+
+        registry = pint.get_application_registry()
+        q = registry.Quantity(info)
+        return Quantity(q.magnitude, units=q.units)
+    elif isinstance(info, dict):
+        data = info.copy()
+        dim = data.pop("_dim")
+        unit = data.pop("_unit")
+        return Quantity(pd.Series(data).rename_axis(dim), units=unit)
+    elif isinstance(info, (float, int)):
+        log.info(f"Can use Quantity(…) directly for {type(info)} input")
+        return Quantity(info)
+    else:
+        raise TypeError(type(info))
+
+
 def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
     """Set the `units` of `qty` without changing magnitudes.
 

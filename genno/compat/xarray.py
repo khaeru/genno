@@ -187,6 +187,24 @@ class DataArrayLike(Generic[T]):
 
     def item(self, *args): ...
 
+    def max(
+        self,
+        dim: Dims = None,
+        *,
+        skipna: Optional[bool] = None,
+        keep_attrs: Optional[bool] = None,
+        **kwargs: Any,
+    ): ...
+
+    def min(
+        self,
+        dim: Dims = None,
+        *,
+        skipna: Optional[bool] = None,
+        keep_attrs: Optional[bool] = None,
+        **kwargs: Any,
+    ): ...
+
     def pipe(
         self,
         func: Union[Callable[..., T], Tuple[Callable[..., T], str]],

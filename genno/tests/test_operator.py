@@ -22,6 +22,7 @@ from genno.testing import (
     assert_logs,
     assert_qty_allclose,
     assert_qty_equal,
+    assert_units,
     random_qty,
 )
 
@@ -35,7 +36,28 @@ def data():
     yield [c] + list(add_test_data(c))
 
 
-def test_clip(data):
+def test_as_quantity() -> None:
+    # str
+    r1 = operator.as_quantity("3.0 kg")
+    assert_units(r1, "kg")
+
+    # dict
+    value = {
+        ("x0", "y0"): 1.0,
+        ("x1", "y1"): 2.0,
+        "_dim": ("x", "y"),
+        "_unit": "km",
+    }
+    r2 = operator.as_quantity(value)
+    assert {"x", "y"} == set(r2.dims)
+    assert_units(r2, "km")
+
+    r3 = operator.as_quantity(1.2)
+    assert not r3.dims
+    assert_units(r3, "dimensionless")
+
+
+def test_clip(data) -> None:
     *_, x = data
 
     # Only min=
