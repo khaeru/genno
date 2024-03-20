@@ -601,6 +601,7 @@ class AttrSeries(pd.Series, Quantity):
         other: Any = dtypes.NA,
         drop: bool = False,
         *,
+        axis=None,  # Needed internally to pd.Series.clip()
         inplace: bool = False,  # Needed internally to pd.Series.clip()
     ):
         """Like :meth:`xarray.DataArray.where`.
@@ -609,8 +610,8 @@ class AttrSeries(pd.Series, Quantity):
         """
         if drop is True:
             raise NotImplementedError("where(…, drop=True)")
-        elif inplace is not False:
-            raise NotImplementedError(f"where(…, inplace={inplace})")
+        elif axis is not None or inplace is not False:
+            raise NotImplementedError("where(…, axis=…) or where(…, inplace=…)")
         return super().where(cond, other)
 
     @property
