@@ -64,7 +64,7 @@ def test_decorate(caplog, tmp_path):
 
     # Value was cached
     assert caplog.messages[-1].startswith("Cache miss for myfunc(<")
-    assert 1 == len(list(tmp_path.glob("*.pkl")))
+    assert 1 == len(list(tmp_path.glob("*.pickle")) + list(tmp_path.glob("*.parquet")))
 
     # Cache hit on the second call
     assert 3 == decorated()

@@ -230,7 +230,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     assert "myfunc executing" in caplog.messages
 
     # 1 cache file was created in the cache_path
-    files = list(tmp_path.glob("*.pkl"))
+    files = list(tmp_path.glob("*.pickle")) + list(tmp_path.glob("*.parquet"))
     assert 1 == len(files)
 
     # File name includes the full hash; retrieve it
