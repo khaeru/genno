@@ -1,7 +1,7 @@
 import json
 import logging
 import pickle
-from functools import partial, singledispatch, update_wrapper
+from functools import lru_cache, partial, singledispatch, update_wrapper
 from hashlib import blake2b
 from inspect import getmembers, iscode
 from pathlib import Path
@@ -223,6 +223,26 @@ def decorate(
     return cached_load
 
 
+@lru_cache
+def pandas_handles_parquet_attrs() -> bool:
+    """Return :any:`True` if :mod:`pandas` can read/write attrs to/from Parquet files.
+
+    If not, a message is logged.
+    """
+    from packaging import version
+
+    pandas_version = version.parse(pd.__version__)
+
+    if pandas_version < version.Version("2.1.0"):
+        log.info(
+            f"Pandas {pandas_version!s} < 2.1.0 cannot read/write Quantity.attrs "
+            f"to/from Parquet; {__name__} will use pickle from the standard library"
+        )
+        return False
+    else:
+        return True
+
+
 def _read(path: Path):
     """Read cache data from `path`."""
     from genno.core.quantity import Quantity
@@ -249,7 +269,9 @@ def _write(path: Path, data):
     """Write `data` to `path`."""
     from genno.core.quantity import Quantity
 
-    if isinstance(data, (Quantity, pd.DataFrame)):
+    if (isinstance(data, Quantity) and pandas_handles_parquet_attrs()) or isinstance(
+        data, pd.DataFrame
+    ):
         if isinstance(data, Quantity):
             # Convert to single-column data frame
             df = data.to_dataframe()
