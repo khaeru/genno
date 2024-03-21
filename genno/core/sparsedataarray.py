@@ -188,7 +188,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         if not isinstance(self.variable.data, sparse.COO):
             dtype = self.variable.data.dtype
 
-            if dtype == int:
+            if issubclass(dtype.type, np.integer):
                 log.warning(f"Force dtype {self.variable.data.dtype} → float")
                 dtype = float
 

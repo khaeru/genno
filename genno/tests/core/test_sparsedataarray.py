@@ -1,3 +1,4 @@
+import re
 from typing import cast
 
 import pandas as pd
@@ -59,7 +60,7 @@ class TestSparseDataArray:
     def test_init(self, caplog) -> None:
         """SDA can be initialized with integer data; a warning is logged."""
         SparseDataArray([[0, 1], [2, 3]])
-        assert "Force dtype int64 → float" in caplog.messages
+        assert any(re.match(r"Force dtype int\w+ → float", m) for m in caplog.messages)
 
     def test_item(self) -> None:
         with pytest.raises(ValueError, match="can only convert an array of size 1"):
