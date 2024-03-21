@@ -211,7 +211,10 @@ def _(*args: pyam.IamDataFrame, **kwargs) -> "pyam.IamDataFrame":
 
 
 def quantity_from_iamc(
-    qty: Union["Quantity", "pyam.IamDataFrame", "pd.DataFrame"], variable: str
+    qty: Union["Quantity", "pyam.IamDataFrame", "pd.DataFrame"],
+    variable: str,
+    *,
+    fail: Union[int, str] = "warning",
 ) -> "Quantity":
     """Extract data for a single measure from `qty` with IAMC-like structure.
 
@@ -262,11 +265,14 @@ def quantity_from_iamc(
 
     # Compile expression
     expr = re.compile(variable)
+    has_group = expr.groups > 0
+
+    # Process each label along v_dim
     variables, replacements = [], {}
     for var in qty.coords[v_dim].data:
         if match := expr.fullmatch(var):
             variables.append(match.group(0))
-            replacements[match.group(0)] = match.group(1)
+            replacements.update({match.group(0): match.group(1)} if has_group else {})
 
     if not variables:
         log.warning(
@@ -277,7 +283,7 @@ def quantity_from_iamc(
     return (
         qty.pipe(select, {v_dim: variables})
         .pipe(relabel, {v_dim: replacements})
-        .pipe(unique_units_from_dim, u_dim)
+        .pipe(unique_units_from_dim, u_dim, fail=fail)
     )
 
 
