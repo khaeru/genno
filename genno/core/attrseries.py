@@ -23,12 +23,14 @@ import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
 import xarray.core.coordinates
+from packaging.version import Version
 from pandas.core.generic import NDFrame
 from pandas.core.internals.base import DataManager
 from xarray.core import dtypes
 from xarray.core.indexes import Indexes
 from xarray.core.utils import either_dict_or_kwargs
 
+from genno.compat.pandas import version as pandas_version
 from genno.compat.xarray import is_scalar
 
 from .quantity import Quantity, possible_scalar
@@ -283,8 +285,11 @@ class AttrSeries(pd.Series, Quantity):
         """
         if keep_attrs is False:
             raise NotImplementedError("clip(…, keep_attrs=False)")
-        #
-        return super(pd.Series, self).clip(min, max)
+
+        if pandas_version() < Version("2.1.0"):
+            return self._replace(pd.Series(self).clip(min, max))
+        else:
+            return super(pd.Series, self).clip(min, max)
 
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
