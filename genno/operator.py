@@ -1070,16 +1070,32 @@ def add_sum(
     return c.add(key, func, qty, weights=weights, dimensions=dimensions, **kwargs)
 
 
-def unique_units_from_dim(qty: Quantity, dim: str) -> Quantity:
+def unique_units_from_dim(
+    qty: Quantity, dim: str, *, fail: Union[str, int] = "raise"
+) -> Quantity:
     """Assign :attr:`.Quantity.units` using labels from dimension `dim`."""
     if not qty.size:
         return qty
 
     units = qty.coords[dim].data
-    if len(units) != 1:
-        raise ValueError(f"Non-unique units {units!r} for {qty}")
+    if len(units) == 1:
+        sel = {dim: units[0]}
+        assign = units[0]
+    else:
+        msg = (
+            f"Non-unique units {sorted(units)!r} for {type(qty).__name__} {qty.name!r}"
+        )
+        if fail == "raise":
+            raise ValueError(msg)
+        else:
+            log.log(
+                fail if isinstance(fail, int) else getattr(logging, fail.upper()),
+                f"{msg}; discard",
+            )
+            sel = {}
+            assign = "dimensionless"
 
-    return qty.sel({dim: units[0]}, drop=True).pipe(assign_units, units[0])
+    return qty.sel(sel, drop=True).pipe(assign_units, assign)
 
 
 def where(
