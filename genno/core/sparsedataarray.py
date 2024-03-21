@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, Hashable, Mapping, Optional, Sequence, Tuple, Union
 from warnings import filterwarnings
 
@@ -16,6 +17,8 @@ from xarray.core import dtypes
 from xarray.core.utils import either_dict_or_kwargs
 
 from genno.core.quantity import Quantity, possible_scalar
+
+log = logging.getLogger(__name__)
 
 # sparse.COO raises this warning when the data is 0-D / length-1; self.coords.size is
 # then 0 (no dimensions = no coordinates)
@@ -183,8 +186,16 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         xr.DataArray.__init__(self, data, coords, dims, name, attrs)
 
         if not isinstance(self.variable.data, sparse.COO):
+            dtype = self.variable.data.dtype
+
+            if dtype == int:
+                log.warning(f"Force dtype {self.variable.data.dtype} → float")
+                dtype = float
+
             # Dense (numpy.ndarray) data; convert to sparse
-            data = sparse.COO.from_numpy(self.variable.data, fill_value=np.nan)
+            data = sparse.COO.from_numpy(
+                self.variable.data.astype(dtype), fill_value=np.nan
+            )
         elif not np.isnan(self.variable.data.fill_value):
             # sparse.COO with non-NaN fill value; copy and change
             data = self.variable.data.copy(deep=False)

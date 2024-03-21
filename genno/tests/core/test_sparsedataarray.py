@@ -1,3 +1,5 @@
+from typing import cast
+
 import pandas as pd
 import pytest
 import xarray as xr
@@ -53,30 +55,36 @@ def test_sda_accessor():
 
 
 @pytest.mark.usefixtures("quantity_is_sparsedataarray")
-def test_item():
-    with pytest.raises(ValueError, match="can only convert an array of size 1"):
-        random_qty(dict(x=2)).item()
+class TestSparseDataArray:
+    def test_init(self, caplog) -> None:
+        """SDA can be initialized with integer data; a warning is logged."""
+        SparseDataArray([[0, 1], [2, 3]])
+        assert "Force dtype int64 → float" in caplog.messages
 
-    assert 0 <= random_qty(dict(x=9, y=9, z=9)).sel(x="x8", y="y8", z="z8").item() <= 1
+    def test_item(self) -> None:
+        with pytest.raises(ValueError, match="can only convert an array of size 1"):
+            random_qty(dict(x=2)).item()
 
+        assert (
+            0 <= random_qty(dict(x=9, y=9, z=9)).sel(x="x8", y="y8", z="z8").item() <= 1
+        )
 
-def test_loc():
-    """SparseDataArray.loc[] accessor works.
+    def test_loc(self) -> None:
+        """SparseDataArray.loc[] accessor works.
 
-    For some version prior to sparse 0.11.2, a specific workaround was required, but no
-    longer. Retain the test to catch any regression.
-    """
-    *_, x = add_test_data(Computer())
+        For some version prior to sparse 0.11.2, a specific workaround was required, but
+        no longer. Retain the test to catch any regression.
+        """
+        *_, x = add_test_data(Computer())
 
-    # .loc accessor works
-    assert isinstance(x.loc["foo1", 2040], float)
+        # .loc accessor works, returns same class as object but 1 element
+        assert isinstance(x.loc["foo1", 2040], SparseDataArray)
+        assert isinstance(x.loc["foo1", 2040].item(), float)
 
+    def test_scalar(self) -> None:
+        """Scalar Quantities can be created."""
+        A = Quantity(1.0, units="kg")
+        B = Quantity(2.0, units="kg")
 
-@pytest.mark.usefixtures("quantity_is_sparsedataarray")
-def test_scalar():
-    """Scalar Quantities can be created."""
-    A = Quantity(1.0, units="kg")
-    B = Quantity(2.0, units="kg")
-
-    # Fragment occurring in .operator.add()
-    list(map(Quantity, xr.broadcast(A, B)))
+        # Fragment occurring in .operator.add()
+        list(map(Quantity, xr.broadcast(*cast(xr.DataArray, (A, B)))))

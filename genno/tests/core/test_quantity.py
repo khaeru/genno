@@ -88,7 +88,11 @@ class TestQuantity:
             ),
             # xarray-style arguments
             (
-                ([[0.0, 1], [2, 3]],),
+                ([[0.0, 1], [2, 3]],),  # float
+                dict(coords={"a": ["a1", "a2"], "b": ["b1", "b2"]}),
+            ),
+            (
+                ([[0, 1], [2, 3]],),  # int
                 dict(coords={"a": ["a1", "a2"], "b": ["b1", "b2"]}),
             ),
             pytest.param(
@@ -534,8 +538,7 @@ class TestQuantity:
     "value",
     [
         2,
-        # Fails for SparseDataArray, not AttrSeries
-        pytest.param(np.int64(2), marks=pytest.mark.xfail(raises=ValueError)),
+        np.int64(2),
         1.1,
         np.float64(1.1),
         pytest.param([0.1, 2.3], marks=pytest.mark.xfail(raises=AssertionError)),
