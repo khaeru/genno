@@ -29,21 +29,19 @@ from typing import (
 import pandas as pd
 import pint
 import xarray as xr
-from xarray.core.utils import either_dict_or_kwargs
 
-from .compat.xarray import is_scalar
+import genno
+
+from .compat.xarray import dtypes, either_dict_or_kwargs, is_scalar
 from .core.attrseries import AttrSeries
 from .core.key import Key, KeyLike, iter_keys, single_key
 from .core.operator import Operator
-from .core.quantity import Quantity, assert_quantity, maybe_densify
+from .core.quantity import AnyQuantity, assert_quantity
 from .core.sparsedataarray import SparseDataArray
 from .util import UnitLike, collect_units, filter_concat_args, units_with_multiplier
 
 if TYPE_CHECKING:
-    import xarray.core.dtypes
-    import xarray.core.types
-
-    from genno.core.computer import Computer
+    from genno import types
 
 __all__ = [
     "add",
@@ -85,7 +83,9 @@ log = logging.getLogger(__name__)
 xr.set_options(keep_attrs=True)
 
 
-def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
+def _preserve(
+    items: str, target: "AnyQuantity", source: "AnyQuantity"
+) -> "AnyQuantity":
     """Copy `items` from `source` to `target`."""
     if "name" in items:
         target.name = source.name
@@ -96,7 +96,7 @@ def _preserve(items: str, target: Quantity, source: Quantity) -> Quantity:
     return target
 
 
-def add_binop(func, c: "Computer", key, *quantities, **kwargs) -> Key:
+def add_binop(func, c: "genno.Computer", key, *quantities, **kwargs) -> Key:
     """:meth:`.Computer.add` helper for binary operations.
 
     Add a computation that applies :func:`.add`, :func:`.div`, :func:`.mul`, or
@@ -125,7 +125,9 @@ def add_binop(func, c: "Computer", key, *quantities, **kwargs) -> Key:
     <z:a-b-c-d-e>
     """
     # Fetch the full key for each quantity
-    base_keys = c.check_keys(*quantities, predicate=lambda v: isinstance(v, Quantity))
+    base_keys = c.check_keys(
+        *quantities, predicate=lambda v: isinstance(v, genno.Quantity)
+    )
 
     # Compute a key for the result
     # Parse the name and tag of the target
@@ -145,7 +147,7 @@ def add_binop(func, c: "Computer", key, *quantities, **kwargs) -> Key:
 
 
 @Operator.define(helper=add_binop)
-def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
+def add(*quantities: "AnyQuantity", fill_value: float = 0.0) -> "AnyQuantity":
     """Sum across multiple `quantities`.
 
     Raises
@@ -165,38 +167,12 @@ def add(*quantities: Quantity, fill_value: float = 0.0) -> Quantity:
     # Ensure arguments are all quantities
     assert_quantity(*quantities)
 
-    if isinstance(quantities[0], AttrSeries):
-        # map() returns an iterable
-        q_iter = iter(quantities)
-    else:
-        # Use xarray's built-in broadcasting, return to Quantity class
-        q_iter = map(Quantity, xr.broadcast(*cast(xr.DataArray, quantities)))
-
-    # Initialize result values with first entry
-    result = next(q_iter)
-    ref_unit = collect_units(result)[0]
-
-    # Iterate over remaining entries
-    for q in q_iter:
-        u = collect_units(q)[0]
-        if not u.is_compatible_with(ref_unit):
-            raise ValueError(f"Units '{ref_unit:~}' and '{u:~}' are incompatible")
-
-        factor = u.from_(1.0, strict=False).to(ref_unit).magnitude
-
-        if isinstance(q, AttrSeries):
-            result = (
-                cast(AttrSeries, result).add(factor * q, fill_value=fill_value).dropna()
-            )
-        else:
-            result = result + factor * q
-
-    return result
+    return reduce(operator.add, quantities[1:], quantities[0])
 
 
 def aggregate(
-    quantity: Quantity, groups: Mapping[str, Mapping], keep: bool
-) -> Quantity:
+    quantity: "AnyQuantity", groups: Mapping[str, Mapping], keep: bool
+) -> "AnyQuantity":
     """Aggregate `quantity` by `groups`.
 
     Parameters
@@ -265,7 +241,7 @@ def _unit_args(qty, units):
     return *result, getattr(result[1], "dimensionality", {}), result[0].Unit(units)
 
 
-def apply_units(qty: Quantity, units: UnitLike) -> Quantity:
+def apply_units(qty: "AnyQuantity", units: UnitLike) -> "AnyQuantity":
     """Apply `units` to `qty`.
 
     If `qty` has existing units…
@@ -304,7 +280,7 @@ def apply_units(qty: Quantity, units: UnitLike) -> Quantity:
     return _preserve("name", result, qty)
 
 
-def as_quantity(info: Union[dict, float, str]) -> Quantity:
+def as_quantity(info: Union[dict, float, str]) -> "AnyQuantity":
     """Convert various values to Quantity.
 
     This operator can be useful when handling values from user input or various file
@@ -327,7 +303,7 @@ def as_quantity(info: Union[dict, float, str]) -> Quantity:
     ... }
     >>> as_quantity(value)
 
-    For other values, the :class:`Quantity` constructor can be used directly:
+    For other values, the :class:`Quantity` constructor should be used directly:
 
     >>> Quantity(1.2)
 
@@ -337,20 +313,20 @@ def as_quantity(info: Union[dict, float, str]) -> Quantity:
 
         registry = pint.get_application_registry()
         q = registry.Quantity(info)
-        return Quantity(q.magnitude, units=q.units)
+        return genno.Quantity(q.magnitude, units=q.units)
     elif isinstance(info, dict):
         data = info.copy()
         dim = data.pop("_dim")
         unit = data.pop("_unit")
-        return Quantity(pd.Series(data).rename_axis(dim), units=unit)
+        return genno.Quantity(pd.Series(data).rename_axis(dim), units=unit)
     elif isinstance(info, (float, int)):
         log.info(f"Can use Quantity(…) directly for {type(info)} input")
-        return Quantity(info)
+        return genno.Quantity(info)
     else:
         raise TypeError(type(info))
 
 
-def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
+def assign_units(qty: "AnyQuantity", units: UnitLike) -> "AnyQuantity":
     """Set the `units` of `qty` without changing magnitudes.
 
     Logs on level ``INFO`` if `qty` has existing units.
@@ -379,8 +355,11 @@ def assign_units(qty: Quantity, units: UnitLike) -> Quantity:
 
 
 def broadcast_map(
-    quantity: Quantity, map: Quantity, rename: Mapping = {}, strict: bool = False
-) -> Quantity:
+    quantity: "AnyQuantity",
+    map: "AnyQuantity",
+    rename: Mapping = {},
+    strict: bool = False,
+) -> "AnyQuantity":
     """Broadcast `quantity` using a `map`.
 
     The `map` must be a 2-dimensional Quantity with dimensions (``d1``, ``d2``), such as
@@ -406,21 +385,21 @@ def broadcast_map(
 
 
 def clip(
-    qty: Quantity,
-    min: Optional["xarray.core.types.ScalarOrArray"] = None,
-    max: Optional["xarray.core.types.ScalarOrArray"] = None,
+    qty: "AnyQuantity",
+    min: Optional["types.ScalarOrArray"] = None,
+    max: Optional["types.ScalarOrArray"] = None,
     *,
     keep_attrs: Optional[bool] = None,
-) -> Quantity:
+) -> "AnyQuantity":
     """Call :meth:`.Quantity.clip`."""
     return qty.clip(min, max, keep_attrs=keep_attrs)
 
 
 def combine(
-    *quantities: Quantity,
+    *quantities: "AnyQuantity",
     select: Optional[List[Mapping]] = None,
     weights: Optional[List[float]] = None,
-) -> Quantity:  # noqa: F811
+) -> "AnyQuantity":  # noqa: F811
     """Sum distinct `quantities` by `weights`.
 
     Parameters
@@ -474,7 +453,7 @@ def combine(
 
 
 @singledispatch
-def concat(*objs: Quantity, **kwargs) -> Quantity:
+def concat(*objs: "AnyQuantity", **kwargs) -> "AnyQuantity":
     """Concatenate Quantity `objs`.
 
     Any strings included amongst `objs` are discarded, with a logged warning; these
@@ -518,7 +497,7 @@ def concat(*objs: Quantity, **kwargs) -> Quantity:
     return _preserve(to_preserve, result, objs[0])
 
 
-def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
+def convert_units(qty: "AnyQuantity", units: UnitLike) -> "AnyQuantity":
     """Convert magnitude of `qty` from its current units to `units`.
 
     Parameters
@@ -548,7 +527,9 @@ def convert_units(qty: Quantity, units: UnitLike) -> Quantity:
     return _preserve("name", result, qty)
 
 
-def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
+def disaggregate_shares(
+    quantity: "AnyQuantity", shares: "AnyQuantity"
+) -> "AnyQuantity":
     """Deprecated: Disaggregate `quantity` by `shares`.
 
     This operator is identical to :func:`mul`; use :func:`mul` and its helper instead.
@@ -557,7 +538,9 @@ def disaggregate_shares(quantity: Quantity, shares: Quantity) -> Quantity:
 
 
 @Operator.define(helper=add_binop)
-def div(numerator: Union[Quantity, float], denominator: Quantity) -> Quantity:
+def div(
+    numerator: Union["AnyQuantity", float], denominator: "AnyQuantity"
+) -> "AnyQuantity":
     """Compute the ratio `numerator` / `denominator`.
 
     Parameters
@@ -579,13 +562,15 @@ ratio = div
 
 
 def drop_vars(
-    qty: Quantity,
+    qty: "AnyQuantity",
     names: Union[
-        str, Iterable[Hashable], Callable[[Quantity], Union[str, Iterable[Hashable]]]
+        str,
+        Iterable[Hashable],
+        Callable[["AnyQuantity"], Union[str, Iterable[Hashable]]],
     ],
     *,
     errors="raise",
-) -> Quantity:
+) -> "AnyQuantity":
     """Return a Quantity with dropped variables (coordinates).
 
     Like :meth:`xarray.DataArray.drop_vars`.
@@ -593,22 +578,23 @@ def drop_vars(
     return qty.drop_vars(names)
 
 
-def group_sum(qty: Quantity, group: str, sum: str) -> Quantity:
+def group_sum(qty: "AnyQuantity", group: str, sum: str) -> "AnyQuantity":
     """Group by dimension `group`, then sum across dimension `sum`.
 
     The result drops the latter dimension.
     """
     kw = dict(squeeze=False) if isinstance(qty, SparseDataArray) else {}
     return concat(
-        *[values.sum(dim=[sum]) for _, values in qty.groupby(group, **kw)], dim=group
+        *[values.sum(dim=[sum]) for _, values in qty.groupby(group, **kw)],  # type: ignore [arg-type]
+        dim=group,
     )
 
 
 def index_to(
-    qty: Quantity,
+    qty: "AnyQuantity",
     dim_or_selector: Union[str, Mapping],
     label: Optional[Hashable] = None,
-) -> Quantity:
+) -> "AnyQuantity":
     """Compute an index of `qty` against certain of its values.
 
     If the label is not provided, :func:`index_to` uses the label in the first position
@@ -646,15 +632,14 @@ def index_to(
     return div(qty, qty.sel({dim: label}))
 
 
-@maybe_densify
 def interpolate(
-    qty: Quantity,
+    qty: "AnyQuantity",
     coords: Optional[Mapping[Hashable, Any]] = None,
-    method: "xarray.core.types.InterpOptions" = "linear",
+    method: "types.InterpOptions" = "linear",
     assume_sorted: bool = True,
     kwargs: Optional[Mapping[str, Any]] = None,
     **coords_kwargs: Any,
-) -> Quantity:
+) -> "AnyQuantity":
     """Interpolate `qty`.
 
     For the meaning of arguments, see :meth:`xarray.DataArray.interp`. When
@@ -718,7 +703,7 @@ def load_file(
 
 
 @load_file.helper
-def add_load_file(func, c: "Computer", path, key=None, **kwargs):
+def add_load_file(func, c: "genno.Computer", path, key=None, **kwargs):
     """:meth:`.Computer.add` helper for :func:`.load_file`.
 
     Add a task to load an exogenous quantity from `path`. Computing the `key` or using
@@ -759,7 +744,7 @@ def _load_file_csv(
     dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
     units: Optional[UnitLike] = None,
     name: Optional[str] = None,
-) -> Quantity:
+) -> "AnyQuantity":
     # Peek at the header, if any, and match a units expression
     with open(path, "r", encoding="utf-8") as f:
         for line, match in map(lambda li: (li, UNITS_RE.fullmatch(li)), f):
@@ -814,11 +799,13 @@ def _load_file_csv(
     units, k = units_with_multiplier(units)
 
     # Prepare a quantity object
-    return Quantity(k * data.set_index(index_columns)["value"], units=units, name=name)
+    return genno.Quantity(
+        k * data.set_index(index_columns)["value"], units=units, name=name
+    )
 
 
 @Operator.define(helper=add_binop)
-def mul(*quantities: Quantity) -> Quantity:
+def mul(*quantities: "AnyQuantity") -> "AnyQuantity":
     """Compute the product of any number of `quantities`.
 
     See also
@@ -834,7 +821,7 @@ def mul(*quantities: Quantity) -> Quantity:
 product = mul
 
 
-def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
+def pow(a: "AnyQuantity", b: Union["AnyQuantity", int]) -> "AnyQuantity":
     """Compute `a` raised to the power of `b`.
 
     Returns
@@ -848,8 +835,8 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
     # Determine the exponent for the units
     if isinstance(b, numbers.Real):
         unit_exponent = b if isinstance(b, int) else 0
-        b = Quantity(float(b))
-    elif isinstance(b, Quantity):
+        b = genno.Quantity(float(b))
+    elif isinstance(b, genno.Quantity):
         check = set((b % 1).data)  # Each exponent modulo 1 == 0 if exponents are int
         unique_values = set(b.data)
         if check == {0.0} and len(unique_values) == 1:
@@ -875,10 +862,10 @@ def pow(a: Quantity, b: Union[Quantity, int]) -> Quantity:
 
 
 def relabel(
-    qty: Quantity,
+    qty: "AnyQuantity",
     labels: Optional[Mapping[Hashable, Mapping]] = None,
     **dim_labels: Mapping,
-) -> Quantity:
+) -> "AnyQuantity":
     """Replace specific labels along dimensions of `qty`.
 
     Parameters
@@ -927,17 +914,17 @@ def relabel(
         )
 
 
-def set_name(qty: Quantity, name: str) -> Quantity:
+def set_name(qty: "AnyQuantity", name: str) -> "AnyQuantity":
     """Change the name of `qty`."""
     qty.name = name
     return qty
 
 
 def rename_dims(
-    qty: Quantity,
+    qty: "AnyQuantity",
     new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
     **names: Hashable,
-) -> Quantity:
+) -> "AnyQuantity":
     """Rename the dimensions of `qty`.
 
     Like :meth:`xarray.DataArray.rename`.
@@ -945,18 +932,18 @@ def rename_dims(
     return qty.rename(new_name_or_name_dict, **names)
 
 
-def round(qty: Quantity, *args, **kwargs) -> Quantity:
+def round(qty: "AnyQuantity", *args, **kwargs) -> "AnyQuantity":
     """Like :meth:`xarray.DataArray.round`."""
     return qty.round(*args, **kwargs)
 
 
 def select(
-    qty: Quantity,
+    qty: "AnyQuantity",
     indexers: Mapping[Hashable, Iterable[Hashable]],
     *,
     inverse: bool = False,
     drop: bool = False,
-) -> Quantity:
+) -> "AnyQuantity":
     """Select from `qty` based on `indexers`.
 
     Parameters
@@ -1009,7 +996,7 @@ def select(
 
 
 @Operator.define(helper=add_binop)
-def sub(a: Quantity, b: Quantity) -> Quantity:
+def sub(a: "AnyQuantity", b: "AnyQuantity") -> "AnyQuantity":
     """Subtract `b` from `a`.
 
     See also
@@ -1021,10 +1008,10 @@ def sub(a: Quantity, b: Quantity) -> Quantity:
 
 @Operator.define()
 def sum(
-    quantity: Quantity,
-    weights: Optional[Quantity] = None,
+    quantity: "AnyQuantity",
+    weights: Optional["AnyQuantity"] = None,
     dimensions: Optional[List[str]] = None,
-) -> Quantity:
+) -> "AnyQuantity":
     """Sum `quantity` over `dimensions`, with optional `weights`.
 
     Parameters
@@ -1037,22 +1024,19 @@ def sum(
         dimensions.
     """
     if weights is None:
-        _w = Quantity(1.0)
-        w_total = Quantity(1.0)
+        _w: "AnyQuantity" = genno.Quantity(1.0)
+        w_total: "AnyQuantity" = genno.Quantity(1.0)
     else:
-        _w = weights
-        w_total = weights.sum(dim=dimensions)
-        if 0 == len(w_total.dims):
+        _w, w_total = weights, weights.sum(dim=dimensions)
+        if w_total.shape == ():
             w_total = w_total.item()
 
-    return _preserve(
-        "name", div(mul(quantity, _w).sum(dim=dimensions), w_total), quantity
-    )
+    return _preserve("name", (quantity * _w).sum(dim=dimensions) / w_total, quantity)
 
 
 @sum.helper
 def add_sum(
-    func, c: "Computer", key, qty, weights=None, dimensions=None, **kwargs
+    func, c: "genno.Computer", key, qty, weights=None, dimensions=None, **kwargs
 ) -> Union[KeyLike, Tuple[KeyLike, ...]]:
     """:meth:`.Computer.add` helper for :func:`.sum`.
 
@@ -1071,8 +1055,8 @@ def add_sum(
 
 
 def unique_units_from_dim(
-    qty: Quantity, dim: str, *, fail: Union[str, int] = "raise"
-) -> Quantity:
+    qty: "AnyQuantity", dim: str, *, fail: Union[str, int] = "raise"
+) -> "AnyQuantity":
     """Assign :attr:`.Quantity.units` using labels from dimension `dim`."""
     if not qty.size:
         return qty
@@ -1099,8 +1083,8 @@ def unique_units_from_dim(
 
 
 def where(
-    qty: Quantity, cond: Any, other: Any = "xarray.core.dtypes.NA", drop: bool = False
-) -> Quantity:
+    qty: "AnyQuantity", cond: Any, other: Any = dtypes.NA, drop: bool = False
+) -> "AnyQuantity":
     """Like :meth:`.pandas.Series.where`."""
     return qty.where(cond, other, drop)
 
@@ -1185,9 +1169,12 @@ def _(
         raise NotImplementedError(f"Write pandas.DataFrame to {path.suffix!r}")
 
 
-@write_report.register
+@write_report.register(AttrSeries)
+@write_report.register(SparseDataArray)
 def _(
-    quantity: Quantity, path: Union[str, PathLike], kwargs: Optional[dict] = None
+    quantity: "AnyQuantity",  # register() only handles bare AnyQuantity in Python ≥3.11
+    path: Union[str, PathLike],
+    kwargs: Optional[dict] = None,
 ) -> None:
     # Convert the Quantity to a pandas.DataFrame, then write
     write_report(quantity.to_dataframe().reset_index(), path, kwargs)
