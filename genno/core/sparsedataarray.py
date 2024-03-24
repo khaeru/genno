@@ -13,42 +13,21 @@ except ImportError:  # pragma: no cover
     HAS_SPARSE = False
 
 import xarray as xr
-from xarray.core import dtypes
-from xarray.core.utils import either_dict_or_kwargs
 
-from genno.core.quantity import Quantity, possible_scalar
+from genno.compat.xarray import dtypes, either_dict_or_kwargs
+
+from .base import BaseQuantity, collect_attrs, single_column_df
 
 log = logging.getLogger(__name__)
 
-# sparse.COO raises this warning when the data is 0-D / length-1; self.coords.size is
-# then 0 (no dimensions = no coordinates)
+# Occurs below in SparseDataArray.squeeze()
 filterwarnings(
     "ignore",
-    "coords should be an ndarray.*",
+    "Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in "
+    "future.",
     DeprecationWarning,
-    "sparse._coo.core",
+    "sparse",
 )
-
-
-def _binop(name: str, swap: bool = False):
-    """Create a method for binary operator `name`."""
-
-    def method(self, other):
-        # Handle the case where `other` is scalar
-        other = possible_scalar(other)
-
-        # For __r*__ methods
-        left, right = (other, self) if swap else (self, other)
-
-        # Invoke an xr.DataArray method like .__mul__()
-        result = getattr(super(xr.DataArray, left), f"__{name}__")(right)
-
-        # Determine resulting units
-        result.units = left._binop_units(name, right)
-
-        return result
-
-    return method
 
 
 @xr.register_dataarray_accessor("_sda")
@@ -101,7 +80,7 @@ class SparseAccessor:
             # Use existing method xr.Variable._to_dense()
             return self.da._replace(variable=self.da.variable._to_dense())
         except TypeError:
-            # da.variable was already dense
+            # self.da.variable was already dense
             return self.da
 
     @property
@@ -128,7 +107,7 @@ class OverrideItem:
         setattr(cls, "item", cls._item)
 
 
-class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
+class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
     """:class:`~xarray.DataArray` with sparse data.
 
     SparseDataArray uses :class:`sparse.COO` for storage with :data:`numpy.nan`
@@ -158,7 +137,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
                 self, data, coords, dims, name, attrs, indexes, fastpath
             )
 
-        attrs = Quantity._collect_attrs(data, attrs, kwargs)
+        attrs = collect_attrs(data, attrs, kwargs)
 
         assert 0 == len(
             kwargs
@@ -167,7 +146,7 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         if isinstance(data, int):
             data = float(data)
 
-        data, name = Quantity._single_column_df(data, name)
+        data, name = single_column_df(data, name)
 
         if isinstance(data, pd.Series):
             # Possibly converted from pd.DataFrame, above
@@ -213,10 +192,26 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
         # Call the parent method always with sparse=True, then re-wrap
         return xr.DataArray.from_series(obj, sparse=True)._sda.convert()
 
-    # Binary operations
-    __mul__ = _binop("mul")
-    __rtruediv__ = _binop("truediv", swap=True)
-    __truediv__ = _binop("truediv")
+    @staticmethod
+    def _perform_binary_op(
+        name: str, left: "SparseDataArray", right: "SparseDataArray", factor: float
+    ) -> "SparseDataArray":
+        # xr.DataArray-specific: outer join
+        if name in ("add", "sub"):
+            left, right = xr.align(left, right, join="outer", fill_value=0.0)
+
+        # super() `left` if this hasn't already happened
+        left_ = left if isinstance(left, super) else super(xr.DataArray, left)
+        # Invoke an xr.DataArray method like .__mul__()
+        return getattr(left_, f"__{name}__")(right)
+
+    def __len__(self) -> int:
+        v = self.variable
+        return 0 if getattr(v.data, "nnz", 1) == 0 else len(v)
+
+    @property
+    def size(self) -> int:
+        return 0 if getattr(self.variable.data, "nnz", 1) == 0 else self.variable.size
 
     def clip(self, min=None, max=None, *, keep_attrs=None):
         """Override :meth:`~xarray.DataArray.clip` to return SparseDataArray."""
@@ -225,6 +220,19 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
     def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
         return self._sda.dense_super.ffill(dim, limit)._sda.convert()
+
+    def interp(
+        self,
+        coords=None,
+        method="linear",
+        assume_sorted=False,
+        kwargs=None,
+        **coords_kwargs: Any,
+    ):
+        """Override :meth:`~xarray.DataArray.interp` to auto-densify."""
+        return self._sda.dense_super.interp(
+            coords, method, assume_sorted, kwargs, **coords_kwargs
+        )._sda.convert()
 
     def _item(self, *args):
         """Like :meth:`~xarray.DataArray.item`."""
@@ -260,13 +268,13 @@ class SparseDataArray(OverrideItem, xr.DataArray, Quantity):
                 result = result.sel(
                     {k: v}, method=method, tolerance=tolerance, drop=drop
                 )
-            return result
         else:
-            return (
+            result = (
                 super()
                 .sel(indexers=indexers, method=method, tolerance=tolerance, drop=drop)
                 ._sda.convert()
             )
+        return self._keep(result)
 
     def squeeze(self, dim=None, drop=False, axis=None):
         return self._sda.dense_super.squeeze(

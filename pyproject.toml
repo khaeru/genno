@@ -89,8 +89,8 @@ ignore_missing_imports = true
 addopts = "--cov=genno --cov-report="
 filterwarnings = [
   "ignore:elementwise comparison failed.*:FutureWarning:genno.operator",
-  # Mirror a filter set in .core.sparsedataarray
-  "ignore:coords should be an ndarray:DeprecationWarning:sparse._coo.core",
+  # Mirror (a) filter(s) set in .core.sparsedataarray
+  "ignore:Conversion of an array with ndim > 0 to a scalar:DeprecationWarning:sparse._coo.core",
   # Upstream changes that won't affect genno
   "ignore:configure_currency.*will no longer be the default:DeprecationWarning:iam_units",
   "ignore:Jupyter is migrating its paths.*:DeprecationWarning:jupyter_client.connect",
