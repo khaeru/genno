@@ -47,9 +47,9 @@ To use :class:`.Plot`:
 
       # Set up a Computer, including the output path and some data
       c = Computer(output_dir=Path("."))
-      t = [("t", [-1, 0, 1])]
-      c.add("x:t", Quantity(xr.DataArray([1.0, 2, 3], coords=t), name="x"))
-      c.add("y:t", Quantity(xr.DataArray([1.0, 4, 9], coords=t), name="y"))
+      t = {"t": [-1, 0, 1]}
+      c.add("x:t", Quantity([1.0, 2, 3], coords=t, name="x"))
+      c.add("y:t", Quantity([1.0, 4, 9], coords=t, name="y"))
 
       # Add the plot to the Computer
       c.add("plot", DemoPlot, "x:t", "y:t")
