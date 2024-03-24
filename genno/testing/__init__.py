@@ -2,31 +2,36 @@ import contextlib
 import logging
 import sys
 from contextlib import nullcontext
-from copy import copy
 from functools import partial
 from itertools import chain, islice
-from typing import ContextManager, Dict
+from typing import TYPE_CHECKING, ContextManager, Dict
 
 import numpy as np
 import pandas as pd
 import pint
 import pytest
 import xarray as xr
+import xarray.testing
 from dask.core import quote
 from pandas.testing import assert_series_equal
 
-import genno.core.quantity
-from genno import ComputationError, Computer, Key, Quantity
+import genno
+from genno import ComputationError, Computer, Key, set_class
 from genno.compat.pint import PintError
-from genno.core.sparsedataarray import HAS_SPARSE
-
-log = logging.getLogger(__name__)
+from genno.core.attrseries import AttrSeries
+from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
 
 if sys.version_info.minor >= 10:
     import importlib.resources as importlib_resources
 else:
     # Use the backport to get identical behaviour
     import importlib_resources  # type: ignore [no-redef]
+
+if TYPE_CHECKING:
+    from genno.core.quantity import AnyQuantity
+
+
+log = logging.getLogger(__name__)
 
 # Pytest hooks
 
@@ -124,7 +129,7 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
                 rng.integers(0, len(dtypes[d].categories), N_data), dtype=dtypes[d]
             )
 
-        return Quantity(
+        return genno.Quantity(
             df.set_index(list(dims)),
             units=pint.get_application_registry().kilogram,
             name=name,
@@ -155,14 +160,15 @@ def add_test_data(c: Computer):
 
     # Data
     ureg = pint.get_application_registry()
-    x = Quantity(
-        xr.DataArray(np.random.rand(len(t), len(y)), coords=[("t", t), ("y", y)]),
+    x = genno.Quantity(
+        np.random.rand(len(t), len(y)),
+        coords={"t": t, "y": y},
         units=ureg.kg,
         name="Quantity X",
     )
 
     # Add, including sums and to index
-    c.add(Key("x", ("t", "y")), Quantity(x), sums=True)
+    c.add(Key("x", ("t", "y")), genno.Quantity(x), sums=True)
 
     return t, t_foo, t_bar, x
 
@@ -198,10 +204,10 @@ _TEST_DATA = {
 }
 
 
-def get_test_quantity(key: Key) -> Quantity:
+def get_test_quantity(key: Key) -> "AnyQuantity":
     """Computation that returns test data."""
     value, unit = _TEST_DATA[key]
-    return Quantity(value, name=key.name, units=unit)
+    return genno.Quantity(value, name=key.name, units=unit)
 
 
 def add_dantzig(c: Computer):
@@ -306,16 +312,16 @@ def assert_qty_equal(
     __tracebackhide__ = True
 
     try:
-        assert type(a) is type(b) and type(a).__name__ == genno.core.quantity.CLASS
+        assert type(a) is type(b) is genno.Quantity
     except AssertionError:
         if check_type:
             raise
         else:
             # Convert both arguments to Quantity
-            a = Quantity(a)
-            b = Quantity(b)
+            a = genno.Quantity(a)
+            b = genno.Quantity(b)
 
-    if genno.core.quantity.CLASS == "AttrSeries":
+    if genno.Quantity is AttrSeries:
         try:
             a = a.sort_index().dropna()
             b = b.sort_index().dropna()
@@ -362,20 +368,18 @@ def assert_qty_allclose(
     __tracebackhide__ = True
 
     try:
-        assert type(a) is type(b) and type(a).__name__ == genno.core.quantity.CLASS
+        assert type(a) is type(b) is genno.Quantity
     except AssertionError:
         if check_type:
             raise
         else:
             # Convert both arguments to Quantity
-            a = Quantity(a)
-            b = Quantity(b)
+            a = genno.Quantity(a)
+            b = genno.Quantity(b)
 
-    if genno.core.quantity.CLASS == "AttrSeries":
+    if genno.Quantity is AttrSeries:
         assert_series_equal(a.sort_index(), b.sort_index(), **kwargs)
     else:
-        import xarray.testing
-
         if ignore_extra_coords:
             a = a.reset_coords(set(a.coords.keys()) - set(a.dims), drop=True)
             b = b.reset_coords(set(b.coords.keys()) - set(b.dims), drop=True)
@@ -390,14 +394,14 @@ def assert_qty_allclose(
         assert a.attrs == b.attrs
 
 
-def assert_units(qty: Quantity, exp: str) -> None:
+def assert_units(qty: "AnyQuantity", exp: str) -> None:
     """Assert that `qty` has units `exp`."""
     assert (
         qty.units / qty.units._REGISTRY(exp)
     ).dimensionless, f"Units '{qty.units:~}'; expected {repr(exp)}"
 
 
-def random_qty(shape: Dict[str, int], **kwargs) -> Quantity:
+def random_qty(shape: Dict[str, int], **kwargs) -> "AnyQuantity":
     """Return a Quantity with `shape` and random contents.
 
     Parameters
@@ -415,14 +419,11 @@ def random_qty(shape: Dict[str, int], **kwargs) -> Quantity:
         dimensions like "foo1", "foo2", with total length matching the value from
         `shape`. If `shape` is empty, a scalar (0-dimensional) Quantity.
     """
-    return Quantity(
-        xr.DataArray(
-            np.random.rand(*shape.values()) if len(shape) else np.random.rand(1)[0],
-            coords=[
-                (dim, [f"{dim}{i}" for i in range(length)])
-                for dim, length in shape.items()
-            ],
-        ),
+    return genno.Quantity(
+        np.random.rand(*shape.values()) if len(shape) else np.random.rand(1)[0],
+        coords={
+            dim: [f"{dim}{i}" for i in range(length)] for dim, length in shape.items()
+        },
         **kwargs,
     )
 
@@ -495,20 +496,26 @@ def ureg():
 
 
 @pytest.fixture(
-    params=[(True, "AttrSeries"), (HAS_SPARSE, "SparseDataArray")],
+    params=[
+        (True, "AttrSeries", AttrSeries),
+        (HAS_SPARSE, "SparseDataArray", SparseDataArray),
+    ],
     ids=["attrseries", "sparsedataarray"],
 )
 def parametrize_quantity_class(request):
     """Fixture to run tests twice, for both Quantity implementations."""
+    from genno.core import quantity
+
     if not request.param[0]:  # pragma: no cover
         pytest.skip(reason="`sparse` not available → can't test SparseDataArray")
 
-    pre = genno.core.quantity.CLASS
+    pre = quantity.CLASS
 
-    genno.core.quantity.CLASS = request.param[1]
-    yield
-
-    genno.core.quantity.CLASS = pre
+    try:
+        set_class(request.param[1])
+        yield
+    finally:
+        set_class(pre)
 
 
 @pytest.fixture(params=[True, False], ids=["cow-true", "cow-false"])
@@ -520,9 +527,12 @@ def parametrize_copy_on_write(monkeypatch, request):
 
 @pytest.fixture(scope="function")
 def quantity_is_sparsedataarray(request):
-    pre = copy(genno.core.quantity.CLASS)
+    from genno.core import quantity
 
-    genno.core.quantity.CLASS = "SparseDataArray"
-    yield
+    pre = quantity.CLASS
 
-    genno.core.quantity.CLASS = pre
+    try:
+        set_class("SparseDataArray")
+        yield
+    finally:
+        set_class(pre)
