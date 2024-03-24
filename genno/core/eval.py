@@ -6,7 +6,8 @@ from textwrap import dedent
 from dask.core import quote
 
 from genno.core.key import Key
-from genno.core.quantity import Quantity
+
+from . import quantity
 
 BINOP = {
     ast.Add: "add",
@@ -96,7 +97,7 @@ class Parser:
     def _(self, node: ast.UnaryOp):
         # A unary operation: look up some portions of a task
         if isinstance(node.op, ast.USub):
-            op = (self.computer.get_operator("mul"), Quantity(-1.0))
+            op = (self.computer.get_operator("mul"), quantity.Quantity(-1.0))
         else:
             raise NotImplementedError(f"ast.{node.op.__class__.__name__}")
 
@@ -128,7 +129,7 @@ class Parser:
     def _(self, node: ast.Constant):
         # A constant: convert to a Quantity
         if isinstance(node.value, numbers.Real):
-            return Quantity(node.value)
+            return quantity.Quantity(node.value)
         else:
             # Something else, e.g. a string
             return quote(node.value)
