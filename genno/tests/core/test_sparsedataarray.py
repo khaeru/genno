@@ -6,8 +6,8 @@ import pytest
 import xarray as xr
 from xarray.testing import assert_equal as assert_xr_equal
 
+import genno
 from genno import Computer
-from genno.core.quantity import Quantity
 from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
 from genno.testing import add_test_data, random_qty
 
@@ -63,12 +63,15 @@ class TestSparseDataArray:
         assert any(re.match(r"Force dtype int\w+ → float", m) for m in caplog.messages)
 
     def test_item(self) -> None:
-        with pytest.raises(ValueError, match="can only convert an array of size 1"):
-            random_qty(dict(x=2)).item()
+        # Works on a multi-dimensional quantity
+        q = random_qty(dict(x=9, y=9, z=9))
+        assert 0 <= q.sel(x="x8", y="y8", z="z8").item() <= 1
 
-        assert (
-            0 <= random_qty(dict(x=9, y=9, z=9)).sel(x="x8", y="y8", z="z8").item() <= 1
-        )
+        with pytest.raises(ValueError, match="can only convert an array of size 1"):
+            q.item()
+
+        with pytest.raises(NotImplementedError):
+            q.item(1, 2, 3)
 
     def test_loc(self) -> None:
         """SparseDataArray.loc[] accessor works.
@@ -84,8 +87,8 @@ class TestSparseDataArray:
 
     def test_scalar(self) -> None:
         """Scalar Quantities can be created."""
-        A = Quantity(1.0, units="kg")
-        B = Quantity(2.0, units="kg")
+        A = genno.Quantity(1.0, units="kg")
+        B = genno.Quantity(2.0, units="kg")
 
         # Fragment occurring in .operator.add()
-        list(map(Quantity, xr.broadcast(*cast(xr.DataArray, (A, B)))))
+        list(map(genno.Quantity, xr.broadcast(*cast(xr.DataArray, (A, B)))))

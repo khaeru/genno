@@ -3,6 +3,7 @@
 import logging
 import operator
 import re
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -13,10 +14,11 @@ import xarray as xr
 from numpy import nan
 from pytest import param
 
+import genno
 import genno.operator
-from genno import Computer, Quantity
+from genno import Computer
 from genno.core.attrseries import AttrSeries
-from genno.core.quantity import assert_quantity, possible_scalar, unwrap_scalar
+from genno.core.quantity import assert_quantity, get_class, set_class
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import (
     add_large_data,
@@ -24,6 +26,10 @@ from genno.testing import (
     assert_qty_equal,
     assert_units,
 )
+
+if TYPE_CHECKING:
+    import genno.core.base
+    from genno.core.quantity import AnyQuantity
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 
@@ -40,24 +46,22 @@ class TestQuantity:
 
     @pytest.fixture
     def a(self):
-        yield Quantity(xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"]))
+        yield genno.Quantity([0.8, 0.2], coords={"p": ["oil", "water"]})
 
     @pytest.fixture
     def foo(self):
         # NB 0.0 because sparse cannot handle data that is all int
-        yield Quantity(
-            xr.DataArray(
-                [[0.0, 1], [2, 3]],
-                coords=[("a", ["a1", "a2"]), ("b", ["b1", "b2"])],
-                name="Foo",
-            ),
+        yield genno.Quantity(
+            [[0.0, 1], [2, 3]],
+            coords={"a": ["a1", "a2"], "b": ["b1", "b2"]},
+            name="Foo",
             units="kg",
         )
 
     @pytest.fixture()
     def tri(self):
         """Fixture returning triangular data to test fill, shift, etc."""
-        return Quantity(
+        return genno.Quantity(
             xr.DataArray(
                 [
                     [nan, nan, 1.0, nan, nan],
@@ -108,7 +112,7 @@ class TestQuantity:
     )
     def test_init(self, args, kwargs) -> None:
         """Instantiated from a scalar object."""
-        Quantity(*args, **kwargs)
+        genno.Quantity(*args, **kwargs)
 
     def test_assert(self, a) -> None:
         """Test assertions about Quantity.
@@ -130,7 +134,7 @@ class TestQuantity:
         assert_qty_allclose(a, b, check_type=False)
         assert_qty_allclose(b, a, check_type=False)
 
-        c = Quantity(a)
+        c = genno.Quantity(a)
 
         assert_qty_equal(a, c, check_type=True)
         assert_qty_equal(c, a, check_type=True)
@@ -145,7 +149,7 @@ class TestQuantity:
         attrs = {"foo": "bar"}
         a.attrs = attrs
 
-        b = Quantity(a)
+        b = genno.Quantity(a)
 
         # make sure it has the correct property
         assert a.attrs == attrs
@@ -185,7 +189,7 @@ class TestQuantity:
 
     def test_bfill(self, tri) -> None:
         """Test Quantity.bfill()."""
-        if Quantity._get_class() is SparseDataArray:
+        if genno.Quantity is SparseDataArray:
             pytest.xfail(reason="sparse.COO.flip() not implemented")
 
         r1 = tri.bfill("x")
@@ -218,7 +222,7 @@ class TestQuantity:
 
         assert isinstance(coords["x"], xr.DataArray)
 
-        coords = Quantity(3, units="kg").coords
+        coords = genno.Quantity(3, units="kg").coords
         assert [] == list(coords)
 
     def test_copy_modify(self, a) -> None:
@@ -227,22 +231,22 @@ class TestQuantity:
 
         a.units = pint.Unit("km")
 
-        b = Quantity(a, units="kg")
+        b = genno.Quantity(a, units="kg")
         assert pint.Unit("kg") == b.units
 
         assert pint.Unit("km") == a.units
 
     def test_cumprod(self, caplog, tri) -> None:
         """Test Quantity.cumprod()."""
-        if Quantity._get_class() is SparseDataArray:
+        if genno.Quantity is SparseDataArray:
             pytest.xfail(reason="sparse.COO.nancumprod() not implemented")
 
         caplog.set_level(logging.INFO)
 
-        args = dict(axis=123) if Quantity._get_class() is AttrSeries else dict()
+        args = dict(axis=123) if genno.Quantity is AttrSeries else dict()
         r1 = tri.cumprod("x", **args)
         assert 1 * 3 * 7 == r1.loc["x2", "y2"]
-        if Quantity._get_class() is AttrSeries:
+        if genno.Quantity is AttrSeries:
             assert ["AttrSeries.cumprod(…, axis=…) is ignored"] == caplog.messages
 
         r2 = tri.cumprod("y")
@@ -266,7 +270,7 @@ class TestQuantity:
         # New dimension(s) without labels
         q2 = a.expand_dims({"phase": []})
         assert ("phase", "p") == q2.dims
-        if Quantity._get_class() is AttrSeries:
+        if genno.Quantity is AttrSeries:
             # NB this behaviour differs slightly from xr.DataArray.expand_dims()
             assert (1, 2) == q2.shape
             assert 2 == q2.size
@@ -308,9 +312,12 @@ class TestQuantity:
         "left, right", (["float", "qty"], ["qty", "float"], ["qty", "qty"])
     )
     @pytest.mark.parametrize("op", SUPPORTED_BINOPS)
-    def test_operation(self, left, op, right, tri: Quantity) -> None:
+    def test_operation(self, left, op, right, tri: "AnyQuantity") -> None:
         """Test the standard binary operations +, -, *, /."""
-        values = {"float": 1.0, "qty": tri}
+        values = {
+            "float": 1.0,
+            "qty": genno.operator.assign_units(tri, "dimensionless"),
+        }
         left = values[left]
         right = values[right]
 
@@ -335,10 +342,22 @@ class TestQuantity:
         (
             (operator.add, "", "", ""),  # Both dimensionless
             (operator.add, "kg", "kg", "kg"),  # Same units
-            (operator.add, "", "kg", ""),  # Different units—discarded
+            pytest.param(
+                operator.add,
+                "",
+                "kg",
+                "",
+                marks=pytest.mark.xfail(raises=pint.DimensionalityError),
+            ),
             (operator.sub, "", "", ""),  # Both dimensionless
             (operator.sub, "kg", "kg", "kg"),  # Same units
-            (operator.sub, "", "kg", ""),  # Different units—discarded
+            pytest.param(
+                operator.sub,
+                "",
+                "kg",
+                "",
+                marks=pytest.mark.xfail(raises=pint.DimensionalityError),
+            ),
             (operator.mul, "", "", ""),  # Both dimensionless
             (operator.mul, "", "kg", "kg"),  # One dimensionless
             (operator.mul, "kg", "kg", "kg **2"),  # Same units
@@ -351,11 +370,11 @@ class TestQuantity:
         ),
     )
     def test_operation_units(
-        self, a: Quantity, op, left_units, right_units, exp_units
+        self, a: "AnyQuantity", op, left_units, right_units, exp_units
     ) -> None:
         """Test units pass through the standard binary operations +, -, *, /."""
-        left = Quantity(a, units=left_units)
-        right = Quantity(a, units=right_units)
+        left = genno.Quantity(a, units=left_units)
+        right = genno.Quantity(a, units=right_units)
 
         # Binary operation succeeds
         result = op(left, right)
@@ -389,14 +408,14 @@ class TestQuantity:
     def test_sel_xarray(self, tri) -> None:
         """xarray-style indexing works."""
         # Create indexers
-        newdim = [("newdim", ["nd0", "nd1", "nd2"])]
+        newdim = {"newdim": ["nd0", "nd1", "nd2"]}
         x_idx = xr.DataArray(["x2", "x1", "x2"], coords=newdim)
         y_idx = xr.DataArray(["y4", "y2", "y0"], coords=newdim)
 
         # Select using the indexers
         # NB with pandas 2.1, this triggers the RecursionError fixed in khaeru/genno#99
         assert_qty_equal(
-            Quantity(xr.DataArray([9.0, 3.0, 5.0], coords=newdim), units="kg"),
+            genno.Quantity([9.0, 3.0, 5.0], coords=newdim, units="kg"),
             tri.sel(x=x_idx, y=y_idx),
             ignore_extra_coords=True,
         )
@@ -407,7 +426,7 @@ class TestQuantity:
 
     def test_shift(self, tri) -> None:
         """Test Quantity.shift()."""
-        if Quantity._get_class() is SparseDataArray:
+        if genno.Quantity is SparseDataArray:
             pytest.xfail(reason="sparse.COO.pad() not implemented")
 
         r1 = tri.shift(x=1)
@@ -433,7 +452,7 @@ class TestQuantity:
         # One quantity fits in memory
         c.get(keys[0])
 
-        if Quantity._get_class() is SparseDataArray:
+        if genno.Quantity is SparseDataArray:
             pytest.xfail(
                 reason='"IndexError: Only one-dimensional iterable indices supported." '
                 "in sparse._coo.indexing"
@@ -450,12 +469,12 @@ class TestQuantity:
         (
             (dict(a=["a1"]), ("b",), [0, 1]),
             (dict(a="a1"), ("b",), [0, 1]),
-            (dict(a="a2", b="b1"), (), [2]),
+            (dict(a="a2", b="b1"), (), [2]),  ####
             (dict(a=["a2"], b="b1"), (), [2]),
             (dict(a=["a2"], b=["b1"]), (), [2]),
         ),
     )
-    def test_squeeze0(self, foo, sel_kw, dims, values) -> None:
+    def test_squeeze0(self, foo: SparseDataArray, sel_kw, dims, values) -> None:
         # Method succeeds
         result = foo.sel(**sel_kw).squeeze()
 
@@ -506,9 +525,9 @@ class TestQuantity:
         s = a.to_series()
         assert isinstance(s, pd.Series)
 
-        Quantity.from_series(s)
+        genno.Quantity.from_series(s)
 
-    def test_units(self, a: Quantity) -> None:
+    def test_units(self, a: "AnyQuantity") -> None:
         # Units can be retrieved; dimensionless by default
         assert a.units.dimensionless
 
@@ -520,7 +539,7 @@ class TestQuantity:
         a.units = ""
         assert a.units.dimensionless  # type: ignore [attr-defined]
 
-    def test_where(self, tri: Quantity) -> None:
+    def test_where(self, tri: "AnyQuantity") -> None:
         assert np.isnan(tri.sel(x="x0", y="y0").item())
 
         # cond=Callable, other=scalar
@@ -535,18 +554,27 @@ class TestQuantity:
 
 
 @pytest.mark.parametrize(
-    "value",
-    [
-        2,
-        np.int64(2),
-        1.1,
-        np.float64(1.1),
-        pytest.param([0.1, 2.3], marks=pytest.mark.xfail(raises=AssertionError)),
-    ],
+    "value, cls",
+    (
+        ("AttrSeries", AttrSeries),
+        ("SparseDataArray", SparseDataArray),
+        pytest.param("FOO", None, marks=pytest.mark.xfail(raises=ValueError)),
+    ),
 )
-def test_possible_scalar(value):
-    tmp = possible_scalar(value)
-    assert isinstance(tmp, Quantity), type(tmp)
-    assert tuple() == tmp.dims
+def test_set_class(value, cls):
+    import genno as g1
+    import genno.core.quantity as gcq1
 
-    assert value == unwrap_scalar(tmp)
+    set_class(value)
+
+    import genno as g2
+    import genno.core.quantity as gcq2
+
+    assert (
+        g1.Quantity
+        is gcq1.Quantity
+        is g2.Quantity
+        is gcq2.Quantity
+        is get_class()
+        is cls
+    )

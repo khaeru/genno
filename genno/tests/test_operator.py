@@ -14,7 +14,8 @@ from dask.core import quote
 from numpy.testing import assert_allclose
 from pandas.testing import assert_series_equal
 
-from genno import Computer, Quantity, operator
+import genno
+from genno import Computer, operator
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import (
     add_large_data,
@@ -55,6 +56,9 @@ def test_as_quantity() -> None:
     r3 = operator.as_quantity(1.2)
     assert not r3.dims
     assert_units(r3, "dimensionless")
+
+    with pytest.raises(TypeError):
+        operator.as_quantity(set())  # type: ignore
 
 
 def test_clip(data) -> None:
@@ -122,32 +126,26 @@ def test_dims_eval(expr, expected_dims):
 
 
 @pytest.mark.parametrize(
-    "operands, size",
+    "operands, shape",
     [
-        (("a", "a"), 18),
-        (("a", "x"), 36),
-        (("x", "b"), 36),
-        (("a", "b"), 36),
-        (("a", "x", "b"), 36),
+        (("a", "a"), (3, 6)),
+        (("a", "x"), (6, 6)),
+        (("x", "b"), (6, 6)),
+        (("a", "b"), (6, 6)),
+        (("a", "x", "b"), (6, 6)),
     ],
 )
-def test_add(data, operands, size):
+def test_add(data, operands, shape, recwarn):
     # Unpack
     c, t, t_foo, t_bar, x = data
 
     y = c.get("y")
     x = c.get("x:t-y")
-    a = Quantity(
-        xr.DataArray(
-            np.random.rand(len(t_foo), len(y)), coords=[t_foo, y], dims=["t", "y"]
-        ),
-        units=x.units,
+    a = genno.Quantity(
+        np.random.rand(len(t_foo), len(y)), coords={"t": t_foo, "y": y}, units=x.units
     )
-    b = Quantity(
-        xr.DataArray(
-            np.random.rand(len(t_bar), len(y)), coords=[t_bar, y], dims=["t", "y"]
-        ),
-        units=x.units,
+    b = genno.Quantity(
+        np.random.rand(len(t_bar), len(y)), coords={"t": t_bar, "y": y}, units=x.units
     )
 
     c.add("a:t-y", a)
@@ -156,20 +154,22 @@ def test_add(data, operands, size):
     key = c.add("result", tuple([operator.add] + [f"{name}:t-y" for name in operands]))
 
     result = c.get(key)
-    assert size == result.size, result.to_series()
+    assert shape == result.shape, result.to_series()
 
 
 def test_add_units():
     """Units are handled correctly by :func:`.add`."""
-    A = Quantity(1.0, units="kg")
-    B = Quantity(1.0, units="tonne")
+    A = genno.Quantity(1.0, units="kg")
+    B = genno.Quantity(1.0, units="tonne")
 
     # Units of result are units of the first argument
-    assert_qty_equal(Quantity(1001.0, units="kg"), operator.add(A, B))
-    assert_qty_equal(Quantity(1.001, units="tonne"), operator.add(B, A))
+    assert_qty_equal(genno.Quantity(1001.0, units="kg"), operator.add(A, B))
+    assert_qty_equal(genno.Quantity(1.001, units="tonne"), operator.add(B, A))
 
-    with pytest.raises(ValueError, match="Units 'kg' and 'km' are incompatible"):
-        operator.add(A, Quantity(1.0, units="km"))
+    with pytest.raises(
+        pint.DimensionalityError, match="Cannot convert .*length.* to .*mass"
+    ):
+        operator.add(A, genno.Quantity(1.0, units="km"))
 
 
 @pytest.mark.parametrize("keep", (True, False))
@@ -332,18 +332,15 @@ def test_convert_units(data, caplog):
         ),
     ),
 )
-def test_broadcast_map(ureg, map_values, kwarg):
+def test_broadcast_map(map_values, kwarg):
     x = ["x1"]
     y = ["y1", "y2"]
     z = ["z1", "z2", "z3"]
-    q = Quantity(xr.DataArray([[42.0, 43]], coords=[("x", x), ("y", y)]))
-    m = Quantity(xr.DataArray(map_values, coords=[("y", y), ("z", z)]))
+    q = genno.Quantity([[42.0, 43]], coords={"x": x, "y": y})
+    m = genno.Quantity(map_values, coords={"y": y, "z": z})
 
     result = operator.broadcast_map(q, m, **kwarg)
-    exp = Quantity(
-        xr.DataArray([[42.0, 42, 43]], coords=[("x", x), ("z", z)]),
-        units=ureg.dimensionless,
-    )
+    exp = genno.Quantity([[42.0, 42, 43]], coords={"x": x, "z": z}, units="")
 
     assert_qty_equal(exp, result)
 
@@ -368,7 +365,7 @@ def test_combine(ureg, data):
     assert all(1e-15 > result.to_series().values)
 
     # Incompatible units raises ValueError
-    x2 = Quantity(x, units=ureg.metre)
+    x2 = genno.Quantity(x, units=ureg.metre)
     with pytest.raises(
         ValueError, match=re.escape("Cannot combine() units kilogram and meter")
     ):
@@ -401,7 +398,7 @@ def test_concat_dim_order(data):
     *_, x = data
 
     # Create another Quantity like `x`, but with dims in the opposite order
-    z = Quantity(
+    z = genno.Quantity(
         x.to_series()
         .reset_index()
         .eval("y = y + 1000")
@@ -457,13 +454,7 @@ def test_drop_vars(data):
 
 
 def test_group_sum(ureg):
-    a = "a1 a2".split()
-    b = "b1 b2 b3".split()
-    X = Quantity(
-        xr.DataArray(np.random.rand(2, 3), coords=[("a", a), ("b", b)]),
-        units=ureg.kg,
-        name="Foo",
-    )
+    X = random_qty(dict(a=2, b=3), units=ureg.kg, name="Foo")
 
     result = operator.group_sum(X, "a", "b")
     assert result.name == X.name and result.units == X.units  # Pass through
@@ -615,14 +606,10 @@ def test_load_file(test_data_path, ureg, name, kwargs):
     ),
 )
 def test_mul0(func):
-    A = Quantity(xr.DataArray([1.0, 2], coords=[("a", ["a0", "a1"])]))
-    B = Quantity(xr.DataArray([3.0, 4], coords=[("b", ["b0", "b1"])]))
-    exp = Quantity(
-        xr.DataArray(
-            [[3.0, 4], [6, 8]],
-            coords=[("a", ["a0", "a1"]), ("b", ["b0", "b1"])],
-        ),
-        units="1",
+    A = genno.Quantity([1.0, 2], coords={"a": ["a0", "a1"]})
+    B = genno.Quantity([3.0, 4], coords={"b": ["b0", "b1"]})
+    exp = genno.Quantity(
+        [[3.0, 4], [6, 8]], coords={"a": ["a0", "a1"], "b": ["b0", "b1"]}, units="1"
     )
 
     assert_qty_equal(exp, func(A, B))
@@ -689,7 +676,7 @@ def test_pow_simple(ureg, exponent, base_units, exp_units):
 
     # Convert using the current Quantity class
     if isinstance(exponent, pd.Series):
-        exponent = Quantity(exponent)
+        exponent = genno.Quantity(exponent)
 
     result = operator.pow(A, exponent)
     assert exp_units is None or ureg.Unit(exp_units) == result.units
@@ -766,11 +753,13 @@ def test_rename_dims(data):
     result = operator.rename_dims(x, args)
     assert result.name == x.name and result.units == x.units  # Pass through
     assert ("s", "z") == result.dims  # Quantity has renamed dimensions
-    assert all(t == result.coords["s"])  # Renamed dimension contain original labels
+    # Renamed dimension contains original labels
+    assert set(t) == set(result.coords["s"].data)
 
     # Can be called with keyword arguments
     result = operator.rename_dims(x, **args)
-    assert ("s", "z") == result.dims and all(t == result.coords["s"])  # As above
+    # As above
+    assert ("s", "z") == result.dims and set(t) == set(result.coords["s"].data)
 
     with pytest.raises(ValueError, match="cannot specify both keyword and positional"):
         operator.rename_dims(x, args, **args)
@@ -792,7 +781,8 @@ def test_rename_dims(data):
     ]:
         c.add(*args)
         result = c.get("test")
-        assert ("s", "z") == result.dims and all(t == result.coords["s"])  # As above
+        # As above
+        assert ("s", "z") == result.dims and set(t) == set(result.coords["s"].data)
 
 
 def test_round(data):
@@ -853,7 +843,7 @@ def test_select1(data) -> None:
 
     N_y = 6
 
-    x = Quantity(x)
+    x = genno.Quantity(x)
     assert x.size == 6 * N_y
 
     # Selection with inverse=False
@@ -902,7 +892,7 @@ def test_select_bigmem():
     # Add a task to select some values
     key = c.add("test key", "select", keys[0], k)
 
-    if Quantity._get_class() is SparseDataArray:
+    if genno.Quantity is SparseDataArray:
         # ValueError: invalid dims: array size defined by dims is larger than the
         # maximum possible size.
         pytest.xfail(reason="Too large for sparse")

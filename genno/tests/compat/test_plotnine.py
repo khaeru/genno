@@ -4,7 +4,6 @@ from pathlib import Path
 
 import plotnine as p9
 import pytest
-import xarray as xr
 
 from genno import Computer, MissingKeyError, Quantity
 from genno.compat.plotnine import Plot
@@ -42,9 +41,9 @@ class Plot4(Plot3):
 @pytest.mark.usefixtures("parametrize_copy_on_write")
 def test_Plot(caplog, tmp_path):
     c = Computer(output_dir=tmp_path)
-    t = [("t", [-1, 0, 1])]
-    c.add("x:t", Quantity(xr.DataArray([1.0, 2, 3], coords=t), name="x"))
-    c.add("y:t", Quantity(xr.DataArray([1.0, 2, 3], coords=t), name="y"))
+    t = {"t": [-1, 0, 1]}
+    c.add("x:t", Quantity([1.0, 2, 3], coords=t, name="x"))
+    c.add("y:t", Quantity([1.0, 2, 3], coords=t, name="y"))
 
     # Exception raised when the class is incomplete
 
@@ -92,9 +91,9 @@ def test_Plot(caplog, tmp_path):
 def test_Plot_deprecated(caplog, tmp_path):
     """Same as above, but using deprecated Plot.make_task()."""
     c = Computer(output_dir=tmp_path)
-    t = [("t", [-1, 0, 1])]
-    c.add("x:t", Quantity(xr.DataArray([1.0, 2, 3], coords=t), name="x"))
-    c.add("y:t", Quantity(xr.DataArray([1.0, 2, 3], coords=t), name="y"))
+    t = {"t": [-1, 0, 1]}
+    c.add("x:t", Quantity([1.0, 2, 3], coords=t, name="x"))
+    c.add("y:t", Quantity([1.0, 2, 3], coords=t, name="y"))
 
     with pytest.warns(DeprecationWarning):
         c.add("plot", Plot2.make_task("x:t", "y:t"))

@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pint
 import pytest
-import xarray as xr
 
 from genno import (
     ComputationError,
@@ -666,9 +665,7 @@ def test_dantzig(ureg):
     assert np.isclose(d.values, 11.7)
 
     # Weighted sum
-    weights = Quantity(
-        xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
-    )
+    weights = Quantity([1, 2, 3], coords={"j": "chicago new-york topeka".split()})
     new_key = c.add("*::weighted", "sum", "d:i-j", weights, "j")
 
     # ...produces the expected new key with the summed dimension removed and tag added
@@ -687,8 +684,8 @@ def test_dantzig(ureg):
 
     # Disaggregation with explicit data
     # (cases of canned food 'p'acked in oil or water)
-    shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-    new_key = c.add("b", "mul", "b:j", Quantity(shares), sums=False)
+    shares = Quantity([0.8, 0.2], coords={"p": ["oil", "water"]})
+    new_key = c.add("b", "mul", "b:j", shares, sums=False)
 
     # ...produces the expected key with new dimension added
     assert new_key == "b:j-p"
@@ -842,10 +839,10 @@ def test_units(ureg):
     assert isinstance(c.unit_registry, (pint.UnitRegistry, ApplicationRegistry))
 
     # Create some dummy data
-    dims = dict(coords=["a b c".split()], dims=["x"])
-    c.add("energy:x", Quantity(xr.DataArray([1.0, 3, 8], **dims), units="MJ"))
-    c.add("time", Quantity(xr.DataArray([5.0, 6, 8], **dims), units="hour"))
-    c.add("efficiency", Quantity(xr.DataArray([0.9, 0.8, 0.95], **dims)))
+    dims = dict(coords={"x": list("abc")})
+    c.add("energy:x", Quantity([1.0, 3, 8], **dims, units="MJ"))
+    c.add("time", Quantity([5.0, 6, 8], **dims, units="hour"))
+    c.add("efficiency", Quantity([0.9, 0.8, 0.95], **dims))
 
     # Aggregation preserves units
     c.add("energy", (operator.sum, "energy:x", None, ["x"]))
