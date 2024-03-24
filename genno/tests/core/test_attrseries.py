@@ -1,5 +1,6 @@
 """Tests of AttrSeries in particular."""
 
+import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 import pytest
@@ -48,6 +49,10 @@ class TestAttrSeries:
         _, result = q.align_levels(foo)
         assert ("a", "b") == result.dims
 
+    def test_clip(self, foo: AttrSeries) -> None:
+        with pytest.raises(NotImplementedError, match="keep_attrs=False"):
+            foo.clip(1.0, keep_attrs=False)
+
     def test_cumprod(self, foo, bar):
         """AttrSeries.cumprod works with 1-dimensional quantities."""
         result0 = (1.1 + bar).cumprod("a")
@@ -60,6 +65,9 @@ class TestAttrSeries:
         # But not with ≥1D
         with pytest.raises(NotImplementedError):
             foo.cumprod()
+
+    def test_data(self, foo):
+        assert isinstance(foo.data, np.ndarray)
 
     def test_expand_dims(self, ureg, foo):
         # Name and units pass through expand_dims
@@ -156,6 +164,14 @@ Name: Foo, dtype: int64, units: kilogram"""
             bar.item("a2")
         with pytest.raises(ValueError):
             bar.item()
+
+    def test_where(self, foo: AttrSeries) -> None:
+        with pytest.raises(NotImplementedError, match="drop=True"):
+            foo.where(lambda x: x, drop=True)
+        with pytest.raises(NotImplementedError, match="axis=….* inplace=…"):
+            foo.where(lambda x: x, axis=1)
+        with pytest.raises(NotImplementedError, match="axis=….* inplace=…"):
+            foo.where(lambda x: x, inplace=True)
 
 
 @pytest.mark.skip(reason="Slow, for benchmarking only")

@@ -90,6 +90,15 @@ class TestQuantity:
                 (pd.DataFrame([[0], [1]], index=["a", "b"], columns=["foo"]),),
                 dict(units="kg"),
             ),
+            # xr.DataArray, 0-D
+            (xr.DataArray([3.0]), dict()),
+            # xr.DataArray, 2-D
+            (
+                xr.DataArray(
+                    [[0.0, 1], [2, 3]], coords={"a": ["a1", "a2"], "b": ["b1", "b2"]}
+                ),
+                dict(),
+            ),
             # xarray-style arguments
             (
                 ([[0.0, 1], [2, 3]],),  # float

@@ -1,10 +1,15 @@
 import logging
+import sys
 from types import new_class
 
+import numpy as np
+import pandas as pd
 import pytest
 
 import genno.caching
 from genno.caching import Encoder, decorate, hash_args, hash_code, hash_contents
+from genno.core.attrseries import AttrSeries
+from genno.core.sparsedataarray import SparseDataArray
 
 
 class TestEncoder:
@@ -50,25 +55,42 @@ class TestEncoder:
         assert dict(bar=42) == Encoder().default(Bar())
 
 
-def test_decorate(caplog, tmp_path):
+@pytest.mark.parametrize(
+    "value, suffix",
+    (
+        (np.array([3]), "pickle"),
+        (pd.DataFrame(), "parquet"),
+        (AttrSeries(), "parquet" if sys.version_info >= (3, 9) else "pickle"),
+        pytest.param(
+            SparseDataArray(), "parquet", marks=pytest.mark.xfail(raises=TypeError)
+        ),
+    ),
+)
+def test_decorate(caplog, tmp_path, value, suffix):
     """:func:`.decorate` works without a :class:`.Computer`."""
+
     caplog.set_level(logging.DEBUG)
 
     def myfunc():
-        return 3
+        return value
 
     decorated = decorate(myfunc, cache_path=tmp_path)
 
     # Decorated function runs
-    assert 3 == decorated()
+    assert all(value == decorated())
 
     # Value was cached
-    assert caplog.messages[-1].startswith("Cache miss for myfunc(<")
-    assert 1 == len(list(tmp_path.glob("*.pickle")) + list(tmp_path.glob("*.parquet")))
+    # NB use [1] not [-1] to accommodate a possible message about Parquet support
+    assert caplog.messages[1].startswith("Cache miss for myfunc(<")
+    files = list(tmp_path.glob(f"*.{suffix}"))
+    assert 1 == len(files)
 
     # Cache hit on the second call
-    assert 3 == decorated()
+    assert all(value == decorated())
     assert caplog.messages[-1].startswith("Cache hit for myfunc(<")
+
+    for f in files:
+        f.unlink()
 
 
 def test_hash_args():

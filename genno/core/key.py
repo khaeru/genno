@@ -253,7 +253,7 @@ class Key:
         try:
             other = Key(other)
         except TypeError:
-            return False
+            return NotImplemented
 
         return (
             (self.name == other.name)

@@ -925,6 +925,21 @@ def test_sum(data, dimensions):
     assert result.name == x.name and result.units == x.units  # Pass through
 
 
+def test_unique_units_from_dim():
+    # Empty quantity passes through
+    q = genno.Quantity()
+    r1 = operator.unique_units_from_dim(q, "foo")
+    assert 0 == len(q) == len(r1)
+
+    q = genno.Quantity(
+        [[1.0, 2], [3, 4]], coords={"v": ["foo", "bar"], "u": ["kg", "km"]}, name="Baz"
+    )
+    with pytest.raises(
+        ValueError, match=r"Non-unique units \['kg', 'km'\] for .* 'Baz'"
+    ):
+        operator.unique_units_from_dim(q, "u")
+
+
 def test_where(data) -> None:
     *_, x = data
 

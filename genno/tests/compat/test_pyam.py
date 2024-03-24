@@ -11,7 +11,7 @@ from pandas.testing import assert_frame_equal, assert_series_equal
 from genno import Computer, Key, Quantity
 from genno.compat.pyam import operator, util
 from genno.operator import add, load_file
-from genno.testing import assert_units
+from genno.testing import assert_logs, assert_units
 
 if TYPE_CHECKING:
     import pathlib
@@ -322,7 +322,7 @@ def test_drop():
         util.drop(pd.DataFrame, "foo")
 
 
-def test_quantity_from_iamc(test_data_path: "pathlib.Path") -> None:
+def test_quantity_from_iamc(caplog, test_data_path: "pathlib.Path") -> None:
     # NB this does not pass with parametrize_quantity_class / SparseDataArray, since
     #    unused values on the `units` dimension are not dropped automatically.
     from genno.compat.pyam.operator import quantity_from_iamc
@@ -360,3 +360,27 @@ def test_quantity_from_iamc(test_data_path: "pathlib.Path") -> None:
     assert {"canning_plant|production"} == set(r3.coords["variable"].data)
     assert_units(r3, "tonne")
     assert {"model", "scenario", "variable", "region", "year"} == set(r3.dims)
+
+    # Expression without match group doesn't modify variables
+    r4 = quantity_from_iamc(q_in, r"Activity\|canning_plant\|.*")
+    assert "Activity|canning_plant|production" in r4.coords["Variable"]
+
+    # Logs warning/empty result with bad expression (missing trailing .*)
+    with assert_logs(caplog, "0 of 7 labels"):
+        r5 = quantity_from_iamc(q_in, r"Activity\|canning_plant\|")
+    assert 0 == len(r5)
+    caplog.clear()
+
+    # Expression giving mixed units drops units
+    r6 = quantity_from_iamc(q_in, r"Activity\|(.*)")
+    assert_units(r6, "dimensionless")
+    assert re.match("Non-unique units.*discard", caplog.messages[0])
+    caplog.clear()
+
+    # Missing Variable or Unit dimension raises
+    for dim, value in (
+        ("Variable", "Activity|canning_plant|production"),
+        ("Unit", "case"),
+    ):
+        with pytest.raises(ValueError, match="cannot identify 1 unique dimension"):
+            quantity_from_iamc(q_in.sel({dim: value}, drop=True), expr)
