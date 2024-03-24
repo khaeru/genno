@@ -28,9 +28,9 @@ import pint
 import xarray as xr
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
-from xarray.core.utils import either_dict_or_kwargs
 
 from genno import caching, operator
+from genno.compat.xarray import either_dict_or_kwargs
 from genno.util import partial_split
 
 from .describe import describe_recursive
