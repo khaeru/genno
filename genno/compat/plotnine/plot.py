@@ -6,10 +6,10 @@ from warnings import warn
 
 import plotnine as p9
 
+import genno
 from genno.compat.pandas import disable_copy_on_write
 from genno.core.computer import Computer
 from genno.core.key import KeyLike
-from genno.core.quantity import Quantity
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ class Plot(ABC):
         # Convert Quantity arguments to pd.DataFrame for use with plotnine
         _args = map(
             lambda arg: arg
-            if not isinstance(arg, Quantity)
+            if not isinstance(arg, genno.Quantity)
             else arg.to_series()
             .rename(arg.name or "value")
             .reset_index()

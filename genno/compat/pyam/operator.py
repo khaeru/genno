@@ -15,6 +15,7 @@ from warnings import warn
 
 import pyam
 
+import genno
 import genno.operator
 from genno.core.key import Key, KeyLike
 from genno.core.operator import Operator
@@ -25,7 +26,7 @@ if TYPE_CHECKING:
     import pandas as pd
 
     from genno.core.computer import Computer
-    from genno.core.quantity import Quantity
+    from genno.core.quantity import AnyQuantity
 
 log = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ __all__ = [
 @Operator.define()
 def as_pyam(
     scenario,
-    quantity: "Quantity",
+    quantity: "AnyQuantity",
     *,
     rename: Optional[Mapping[str, str]] = None,
     collapse: Optional[Callable] = None,
@@ -211,11 +212,11 @@ def _(*args: pyam.IamDataFrame, **kwargs) -> "pyam.IamDataFrame":
 
 
 def quantity_from_iamc(
-    qty: Union["Quantity", "pyam.IamDataFrame", "pd.DataFrame"],
+    qty: Union["AnyQuantity", "pyam.IamDataFrame", "pd.DataFrame"],
     variable: str,
     *,
     fail: Union[int, str] = "warning",
-) -> "Quantity":
+) -> "AnyQuantity":
     """Extract data for a single measure from `qty` with IAMC-like structure.
 
     Parameters
@@ -237,7 +238,6 @@ def quantity_from_iamc(
     """
     import pandas as pd
 
-    from genno.core.quantity import Quantity
     from genno.operator import relabel, select, unique_units_from_dim
 
     from .util import IAMC_DIMS
@@ -248,7 +248,7 @@ def quantity_from_iamc(
     if isinstance(qty, pyam.IamDataFrame):
         # Convert IamDataFrame to Quantity
         df = qty.as_pandas()
-        qty = Quantity(df.set_index(list(IAMC_DIMS & set(df.columns)))["value"])
+        qty = genno.Quantity(df.set_index(list(IAMC_DIMS & set(df.columns)))["value"])
 
     # Identify a dimension whose name is in `targets`
     def identify_dim(targets: Collection[str]) -> str:
