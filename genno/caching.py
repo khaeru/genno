@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Callable, Optional, Set, Union
 
 import pandas as pd
 
+import genno
+
 from .util import unquote
 
 if TYPE_CHECKING:
@@ -225,8 +227,6 @@ def decorate(
 
 def _read(path: Path):
     """Read cache data from `path`."""
-    from genno.core.quantity import Quantity
-
     if path.suffix == ".parquet":
         # Quantity or pd.DataFrame
         df = pd.read_parquet(path)
@@ -234,26 +234,25 @@ def _read(path: Path):
         try:
             # Convert to Quantity
             df.attrs.pop("_is_genno_quantity")
-            return Quantity(df["value"], units=df.attrs["_unit"])
+            return genno.Quantity(df["value"], units=df.attrs["_unit"])
         except KeyError:
             return df
     elif path.suffix in (".pickle", ".pkl"):
         # Anything else
         with open(path, "rb") as f:
             return pickle.load(f)
-    else:
+    else:  # pragma: no cover
         raise RuntimeError(f"Unknown suffix {path.suffix!r} for cache file")
 
 
 def _write(path: Path, data):
     """Write `data` to `path`."""
     from genno.compat.pandas import handles_parquet_attrs
-    from genno.core.quantity import Quantity
 
-    if (isinstance(data, Quantity) and handles_parquet_attrs()) or isinstance(
+    if (isinstance(data, genno.Quantity) and handles_parquet_attrs()) or isinstance(
         data, pd.DataFrame
     ):
-        if isinstance(data, Quantity):
+        if isinstance(data, genno.Quantity):
             # Convert to single-column data frame
             df = data.to_dataframe()
 
