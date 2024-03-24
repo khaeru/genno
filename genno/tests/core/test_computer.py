@@ -73,6 +73,18 @@ class TestComputer:
         agg3 = c.get(key3)
         assert set(agg3.coords["t"].values) == set(t_groups.keys())
 
+    @pytest.mark.parametrize("suffix", [".json", ".yaml"])
+    def test_configure(self, test_data_path, c: Computer, suffix) -> None:
+        # Configuration can be read from file
+        path = test_data_path.joinpath("config-0").with_suffix(suffix)
+        c.configure(path)
+
+        # Data from configured file is available
+        assert c.get("d_check").loc["seattle", "chicago"] == 1.7
+
+        with pytest.raises(ValueError, match="cannot give both"):
+            c.configure(path, config={"path": path})
+
     def test_deprecated_add_file(self, tmp_path, c):
         # Path to a temporary file
         p = tmp_path / "foo.csv"
@@ -855,17 +867,6 @@ def test_units(ureg):
     # Product of dimensioned and dimensionless quantities keeps the former
     c.add("energy2", (operator.mul, "energy:x", "efficiency"))
     assert c.get("energy2").units == ureg.parse_units("MJ")
-
-
-@pytest.mark.parametrize("suffix", [".json", ".yaml"])
-def test_read_config(test_data_path, suffix):
-    c = Computer()
-
-    # Configuration can be read from file
-    c.configure(test_data_path.joinpath("config-0").with_suffix(suffix))
-
-    # Data from configured file is available
-    assert c.get("d_check").loc["seattle", "chicago"] == 1.7
 
 
 @pytest.fixture(scope="module")
