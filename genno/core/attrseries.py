@@ -19,18 +19,21 @@ import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
-import xarray.core.coordinates
 from packaging.version import Version
 from pandas.core.generic import NDFrame
 from pandas.core.internals.base import DataManager
-from xarray.core import dtypes
-from xarray.core.indexes import Indexes
-from xarray.core.utils import either_dict_or_kwargs
 
 from genno.compat.pandas import version as pandas_version
-from genno.compat.xarray import is_scalar
+from genno.compat.xarray import (
+    Coordinates,
+    DataArrayLike,
+    Indexes,
+    dtypes,
+    either_dict_or_kwargs,
+    is_scalar,
+)
 
-from .quantity import Quantity, possible_scalar
+from .base import BaseQuantity, collect_attrs, single_column_df
 
 if TYPE_CHECKING:
     from _typeshed import SupportsRichComparisonT
@@ -39,35 +42,6 @@ if TYPE_CHECKING:
 
 
 log = logging.getLogger(__name__)
-
-
-def _binop(name: str, swap: bool = False):
-    """Create a method for binary operator `name`."""
-
-    def method(self, other):
-        # Handle the case where `other` is scalar
-        other = possible_scalar(other)
-
-        # For __r*__ methods
-        a, b = (other, self) if swap else (self, other)
-
-        # Ensure both operands are multi-indexed, and have at least 1 common dim
-        if a.dims:
-            left = a
-            order, right = b.align_levels(left)
-        else:
-            right = b
-            order, left = a.align_levels(right)
-
-        # Invoke a pd.Series method like .mul()
-        result = getattr(left, name)(right).dropna().reorder_levels(order)
-
-        # Determine resulting units
-        result.units = left._binop_units(name, right)
-
-        return result
-
-    return method
 
 
 def _ensure_multiindex(obj):
@@ -83,7 +57,7 @@ def _ensure_multiindex(obj):
     return obj
 
 
-class AttrSeriesCoordinates(xarray.core.coordinates.Coordinates):
+class AttrSeriesCoordinates(Coordinates):
     def __init__(self, obj):
         self._data = obj
         self._idx = obj.index.remove_unused_levels()
@@ -109,7 +83,7 @@ class AttrSeriesCoordinates(xarray.core.coordinates.Coordinates):
         return xr.DataArray(levels, coords={key: levels})
 
 
-class AttrSeries(pd.Series, Quantity):
+class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
@@ -133,7 +107,14 @@ class AttrSeries(pd.Series, Quantity):
     def _constructor(self):
         return AttrSeries
 
-    def __init__(self, data=None, *args, name=None, attrs=None, **kwargs):
+    def __init__(
+        self,
+        data: Any = None,
+        *args,
+        name: Optional[Hashable] = None,
+        attrs: Optional[Mapping] = None,
+        **kwargs,
+    ):
         # Emulate behaviour of Series.__init__
         if isinstance(data, DataManager) and "fastpath" not in kwargs:
             if not (
@@ -145,7 +126,7 @@ class AttrSeries(pd.Series, Quantity):
                 self.name = name
             return
 
-        attrs = Quantity._collect_attrs(data, attrs, kwargs)
+        attrs = collect_attrs(data, attrs, kwargs)
 
         if isinstance(data, (pd.Series, xr.DataArray)):
             # Extract name from existing object or use the argument
@@ -166,7 +147,7 @@ class AttrSeries(pd.Series, Quantity):
                 else:  # pragma: no cover
                     raise
 
-        data, name = Quantity._single_column_df(data, name)
+        data, name = single_column_df(data, name)
 
         if data is None:
             kwargs["dtype"] = float
@@ -184,13 +165,7 @@ class AttrSeries(pd.Series, Quantity):
         _ensure_multiindex(self)
 
         # Update the attrs after initialization
-        self.attrs.update(attrs)
-
-    # Binary operations
-    __mul__ = _binop("mul")
-    __pow__ = _binop("pow")
-    __rtruediv__ = _binop("truediv", swap=True)
-    __truediv__ = _binop("truediv")
+        self._attrs.update(attrs)
 
     def __repr__(self):
         return (
@@ -201,6 +176,20 @@ class AttrSeries(pd.Series, Quantity):
     def from_series(cls, series, sparse=None):
         """Like :meth:`xarray.DataArray.from_series`."""
         return AttrSeries(series)
+
+    @staticmethod
+    def _perform_binary_op(
+        name: str, left: "AttrSeries", right: "AttrSeries", factor: float
+    ) -> "AttrSeries":
+        # Ensure both operands are multi-indexed, and have at least 1 common dim
+        if left.dims:
+            order, right = right.align_levels(left)
+        else:
+            order, left = left.align_levels(right)
+
+        # Invoke a pd.Series method like .mul()
+        fv = dict(fill_value=0.0) if name in ("add", "sub") else {}
+        return getattr(left, name)(right, **fv).dropna().reorder_levels(order)
 
     def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
@@ -412,8 +401,7 @@ class AttrSeries(pd.Series, Quantity):
             index = either_dict_or_kwargs(new_name_or_name_dict, names, "rename")
             return self.rename_axis(index=index)
         else:
-            assert 0 == len(names)
-            return super().rename(new_name_or_name_dict)
+            return self._set_name(new_name_or_name_dict)
 
     def sel(
         self,
@@ -523,9 +511,7 @@ class AttrSeries(pd.Series, Quantity):
 
             def _(s):
                 # Invoke shift from the parent class pd.Series
-                return super(AttrSeries, s).shift(
-                    periods=periods, fill_value=fill_value
-                )
+                return super(pd.Series, s).shift(periods=periods, fill_value=fill_value)
 
             result = result._groupby_apply(dim, levels, _)
 
@@ -533,7 +519,7 @@ class AttrSeries(pd.Series, Quantity):
 
     def sum(
         self,
-        dim: Dims = None,
+        dim: "Dims" = None,
         # Signature from xarray.DataArray
         # *,
         skipna: Optional[bool] = None,
@@ -740,13 +726,8 @@ class AttrSeries(pd.Series, Quantity):
             return cast(pd.Series, super())
         else:
             # Group on dimensions other than `dim`
-            return self.groupby(
-                level=list(  # type: ignore
-                    filter(lambda d: d not in dim, self.index.names)
-                ),
-                group_keys=False,
-                observed=True,
-            )
+            levels = list(filter(lambda d: d not in dim, self.index.names))
+            return self.groupby(level=levels, group_keys=False, observed=True)
 
     def _replace(self, data) -> "AttrSeries":
         """Shorthand to preserve attrs."""

@@ -73,6 +73,16 @@ class TestAttrSeries:
     def test_rename(self, foo):
         assert foo.rename({"a": "c", "b": "d"}).dims == ("c", "d")
 
+    def test_repr(self, foo):
+        assert (
+            "a   b \n"
+            """a1  b1    0
+    b2    1
+a2  b1    2
+    b2    3
+Name: Foo, dtype: int64, units: kilogram"""
+        ) == repr(foo)
+
     @pytest.mark.parametrize(
         "indexers_kwargs, dims", ((dict(a="a2"), ()), (dict(a=["a2"]), ("a",)))
     )
