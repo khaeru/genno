@@ -22,10 +22,9 @@ import xarray
 from xarray.core import dtypes
 from xarray.core.utils import is_scalar
 
-from genno.core.types import Dims
-
 if TYPE_CHECKING:
     import xarray.core.types
+    from xarray.core.types import Dims
 
 T = TypeVar("T", covariant=True)
 

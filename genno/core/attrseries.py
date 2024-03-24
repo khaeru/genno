@@ -15,9 +15,6 @@ from typing import (
     cast,
 )
 
-if TYPE_CHECKING:
-    from _typeshed import SupportsRichComparisonT
-
 import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
@@ -34,7 +31,12 @@ from genno.compat.pandas import version as pandas_version
 from genno.compat.xarray import is_scalar
 
 from .quantity import Quantity, possible_scalar
-from .types import Dims
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsRichComparisonT
+
+    from genno.types import Dims
+
 
 log = logging.getLogger(__name__)
 
