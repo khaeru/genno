@@ -33,7 +33,7 @@ from genno.compat.xarray import (
     is_scalar,
 )
 
-from .base import BaseQuantity, collect_attrs, single_column_df
+from .base import BaseQuantity, collect_attrs, rank, single_column_df
 
 if TYPE_CHECKING:
     from _typeshed import SupportsRichComparisonT
@@ -179,7 +179,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
     @staticmethod
     def _perform_binary_op(
-        name: str, left: "AttrSeries", right: "AttrSeries", factor: float
+        op, left: "AttrSeries", right: "AttrSeries", factor: float
     ) -> "AttrSeries":
         # Ensure both operands are multi-indexed, and have at least 1 common dim
         if left.dims:
@@ -188,8 +188,8 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
             order, left = left.align_levels(right)
 
         # Invoke a pd.Series method like .mul()
-        fv = dict(fill_value=0.0) if name in ("add", "sub") else {}
-        return getattr(left, name)(right, **fv).dropna().reorder_levels(order)
+        fv = dict(fill_value=0.0) if rank(op) == 1 else {}
+        return getattr(left, op.__name__)(right, **fv).dropna().reorder_levels(order)
 
     def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""

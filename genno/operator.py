@@ -3,7 +3,6 @@
 # NB To avoid ambiguity, operators should not have default values for positional-only
 #    arguments; use keyword(-only) arguments for defaults.
 import logging
-import numbers
 import operator
 import os
 import re
@@ -832,33 +831,7 @@ def pow(a: "AnyQuantity", b: Union["AnyQuantity", int]) -> "AnyQuantity":
         for example, "kg²" → "kg⁴" if `b` is 2. In other cases, there are no meaningful
         units, so the returned quantity is dimensionless.
     """
-    # Determine the exponent for the units
-    if isinstance(b, numbers.Real):
-        unit_exponent = b if isinstance(b, int) else 0
-        b = genno.Quantity(float(b))
-    elif isinstance(b, genno.Quantity):
-        check = set((b % 1).data)  # Each exponent modulo 1 == 0 if exponents are int
-        unique_values = set(b.data)
-        if check == {0.0} and len(unique_values) == 1:
-            # Single/common integer exponent; use this
-            unit_exponent = unique_values.pop()
-        else:
-            unit_exponent = 0
-
-    u_a, u_b = collect_units(a, b)
-
-    if not u_b.dimensionless:
-        raise ValueError(f"Cannot raise to a power with units ({u_b:~})")
-
-    result = a**b
-
-    result.units = (
-        a.units**unit_exponent
-        if unit_exponent
-        else pint.get_application_registry().dimensionless
-    )
-
-    return result
+    return a**b
 
 
 def relabel(

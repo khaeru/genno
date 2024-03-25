@@ -14,8 +14,10 @@ from typing import (
     Tuple,
     TypeVar,
     Union,
+    cast,
 )
 
+import numpy as np
 import pandas as pd
 import pint
 
@@ -23,6 +25,8 @@ if TYPE_CHECKING:
     from typing import Self  # Python ≥3.11
 
     from genno.types import Unit
+
+    from .quantity import AnyQuantity
 
 
 class UnitsMixIn:
@@ -56,39 +60,53 @@ class UnitsMixIn:
     def units(self, value: Union["Unit", str]) -> None:
         self.attrs["_unit"] = pint.get_application_registry().Unit(value)
 
-    def _binary_op_units(self, name: str, other: "UnitsMixIn") -> Tuple["Unit", float]:
+    def _binary_op_units(
+        self, other: "UnitsMixIn", op, swap: bool
+    ) -> Tuple["Unit", float]:
         """Determine result units for a binary operation between `self` and `other`.
 
         Returns:
         1. Result units.
-        2. For 'add' or 'sub' operations, a scaling factor to make `other` compatible
-           with `self`.
+        2. For rank-1 operations ('add', 'radd', 'rsub', 'sub') operations, a scaling
+           factor to make magnitudes of `other` compatible with `self`.
         """
-        if name == "pow":
-            # Currently handled by operator.pow()
-            return self.units, 1.0
-
         # Retrieve units of `other`
-        other_units = other.units
+        ou = other.units
 
         # Ensure there is not a mix of pint.Unit and pint.registry.Unit; this throws off
         # pint's internal logic
-        if other_units.__class__ is not self.units.__class__:
-            other_units = self.units.__class__(other_units)
+        if ou.__class__ is not self.units.__class__:
+            ou = self.units.__class__(ou)
 
-        if name in ("add", "sub"):
+        if rank(op) == 1:
             # Determine multiplicative factor to align `other` to `self`
-            return self.units, pint.Quantity(1.0, other_units).to(self.units).magnitude
-        else:
+            return self.units, pint.Quantity(1.0, ou).to(self.units).magnitude
+        elif rank(op) == 2:
             # Allow pint to determine the output units
-            return getattr(operator, name)(self.units, other_units), 1.0
+            return op(*[ou, self.units] if swap else [self.units, ou]), np.nan
+        else:
+            # Exponent, its units, and base units
+            exp, eu, bu = (self, self.units, ou) if swap else (other, ou, self.units)
+            if not eu.dimensionless:
+                raise ValueError(f"Cannot raise to a power with units {eu:~}")
+
+            # Extract the (dense) data of the exponent
+            data = cast("AnyQuantity", exp).to_series().values
+            # Each exponent modulo 1. Set of {0} if exponents are all integers.
+            check = set(np.mod(data, 1))
+            # Unique values in data
+            unique_values = np.unique(data)
+
+            if check == {0.0} and len(unique_values) == 1:
+                # The same, integer exponent for all values; raise the base units to
+                # this value
+                return op(bu, unique_values[0]), np.nan
+            else:
+                return pint.get_application_registry().dimensionless, np.nan
 
 
-def make_binary_op(name: str):
+def make_binary_op(op, *, swap: bool):
     """Create a method for binary operator `name`."""
-
-    swap = name.startswith("r")
-    name = name[1:] if swap else name
 
     def method(obj: "BaseQuantity", other: "BaseQuantity"):
         scalar_other = False
@@ -101,13 +119,13 @@ def make_binary_op(name: str):
         ):
             raise TypeError(type(other))
 
-        left, right, result_units, factor = prepare_binary_op(obj, other, name, swap)
+        left, right, result_units, factor = prepare_binary_op(obj, other, op, swap)
 
-        # If `other` was scalar, the units of `obj` carry to the result. Otherwise,
-        # use `result_units`
+        # If `other` was scalar and the operation is rank-1 (add, sub, etc.), the units
+        # of `obj` carry to the result. Otherwise, use `result_units`.
         return obj._keep(
-            obj._perform_binary_op(name, left, right, factor),
-            units=obj.units if scalar_other else result_units,
+            obj._perform_binary_op(op, left, right, factor),
+            units=obj.units if (scalar_other and rank(op) == 1) else result_units,
         )
 
     return method
@@ -128,14 +146,16 @@ class BinaryOpsMixIn(Generic[T]):
     - Preserve name and non-unit attrs.
     """
 
-    __add__ = make_binary_op("add")
-    __mul__ = make_binary_op("mul")
-    __pow__ = make_binary_op("pow")
-    __radd__ = make_binary_op("radd")
-    __rmul__ = make_binary_op("rmul")
-    __rtruediv__ = make_binary_op("rtruediv")
-    __sub__ = make_binary_op("sub")
-    __truediv__ = make_binary_op("truediv")
+    __add__ = make_binary_op(operator.add, swap=False)
+    __mul__ = make_binary_op(operator.mul, swap=False)
+    __pow__ = make_binary_op(operator.pow, swap=False)
+    __radd__ = make_binary_op(operator.add, swap=True)
+    __rmul__ = make_binary_op(operator.mul, swap=True)
+    __rpow__ = make_binary_op(operator.pow, swap=True)
+    __rsub__ = make_binary_op(operator.sub, swap=True)
+    __rtruediv__ = make_binary_op(operator.truediv, swap=True)
+    __sub__ = make_binary_op(operator.sub, swap=False)
+    __truediv__ = make_binary_op(operator.truediv, swap=False)
 
     @staticmethod
     @abstractmethod
@@ -186,7 +206,7 @@ class BaseQuantity(
 
 
 def prepare_binary_op(
-    obj: BaseQuantity, other, name: str, swap: bool
+    obj: BaseQuantity, other, op, swap: bool
 ) -> Tuple[BaseQuantity, BaseQuantity, "Unit", float]:
     """Prepare inputs for a binary operation.
 
@@ -199,10 +219,10 @@ def prepare_binary_op(
     4. Any scaling factor needed to make units of `other` compatible with `obj`.
     """
     # Determine resulting units
-    result_units, factor = obj._binary_op_units(name, other)
+    result_units, factor = obj._binary_op_units(other, op, swap)
 
     # Apply a multiplicative factor to align units
-    if factor != 1.0:
+    if rank(op) == 1 and factor != 1.0:
         other = super(type(obj), other).__mul__(factor)
 
     # For __r*__ methods

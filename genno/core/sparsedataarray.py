@@ -16,7 +16,7 @@ import xarray as xr
 
 from genno.compat.xarray import dtypes, either_dict_or_kwargs
 
-from .base import BaseQuantity, collect_attrs, single_column_df
+from .base import BaseQuantity, collect_attrs, rank, single_column_df
 
 log = logging.getLogger(__name__)
 
@@ -194,16 +194,16 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
 
     @staticmethod
     def _perform_binary_op(
-        name: str, left: "SparseDataArray", right: "SparseDataArray", factor: float
+        op, left: "SparseDataArray", right: "SparseDataArray", factor: float
     ) -> "SparseDataArray":
         # xr.DataArray-specific: outer join
-        if name in ("add", "sub"):
+        if rank(op) == 1:
             left, right = xr.align(left, right, join="outer", fill_value=0.0)
 
         # super() `left` if this hasn't already happened
         left_ = left if isinstance(left, super) else super(xr.DataArray, left)
         # Invoke an xr.DataArray method like .__mul__()
-        return getattr(left_, f"__{name}__")(right)
+        return getattr(left_, f"__{op.__name__}__")(right)
 
     def __len__(self) -> int:
         v = self.variable
