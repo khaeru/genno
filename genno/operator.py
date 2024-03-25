@@ -887,22 +887,30 @@ def relabel(
         )
 
 
-def set_name(qty: "AnyQuantity", name: str) -> "AnyQuantity":
-    """Change the name of `qty`."""
-    qty.name = name
-    return qty
-
-
-def rename_dims(
+def rename(
     qty: "AnyQuantity",
     new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
     **names: Hashable,
 ) -> "AnyQuantity":
-    """Rename the dimensions of `qty`.
+    """Returns a new Quantity with renamed dimensions or a new name.
 
-    Like :meth:`xarray.DataArray.rename`.
+    Like :meth:`.xarray.DataArray.rename`, and identical in behaviour to
+    :func:`.rename_dims`.
     """
     return qty.rename(new_name_or_name_dict, **names)
+
+
+def rename_dims(
+    qty: "AnyQuantity",
+    name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
+    **names: Hashable,
+) -> "AnyQuantity":
+    """Returns a new Quantity with renamed dimensions or a new name.
+
+    Like :meth:`.xarray.DataArray.rename`, and identical in behaviour to
+    :func:`.rename`. The two names are provided for more expressive user code.
+    """
+    return qty.rename(name_dict, **names)
 
 
 def round(qty: "AnyQuantity", *args, **kwargs) -> "AnyQuantity":

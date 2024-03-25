@@ -744,25 +744,30 @@ def test_relabel(data):
         check(result)
 
 
-def test_rename_dims(data):
+@pytest.mark.parametrize("func", [operator.rename, operator.rename_dims])
+def test_rename(data, func):
+    """Test both :func:`.rename` and :func:`.rename_dims`."""
     # Unpack
     c, t, t_foo, t_bar, x = data
 
+    # Can be called with a string
+    assert "New name" == func(x, "New name").name
+
     # Can be called with a dictionary
     args = {"t": "s", "y": "z"}
-    result = operator.rename_dims(x, args)
+    result = func(x, args)
     assert result.name == x.name and result.units == x.units  # Pass through
     assert ("s", "z") == result.dims  # Quantity has renamed dimensions
     # Renamed dimension contains original labels
     assert set(t) == set(result.coords["s"].data)
 
     # Can be called with keyword arguments
-    result = operator.rename_dims(x, **args)
+    result = func(x, **args)
     # As above
     assert ("s", "z") == result.dims and set(t) == set(result.coords["s"].data)
 
     with pytest.raises(ValueError, match="cannot specify both keyword and positional"):
-        operator.rename_dims(x, args, **args)
+        func(x, args, **args)
 
     # Can be added and used through Computer
 
@@ -771,10 +776,12 @@ def test_rename_dims(data):
 
     # Test multiple ways of adding this computation
     for args in [
-        ("test", operator.rename_dims, "x:t-y", args),
-        ("test", partial(operator.rename_dims, **args), "x:t-y"),
+        ("test", func, "x:t-y", args),
+        ("test", partial(func, **args), "x:t-y"),
         ("test", "rename_dims", "x:t-y", args),
         ("test", "rename_dims", "x:t-y", "dim name map"),
+        ("test", "rename", "x:t-y", args),
+        ("test", "rename", "x:t-y", "dim name map"),
         # Deprecated
         ("rename_dims", "test", "x:t-y", args),
         ("rename_dims", "test", "x:t-y", "dim name map"),
