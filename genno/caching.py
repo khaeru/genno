@@ -195,7 +195,10 @@ def decorate(
         skip = config.get("cache_skip", cache_skip)
 
         if not dir_:
-            dir_ = Path.cwd()
+            from platformdirs import user_cache_path
+
+            dir_ = user_cache_path("genno")
+            dir_.mkdir(parents=True, exist_ok=True)
             log.warning(f"'cache_path' configuration not set; using {dir_}")
 
         # Parts of the file name: function name, hash of arguments and code
