@@ -36,6 +36,7 @@ pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
 SUPPORTED_BINOPS = [
     operator.add,
     operator.mul,
+    operator.pow,
     operator.sub,
     operator.truediv,
 ]
@@ -378,10 +379,10 @@ class TestQuantity:
             (operator.truediv, "kg", "litre", "kg / litre"),  # Different units
         ),
     )
-    def test_operation_units(
+    def test_operation_units0(
         self, a: "AnyQuantity", op, left_units, right_units, exp_units
     ) -> None:
-        """Test units pass through the standard binary operations +, -, *, /."""
+        """Test units pass through the binary operations between Quantities."""
         left = genno.Quantity(a, units=left_units)
         right = genno.Quantity(a, units=right_units)
 
@@ -393,6 +394,53 @@ class TestQuantity:
 
         # Result has the expected units
         assert_units(result, exp_units)
+
+    @pytest.mark.parametrize(
+        "op, side, units_in, exp_units",
+        (
+            (operator.add, "L", "", ""),
+            (operator.add, "R", "", ""),
+            (operator.add, "L", "kg", False),
+            (operator.add, "R", "kg", False),
+            (operator.mul, "L", "", ""),
+            (operator.mul, "R", "", ""),
+            (operator.mul, "L", "kg", "kg"),
+            (operator.mul, "R", "kg", "kg"),
+            (operator.pow, "L", "", ""),
+            (operator.pow, "R", "", ""),
+            (operator.pow, "L", "kg", "kg ** 2"),
+            (operator.pow, "R", "kg", False),
+            (operator.sub, "L", "", ""),
+            (operator.sub, "R", "", ""),
+            (operator.sub, "L", "kg", False),
+            (operator.sub, "R", "kg", False),
+            (operator.truediv, "L", "", ""),
+            (operator.truediv, "R", "", ""),
+            (operator.truediv, "L", "kg", "kg"),
+            (operator.truediv, "R", "kg", "1 / kg"),
+        ),
+    )
+    def test_operation_units1(
+        self, a: "AnyQuantity", op, side, units_in, exp_units
+    ) -> None:
+        """Test units pass through the binary operations between Quantity and scalar."""
+        from contextlib import nullcontext
+
+        q = genno.Quantity(a, units=units_in)
+        other = 2.0
+
+        left, right = (q, other) if side == "L" else (other, q)
+
+        # Binary operation succeeds
+        with pytest.raises(Exception) if exp_units is False else nullcontext():
+            result = op(left, right)
+
+        if exp_units is not False:
+            # Result is of the expected type
+            assert isinstance(result, a.__class__), type(result)
+
+            # Result has the expected units
+            assert_units(result, exp_units)
 
     def test_pipe(self, ureg, tri) -> None:
         result = tri.pipe(genno.operator.assign_units, "km")
