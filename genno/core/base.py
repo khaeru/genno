@@ -22,8 +22,6 @@ import pandas as pd
 import pint
 
 if TYPE_CHECKING:
-    from typing import Self  # Python ≥3.11
-
     from genno.types import Unit
 
     from .quantity import AnyQuantity
@@ -125,6 +123,8 @@ def make_binary_op(op, *, swap: bool):
         # of `obj` carry to the result. Otherwise, use `result_units`.
         return obj._keep(
             obj._perform_binary_op(op, left, right, factor),
+            name=scalar_other,
+            attrs=scalar_other,
             units=obj.units if (scalar_other and rank(op) == 1) else result_units,
         )
 
@@ -189,19 +189,29 @@ class BaseQuantity(
 
     def _keep(
         self,
-        target: "Self",
-        attrs: Optional[Any] = None,
-        name: Optional[Any] = None,
-        units: Optional[Any] = None,
-    ) -> "Self":
-        """Preserve `name`, `units`, and/or other `attrs` from `self` to `target`."""
+        target: "AnyQuantity",
+        attrs: Optional[Any] = False,
+        name: Optional[Any] = False,
+        units: Optional[Any] = False,
+    ) -> "AnyQuantity":
+        """Preserve `name`, `units`, and/or other `attrs` from `self` to `target`.
+
+        The action for each argument is:
+
+        - :any:`False`: don't keep.
+        - :any:`True`: keep the existing value.
+        - Anything else: assign this value.
+        """
         if name is not False:
-            target.name = name or self.name
+            target.name = self.name if name is True else name
+        if attrs is True:
+            target.attrs.update(self.attrs)
+        elif attrs is not False:
+            assert isinstance(attrs, Mapping)
+            target.attrs.update(attrs)
         if units is not False:
             # Only units; not other attrs
-            target.units = units or self.units
-        elif attrs is not False:
-            target.attrs.update(attrs or self.attrs)
+            target.units = self.units if units is True else units
         return target
 
 

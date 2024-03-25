@@ -274,7 +274,7 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
                 .sel(indexers=indexers, method=method, tolerance=tolerance, drop=drop)
                 ._sda.convert()
             )
-        return self._keep(result)
+        return self._keep(result, name=True, attrs=True)
 
     def squeeze(self, dim=None, drop=False, axis=None):
         return self._sda.dense_super.squeeze(

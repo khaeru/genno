@@ -82,19 +82,6 @@ log = logging.getLogger(__name__)
 xr.set_options(keep_attrs=True)
 
 
-def _preserve(
-    items: str, target: "AnyQuantity", source: "AnyQuantity"
-) -> "AnyQuantity":
-    """Copy `items` from `source` to `target`."""
-    if "name" in items:
-        target.name = source.name
-    if "attrs" in items:
-        target.attrs.update(source.attrs)
-    if "units" in items:  # Only units; not other attrs
-        target.units = source.units
-    return target
-
-
 def add_binop(func, c: "genno.Computer", key, *quantities, **kwargs) -> Key:
     """:meth:`.Computer.add` helper for binary operations.
 
@@ -232,7 +219,7 @@ def aggregate(
             *values, **({} if isinstance(quantity, AttrSeries) else {"dim": dim})
         )
 
-    return _preserve("name attrs", result, quantity)
+    return quantity._keep(result, name=True, attrs=True)
 
 
 def _unit_args(qty, units):
@@ -274,9 +261,7 @@ def apply_units(qty: "AnyQuantity", units: UnitLike) -> "AnyQuantity":
         # No units, or dimensionless
         result = qty.copy()
 
-    result.units = new_units
-
-    return _preserve("name", result, qty)
+    return qty._keep(result, name=True, attrs=True, units=new_units)
 
 
 def as_quantity(info: Union[dict, float, str]) -> "AnyQuantity":
@@ -459,7 +444,7 @@ def concat(*objs: "AnyQuantity", **kwargs) -> "AnyQuantity":
     usually indicate that a quantity is referenced which is not in the Computer.
     """
     objs = tuple(filter_concat_args(objs))
-    to_preserve = "units" if len(set(collect_units(*objs))) == 1 else ""
+    to_keep = dict(units=True) if len(set(collect_units(*objs))) == 1 else {}
 
     if isinstance(objs[0], AttrSeries):
         try:
@@ -493,7 +478,7 @@ def concat(*objs: "AnyQuantity", **kwargs) -> "AnyQuantity":
 
         result = xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
 
-    return _preserve(to_preserve, result, objs[0])
+    return objs[0]._keep(result, name=True, **to_keep)
 
 
 def convert_units(qty: "AnyQuantity", units: UnitLike) -> "AnyQuantity":
@@ -520,10 +505,7 @@ def convert_units(qty: "AnyQuantity", units: UnitLike) -> "AnyQuantity":
             f"with dimensionality {new_units.dimensionality!r}"
         ) from None
 
-    result = qty * factor
-    result.units = new_units
-
-    return _preserve("name", result, qty)
+    return qty._keep(qty * factor, name=True, attrs=True, units=new_units)
 
 
 def disaggregate_shares(
@@ -1012,7 +994,7 @@ def sum(
         if w_total.shape == ():
             w_total = w_total.item()
 
-    return _preserve("name", (quantity * _w).sum(dim=dimensions) / w_total, quantity)
+    return quantity._keep((quantity * _w).sum(dim=dimensions) / w_total, name=True)
 
 
 @sum.helper

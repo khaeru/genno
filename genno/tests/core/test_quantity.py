@@ -318,6 +318,25 @@ class TestQuantity:
             == tri.loc["x0", "y2"].item()
         )
 
+    def test_keep(self, foo, tri) -> None:
+        assert {"_unit"} == set(foo.attrs) == set(tri.attrs)
+
+        # Assign attributes to foo
+        foo.attrs["bar"] = "baz"
+
+        # Use foo._keep to preserve attributes on `tri`
+        result = foo._keep(tri, attrs=True)
+        assert result is tri
+
+        # Attributes from `foo` pass through
+        assert_units(result, "kg")
+        assert "baz" == result.attrs["bar"]
+
+        # Now assign new attrs via _keep()
+        result = foo._keep(tri, attrs={"bar": "qux"}, units=True)
+        assert_units(result, "kg")
+        assert "qux" == result.attrs["bar"]
+
     @pytest.mark.parametrize(
         "left, right", (["float", "qty"], ["qty", "float"], ["qty", "qty"])
     )
