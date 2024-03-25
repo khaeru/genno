@@ -47,6 +47,9 @@ def as_pyam(
     replace=dict(),
     drop: Union[Collection[str], str] = "auto",
     unit=None,
+    prepend_name: bool = True,
+    scenario_name: Optional[str] = None,
+    model_name: Optional[str] = None,
 ):
     """Return a :class:`pyam.IamDataFrame` containing the data from `quantity`.
 
@@ -98,6 +101,17 @@ def as_pyam(
     """
     import pyam
 
+    # Values to assign on all rows
+    assign = dict(unit=quantity.units)
+    if prepend_name:
+        assign.update(variable=quantity.name)
+    try:
+        assign.update(model=scenario.model, scenario=scenario.scenario)
+    except AttributeError:
+        if scenario and scenario_name:
+            raise TypeError(f"Both {scenario=!r} and {scenario_name=!r} given")
+        assign.update(model=model_name or "", scenario=scenario or scenario_name or "")
+
     # - Convert to pd.DataFrame
     # - Rename one dimension to 'year' or 'time'
     # - Fill variable, unit, model, and scenario columns
@@ -109,13 +123,7 @@ def as_pyam(
         quantity.to_series()
         .rename("value")
         .reset_index()
-        .assign(
-            variable=quantity.name,
-            unit=quantity.units,
-            # TODO accept these from separate strings
-            model=scenario.model,
-            scenario=scenario.scenario,
-        )
+        .assign(**assign)
         .rename(columns=rename or dict())
         .pipe(collapse or util.collapse)
         .replace(replace, regex=True)

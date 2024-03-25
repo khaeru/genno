@@ -85,9 +85,35 @@ def test_as_pyam(dantzig_computer, scenario):
     qty = c.get(c.full_key("ACT"))
 
     # Call as_pyam() with an empty quantity
-    p = operator.as_pyam(scenario, qty[0:0], rename=dict(nl="region", ya="year"))
-    assert isinstance(p, pyam.IamDataFrame)
+    kw = dict(rename=dict(nl="region", ya="year"))
+    idf = operator.as_pyam(scenario, qty[0:0], **kw)
+    assert isinstance(idf, pyam.IamDataFrame)
 
+    # Call as_pyam() with model_name and/or scenario_name kwargs
+    def add_tm(df):
+        """Callback for collapsing ACT columns."""
+        df["variable"] = df["variable"] + "|" + df["t"] + "|" + df["m"]
+        return df.drop(["t", "m"], axis=1)
+
+    kw.update(collapse=add_tm, model_name="m")
+    idf = operator.as_pyam("s", qty, **kw)
+    cols = ["model", "scenario"]
+    assert_frame_equal(
+        pd.DataFrame([["m", "s"]], columns=cols),
+        idf.as_pandas()[cols].drop_duplicates(),
+    )
+
+    kw.update(scenario_name="s2")
+    idf = operator.as_pyam(None, qty, **kw)
+    assert_frame_equal(
+        pd.DataFrame([["m", "s2"]], columns=cols),
+        idf.as_pandas()[cols].drop_duplicates(),
+    )
+
+    with pytest.raises(TypeError, match="Both scenario='s' and scenario_name='s2'"):
+        idf = operator.as_pyam("s", qty, **kw)
+
+    # Duplicate indices
     input = Quantity(
         pd.DataFrame(
             [["f1", "b1", 2021, 42], ["f1", "b1", 2021, 42]],
