@@ -148,23 +148,24 @@ This means:
 - Every edge has a direction; *from* one node *to* another.
 - There are no recursive loops in the graph; i.e. no node is its own ancestor.
 
-In the reporting graph, every node represents a **computation**; usually a :class:`tuple` called a **task** wherein the first element is a :func:`callable` like a function.
+In the graph, every node represents a **computation**; usually a :class:`tuple` called a **task** wherein the first element is a :func:`callable` like a function.
 This callable can be:
 
-- a numerical *calculation* operating on one or more Quantities;
-- more generally, an *operator*, including other actions like transforming data formats, reading and writing files, writing plots, etc.
+- a numerical *calculation* operating on one or more Quantity objects;
+- more generally, an **operator** that can perform any other action, for instance transforming data formats, reading and writing files, or writing plots.
 
-Other elements in the task tuple are passed, in the same order, as positional arguments to the callable.
+Every node has a unique **key** that labels the results of its computation.
+In :mod:`genno`, these labels can be :class:`.Key` object (if the task produces a Quantity), :py:class:`str` (most other cases) or generally any other hashable object.
+
+The computation at any node may depend on certain inputs.
+In the graph, these can be literal values, or keys that refer to the outputs produced by other nodes.
+These associations—output from one node, input to another—are the **edges** of the graph.
+
+When :meth:`.Computer.get` is called, the values for each input in a task tuple are first computed and then passed, in the same order, as positional arguments to the callable.
 
 .. note::
    :mod:`genno` relies on the :mod:`.dask` implementation of task graphs.
    For a complete description of tasks, see the :doc:`dask:spec` in the dask documentation.
-
-Every node has a unique *label*, describing the results of its task.
-These labels can be :class:`.Key` (if the task produces a Quantity), :py:class:`str` (most other cases) or generally any other hashable object.
-
-A node's computation may depend on certain inputs.
-These are represented by the **edges** of the graph.
 
 .. _describe-tasks:
 

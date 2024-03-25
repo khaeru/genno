@@ -23,7 +23,7 @@ from genno.core.operator import Operator
 from . import util
 
 if TYPE_CHECKING:
-    import pandas as pd
+    import pandas
 
     from genno.core.computer import Computer
     from genno.core.quantity import AnyQuantity
@@ -48,8 +48,8 @@ def as_pyam(
     drop: Union[Collection[str], str] = "auto",
     unit=None,
     prepend_name: bool = True,
-    scenario_name: Optional[str] = None,
     model_name: Optional[str] = None,
+    scenario_name: Optional[str] = None,
 ):
     """Return a :class:`pyam.IamDataFrame` containing the data from `quantity`.
 
@@ -61,7 +61,8 @@ def as_pyam(
     1. `quantity` is converted to a temporary :class:`pandas.DataFrame`.
     2. Labels for the following IAMC dimensions are filled:
 
-       - ``model``, ``scenario``: from attributes of the `scenario` argument.
+       - ``model``, ``scenario``: from attributes of the `scenario`, `model_name`,
+         and/or `scenario_name` argument(s).
        - ``variable``: from the :attr:`~.Quantity.name` of `quantity`, if any.
        - ``unit``: from the :attr:`~.Quantity.units` of `quantity`, if any.
 
@@ -74,7 +75,10 @@ def as_pyam(
     scenario :
         Any object with :py:`model` and :py:`scenario` attributes of type :class:`str`,
         for instance an :class:`ixmp.Scenario` or
-        :class:`~message_ix_models.util.scenarioinfo.ScenarioInfo`.
+        :class:`~message_ix_models.util.scenarioinfo.ScenarioInfo`; **or** a
+        :class:`str`, which is equivalent to `scenario_name`.
+    quantity : .Quantity
+        Quantity to convert to IAMC data structure.
     rename : dict, optional
         Mapping from dimension names in `quantity` (:class:`str`) to column names
         (:class:`str`); either IAMC dimension names, or others that are consumed by
@@ -92,12 +96,21 @@ def as_pyam(
     unit : str, optional
         Label for the IAMC ``unit`` dimension. Passed to
         :func:`~.pyam.util.clean_units`.
+    prepend_name : bool, optional
+        If :any:`True`, the :attr:`.Quantity.name` of `quantity` is prepended to the
+        IAMC ``variable`` dimension.
+    model_name : str, optional
+        Value for the IAMC ``model`` dimension.
+    scenario_name : str, optional
+        Value for the IAMC ``scenario`` dimension.
 
     Raises
     ------
     ValueError
         If the resulting data frame has duplicate keys in the IAMC dimensions.
         :class:`pyam.IamDataFrame` cannot handle such data.
+    TypeError
+        If both `scenario` and `scenario_name` are non-empty :class:`str`.
     """
     import pyam
 
@@ -220,7 +233,7 @@ def _(*args: pyam.IamDataFrame, **kwargs) -> "pyam.IamDataFrame":
 
 
 def quantity_from_iamc(
-    qty: Union["AnyQuantity", "pyam.IamDataFrame", "pd.DataFrame"],
+    qty: Union["AnyQuantity", "pyam.IamDataFrame", "pandas.DataFrame"],
     variable: str,
     *,
     fail: Union[int, str] = "warning",
@@ -230,12 +243,13 @@ def quantity_from_iamc(
     Parameters
     ----------
     qty :
-        Must have at least dimensions ‘v’ (or ‘variable’, any case) and ‘u’ (or ‘unit’,
-        any case).
+        Must have at least 2 dimensions named ‘v’ (or ‘variable’, any case) and ‘u’
+        (or ‘unit’, any case).
     variable : str
         Regular expression to match full labels on the ``v`` dimension of `qty`. If the
-        expression contains match groups, they are used to rewrite ``v`` labels. This
-        may be used to discard a portion of the label.
+        expression contains match groups, they are used to rewrite ``v`` labels: only
+        the contents of the first match group are kept. This may be used to discard a
+        portion of the label.
 
     Returns
     -------
@@ -243,6 +257,10 @@ def quantity_from_iamc(
         The ‘variable’ dimension contains reduced labels.
         The :attr:`.Quantity.units` attribute contains the unique units for the subset
         of data.
+
+    See also
+    --------
+    unique_units_from_dim
     """
     import pandas as pd
 

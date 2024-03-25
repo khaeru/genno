@@ -1,7 +1,7 @@
 Plotnine (:mod:`.compat.plotnine`)
 **********************************
 
-:doc:`Package documentation <plotnine:index>`
+`Package documentation <https://plotnine.org>`_
 
 .. currentmodule:: genno.compat.plotnine
 

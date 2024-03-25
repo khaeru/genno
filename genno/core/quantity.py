@@ -38,8 +38,8 @@ def set_class(
 ) -> Type[Union[AttrSeries, SparseDataArray]]:
     """Set the :class:`.Quantity` implementation to be used.
 
-    This also updates :py:`genno.Quantity` and :mod:`genno.quantity.Quantity` to refer
-    to the selected class. It does **not** update previously-imported references to one
+    This also updates :py:`genno.Quantity` and :py:`genno.quantity.Quantity` to refer to
+    the selected class. It does **not** update previously-imported references to one
     class or the other; code that uses :func:`.set_class` should refer to one of those
     two locations:
 
@@ -71,6 +71,10 @@ def set_class(
 
     In code that does not use :func:`.set_class`, :py:`from genno import Quantity` is
     safe.
+
+    See also
+    --------
+    .AnyQuantity
     """
     global CLASS
 

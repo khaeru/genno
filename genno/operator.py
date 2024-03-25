@@ -65,6 +65,7 @@ __all__ = [
     "product",
     "ratio",
     "relabel",
+    "rename",
     "rename_dims",
     "round",
     "select",
@@ -276,8 +277,10 @@ def as_quantity(info: Union[dict, float, str]) -> "AnyQuantity":
 
     >>> as_quantity("3.0 kg")
 
-    :class:`dict`: A ‘_dim’ key is removed and treated as :attr:`Quantity.dims`. A
-    ‘_unit’ key is removed and treated as :attr:`Quantity.units`.
+    :class:`dict`:
+
+    - A ‘_dim’ key is removed and treated as :attr:`Quantity.dims`.
+    - A ‘_unit’ key is removed and treated as :attr:`Quantity.units`.
 
     >>> value = {
     ...     ("x0", "y0"): 1.0,
@@ -1020,7 +1023,17 @@ def add_sum(
 def unique_units_from_dim(
     qty: "AnyQuantity", dim: str, *, fail: Union[str, int] = "raise"
 ) -> "AnyQuantity":
-    """Assign :attr:`.Quantity.units` using labels from dimension `dim`."""
+    """Assign :attr:`.Quantity.units` using coords from the dimension `dim`.
+
+    The dimension `dim` is dropped from the result.
+
+    Raises
+    ------
+    ValueError
+        if (a) `fail` is "raise" (the default) and (b) the dimension `dim` contains more
+        than one unique value. If `fail` is anything else, a message is logged with
+        level `fail`, and the returned Quantity is dimensionless.
+    """
     if not qty.size:
         return qty
 
@@ -1048,7 +1061,7 @@ def unique_units_from_dim(
 def where(
     qty: "AnyQuantity", cond: Any, other: Any = dtypes.NA, drop: bool = False
 ) -> "AnyQuantity":
-    """Like :meth:`.pandas.Series.where`."""
+    """Call :meth:`.Quantity.where`."""
     return qty.where(cond, other, drop)
 
 

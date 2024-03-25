@@ -4,13 +4,66 @@ What's new
 Next release
 ============
 
-- The :class:`.Quantity` constructor can now use :class:`xarray.DataArray`-style arguments (:py:`data` and :py:`coords`) directly, without needing to first instantiate a DataArray (:pull:`135`).
+Migration notes
+---------------
+
+1. The :class:`.Quantity` class implementation is simplified in this release.
+   The changes should not be noticeable and should require no action for users who do not:
+
+   a. change the default Quantity implementation (:class:`.AttrSeries`)
+   b. use both Quantity implementations within the same code including test suites, for instance via the :func:`parametrize_quantity_class` test fixture, or
+   c. use :class:`.Quantity` for type annotation.
+
+   Users who *do* either (a) or (b): see :func:`.set_class` for hints on how to :py:`import Quantity` safely so that the correct class is instantiated.
+
+   Users who do (c) should generally change :class:`.Quantity` to :class:`.AnyQuantity` in type hints:
+
+   .. code-block:: python
+
+      from typing import TYPE_CHECKING
+
+      if TYPE_CHECKING:
+          from genno.types import AnyQuantity
+
+      def my_operator(qty: "AnyQuantity", arg: int) -> "AnyQuantity":
+          ...
+
+2. The global variable :data:`genno.config.STORE` is deprecated.
+   Instead of:
+
+   .. code-block:: python
+
+      import genno.config
+
+      genno.config.STORE.add("my_config_key")
+
+   …register the built-in :func:`.store` handler for the target configuration key/section:
+
+   .. code-block:: python
+
+      from genno.config import handles, store
+
+      handles("my_config_key", False, False)(store)
+
+All changes
+-----------
+
+- Improvements to :class:`.Quantity` (:pull:`135`).
+
+  - The constructor can use :class:`xarray.DataArray`-style arguments (:py:`data=...` and :py:`coords=...`) directly, without a need to first instantiate a DataArray.
+  - The binary operations :py:`+ - * / **` are supported on Quantity objects directly, with Quantity as the left and/or right operand.
+    Units, name, and other attributes are preserved.
+- New top-level functions :func:`.set_class` to choose the Quantity implementation (:class:`.AttrSeries` or :class:`.SparseDataArray`); :func:`.get_class` to query the current settings, and :func:`.assert_quantity` (:pull:`135`)
 - New operators: :func:`.as_quantity`, :func:`.clip`, :func:`.unique_units_from_dim`, :func:`.where` (:pull:`135`).
   New corresponding methods :meth:`.Quantity.clip` and :meth:`.Quantity.where`.
 - New operator in :doc:`compat-pyam`: :func:`.quantity_from_iamc` (:pull:`135`).
-- :mod:`.caching` now uses the :doc:`pandas:parquet` file format instead of Python's :mod:`pickle` for :class:`.Quantity` and :class:`pandas.DataFrame` (:pull:`135`).
+  :func:`.as_pyam` can accept "model" and "scenario" names from separate keyword arguments.
+- :mod:`.caching` now uses the :ref:`Apache Parquet <pandas:apache.parquet>` file format instead of Python's :mod:`pickle` for :class:`.Quantity` and :class:`pandas.DataFrame` (:issue:`128`, :pull:`135`).
   This reduces file size and increases input/output speed.
-- :class:`.SparseDataArray` can be instantiated with :class:`int` dtype; values are automatically cast to :class:`float` and a warning is logged (:pull:`135`).
+- If no other location is configured, cached files are stored and read in the :func:`.platformdirs.user_cache_path`,  (:pull:`135`).
+- :class:`.SparseDataArray` can be instantiated with :class:`int` data (:pull:`135`).
+  Because :mod:`sparse`` does not support nullable integer dtypes, values are automatically cast to :class:`float` and a warning is logged.
+- Configuration handling is simplified using a :class:`.ConfigHandler` class (:pull:`135`).
 
 v1.24.1 (2024-03-14)
 ====================

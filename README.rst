@@ -3,9 +3,9 @@ genno: efficient, transparent calculation on N-D data
 |pypi| |rtd| |gha| |codecov|
 
 **genno** is a Python package for describing and executing complex calculations on labelled, multi-dimensional data.
-It aims to make these calculations efficient, transparent, and easily validated as part of scientific research.
+It aims to make these calculations efficient, transparent, modular, and easily validated as part of scientific research.
 
-genno is built on high-quality Python data packages including ``dask``, ``xarray``, and ``pint``; and provides (current or planned) compatibility with packages including ``pandas``, ``matplotlib``, ``plotnine``, ``ixmp``, ``sdmx1``, and ``pyam``.
+genno is built on high-quality Python data packages including ``dask``, ``xarray``, ``pandas``, and ``pint``; and provides (current or planned) compatibility with packages including  ``plotnine``, ``matplotlib``,  ``sdmx1``, ``ixmp``, and ``pyam``.
 
 A 玄能 (*genno* or *gennoh*) is a type of hammer used in Japanese woodworking.
 The package name is warning, by reference, to the adage “When you hold a hammer, every problem looks like a nail”: you shouldn't hit everything with ``genno``, but it is still a useful and versatile tool.

@@ -64,7 +64,7 @@ def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
         The quantity may have the attributes:
 
         - "dataflow_urn": :attr:`urn <sdmx.model.common.IdentifiableArtefact.urn>` of
-          the :class:`Dataflow <sdmx.model.common.BaseDataflow` referenced by the
+          the :class:`Dataflow <sdmx.model.common.BaseDataflow>` referenced by the
           :attr:`described_by <sdmx.model.common.BaseDataSet.described_by>` attribute of
           `ds`, if any.
         - "structure_urn": :attr:`urn <sdmx.model.common.IdentifiableArtefact.urn>` of

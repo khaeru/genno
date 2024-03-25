@@ -2,9 +2,9 @@
 *********************************************************
 
 **genno** is a Python package for describing and executing complex calculations on labelled, multi-dimensional data.
-It aims to make these calculations efficient, transparent, and easily validated as part of scientific research.
+It aims to make these calculations efficient, transparent, modular, and easily validated as part of scientific research.
 
-genno is built on high-quality Python data packages including :py:`dask`, :mod:`xarray`, and ```pint``; and provides (current or planned) compatibility with packages including :mod:`pandas`, :mod:`matplotlib`, :mod:`plotnine <.compat.plotnine>`, :mod:`ixmp`, :mod:`sdmx1 <.compat.sdmx>`, and :mod:`pyam <.compat.pyam>`.
+genno is built on high-quality Python data packages including :py:`dask`, :mod:`xarray`, :mod:`pandas`, and :py:`pint`; and provides (current or planned) compatibility with packages including :mod:`plotnine <.compat.plotnine>`, :mod:`sdmx1 <.compat.sdmx>`, :mod:`matplotlib`, :mod:`ixmp`, and :mod:`pyam <.compat.pyam>`.
 
 .. toctree::
    :maxdepth: 2
@@ -13,7 +13,16 @@ genno is built on high-quality Python data packages including :py:`dask`, :mod:`
    usage
    config
    cache
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API reference
+
    api
+   api-operator
+   api-quantity
+   api-util
+   api-testing
 
 .. _compat:
 
@@ -39,9 +48,10 @@ Packages that extend :mod:`genno` include:
 
 - :mod:`ixmp.report`
 - :mod:`message_ix.report`
+- :mod:`message_ix_models.report`
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Development
 
    whatsnew

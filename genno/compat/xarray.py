@@ -41,12 +41,13 @@ __all__ = [
 
 
 class DataArrayLike(Protocol):
-    """Class with :class:`.xarray.DataArray` -like API.
+    """Protocol for a :class:`.xarray.DataArray` -like API.
 
-    This class is used to set signatures and types for methods and attributes on the
-    generic :class:`.Quantity` class. :class:`.SparseDataArray` inherits from both this
-    class and :class:`~xarray.DataArray`, and thus DataArray supplies implementations of
-    these methods. In :class:`.AttrSeries`, the methods are implemented directly.
+    This class is used to set signatures and types for methods and attributes on
+    :class:`.AttrSeries` class, which then supplies implementations of each method.
+    Objects typed :class:`.AnyQuantity` see either the signatures of this protocol, or
+    identical signatures for the same methods on :class:`~xarray.DataArray` via
+    :class:`.SparseDataArray`.
     """
 
     # Type hints for mypy in downstream applications
