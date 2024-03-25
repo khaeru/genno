@@ -229,6 +229,21 @@ def collect_attrs(
     return new_attrs
 
 
+def rank(op) -> int:
+    """Rank of the binary operation `op`.
+
+    See `‘Hyperoperation’ on Wikipedia <https://en.wikipedia.org/wiki/Hyperoperation>`_
+    for the sense of this meaning of ‘rank’.
+    """
+    return {
+        operator.add: 1,
+        operator.sub: 1,
+        operator.mul: 2,
+        operator.truediv: 2,
+        operator.pow: 3,
+    }[op]
+
+
 def single_column_df(data, name: Hashable) -> Tuple[Any, Hashable]:
     """Handle `data` and `name` arguments to Quantity constructors."""
     if isinstance(data, pd.DataFrame):
