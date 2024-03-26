@@ -67,6 +67,7 @@ def setup(app):
 html_theme = "sphinx_book_theme"
 
 html_theme_options = dict(
+    navigation_with_keys=False,  # Silence a warning
     path_to_docs="doc",
     repository_url="https://github.com/khaeru/genno",
     show_navbar_depth=2,
