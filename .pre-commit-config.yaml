@@ -11,6 +11,7 @@ repos:
     - pytest
     - sdmx1
     - Sphinx
+    - types-docutils
     - types-PyYAML
     - types-pytz
     - types-python-dateutil
