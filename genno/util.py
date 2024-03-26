@@ -1,16 +1,28 @@
 import logging
 from functools import partial
 from inspect import Parameter, signature
-from typing import Callable, Dict, Iterable, Mapping, MutableMapping, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Dict,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 import numpy as np
 import pandas as pd
-import pint
 from dask.core import literal
 
-from .compat.pint import PintError
 from .compat.xarray import is_scalar
 from .core.key import Key
+
+if TYPE_CHECKING:
+    import pint
 
 log = logging.getLogger(__name__)
 
@@ -29,7 +41,7 @@ REPLACE_UNITS = {
 }
 
 # For use in type hints
-UnitLike = Union[str, pint.Unit, pint.Quantity]
+UnitLike = Union[str, "pint.Unit", "pint.Quantity"]
 
 
 def clean_units(input_string):
@@ -46,6 +58,8 @@ def clean_units(input_string):
 
 def collect_units(*args):
     """Return the "_unit" attributes of the `args`."""
+    import pint
+
     registry = pint.get_application_registry()
 
     result = []
@@ -95,7 +109,7 @@ def _invalid(unit: str, exc: Exception) -> Exception:
     return return_cls(msg)
 
 
-def parse_units(data: Iterable, registry=None) -> pint.Unit:
+def parse_units(data: Iterable, registry=None) -> "pint.Unit":
     """Return a :class:`pint.Unit` for an iterable of strings.
 
     Valid unit expressions not already present in the `registry` are defined, e.g.:
@@ -118,6 +132,10 @@ def parse_units(data: Iterable, registry=None) -> pint.Unit:
         if `data` contains more than 1 unit expression, or the unit expression contains
         characters not parseable by :mod:`pint`, e.g. ``-?$``.
     """
+    import pint
+
+    from .compat.pint import PintError
+
     registry = registry or pint.get_application_registry()
 
     # Ensure a type that is accepted by pd.unique()
@@ -229,6 +247,30 @@ def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMap
         return partial(func, **func_args), extra
     else:
         return func, extra  # Nothing to partial; return `func` as-is
+
+
+def units_with_multiplier(value: Optional[UnitLike]) -> Tuple["pint.Unit", float]:
+    """Separate units and multiplier from :any:`.UnitLike`.
+
+    Returns
+    -------
+    tuple
+        1. :class:`pint.Unit`.
+        2. :class:`float`; any multiplier on the units.
+    """
+    import pint
+
+    registry = pint.get_application_registry()
+
+    units = value or "1.0 dimensionless"
+    if isinstance(units, str):
+        uq = registry(units)
+    elif isinstance(units, pint.Unit):
+        uq = registry.Quantity(1.0, units)
+    else:
+        uq = units
+
+    return uq.units, uq.magnitude
 
 
 def unquote(value):

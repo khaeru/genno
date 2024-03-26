@@ -153,6 +153,7 @@ def test_write_report(tmp_path, dsd, dm, observation_dimension, version) -> None
 
     header = dm.header
 
+    # Quantity can be converted to DataMessage
     obj = operator.quantity_to_message(
         qty,
         structure=dsd,
@@ -163,6 +164,9 @@ def test_write_report(tmp_path, dsd, dm, observation_dimension, version) -> None
 
     path = tmp_path.joinpath("foo.xml")
 
+    # File can be written
     genno.operator.write_report(obj, path)
 
-    print(f"{path.read_text() = }")
+    # File contains the SDMX namespaces
+    # NB Could do more extensive tests of the file contents here
+    assert "http://www.sdmx.org/resources/sdmxml/schemas/v2_1" in path.read_text()

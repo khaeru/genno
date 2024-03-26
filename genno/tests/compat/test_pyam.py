@@ -2,6 +2,7 @@ import logging
 import re
 from collections import namedtuple
 from functools import partial
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import pytest
@@ -10,6 +11,10 @@ from pandas.testing import assert_frame_equal, assert_series_equal
 from genno import Computer, Key, Quantity
 from genno.compat.pyam import operator, util
 from genno.operator import add, load_file
+from genno.testing import assert_logs, assert_units
+
+if TYPE_CHECKING:
+    import pathlib
 
 # Skip this entire file if pyam is not installed
 pyam = pytest.importorskip("pyam", reason="pyam-iamc not installed")
@@ -80,9 +85,35 @@ def test_as_pyam(dantzig_computer, scenario):
     qty = c.get(c.full_key("ACT"))
 
     # Call as_pyam() with an empty quantity
-    p = operator.as_pyam(scenario, qty[0:0], rename=dict(nl="region", ya="year"))
-    assert isinstance(p, pyam.IamDataFrame)
+    kw = dict(rename=dict(nl="region", ya="year"))
+    idf = operator.as_pyam(scenario, qty[0:0], **kw)
+    assert isinstance(idf, pyam.IamDataFrame)
 
+    # Call as_pyam() with model_name and/or scenario_name kwargs
+    def add_tm(df):
+        """Callback for collapsing ACT columns."""
+        df["variable"] = df["variable"] + "|" + df["t"] + "|" + df["m"]
+        return df.drop(["t", "m"], axis=1)
+
+    kw.update(collapse=add_tm, model_name="m")
+    idf = operator.as_pyam("s", qty, **kw)
+    cols = ["model", "scenario"]
+    assert_frame_equal(
+        pd.DataFrame([["m", "s"]], columns=cols),
+        idf.as_pandas()[cols].drop_duplicates(),
+    )
+
+    kw.update(scenario_name="s2")
+    idf = operator.as_pyam(None, qty, **kw)
+    assert_frame_equal(
+        pd.DataFrame([["m", "s2"]], columns=cols),
+        idf.as_pandas()[cols].drop_duplicates(),
+    )
+
+    with pytest.raises(TypeError, match="Both scenario='s' and scenario_name='s2'"):
+        idf = operator.as_pyam("s", qty, **kw)
+
+    # Duplicate indices
     input = Quantity(
         pd.DataFrame(
             [["f1", "b1", 2021, 42], ["f1", "b1", 2021, 42]],
@@ -252,7 +283,8 @@ def test_concat(dantzig_computer):
     c = dantzig_computer
 
     # Uses pyam.concat() for suitable types
-    input = pd.DataFrame([["foo"] * len(pyam.IAMC_IDX)], columns=pyam.IAMC_IDX).assign(
+    cols = util.IAMC_DIMS - {"time"}
+    input = pd.DataFrame([["foo"] * len(cols)], columns=cols).assign(
         year=2021, value=42.0, unit="kg"
     )
 
@@ -314,3 +346,67 @@ def test_collapse():
 def test_drop():
     with pytest.raises(ValueError, match="foo"):
         util.drop(pd.DataFrame, "foo")
+
+
+def test_quantity_from_iamc(caplog, test_data_path: "pathlib.Path") -> None:
+    # NB this does not pass with parametrize_quantity_class / SparseDataArray, since
+    #    unused values on the `units` dimension are not dropped automatically.
+    from genno.compat.pyam.operator import quantity_from_iamc
+    from genno.compat.pyam.util import IAMC_DIMS
+
+    # Read test data file
+    dims = [d.title() for d in IAMC_DIMS - {"year", "time"}]
+    df_in = pd.read_csv(test_data_path.joinpath("iamc-0.csv")).melt(
+        id_vars=dims, var_name="Year"
+    )
+    # Convert to Quantity
+    q_in = Quantity(df_in.set_index(dims + ["Year"]))
+    # Convert to pyam.IamDataFrame
+    idf_in = pyam.IamDataFrame(df_in)
+
+    # Function runs with Quantity input
+    expr = r"Activity\|(canning_plant\|.*)"
+    r1 = quantity_from_iamc(q_in, expr)
+
+    # Result contains modified variable names
+    assert {"canning_plant|production"} == set(r1.coords["Variable"].data)
+    # Result has the expected units…
+    assert_units(r1, "tonne")
+    # …but no 'Units' dimension
+    assert {"Model", "Scenario", "Variable", "Region", "Year"} == set(r1.dims)
+
+    # Function runs with pd.DataFrame input
+    r2 = quantity_from_iamc(df_in, expr)
+    assert {"canning_plant|production"} == set(r2.coords["variable"].data)
+    assert_units(r2, "tonne")
+    assert {"model", "scenario", "variable", "region", "year"} == set(r2.dims)
+
+    # Function runs with pd.DataFrame input
+    r3 = quantity_from_iamc(idf_in, expr)
+    assert {"canning_plant|production"} == set(r3.coords["variable"].data)
+    assert_units(r3, "tonne")
+    assert {"model", "scenario", "variable", "region", "year"} == set(r3.dims)
+
+    # Expression without match group doesn't modify variables
+    r4 = quantity_from_iamc(q_in, r"Activity\|canning_plant\|.*")
+    assert "Activity|canning_plant|production" in r4.coords["Variable"]
+
+    # Logs warning/empty result with bad expression (missing trailing .*)
+    with assert_logs(caplog, "0 of 7 labels"):
+        r5 = quantity_from_iamc(q_in, r"Activity\|canning_plant\|")
+    assert 0 == len(r5)
+    caplog.clear()
+
+    # Expression giving mixed units drops units
+    r6 = quantity_from_iamc(q_in, r"Activity\|(.*)")
+    assert_units(r6, "dimensionless")
+    assert re.match("Non-unique units.*discard", caplog.messages[0])
+    caplog.clear()
+
+    # Missing Variable or Unit dimension raises
+    for dim, value in (
+        ("Variable", "Activity|canning_plant|production"),
+        ("Unit", "case"),
+    ):
+        with pytest.raises(ValueError, match="cannot identify 1 unique dimension"):
+            quantity_from_iamc(q_in.sel({dim: value}, drop=True), expr)

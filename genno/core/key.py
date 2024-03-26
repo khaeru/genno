@@ -4,6 +4,7 @@ from functools import partial, singledispatch
 from itertools import chain, compress
 from types import MappingProxyType
 from typing import (
+    TYPE_CHECKING,
     Callable,
     Dict,
     Generator,
@@ -18,7 +19,12 @@ from typing import (
 )
 from warnings import warn
 
-from genno.core.quantity import Quantity
+from .attrseries import AttrSeries
+from .sparsedataarray import SparseDataArray
+
+if TYPE_CHECKING:
+    from .quantity import AnyQuantity
+
 
 log = logging.getLogger(__name__)
 
@@ -52,8 +58,9 @@ def _(value: str):
     )
 
 
-@_name_dims_tag.register
-def _(value: Quantity):
+@_name_dims_tag.register(AttrSeries)
+@_name_dims_tag.register(SparseDataArray)
+def _(value: "AnyQuantity"):  # register() only handles bare AnyQuantity in Python ≥3.11
     """Return (name, dims, tag) that describe an existing Quantity."""
     return str(value.name), tuple(map(str, value.dims)), None
 
@@ -67,7 +74,7 @@ class Key:
 
     def __init__(
         self,
-        name_or_value: Union[str, "Key", Quantity],
+        name_or_value: Union[str, "Key", "AnyQuantity"],
         dims: Iterable[str] = [],
         tag: Optional[str] = None,
         _fast: bool = False,
@@ -119,7 +126,7 @@ class Key:
     @classmethod
     def from_str_or_key(
         cls,
-        value: Union[str, "Key", Quantity],
+        value: Union[str, "Key", "AnyQuantity"],
         drop: Union[Iterable[str], bool] = [],
         append: Iterable[str] = [],
         tag: Optional[str] = None,
@@ -246,7 +253,7 @@ class Key:
         try:
             other = Key(other)
         except TypeError:
-            return False
+            return NotImplemented
 
         return (
             (self.name == other.name)

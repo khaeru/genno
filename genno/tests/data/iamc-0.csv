@@ -1,0 +1,17 @@
+Model,Scenario,Region,Variable,Unit,1963
+Canning problem,Scenario A,san-diego,Activity|canning_plant|production,tonne,600.0
+Canning problem,Scenario A,san-diego,Activity|transport_from_san-diego|to_chicago,case,0.0
+Canning problem,Scenario A,san-diego,Activity|transport_from_san-diego|to_new-york,case,275.0
+Canning problem,Scenario A,san-diego,Activity|transport_from_san-diego|to_topeka,case,275.0
+Canning problem,Scenario A,seattle,Activity|canning_plant|production,tonne,350.0
+Canning problem,Scenario A,seattle,Activity|transport_from_seattle|to_chicago,case,300.0
+Canning problem,Scenario A,seattle,Activity|transport_from_seattle|to_new-york,case,50.0
+Canning problem,Scenario A,seattle,Activity|transport_from_seattle|to_topeka,case,0.0
+Canning problem,Scenario B,san-diego,Activity|canning_plant|production,tonne,600.0
+Canning problem,Scenario B,san-diego,Activity|transport_from_san-diego|to_chicago,case,0.0
+Canning problem,Scenario B,san-diego,Activity|transport_from_san-diego|to_new-york,case,275.0
+Canning problem,Scenario B,san-diego,Activity|transport_from_san-diego|to_topeka,case,275.0
+Canning problem,Scenario B,seattle,Activity|canning_plant|production,tonne,350.0
+Canning problem,Scenario B,seattle,Activity|transport_from_seattle|to_chicago,case,300.0
+Canning problem,Scenario B,seattle,Activity|transport_from_seattle|to_new-york,case,50.0
+Canning problem,Scenario B,seattle,Activity|transport_from_seattle|to_topeka,case,0.0

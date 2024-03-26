@@ -28,7 +28,8 @@ requires-python = ">=3.8"
 dependencies = [
   "dask [array] >= 2.14",
   "importlib_resources; python_version < '3.10'",
-  "pandas >= 1.0",
+  "pandas[parquet] >= 1.0",
+  "platformdirs",
   "pint",
   "PyYAML",
   # 2022.6.0 is affected by pydata/xarray#6822
@@ -89,8 +90,8 @@ ignore_missing_imports = true
 addopts = "--cov=genno --cov-report="
 filterwarnings = [
   "ignore:elementwise comparison failed.*:FutureWarning:genno.operator",
-  # Mirror a filter set in .core.sparsedataarray
-  "ignore:coords should be an ndarray:DeprecationWarning:sparse._coo.core",
+  # Mirror (a) filter(s) set in .core.sparsedataarray
+  "ignore:Conversion of an array with ndim > 0 to a scalar:DeprecationWarning:sparse._coo.core",
   # Upstream changes that won't affect genno
   "ignore:configure_currency.*will no longer be the default:DeprecationWarning:iam_units",
   "ignore:Jupyter is migrating its paths.*:DeprecationWarning:jupyter_client.connect",
@@ -105,10 +106,7 @@ filterwarnings = [
 select = ["C9", "E", "F", "I", "W"]
 ignore = ["E501", "W191"]
 # Exceptions:
-# - .compat.graphviz.visualize: 14
-# - .config.parse_config: 14
 # - .core.computer.add_queue: 11
-# - .operator._load_file_csv: 12
 mccabe.max-complexity = 10
 
 [tool.setuptools.packages]

@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pint
 import pytest
-import xarray as xr
 
 from genno import (
     ComputationError,
@@ -73,6 +72,18 @@ class TestComputer:
         # Only the aggregated and no original keys along the aggregated dimension
         agg3 = c.get(key3)
         assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
+    @pytest.mark.parametrize("suffix", [".json", ".yaml"])
+    def test_configure(self, test_data_path, c: Computer, suffix) -> None:
+        # Configuration can be read from file
+        path = test_data_path.joinpath("config-0").with_suffix(suffix)
+        c.configure(path)
+
+        # Data from configured file is available
+        assert c.get("d_check").loc["seattle", "chicago"] == 1.7
+
+        with pytest.raises(ValueError, match="cannot give both"):
+            c.configure(path, config={"path": path})
 
     def test_deprecated_add_file(self, tmp_path, c):
         # Path to a temporary file
@@ -230,7 +241,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     assert "myfunc executing" in caplog.messages
 
     # 1 cache file was created in the cache_path
-    files = list(tmp_path.glob("*.pkl"))
+    files = list(tmp_path.glob("*.pickle")) + list(tmp_path.glob("*.parquet"))
     assert 1 == len(files)
 
     # File name includes the full hash; retrieve it
@@ -666,9 +677,7 @@ def test_dantzig(ureg):
     assert np.isclose(d.values, 11.7)
 
     # Weighted sum
-    weights = Quantity(
-        xr.DataArray([1, 2, 3], coords=["chicago new-york topeka".split()], dims=["j"])
-    )
+    weights = Quantity([1, 2, 3], coords={"j": "chicago new-york topeka".split()})
     new_key = c.add("*::weighted", "sum", "d:i-j", weights, "j")
 
     # ...produces the expected new key with the summed dimension removed and tag added
@@ -687,8 +696,8 @@ def test_dantzig(ureg):
 
     # Disaggregation with explicit data
     # (cases of canned food 'p'acked in oil or water)
-    shares = xr.DataArray([0.8, 0.2], coords=[["oil", "water"]], dims=["p"])
-    new_key = c.add("b", "mul", "b:j", Quantity(shares), sums=False)
+    shares = Quantity([0.8, 0.2], coords={"p": ["oil", "water"]})
+    new_key = c.add("b", "mul", "b:j", shares, sums=False)
 
     # ...produces the expected key with new dimension added
     assert new_key == "b:j-p"
@@ -842,10 +851,10 @@ def test_units(ureg):
     assert isinstance(c.unit_registry, (pint.UnitRegistry, ApplicationRegistry))
 
     # Create some dummy data
-    dims = dict(coords=["a b c".split()], dims=["x"])
-    c.add("energy:x", Quantity(xr.DataArray([1.0, 3, 8], **dims), units="MJ"))
-    c.add("time", Quantity(xr.DataArray([5.0, 6, 8], **dims), units="hour"))
-    c.add("efficiency", Quantity(xr.DataArray([0.9, 0.8, 0.95], **dims)))
+    dims = dict(coords={"x": list("abc")})
+    c.add("energy:x", Quantity([1.0, 3, 8], **dims, units="MJ"))
+    c.add("time", Quantity([5.0, 6, 8], **dims, units="hour"))
+    c.add("efficiency", Quantity([0.9, 0.8, 0.95], **dims))
 
     # Aggregation preserves units
     c.add("energy", (operator.sum, "energy:x", None, ["x"]))
@@ -858,17 +867,6 @@ def test_units(ureg):
     # Product of dimensioned and dimensionless quantities keeps the former
     c.add("energy2", (operator.mul, "energy:x", "efficiency"))
     assert c.get("energy2").units == ureg.parse_units("MJ")
-
-
-@pytest.mark.parametrize("suffix", [".json", ".yaml"])
-def test_read_config(test_data_path, suffix):
-    c = Computer()
-
-    # Configuration can be read from file
-    c.configure(test_data_path.joinpath("config-0").with_suffix(suffix))
-
-    # Data from configured file is available
-    assert c.get("d_check").loc["seattle", "chicago"] == 1.7
 
 
 @pytest.fixture(scope="module")

@@ -6,16 +6,16 @@ from warnings import warn
 
 import plotnine as p9
 
+import genno
 from genno.compat.pandas import disable_copy_on_write
 from genno.core.computer import Computer
 from genno.core.key import KeyLike
-from genno.core.quantity import Quantity
 
 log = logging.getLogger(__name__)
 
 
 class Plot(ABC):
-    """Class for plotting using :doc:`plotnine <plotnine:index>`."""
+    """Class for plotting using :mod:`plotnine`."""
 
     #: File name base for saving the plot.
     basename = ""
@@ -30,7 +30,7 @@ class Plot(ABC):
     #: :class:`Keys <.Key>` referring to :class:`Quantities <.Quantity>` or other inputs
     #: accepted by :meth:`generate`.
     inputs: Sequence[Hashable] = []
-    #: Keyword arguments for :meth:`plotnine.ggplot.save`.
+    #: Keyword arguments for :any:`plotnine.ggplot.save`.
     save_args: Dict[str, Any] = dict(verbose=False)
 
     # TODO add static geoms automatically in generate()
@@ -62,7 +62,7 @@ class Plot(ABC):
         # Convert Quantity arguments to pd.DataFrame for use with plotnine
         _args = map(
             lambda arg: arg
-            if not isinstance(arg, Quantity)
+            if not isinstance(arg, genno.Quantity)
             else arg.to_series()
             .rename(arg.name or "value")
             .reset_index()
@@ -145,7 +145,7 @@ class Plot(ABC):
         args : sequence of pandas.DataFrame or other
             One argument is given corresponding to each of the :attr:`inputs`.
 
-            Because :doc:`plotnine <plotnine:index>` operates on pandas data structures,
-            :meth:`save` automatically converts any :class:`.Quantity` inputs to
+            Because :mod:`plotnine` operates on pandas data structures, :meth:`save`
+            automatically converts any :class:`.Quantity` inputs to
             :class:`pandas.DataFrame` before they are passed to :meth:`generate`.
         """

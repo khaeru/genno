@@ -1,10 +1,6 @@
 import re
 from os import PathLike
-from typing import Mapping, MutableMapping, Optional, Set, Union
-
-import graphviz
-from dask.core import get_dependencies, ishashable, istask
-from dask.dot import graphviz_to_file, name
+from typing import Literal, Mapping, Optional, Set, Union
 
 from genno.core.describe import is_list_of_keys, label
 
@@ -29,7 +25,113 @@ def unwrap(label: str) -> str:
             label = result
 
 
-def visualize(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
+class Visualizer:
+    """Handle arguments for :func:`.visualize`."""
+
+    def __init__(
+        self,
+        data_attributes: Mapping,
+        function_attributes: Mapping,
+        graph_attr: Mapping,
+        node_attr: Mapping,
+        edge_attr: Mapping,
+        kwargs: Mapping,
+    ):
+        from graphviz import Digraph
+
+        # Handle arguments
+        self.da = data_attributes
+        self.fa = function_attributes
+
+        # Store for reference below
+        self.ga = dict(graph_attr)
+        self.ga.setdefault("rankdir", "BT")
+        self.ga.update(kwargs)
+
+        na = dict(node_attr)
+        na.setdefault("fontname", "helvetica")
+
+        # Create the graph and tracking collections
+        self.graph = Digraph(graph_attr=self.ga, node_attr=na, edge_attr=edge_attr)
+
+        # Nodes or edges already seen
+        self.seen: Set[str] = set()
+        # Nodes already connected to the graph
+        self.connected: Set[str] = set()
+
+    def get_attrs(self, kind: Literal["data", "func"], name: str, **defaults) -> dict:
+        """Prepare attributes for a node of `kind`.
+
+        If `name` is in self.da or self.fa, use those values, filling with `defaults`;
+        otherwise, attributes are empty except for `defaults`."""
+        if kind == "data":
+            result = self.da.get(name, {}).copy()
+            result.setdefault("shape", "ellipse")
+        else:
+            result = self.fa.get(name, {}).copy()
+            # Use a directional shape like [> in LR mode; otherwise a box
+            result.setdefault("shape", "cds" if self.ga["rankdir"] == "LR" else "box")
+
+        [result.setdefault(k, v) for k, v in defaults.items()]
+
+        return result
+
+    def add_edge(self, a, b) -> None:
+        """Add an edge to the graph."""
+        self.graph.edge(a, b)
+        # Update the connected nodes
+        self.connected.update((a, b))
+
+    def add_node(self, kind: Literal["data", "func"], name: str, k, v=None) -> None:
+        """Add a data node to the graph."""
+        if name in self.seen:
+            return
+        self.seen.add(name)
+        _label = key_label(k) if kind == "data" else unwrap(label(v[0], max_length=50))
+        self.graph.node(name, **self.get_attrs(kind, k, label=_label))
+
+    def process(self, dsk: Mapping, collapse_outputs: bool):
+        """Process the dask graph `dsk`."""
+        from dask.core import get_dependencies, ishashable, istask
+        from dask.dot import name
+
+        # Iterate over keys, tasks in the graph
+        for k, v in dsk.items():
+            # A unique "name" for the node within `g`; similar to hash(k).
+            k_name = name(k)
+
+            if istask(v):  # A task
+                # Node name for the operation, possibly distinct from its output
+                func_name = name((k, "function")) if not collapse_outputs else k_name
+
+                # Add a node for the operation
+                self.add_node("func", func_name, k, v)
+
+                # Add an edge between the operation-node and the key-node of its output
+                if not collapse_outputs:
+                    self.add_edge(func_name, k_name)
+
+                # Add edges between the operation-node and the key-nodes for each of its
+                # inputs
+                for dep in get_dependencies(dsk, k):
+                    dep_name = name(dep)
+                    self.add_node("data", dep_name, dep)
+                    self.add_edge(dep_name, func_name)
+            elif ishashable(v) and v in dsk:  # Simple alias of k → v
+                self.add_edge(name(v), k_name)
+            elif is_list_of_keys(v, dsk):  # k = list of multiple keys (genno extension)
+                for _v in v:
+                    self.add_edge(name(_v), k_name)
+
+            if not collapse_outputs or k_name in self.connected:
+                # Something else that hasn't been seen: add a node that may never be
+                # connected
+                self.add_node("data", k_name, k)
+
+        return self.graph
+
+
+def visualize(
     dsk: Mapping,
     filename: Optional[Union[str, PathLike]] = None,
     format: Optional[str] = None,
@@ -38,14 +140,14 @@ def visualize(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
     graph_attr: Optional[Mapping] = None,
     node_attr: Optional[Mapping] = None,
     edge_attr: Optional[Mapping] = None,
-    collapse_outputs=False,
+    collapse_outputs: bool = False,
     **kwargs,
 ):
     """Generate a Graphviz visualization of `dsk`.
 
     This is merged and extended version of :func:`dask.base.visualize`,
-    :func:`dask.dot.dot_graph`, and :func:`dask.dot.to_graphviz` that produces output
-    that is informative for genno graphs.
+    :func:`dask.dot.dot_graph`, and :func:`dask.dot.to_graphviz` that produces
+    informative output for genno graphs.
 
     Parameters
     ----------
@@ -108,92 +210,19 @@ def visualize(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
     --------
     .describe.label
     """
+    from dask.dot import graphviz_to_file
+
     # Handle arguments
-    item_attr = {
-        "data": data_attributes or {},
-        "func": function_attributes or {},
-    }
-    _graph_attr: MutableMapping = dict(graph_attr) if graph_attr else {}
-    _node_attr: MutableMapping = dict(node_attr) if node_attr else {}
-    edge_attr = edge_attr or {}
-
-    # Default attributes
-    _graph_attr.setdefault("rankdir", "BT")
-    _node_attr.setdefault("fontname", "helvetica")
-
-    # Assume unused kwargs are for graph_attr
-    _graph_attr.update(kwargs)
-
-    # Use a directional shape like [> in LR mode; otherwise a box
-    key_shape = "cds" if _graph_attr["rankdir"] == "LR" else "box"
-
-    g = graphviz.Digraph(
-        graph_attr=_graph_attr, node_attr=_node_attr, edge_attr=edge_attr
+    v = Visualizer(
+        data_attributes or {},
+        function_attributes or {},
+        graph_attr or {},
+        node_attr or {},
+        edge_attr or {},
+        kwargs,
     )
 
-    seen = set()  # Nodes or edges already seen
-    connected: Set[str] = set()  # Nodes already connected to the graph
+    # Process the graph
+    graph = v.process(dsk, collapse_outputs)
 
-    # Shorthand
-    def _attrs(kind, key, **defaults):
-        """Prepare a copy from `item_attr` for `kind` with `defaults`."""
-        result = item_attr[kind].get(key, {}).copy()
-        for k, v in defaults.items():
-            result.setdefault(k, v)
-        return result
-
-    def _edge(a, b):
-        """Add an edge to `g` and update `connected`."""
-        g.edge(a, b)
-        connected.update(a, b)
-
-    # Iterate over keys, tasks in the graph
-    for k, v in dsk.items():
-        # A unique "name" for the node within `g`; similar to hash(k).
-        k_name = name(k)
-
-        if istask(v):
-            # A task
-
-            # Node name for the operation
-            func_name = name((k, "function")) if not collapse_outputs else k_name
-
-            # Add a node for the operation
-            if collapse_outputs or func_name not in seen:
-                seen.add(func_name)
-                attrs = _attrs(
-                    "func", k, label=unwrap(label(v[0], max_length=50)), shape=key_shape
-                )
-                g.node(func_name, **attrs)
-
-            # Add an edge between the operation-node and the key-node of its output
-            if not collapse_outputs:
-                _edge(func_name, k_name)
-
-            # Add edges between the operation-node and the key-nodes for each of its
-            # inputs
-            for dep in get_dependencies(dsk, k):
-                dep_name = name(dep)
-                if dep_name not in seen:
-                    seen.add(dep_name)
-                    attrs = _attrs("data", dep, label=key_label(dep), shape="ellipse")
-                    g.node(dep_name, **attrs)
-                _edge(dep_name, func_name)
-
-        elif ishashable(v) and v in dsk:
-            # Simple alias of k → v
-            _edge(name(v), k_name)
-
-        elif is_list_of_keys(v, dsk):
-            # k is a list of multiple keys (genno extension)
-            for _v in v:
-                _edge(name(_v), k_name)
-
-        if (not collapse_outputs or k_name in connected) and k_name not in seen:
-            # Something else that hasn't been seen: add a node that may never be
-            # connected
-            seen.add(k_name)
-            attrs = _attrs("data", k, label=key_label(k), shape="ellipse")
-            g.node(k_name, **attrs)
-
-    return graphviz_to_file(g, None if filename is None else str(filename), format)
+    return graphviz_to_file(graph, None if filename is None else str(filename), format)

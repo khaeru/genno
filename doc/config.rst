@@ -120,11 +120,9 @@ The :func:`.handles` decorator can be used to mark a custom function that handle
       key: bar
       inputs: [W, Z]
 
-.. autofunction:: handles
+.. automodule:: genno.config
+   :members: handles, ConfigHandler, HANDLERS, STORE
 
-.. autodata:: HANDLERS
-
-.. autodata:: STORE
 
 Specific sections
 =================

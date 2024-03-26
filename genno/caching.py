@@ -5,9 +5,16 @@ from functools import partial, singledispatch, update_wrapper
 from hashlib import blake2b
 from inspect import getmembers, iscode
 from pathlib import Path
-from typing import Callable, Set, Union
+from typing import TYPE_CHECKING, Callable, Optional, Set, Union
+
+import pandas as pd
+
+import genno
 
 from .util import unquote
+
+if TYPE_CHECKING:
+    import genno
 
 log = logging.getLogger(__name__)
 
@@ -148,7 +155,10 @@ def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
 
 
 def decorate(
-    func: Callable, computer=None, cache_path=None, cache_skip=False
+    func: Callable,
+    computer: Optional["genno.Computer"] = None,
+    cache_path=None,
+    cache_skip: bool = False,
 ) -> Callable:
     """Helper for :meth:`.Computer.cache`.
 
@@ -181,35 +191,85 @@ def decorate(
             # No `computer` provided; use values from arguments
             config = dict()
 
-        _dir = config.get("cache_path", cache_path)
-        _skip = config.get("cache_skip", cache_skip)
+        dir_ = config.get("cache_path", cache_path)
+        skip = config.get("cache_skip", cache_skip)
 
-        if not _dir:
-            _dir = Path.cwd()
-            log.warning(f"'cache_path' configuration not set; using {_dir}")
+        if not dir_:
+            from platformdirs import user_cache_path
+
+            dir_ = user_cache_path("genno")
+            dir_.mkdir(parents=True, exist_ok=True)
+            log.warning(f"'cache_path' configuration not set; using {dir_}")
 
         # Parts of the file name: function name, hash of arguments and code
         name_parts = [func.__name__, hash_args(*args, hash_code(func), **kwargs)]
-        # Path to the cache file
-        path = _dir.joinpath("-".join(name_parts)).with_suffix(".pkl")
-
+        # Path to the cache file, without suffix
+        path = dir_.joinpath("-".join(name_parts))
         # Shorter name for logging
         short_name = f"{name_parts[0]}(<{name_parts[1][:8]}…>)"
+        # Identify existing cache files
+        files = [] if skip else list(dir_.glob(f"{path.stem}.*"))
 
-        if not _skip and path.exists():
+        if len(files) == 1:
             log.info(f"Cache hit for {short_name}")
-            with open(path, "rb") as f:
-                return pickle.load(f)
+
+            # Read cache
+            return _read(files[0])
         else:
-            log.info(f"Cache miss for {short_name}")
-            data = func(*args, **kwargs)
+            # Also occurs if len(files) >= 2
+            log.info(f"{'Skip cache' if skip else 'Cache miss'} for {short_name}")
 
-            with open(path, "wb") as f:
-                pickle.dump(data, f)
-
-            return data
+            # Call the wrapped function, store, and return
+            return _write(path, func(*args, **kwargs))
 
     # Update the wrapped function with the docstring etc. of the original
     update_wrapper(cached_load, func)
 
     return cached_load
+
+
+def _read(path: Path):
+    """Read cache data from `path`."""
+    if path.suffix == ".parquet":
+        # Quantity or pd.DataFrame
+        df = pd.read_parquet(path)
+
+        try:
+            # Convert to Quantity
+            df.attrs.pop("_is_genno_quantity")
+            return genno.Quantity(df["value"], units=df.attrs["_unit"])
+        except KeyError:
+            return df
+    elif path.suffix in (".pickle", ".pkl"):
+        # Anything else
+        with open(path, "rb") as f:
+            return pickle.load(f)
+    else:  # pragma: no cover
+        raise RuntimeError(f"Unknown suffix {path.suffix!r} for cache file")
+
+
+def _write(path: Path, data):
+    """Write `data` to `path`."""
+    from genno.compat.pandas import handles_parquet_attrs
+
+    if (isinstance(data, genno.Quantity) and handles_parquet_attrs()) or isinstance(
+        data, pd.DataFrame
+    ):
+        if isinstance(data, genno.Quantity):
+            # Convert to single-column data frame
+            df = data.to_dataframe()
+
+            # - Convert pint.Unit attribute to JSON-serializable str
+            # - Mark the cache file as having been produced from Quantity
+            df.attrs.update(_unit=str(data.units), _is_genno_quantity=True)
+        else:
+            df = data
+
+        # Write to Parquet
+        df.to_parquet(path.with_suffix(".parquet"))
+    else:
+        # Anything else: pickle
+        with open(path.with_suffix(".pickle"), "wb") as f:
+            pickle.dump(data, f)
+
+    return data

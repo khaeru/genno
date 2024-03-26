@@ -1,21 +1,26 @@
-API reference
-*************
-
 .. currentmodule:: genno
 
 Top-level classes and functions
-===============================
+*******************************
 
 .. autosummary::
 
-   configure
    Computer
    Key
    KeySeq
    Quantity
+   assert_quantity
+   configure
+   get_class
+   set_class
 
-.. autofunction:: configure
-   :noindex:
+Also:
+:class:`.ComputationError`,
+:class:`.KeyExistsError`,
+:class:`.MissingKeyError`,
+:class:`.Operator`,
+:func:`.literal`,
+:func:`.quote`.
 
 .. autoclass:: genno.Computer
    :members:
@@ -114,17 +119,17 @@ Top-level classes and functions
       - Provide an alias from one *key* to another:
 
         >>> from genno import Computer
-        >>> rep = Computer()  # Create a new Computer object
-        >>> rep.add('aliased name', 'original name')
+        >>> c = Computer()  # Create a new Computer object
+        >>> c.add('aliased name', 'original name')
 
       - Define an arbitrarily complex operator in a Python function that operates directly on the :class:`ixmp.Scenario`:
 
-        >>> def my_report(scenario):
+        >>> def my_func(scenario):
         >>>     # many lines of code
         >>>     return 'foo'
-        >>> rep.add('my report', (my_report, 'scenario'))
-        >>> rep.finalize(scenario)
-        >>> rep.get('my report')
+        >>> c.add('my report', my_func, 'scenario')
+        >>> c.finalize(scenario)
+        >>> c.get('my report')
         foo
 
    .. automethod:: add_queue
@@ -155,7 +160,7 @@ Top-level classes and functions
              c.load_file("file1.txt", **kwargs)
 
          # Use the generator to add several computations
-         rep.apply(my_gen0, units="kg")
+         c.apply(my_gen0, units="kg")
 
       Or, `generator` may ``yield`` a sequence (0 or more) of (`key`, `computation`), which are added to the :attr:`graph`:
 
@@ -165,7 +170,7 @@ Top-level classes and functions
              op = partial(operator.load_file, **kwargs)
              yield from (f"file:{i}", (op, "file{i}.txt")) for i in range(2)
 
-         rep.apply(my_gen1, units="kg")
+         c.apply(my_gen1, units="kg")
 
    .. automethod:: eval
 
@@ -354,9 +359,7 @@ Top-level classes and functions
    >>> ks / ("x", "z")
    <KeySeq from 'foo:z:bar'>
 
-.. autoclass:: genno.Quantity
-   :members:
-   :inherited-members: pipe, shape, size
+.. autoclass:: Quantity
 
 The :class:`.Quantity` constructor converts its arguments to an internal, :class:`xarray.DataArray`-like data format:
 
@@ -365,137 +368,61 @@ The :class:`.Quantity` constructor converts its arguments to an internal, :class
    # Existing data
    data = pd.Series(...)
 
-   # Convert to a Quantity for use in reporting calculations
+   # Convert to a Quantity for use in genno calculations
    qty = Quantity(data, name="Quantity name", units="kg")
-   rep.add("new_qty", qty)
+   c.add("new_qty", qty)
 
 Common :mod:`genno` usage, e.g. in :mod:`message_ix`, creates large, sparse data frames (billions of possible elements, but <1% populated); :class:`~xarray.DataArray`'s default, 'dense' storage format would be too large for available memory.
 
-- Currently, Quantity is :class:`.AttrSeries`, a wrapped :class:`pandas.Series` that behaves like a :class:`~xarray.DataArray`.
-- In the future, :mod:`genno` will use :class:`.SparseDataArray`, and eventually :class:`~xarray.DataArray` backed by sparse data, directly.
+- Currently, Quantity implemented as is :class:`.AttrSeries`, a wrapped :class:`pandas.Series` that behaves like a :class:`~xarray.DataArray`.
+- In the future, :mod:`genno` will use :class:`.SparseDataArray`, and eventually directly :class:`~xarray.DataArray` backed by sparse data.
 
 The goal is that all :mod:`genno`-based code, including built-in and user functions, can treat quantity arguments as if they were :class:`~xarray.DataArray`.
 
+Quantity has a :attr:`~.Quantity.units` attribute, which can be set using either :class:`str` or :class:`pint.Unit`.
+
+Quantity supports the standard binary operations with unit-aware behaviour:
+:meth:`~.object.__add__`,
+:meth:`~.object.__radd__`,
+:meth:`~.object.__mul__`,
+:meth:`~.object.__rmul__`,
+:meth:`~.object.__pow__`,
+:meth:`~.object.__rpow__`,
+:meth:`~.object.__sub__`,
+:meth:`~.object.__radd__`,
+:meth:`~.object.__truediv__`, and
+:meth:`~.object.__rtruediv__`.
+This means that correct units are derived from the units of operands and attached to the resulting Quantity.
+
+Quantity has the following methods and attributes that exactly mirror the signatures and types of the corresponding :class:`.xarray.DataArray` items.
+
+.. autosummary::
+   ~genno.core.attrseries.AttrSeries.assign_coords
+   ~genno.core.attrseries.AttrSeries.bfill
+   ~genno.core.attrseries.AttrSeries.clip
+   ~genno.core.attrseries.AttrSeries.coords
+   ~genno.core.attrseries.AttrSeries.cumprod
+   ~genno.core.attrseries.AttrSeries.data
+   ~genno.core.attrseries.AttrSeries.dims
+   ~genno.core.attrseries.AttrSeries.drop
+   ~genno.core.attrseries.AttrSeries.drop_vars
+   ~genno.core.attrseries.AttrSeries.expand_dims
+   ~genno.core.attrseries.AttrSeries.ffill
+   ~genno.core.attrseries.AttrSeries.interp
+   ~genno.core.attrseries.AttrSeries.item
+   ~genno.core.attrseries.AttrSeries.rename
+   ~genno.core.attrseries.AttrSeries.sel
+   ~genno.core.attrseries.AttrSeries.shape
+   ~genno.core.attrseries.AttrSeries.shift
+   ~genno.core.attrseries.AttrSeries.squeeze
+   ~genno.core.attrseries.AttrSeries.sum
+   ~genno.core.attrseries.AttrSeries.to_dataframe
+   ~genno.core.attrseries.AttrSeries.to_series
+   ~genno.core.attrseries.AttrSeries.transpose
+   ~genno.core.attrseries.AttrSeries.where
+
+.. autofunction:: configure
+   :noindex:
+
 .. automodule:: genno
-   :members: ComputationError, KeyExistsError, MissingKeyError
-
-Operators
-=========
-
-.. automodule:: genno.operator
-   :members:
-
-   Unless otherwise specified, these functions accept and return :class:`.Quantity` objects for data arguments/return values.
-
-   Genno's :ref:`compatibility modules <compat>` each provide additional operators.
-
-   Numerical operators:
-
-   .. autosummary::
-      add
-      aggregate
-      broadcast_map
-      combine
-      disaggregate_shares
-      div
-      group_sum
-      index_to
-      interpolate
-      mul
-      pow
-      product
-      ratio
-      sub
-      sum
-      add_sum
-
-   Input and output:
-
-   .. autosummary::
-      load_file
-      add_load_file
-      write_report
-
-   Data manipulation:
-
-   .. autosummary::
-      apply_units
-      assign_units
-      concat
-      convert_units
-      relabel
-      rename_dims
-      select
-
-Helper functions for adding tasks to Computers
-----------------------------------------------
-
-.. autofunction:: add_binop
-.. autofunction:: add_load_file
-.. autofunction:: add_sum
-
-Internal format for quantities
-==============================
-
-.. currentmodule:: genno.core.quantity
-
-.. automodule:: genno.core.quantity
-   :members: CLASS, assert_quantity, maybe_densify
-
-.. currentmodule:: genno.core.attrseries
-
-.. automodule:: genno.core.attrseries
-   :members:
-   :exclude-members: AttrSeries
-
-.. autoclass:: AttrSeries
-   :members:
-
-   .. py:attribute:: name
-
-      The name of this Quantity.
-
-      Like :attr:`.xarray.DataArray.name`.
-
-.. currentmodule:: genno.core.sparsedataarray
-
-.. automodule:: genno.core.sparsedataarray
-   :members: SparseDataArray, SparseAccessor
-
-.. currentmodule:: genno.compat.xarray
-
-.. autoclass:: DataArrayLike
-
-
-Internals and utilities
-=======================
-
-.. automodule:: genno.compat.graphviz
-   :members:
-
-.. automodule:: genno.compat.pandas
-   :members:
-
-.. automodule:: genno.core.describe
-   :members:
-
-.. automodule:: genno.core.graph
-   :members:
-
-.. automodule:: genno.core.key
-   :members: KeyLike, iter_keys, single_key
-
-.. automodule:: genno.core.operator
-   :members:
-
-.. automodule:: genno.util
-   :members:
-
-Utilities for testing
-=====================
-
-.. automodule:: genno.testing
-   :members:
-
-.. automodule:: genno.testing.jupyter
-   :members:
+   :members: ComputationError, KeyExistsError, MissingKeyError, Operator, assert_quantity, get_class, literal, quote, set_class

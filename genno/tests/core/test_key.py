@@ -101,6 +101,9 @@ class TestKey:
         key = Key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
         assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
 
+    def test_eq(self):
+        assert False is (Key("x:a-b-c") == 3.4)
+
     def test_operations(self):
         key = Key("x:a-b-c")
 

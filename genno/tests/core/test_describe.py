@@ -4,7 +4,8 @@ from operator import itemgetter
 import pandas as pd
 import pytest
 
-from genno import Computer, Quantity
+import genno
+from genno import Computer
 from genno.core.describe import label
 from genno.core.sparsedataarray import SparseDataArray
 
@@ -12,9 +13,9 @@ from genno.core.sparsedataarray import SparseDataArray
 @pytest.mark.usefixtures("parametrize_quantity_class")
 def test_describe():
     c = Computer()
-    c.add("foo", Quantity(pd.Series([42, 43])))
+    c.add("foo", genno.Quantity(pd.Series([42, 43])))
 
-    if Quantity._get_class() is SparseDataArray:
+    if genno.Quantity is SparseDataArray:
         assert re.match(
             r"""'foo':
 - <xarray\.SparseDataArray \([^:]+: 2\)>""",

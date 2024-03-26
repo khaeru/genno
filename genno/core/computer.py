@@ -14,7 +14,6 @@ from typing import (
     Iterable,
     List,
     Mapping,
-    MutableMapping,
     MutableSequence,
     Optional,
     Sequence,
@@ -29,9 +28,9 @@ import pint
 import xarray as xr
 from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
 from dask.optimization import cull
-from xarray.core.utils import either_dict_or_kwargs
 
 from genno import caching, operator
+from genno.compat.xarray import either_dict_or_kwargs
 from genno.util import partial_split
 
 from .describe import describe_recursive
@@ -136,11 +135,10 @@ class Computer:
             str(k): v
             for k, v in either_dict_or_kwargs(config, config_kw, "configure").items()
         }
-
-        # Maybe load from a path
         if path:
-            assert isinstance(config, MutableMapping)
-            config["path"] = Path(path)
+            if "path" in config:
+                raise ValueError('cannot give both path= and a "path" key in config=…')
+            config.setdefault("path", Path(path))
 
         parse_config(self, data=config, fail=fail)
 
@@ -541,7 +539,8 @@ class Computer:
         except IndexError:
             pass  # No parameters to generator
         else:
-            if issubclass(par[par_0].annotation, Computer):
+            a = par[par_0].annotation
+            if isinstance(a, str) and a.endswith("Computer") or issubclass(a, Computer):
                 # First parameter wants a reference to the Computer object
                 args.insert(0, self)
 

@@ -1,5 +1,6 @@
 import logging
 from copy import copy
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import (
@@ -8,15 +9,16 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     MutableMapping,
     Optional,
+    Sequence,
+    Set,
     Tuple,
     Type,
     Union,
 )
-
-import pint
-import yaml
+from warnings import warn
 
 from genno import operator
 from genno.core.computer import Computer
@@ -27,10 +29,19 @@ from genno.util import REPLACE_UNITS
 log = logging.getLogger(__name__)
 
 #: Registry of configuration section handlers.
-HANDLERS: Dict[str, Any] = {}
+HANDLERS: Dict[str, "ConfigHandler"] = {}
 
+#: .. deprecated:: 1.25.0
+#:    Instead, use:
+#:
+#:    .. code-block:: python
+#:
+#:       from genno.config import handles, store
+#:
+#:       handles("section_name", False, False)(store)
+#:
 #: Configuration sections/keys to be stored with no action.
-STORE = set(["cache_path", "cache_skip"])
+STORE: Set[str] = set()
 
 
 def configure(path: Optional[Union[Path, str]] = None, **config):
@@ -54,6 +65,80 @@ def configure(path: Optional[Union[Path, str]] = None, **config):
     parse_config(None, data=config, fail="raise")
 
 
+def _convert_deprecated_store_global():
+    if len(STORE):
+        warn(
+            'genno.config.STORE; use @handles("section_name", False, False)(store)',
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        for name in STORE:
+            handles(name, iterate=False, discard=False)(store)
+
+        STORE.clear()
+
+
+@dataclass
+class ConfigHandler:
+    """Class for a configuration key/section handler."""
+
+    #: Configuration key or section handled.
+    key: str
+
+    #: Callable
+    callback: Callable[[Optional[Computer], Union[Mapping, Sequence]], Any]
+
+    #: If :any:`True`, apply :attr:`callback` iteratively to each member of the
+    #: value/section.
+    iterate: bool
+
+    #: If :any:`True`, discard the configuration contents after handling.
+    discard: bool
+
+    def handle(self, data: Union[Mapping, Sequence], c: Optional[Computer]):
+        if self.iterate:
+            if isinstance(data, Mapping):
+                iterator: Iterable = data.items()
+            elif isinstance(data, Sequence):
+                iterator = data
+            else:  # pragma: no cover
+                raise NotImplementedError(type(data))
+            yield from [
+                (("apply", self.callback), dict(info=item)) for item in iterator
+            ]
+        else:
+            self.callback(c, data)
+
+
+class PathHandler(ConfigHandler):
+    """Special :class:`ConfigHandler` that reads from a YAML file."""
+
+    def __init__(self):
+        pass
+
+    def handle(self, data, c):
+        path = data.pop("path", None)
+        if path is None:
+            return data
+
+        import yaml
+
+        # Load configuration from file
+        path = Path(path)
+        with open(path, "r") as f:
+            new_data = yaml.safe_load(f)
+
+        # Overwrite the file content with direct configuration values
+        new_data.update(data)
+        data = new_data
+
+        # Also store the directory where the configuration file was located
+        data.update(config_dir=path.parent)
+
+        return data
+
+
 def handles(section_name: str, iterate: bool = True, discard: bool = True):
     """Decorator to register a configuration section handler in :data:`HANDLERS`.
 
@@ -72,47 +157,32 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
     """
 
     def wrapper(f: Callable):
-        if section_name in HANDLERS:
-            log.debug(
-                f"Override handler {repr(HANDLERS[section_name])} for "
-                f" '{section_name}:'"
-            )
-        HANDLERS[section_name] = f
-        setattr(f, "_iterate", iterate)
-        setattr(f, "_discard", discard)
+        ch = ConfigHandler(section_name, f, iterate, discard)
+
+        try:
+            log.debug(f"Override {HANDLERS[ch.key]!r}")
+        except KeyError:
+            pass
+        finally:
+            HANDLERS[section_name] = ch
+
         return f
 
     return wrapper
 
 
-def parse_config(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
+def parse_config(
     c: Optional[Computer],
     data: MutableMapping[str, Any],
     fail: Optional[Union[str, int]] = None,
 ):
+    _convert_deprecated_store_global()
+
+    # Handle configuration from a file
+    data = PathHandler().handle(data, c)
+
     # Assemble a queue of (args, kwargs) for Computer.add_queue()
     queue: List[Tuple[Tuple, Dict]] = []
-
-    try:
-        path = data.pop("path")
-    except KeyError:
-        pass
-    else:
-        # Load configuration from file
-        path = Path(path)
-        with open(path, "r") as f:
-            new_data = yaml.safe_load(f)
-
-        # Overwrite the file content with direct configuration values
-        new_data.update(data)
-        data = new_data
-
-        # Also store the directory where the configuration file was located
-        if c is None:
-            data["config_dir"] = path.parent
-        else:
-            # Early add to the graph
-            c.graph["config"]["config_dir"] = path.parent
 
     # Sections to discard, e.g. with handler._store = False
     discard = set()
@@ -120,35 +190,24 @@ def parse_config(  # noqa: C901  FIXME reduce complexity from 14 → ≤10
     for section_name, section_data in data.items():
         handler = HANDLERS.get(section_name)
         if not handler:
-            if section_name not in STORE:
-                log.info(
-                    f"No handler for configuration section '{section_name}:'; ignored"
-                )
+            log.info(f"No handler for configuration section '{section_name}:'; ignored")
             continue
 
-        if handler._discard:
+        if handler.discard:
             discard.add(section_name)
 
-        if handler._iterate:
-            if isinstance(section_data, dict):
-                iterator: Iterable = section_data.items()
-            elif isinstance(section_data, list):
-                iterator = section_data
-            else:  # pragma: no cover
-                raise NotImplementedError(handler.expected_type)
-            queue.extend((("apply", handler), dict(info=item)) for item in iterator)
-        else:
-            handler(c, section_data)
+        # Allow the handler to extend the queue of computations to be added
+        queue.extend(handler.handle(section_data, c))
 
-    for section_name in discard:
-        data.pop(section_name)
+    # Discard sections so marked
+    [data.pop(section_name) for section_name in discard]
 
     if c:
+        # Store certain keys in the "config" dictionary of the graph itself
+        c.graph["config"].update(data)
+
         # Process the entries
         c.add_queue(queue, max_tries=2, fail=fail)
-
-        # Store configuration in the graph itself
-        c.graph["config"].update(data)
     elif len(queue):
         raise RuntimeError("Cannot apply non-global configuration without a Computer")
 
@@ -312,9 +371,18 @@ def report(c: Computer, info):
     c.add(info["key"], tuple([c.get_operator("concat")] + info["members"]), strict=True)
 
 
+@handles("cache_path", iterate=False, discard=False)
+@handles("cache_skip", iterate=False, discard=False)
+@handles("config_dir", iterate=False, discard=False)
+def store(c: Computer, info):
+    """Config sections/keys to be stored with no modification."""
+    pass
+
+
 @handles("units", iterate=False)
 def units(c: Computer, info):
     """Handle the ``units:`` config section."""
+    import pint
 
     # Define units
     registry = pint.get_application_registry()

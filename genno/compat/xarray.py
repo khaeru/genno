@@ -1,14 +1,15 @@
 """Compatibility with :mod:`xarray`."""
 
+from abc import abstractmethod
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
-    Dict,
-    Generic,
     Hashable,
     Iterable,
     Mapping,
     Optional,
+    Protocol,
     Sequence,
     Tuple,
     TypeVar,
@@ -18,40 +19,40 @@ from typing import (
 import numpy as np
 import pandas as pd
 import xarray
-from xarray.core.types import InterpOptions
-from xarray.core.utils import is_scalar
+from xarray.core import dtypes
+from xarray.core.coordinates import Coordinates
+from xarray.core.indexes import Indexes
+from xarray.core.utils import either_dict_or_kwargs, is_scalar
 
-from genno.core.types import Dims
+if TYPE_CHECKING:
+    import xarray.core.types
+    from xarray.core.types import Dims
 
 T = TypeVar("T", covariant=True)
 
 __all__ = [
+    "Coordinates",
     "DataArrayLike",
+    "Indexes",
+    "dtypes",
+    "either_dict_or_kwargs",
     "is_scalar",
 ]
 
 
-class DataArrayLike(Generic[T]):
-    """Class with :class:`.xarray.DataArray` -like API.
+class DataArrayLike(Protocol):
+    """Protocol for a :class:`.xarray.DataArray` -like API.
 
-    This class is used to set signatures and types for methods and attributes on the
-    generic :class:`.Quantity` class. :class:`.SparseDataArray` inherits from both this
-    class and :class:`~xarray.DataArray`, and thus DataArray supplies implementations of
-    these methods. In :class:`.AttrSeries`, the methods are implemented directly.
+    This class is used to set signatures and types for methods and attributes on
+    :class:`.AttrSeries` class, which then supplies implementations of each method.
+    Objects typed :class:`.AnyQuantity` see either the signatures of this protocol, or
+    identical signatures for the same methods on :class:`~xarray.DataArray` via
+    :class:`.SparseDataArray`.
     """
 
-    # NB Most methods have a return type of "...) -> T:", but these cannot be defined in
-    #    this class because mypy complains about (a) conflicts with the definitions on
-    #    xarray.DataArrayOpsMixin and (b) empty function bodies.
-    # TODO Investigate whether there is a way to overcome this, perhaps by adjusting the
-    #      definition of `T`.
-
-    # To silence a warning in xarray
-    __slots__: Tuple[str, ...] = tuple()
-
     # Type hints for mypy in downstream applications
-    def __len__(self) -> int:
-        return NotImplemented
+    @abstractmethod
+    def __len__(self) -> int: ...
 
     def __mod__(self, other): ...
     def __mul__(self, other): ...
@@ -64,33 +65,24 @@ class DataArrayLike(Generic[T]):
     def __truediv__(self, other): ...
 
     @property
-    def attrs(self) -> Dict[Any, Any]:
-        return NotImplemented
+    @abstractmethod
+    def data(self) -> Any: ...
 
     @property
-    def data(self) -> Any:
-        """Like :attr:`xarray.DataArray.data`."""
-        return NotImplemented
+    @abstractmethod
+    def coords(self) -> xarray.core.coordinates.DataArrayCoordinates: ...
 
     @property
-    def coords(
-        self,
-    ) -> xarray.core.coordinates.DataArrayCoordinates:
-        return NotImplemented
+    @abstractmethod
+    def dims(self) -> Tuple[Hashable, ...]: ...
 
     @property
-    def dims(self) -> Tuple[Hashable, ...]:
-        return NotImplemented
+    @abstractmethod
+    def shape(self) -> Tuple[int, ...]: ...
 
     @property
-    def shape(self) -> Tuple[int, ...]:
-        """Like :attr:`xarray.DataArray.shape`."""
-        return NotImplemented
-
-    @property
-    def size(self) -> int:
-        """Like :attr:`xarray.DataArray.size`."""
-        return NotImplemented
+    @abstractmethod
+    def size(self) -> int: ...
 
     def assign_coords(
         self,
@@ -98,6 +90,7 @@ class DataArrayLike(Generic[T]):
         **coords_kwargs: Any,
     ): ...
 
+    @abstractmethod
     def astype(
         self,
         dtype,
@@ -107,32 +100,42 @@ class DataArrayLike(Generic[T]):
         subok=None,
         copy=None,
         keep_attrs=True,
-    ):
-        """Like :meth:`xarray.DataArray.astype`."""
+    ): ...
 
+    @abstractmethod
     def bfill(
         self,
         dim: Hashable,
         limit: Optional[int] = None,
-    ):
-        """Like :meth:`xarray.DataArray.bfill`."""
+    ): ...
 
+    @abstractmethod
+    def clip(
+        self,
+        min: Optional["xarray.core.types.ScalarOrArray"] = None,
+        max: Optional["xarray.core.types.ScalarOrArray"] = None,
+        *,
+        keep_attrs: Optional[bool] = None,
+    ): ...
+
+    @abstractmethod
     def copy(
         self,
         deep: bool = True,
         data: Any = None,
     ): ...
 
+    @abstractmethod
     def cumprod(
         self,
-        dim: Dims = None,
+        dim: "Dims" = None,
         *,
         skipna: Optional[bool] = None,
         keep_attrs: Optional[bool] = None,
         **kwargs: Any,
-    ):
-        """Like :meth:`xarray.DataArray.cumprod`."""
+    ): ...
 
+    @abstractmethod
     def drop_vars(
         self,
         names: Union[
@@ -142,6 +145,7 @@ class DataArrayLike(Generic[T]):
         errors="raise",
     ): ...
 
+    @abstractmethod
     def expand_dims(
         self,
         dim=None,
@@ -149,14 +153,14 @@ class DataArrayLike(Generic[T]):
         **dim_kwargs: Any,
     ): ...
 
+    @abstractmethod
     def ffill(
         self,
         dim: Hashable,
         limit: Optional[int] = None,
-    ):
-        """Like :meth:`xarray.DataArray.ffill`."""
-        return NotImplemented
+    ): ...
 
+    @abstractmethod
     def groupby(
         self,
         group,
@@ -164,34 +168,58 @@ class DataArrayLike(Generic[T]):
         restore_coord_dims: bool = False,
     ): ...
 
+    @abstractmethod
     def interp(
         self,
         coords: Optional[Mapping[Any, Any]] = None,
-        method: InterpOptions = "linear",
+        method: "xarray.core.types.InterpOptions" = "linear",
         assume_sorted: bool = False,
         kwargs: Optional[Mapping[str, Any]] = None,
         **coords_kwargs: Any,
     ): ...
 
+    @abstractmethod
     def item(self, *args): ...
 
+    @abstractmethod
+    def max(
+        self,
+        dim: "Dims" = None,
+        *,
+        skipna: Optional[bool] = None,
+        keep_attrs: Optional[bool] = None,
+        **kwargs: Any,
+    ): ...
+
+    @abstractmethod
+    def min(
+        self,
+        dim: "Dims" = None,
+        *,
+        skipna: Optional[bool] = None,
+        keep_attrs: Optional[bool] = None,
+        **kwargs: Any,
+    ): ...
+
+    @abstractmethod
     def pipe(
         self,
         func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
         *args: Any,
         **kwargs: Any,
-    ) -> T:
-        """Like :meth:`xarray.DataArray.pipe`."""
-        return NotImplemented
+    ): ...
 
+    @abstractmethod
     def rename(
         self,
         new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
         **names: Hashable,
     ): ...
 
+    @abstractmethod
     def round(self, *args, **kwargs): ...
 
+    @abstractmethod
     def sel(
         self,
         indexers: Optional[Mapping[Any, Any]] = None,
@@ -199,28 +227,27 @@ class DataArrayLike(Generic[T]):
         tolerance=None,
         drop: bool = False,
         **indexers_kwargs: Any,
-    ) -> T:
-        return NotImplemented
+    ): ...
 
+    @abstractmethod
     def shift(
         self,
         shifts: Optional[Mapping[Any, int]] = None,
         fill_value: Any = None,
         **shifts_kwargs: int,
-    ):
-        """Like :attr:`xarray.DataArray.shift`."""
+    ): ...
 
     def squeeze(
         self,
         dim: Union[Hashable, Iterable[Hashable], None] = None,
         drop: bool = False,
         axis: Union[int, Iterable[int], None] = None,
-    ):
-        """Like :meth:`xarray.DataArray.squeeze`."""
+    ): ...
 
+    @abstractmethod
     def sum(
         self,
-        dim: Dims = None,
+        dim: "Dims" = None,
         # Signature from xarray.DataArray
         *,
         skipna: Optional[bool] = None,
@@ -229,17 +256,20 @@ class DataArrayLike(Generic[T]):
         **kwargs: Any,
     ): ...
 
+    @abstractmethod
     def to_dataframe(
         self,
         name: Optional[Hashable] = None,
         dim_order: Optional[Sequence[Hashable]] = None,
     ) -> pd.DataFrame: ...
 
-    def to_numpy(self) -> np.ndarray:
-        return NotImplemented
+    @abstractmethod
+    def to_numpy(self) -> np.ndarray: ...
 
-    def to_series(self) -> pd.Series:
-        """Like :meth:`xarray.DataArray.to_series`."""
-        # Provided only for type-checking in other packages. AttrSeries implements;
-        # SparseDataArray uses the xr.DataArray method.
-        return NotImplemented
+    @abstractmethod
+    def where(self, cond: Any, other: Any = dtypes.NA, drop: bool = False): ...
+
+    # Provided only for type-checking in other packages. AttrSeries implements;
+    # SparseDataArray uses the xr.DataArray method.
+    @abstractmethod
+    def to_series(self) -> pd.Series: ...

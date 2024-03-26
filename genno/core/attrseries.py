@@ -15,53 +15,33 @@ from typing import (
     cast,
 )
 
-if TYPE_CHECKING:  # pragma: no cover
-    from _typeshed import SupportsRichComparisonT
-
+import numpy as np
 import pandas as pd
 import pandas.core.indexes.base as ibase
 import xarray as xr
+from packaging.version import Version
 from pandas.core.generic import NDFrame
 from pandas.core.internals.base import DataManager
-from xarray.core.coordinates import Coordinates
-from xarray.core.indexes import Indexes
-from xarray.core.utils import either_dict_or_kwargs
 
-from genno.compat.xarray import is_scalar
+from genno.compat.pandas import version as pandas_version
+from genno.compat.xarray import (
+    Coordinates,
+    DataArrayLike,
+    Indexes,
+    dtypes,
+    either_dict_or_kwargs,
+    is_scalar,
+)
 
-from .quantity import Quantity, possible_scalar
-from .types import Dims
+from .base import BaseQuantity, collect_attrs, rank, single_column_df
+
+if TYPE_CHECKING:
+    from _typeshed import SupportsRichComparisonT
+
+    from genno.types import Dims
+
 
 log = logging.getLogger(__name__)
-
-
-def _binop(name: str, swap: bool = False):
-    """Create a method for binary operator `name`."""
-
-    def method(self, other):
-        # Handle the case where `other` is scalar
-        other = possible_scalar(other)
-
-        # For __r*__ methods
-        a, b = (other, self) if swap else (self, other)
-
-        # Ensure both operands are multi-indexed, and have at least 1 common dim
-        if a.dims:
-            left = a
-            order, right = b.align_levels(left)
-        else:
-            right = b
-            order, left = a.align_levels(right)
-
-        # Invoke a pd.Series method like .mul()
-        result = getattr(left, name)(right).dropna().reorder_levels(order)
-
-        # Determine resulting units
-        result.units = left._binop_units(name, right)
-
-        return result
-
-    return method
 
 
 def _ensure_multiindex(obj):
@@ -103,7 +83,7 @@ class AttrSeriesCoordinates(Coordinates):
         return xr.DataArray(levels, coords={key: levels})
 
 
-class AttrSeries(pd.Series, Quantity):
+class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
     """:class:`pandas.Series` subclass imitating :class:`xarray.DataArray`.
 
     The AttrSeries class provides similar methods and behaviour to
@@ -127,7 +107,14 @@ class AttrSeries(pd.Series, Quantity):
     def _constructor(self):
         return AttrSeries
 
-    def __init__(self, data=None, *args, name=None, attrs=None, **kwargs):
+    def __init__(
+        self,
+        data: Any = None,
+        *args,
+        name: Optional[Hashable] = None,
+        attrs: Optional[Mapping] = None,
+        **kwargs,
+    ):
         # Emulate behaviour of Series.__init__
         if isinstance(data, DataManager) and "fastpath" not in kwargs:
             if not (
@@ -139,14 +126,14 @@ class AttrSeries(pd.Series, Quantity):
                 self.name = name
             return
 
-        attrs = Quantity._collect_attrs(data, attrs, kwargs)
+        attrs = collect_attrs(data, attrs, kwargs)
 
         if isinstance(data, (pd.Series, xr.DataArray)):
             # Extract name from existing object or use the argument
             name = ibase.maybe_extract_name(name, data, type(self))
 
             try:
-                # Pre-convert to pd.Series from xr.DataArray to preserve names and
+                # Pre-convert from xr.DataArray to pd.Series to preserve names and
                 # labels. For AttrSeries, this is a no-op (see below).
                 data = data.to_series()
             except AttributeError:
@@ -159,13 +146,17 @@ class AttrSeries(pd.Series, Quantity):
                     data = data.data
                 else:  # pragma: no cover
                     raise
-            else:
-                attrs.update()
 
-        data, name = Quantity._single_column_df(data, name)
+        data, name = single_column_df(data, name)
 
         if data is None:
             kwargs["dtype"] = float
+        elif coords := kwargs.pop("coords", None):
+            # Handle xarray-style coords arg
+            data = np.array(data).ravel()
+            kwargs["index"] = pd.MultiIndex.from_product(
+                list(coords.values()), names=list(coords.keys())
+            )
 
         # Don't pass attrs to pd.Series constructor; it currently does not accept them
         pd.Series.__init__(self, data, *args, name=name, **kwargs)
@@ -174,13 +165,7 @@ class AttrSeries(pd.Series, Quantity):
         _ensure_multiindex(self)
 
         # Update the attrs after initialization
-        self.attrs.update(attrs)
-
-    # Binary operations
-    __mul__ = _binop("mul")
-    __pow__ = _binop("pow")
-    __rtruediv__ = _binop("truediv", swap=True)
-    __truediv__ = _binop("truediv")
+        self._attrs.update(attrs)
 
     def __repr__(self):
         return (
@@ -191,6 +176,20 @@ class AttrSeries(pd.Series, Quantity):
     def from_series(cls, series, sparse=None):
         """Like :meth:`xarray.DataArray.from_series`."""
         return AttrSeries(series)
+
+    @staticmethod
+    def _perform_binary_op(
+        op, left: "AttrSeries", right: "AttrSeries", factor: float
+    ) -> "AttrSeries":
+        # Ensure both operands are multi-indexed, and have at least 1 common dim
+        if left.dims:
+            order, right = right.align_levels(left)
+        else:
+            order, left = left.align_levels(right)
+
+        # Invoke a pd.Series method like .mul()
+        fv = dict(fill_value=0.0) if rank(op) == 1 else {}
+        return getattr(left, op.__name__)(right, **fv).dropna().reorder_levels(order)
 
     def assign_coords(self, coords=None, **coord_kwargs):
         """Like :meth:`xarray.DataArray.assign_coords`."""
@@ -261,6 +260,28 @@ class AttrSeries(pd.Series, Quantity):
         idx = self.index.remove_unused_levels()
         return tuple(len(idx.levels[i]) for i in map(idx.names.index, self.dims))
 
+    def clip(
+        self,
+        min=None,
+        max=None,
+        *,
+        keep_attrs: Optional[bool] = None,
+    ):
+        """Like :meth:`.xarray.DataArray.clip`.
+
+        :meth:`.pandas.Series.clip` has arguments named `lower` and `upper` instead of
+        `min` and `max`, respectively.
+
+        :py:`keep_attrs=False` is not implemented.
+        """
+        if keep_attrs is False:
+            raise NotImplementedError("clip(…, keep_attrs=False)")
+
+        if pandas_version() < Version("2.1.0"):
+            return self._replace(pd.Series(self).clip(min, max))
+        else:
+            return super(pd.Series, self).clip(min, max)
+
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
@@ -285,7 +306,7 @@ class AttrSeries(pd.Series, Quantity):
             N = len(values)
             if N == 0:  # Dimension without labels
                 N, values = 1, [None]
-            result = pd.concat([result] * N, keys=values, names=[name])
+            result = pd.concat([result] * N, keys=values, names=[name], sort=False)
 
         # Ensure `result` is multiindexed
         try:
@@ -380,8 +401,7 @@ class AttrSeries(pd.Series, Quantity):
             index = either_dict_or_kwargs(new_name_or_name_dict, names, "rename")
             return self.rename_axis(index=index)
         else:
-            assert 0 == len(names)
-            return super().rename(new_name_or_name_dict)
+            return self._set_name(new_name_or_name_dict)
 
     def sel(
         self,
@@ -491,9 +511,7 @@ class AttrSeries(pd.Series, Quantity):
 
             def _(s):
                 # Invoke shift from the parent class pd.Series
-                return super(AttrSeries, s).shift(
-                    periods=periods, fill_value=fill_value
-                )
+                return super(pd.Series, s).shift(periods=periods, fill_value=fill_value)
 
             result = result._groupby_apply(dim, levels, _)
 
@@ -501,7 +519,7 @@ class AttrSeries(pd.Series, Quantity):
 
     def sum(
         self,
-        dim: Dims = None,
+        dim: "Dims" = None,
         # Signature from xarray.DataArray
         # *,
         skipna: Optional[bool] = None,
@@ -574,6 +592,25 @@ class AttrSeries(pd.Series, Quantity):
     def to_series(self):
         """Like :meth:`xarray.DataArray.to_series`."""
         return self
+
+    def where(
+        self,
+        cond: Any,
+        other: Any = dtypes.NA,
+        drop: bool = False,
+        *,
+        axis=None,  # Needed internally to pd.Series.clip()
+        inplace: bool = False,  # Needed internally to pd.Series.clip()
+    ):
+        """Like :meth:`xarray.DataArray.where`.
+
+        Passing :any:`True` for `drop` is not implemented.
+        """
+        if drop is True:
+            raise NotImplementedError("where(…, drop=True)")
+        elif axis is not None or inplace is not False:
+            raise NotImplementedError("where(…, axis=…) or where(…, inplace=…)")
+        return super().where(cond, other)
 
     @property
     def xindexes(self):  # pragma: no cover
@@ -689,13 +726,8 @@ class AttrSeries(pd.Series, Quantity):
             return cast(pd.Series, super())
         else:
             # Group on dimensions other than `dim`
-            return self.groupby(
-                level=list(  # type: ignore
-                    filter(lambda d: d not in dim, self.index.names)
-                ),
-                group_keys=False,
-                observed=True,
-            )
+            levels = list(filter(lambda d: d not in dim, self.index.names))
+            return self.groupby(level=levels, group_keys=False, observed=True)
 
     def _replace(self, data) -> "AttrSeries":
         """Shorthand to preserve attrs."""

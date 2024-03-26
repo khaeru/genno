@@ -1,10 +1,9 @@
-try:
-    import plotnine  # noqa: F401
-except ModuleNotFoundError:  # pragma: no cover
-    HAS_PLOTNINE = False
-else:
-    HAS_PLOTNINE = True
+from importlib.util import find_spec
 
+#: :class:`bool` indicating whether :mod:`plotnine` is available.
+HAS_PLOTNINE = find_spec("plotnine") is not None
+
+if HAS_PLOTNINE:
     from .plot import Plot
 
     __all__ = ["Plot"]
