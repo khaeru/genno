@@ -92,7 +92,7 @@ def resolve_intersphinx_aliases(app, env, node, contnode):
 
 
 def setup(app: "sphinx.application.Sphinx"):
-    """Connect :mod:`rewrite_refs` event handlers."""
+    """Connect :mod:`.rewrite_refs` event handlers."""
 
     app.add_config_value("reference_aliases", dict(), "")
 

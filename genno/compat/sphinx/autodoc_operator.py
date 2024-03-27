@@ -1,5 +1,3 @@
-"""Configure :mod:`sphinx.ext.autodoc` to handle :class:`Operator` as functions."""
-
 from typing import TYPE_CHECKING
 
 from sphinx.ext.autodoc import FunctionDocumenter
@@ -19,4 +17,5 @@ class OperatorDocumenter(FunctionDocumenter):
 
 
 def setup(app: "sphinx.application.Sphinx"):
+    """Configure :mod:`sphinx.ext.autodoc` to handle :class:`Operator` as functions."""
     app.add_autodocumenter(OperatorDocumenter, override=True)

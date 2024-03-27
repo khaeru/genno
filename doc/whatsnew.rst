@@ -1,8 +1,10 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Expose :mod:`sphinx` utilities as extensions in :mod:`genno.compat.sphinx` (:pull:`137`).
 
 v1.25.0 (2024-03-26)
 ====================

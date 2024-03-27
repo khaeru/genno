@@ -71,12 +71,14 @@ reference_aliases = {
     "Quantity": "genno.core.attrseries.AttrSeries",
     "AnyQuantity": ":data:`genno.core.quantity.AnyQuantity`",
     #
-    # Many projects' inventories lack a py:module target for the top-level module.
-    # Rewrite these so that, for instance, :py:mod:`dask` becomes :std:doc:`dask:index`.
+    # Many projects (including Sphinx itself!) do not have a py:module target in for the
+    # top-level module in objects.inv. Resolve these using :doc:`index` or similar for
+    # each project.
     "dask$": ":std:doc:`dask:index`",
     "pint$": ":std:doc:`pint <pint:index>`",
     "plotnine$": ":class:`plotnine.ggplot`",
     "pyam$": ":std:doc:`pyam:index`",
+    "sphinx$": ":std:doc:`sphinx <sphinx:index>`",
 }
 
 # -- Options for sphinx.ext.extlinks ---------------------------------------------------
@@ -110,6 +112,7 @@ intersphinx_mapping = {
     "pytest": ("https://docs.pytest.org/en/stable", None),
     "sdmx1": ("https://sdmx1.readthedocs.io/en/stable", None),
     "sparse": ("https://sparse.pydata.org/en/stable", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master", None),
     "xarray": ("https://docs.xarray.dev/en/stable", None),
 }
 
