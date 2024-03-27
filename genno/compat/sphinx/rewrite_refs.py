@@ -67,6 +67,8 @@ def apply_alias(config: Mapping[str, str], node) -> bool:
         text_node = next(iter(node.traverse(lambda n: n.tagname == "#text")))
         # Remove the old text node, add new text node with custom text
         text_node.parent.replace(text_node, Text(replace.text))
+        # Force further processing to preserve this text node
+        node["refexplicit"] = True
     if replace.reftype:
         node["reftype"] = replace.reftype
     if replace.refdomain:
@@ -90,7 +92,7 @@ def resolve_intersphinx_aliases(app, env, node, contnode):
 
 
 def setup(app: "sphinx.application.Sphinx"):
-    """Connect reference_alias event handlers."""
+    """Connect :mod:`rewrite_refs` event handlers."""
 
     app.add_config_value("reference_aliases", dict(), "")
 
