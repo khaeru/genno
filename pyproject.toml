@@ -65,6 +65,9 @@ repository = "https://github.com/khaeru/genno"
 documentation = "https://genno.rtfd.io/en/stable/"
 
 [tool.coverage.report]
+omit = [
+  "**/genno/compat/sphinx/*",
+]
 exclude_also = [
   # Imports only used by type checkers
   "if TYPE_CHECKING:",
