@@ -4,12 +4,6 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import re
-
-from docutils.nodes import Text
-from sphinx.addnodes import pending_xref
-from sphinx.ext.intersphinx import missing_reference
-
 # -- Project information ---------------------------------------------------------------
 
 project = "genno"
@@ -22,7 +16,7 @@ author = "Genno contributors"
 # Add any Sphinx extension module names here, as strings. They can be extensions coming
 # with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    "IPython.sphinxext.ipython_directive",
+    # First-party
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
     "sphinx.ext.extlinks",
@@ -30,6 +24,10 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
     "sphinx.ext.viewcode",
+    # Others
+    "genno.compat.sphinx.autodoc_operator",
+    "genno.compat.sphinx.rewrite_refs",
+    "IPython.sphinxext.ipython_directive",
 ]
 
 # List of patterns, relative to source directory, that match files and directories to
@@ -47,28 +45,6 @@ rst_prolog = """
 # Paths that contain templates, relative to the current directory.
 templates_path = ["_templates"]
 
-
-def setup(app):
-    """Sphinx build setup."""
-    # Modify the sphinx.ext.autodoc config to handle Operators as functions
-    from sphinx.ext.autodoc import FunctionDocumenter
-
-    from genno.core.operator import Operator
-
-    class OperatorDocumenter(FunctionDocumenter):
-        @classmethod
-        def can_document_member(cls, member, membername, isattr, parent) -> bool:
-            return isinstance(member, Operator) or super().can_document_member(
-                member, membername, isattr, parent
-            )
-
-    app.add_autodocumenter(OperatorDocumenter, override=True)
-
-    # Connect reftarget_alias event handlers
-    app.connect("doctree-read", resolve_internal_aliases)
-    app.connect("missing-reference", resolve_intersphinx_aliases)
-
-
 # -- Options for HTML output -----------------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for a list of
@@ -85,6 +61,25 @@ html_theme_options = dict(
     use_repository_button=True,
     use_source_button=True,
 )
+
+# -- Options for genno.compat.sphinx.reference_alias -----------------------------------
+
+# Mapping from expression → replacement.
+# Order matters here; earlier entries are matched first.
+reference_aliases = {
+    r"Quantity\.units": "genno.core.base.UnitsMixIn.units",
+    "Quantity": "genno.core.attrseries.AttrSeries",
+    "AnyQuantity": ":data:`genno.core.quantity.AnyQuantity`",
+    #
+    # Many projects (including Sphinx itself!) do not have a py:module target in for the
+    # top-level module in objects.inv. Resolve these using :doc:`index` or similar for
+    # each project.
+    "dask$": ":std:doc:`dask:index`",
+    "pint$": ":std:doc:`pint <pint:index>`",
+    "plotnine$": ":class:`plotnine.ggplot`",
+    "pyam$": ":std:doc:`pyam:index`",
+    "sphinx$": ":std:doc:`sphinx <sphinx:index>`",
+}
 
 # -- Options for sphinx.ext.extlinks ---------------------------------------------------
 
@@ -117,6 +112,7 @@ intersphinx_mapping = {
     "pytest": ("https://docs.pytest.org/en/stable", None),
     "sdmx1": ("https://sdmx1.readthedocs.io/en/stable", None),
     "sparse": ("https://sparse.pydata.org/en/stable", None),
+    "sphinx": ("https://www.sphinx-doc.org/en/master", None),
     "xarray": ("https://docs.xarray.dev/en/stable", None),
 }
 
@@ -141,70 +137,3 @@ napoleon_type_aliases = {
 # -- Options for sphinx.ext.todo -------------------------------------------------------
 
 todo_include_todos = True
-
-# -- Other configuration ---------------------------------------------------------------
-
-# Mapping from (expression) → (replacement, optional new text, optional new reftype).
-# Order matters here; earlier entries are matched first.
-#
-# h/t https://stackoverflow.com/a/62301461
-reftarget_alias = {
-    r"Quantity\.units": ("genno.core.base.UnitsMixIn.units", None, None),
-    "Quantity": ("genno.core.attrseries.AttrSeries", None, None),
-    "AnyQuantity": ("genno.core.quantity.AnyQuantity", None, "data"),
-    # Many projects' inventories lack a py:module target for the top-level module.
-    # Rewrite these so that, for instance, :py:mod:`dask` becomes :std:doc:`dask`.
-    "dask$": ("dask:index", None, "std:doc"),
-    "pint$": ("pint:index", "pint", "std:doc"),
-    "plotnine$": ("plotnine.ggplot", None, "class"),
-    "pyam$": ("pyam:index", None, "std:doc"),
-}
-
-
-def _apply_reftarget_alias(node):
-    """Apply `reftarget_alias` to `node`."""
-    try:
-        # Retrieve the "reftarget" attribute of the node
-        target = node["reftarget"]
-
-        # Identify an alias expression matching `reftarget`
-        expr = next(filter(lambda e: re.match(e, target), reftarget_alias))
-    except (KeyError, StopIteration):
-        # No such attribute, or no matching expression → nothing to do
-        return False
-
-    # Unpack information about the replacement
-    replacement, new_text, new_reftype = reftarget_alias[expr]
-
-    # Resolve the ref by substituting `replacement`
-    node["reftarget"] = re.sub(expr, replacement, target)
-
-    # Rewrite the rendered text
-    if new_text:
-        # Find the text node child
-        text_node = next(iter(node.traverse(lambda n: n.tagname == "#text")))
-        # Remove the old text node, add new text node with custom text
-        text_node.parent.replace(text_node, Text(new_text, ""))
-
-    # Rewrite the reftype
-    if new_reftype:
-        # Maybe split "foo:bar" to ref domain "foo" and ref type "bar"
-        *new_refdomain, new_reftype = new_reftype.split(":")
-        node["reftype"] = new_reftype
-        if new_refdomain:
-            node["refdomain"] = new_refdomain[0]
-
-    return True
-
-
-def resolve_internal_aliases(app, doctree):
-    """Handler for 'doctree-read' events."""
-    for node in doctree.traverse(condition=pending_xref):
-        _apply_reftarget_alias(node)
-
-
-def resolve_intersphinx_aliases(app, env, node, contnode):
-    """Handler for 'missing-reference' (intersphinx) events."""
-    if _apply_reftarget_alias(node):
-        # Delegate the rest of the work to intersphinx
-        return missing_reference(app, env, node, contnode)

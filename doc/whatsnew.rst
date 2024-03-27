@@ -1,8 +1,10 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Expose :mod:`sphinx` utilities as extensions in :mod:`genno.compat.sphinx` (:pull:`137`).
 
 v1.25.0 (2024-03-26)
 ====================
@@ -65,7 +67,7 @@ All changes
   This reduces file size and increases input/output speed.
 - If no other location is configured, cached files are stored and read in the :func:`.platformdirs.user_cache_path`,  (:pull:`135`).
 - :class:`.SparseDataArray` can be instantiated with :class:`int` data (:pull:`135`).
-  Because :mod:`sparse`` does not support nullable integer dtypes, values are automatically cast to :class:`float` and a warning is logged.
+  Because :mod:`sparse` does not support nullable integer dtypes, values are automatically cast to :class:`float` and a warning is logged.
 - Configuration handling is simplified using a :class:`.ConfigHandler` class (:pull:`135`).
 
 v1.24.1 (2024-03-14)
