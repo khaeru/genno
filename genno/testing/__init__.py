@@ -3,6 +3,7 @@ import logging
 import sys
 from contextlib import nullcontext
 from functools import partial
+from importlib.metadata import version
 from itertools import chain, islice
 from typing import TYPE_CHECKING, ContextManager, Dict
 
@@ -32,6 +33,16 @@ if TYPE_CHECKING:
 
 
 log = logging.getLogger(__name__)
+
+# Common marks
+
+MARK = {
+    0: pytest.mark.xfail(
+        condition=version("numpy") > "2",
+        reason="https://github.com/unionai-oss/pandera/issues/1656 via pyam-iamc/ixmp4",
+    )
+}
+
 
 # Pytest hooks
 

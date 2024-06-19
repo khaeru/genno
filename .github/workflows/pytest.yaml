@@ -59,6 +59,10 @@ jobs:
       with:
         fetch-depth: ${{ env.depth }}
 
+    - if: matrix.os == 'macos-13'
+      run: |
+        brew install graphviz
+
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python.version }}
@@ -66,11 +70,19 @@ jobs:
         cache-dependency-path: "**/pyproject.toml"
 
     - uses: ts-graphviz/setup-graphviz@v2
+      if: matrix.os != 'macos-13'
       with:
         macos-skip-brew-update: true
 
     - name: Install the Python package and dependencies
       run: pip install --upgrade --upgrade-strategy=eager .[tests${{ matrix.python.extras }}]
+
+    # TEMPORARY
+    - name: Force NumPy ≥ 2 over pyam-iamc 2.2.3 (2024-06-17) limitation to < 2
+      # - NumPy 2.x is not available for Python 3.8.
+      # - Pint 0.24 with NumPy 2.x compatibility is not available for Python 3.9.
+      if: ${{ matrix.python.version != '3.8' && matrix.python.version != '3.9' }}
+      run: pip install 'numpy >= 2'
 
     - name: Run test suite using pytest
       run: |

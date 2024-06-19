@@ -7,8 +7,10 @@ repos:
     - importlib_resources
     - lxml-stubs
     - nbclient
+    - matplotlib
     - pint
     - pytest
+    - requests-cache
     - sdmx1
     - Sphinx
     - types-docutils

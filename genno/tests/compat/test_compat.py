@@ -1,3 +1,9 @@
+from genno.testing import MARK
+
+MARK_0 = MARK[0]  # py38 compatibility
+
+
+@MARK_0
 def test_import_pyam():
     """.compat.pyam.operator is populated only if pyam itself is installed.
 

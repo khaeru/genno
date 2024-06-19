@@ -9,14 +9,18 @@ import pytest
 from pandas.testing import assert_frame_equal, assert_series_equal
 
 from genno import Computer, Key, Quantity
-from genno.compat.pyam import operator, util
+from genno.compat.pyam import util
 from genno.operator import add, load_file
 from genno.testing import assert_logs, assert_units
 
 if TYPE_CHECKING:
     import pathlib
 
-# Skip this entire file if pyam is not installed
+# Skip this entire file if pyam is not installed or cannot be imported
+operator = pytest.importorskip(
+    "genno.compat.pyam.operator",
+    reason="https://github.com/unionai-oss/pandera/issues/1656 via pyam-iamc/ixmp4",
+)
 pyam = pytest.importorskip("pyam", reason="pyam-iamc not installed")
 
 # Warning emitted by pandas ≥ 2.1.0 with pyam 1.9.0
