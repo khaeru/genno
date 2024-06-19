@@ -1,8 +1,10 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- genno is compatible and tested with `NumPy 2.0 <https://numpy.org/doc/stable/release/2.0.0-notes.html>`_, released 2024-06-16 (:issue:`140`, :pull:`141`).
 
 v1.26.0 (2024-03-27)
 ====================
