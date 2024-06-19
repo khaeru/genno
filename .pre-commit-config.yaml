@@ -10,6 +10,7 @@ repos:
     - matplotlib
     - pint
     - pytest
+    - requests-cache
     - sdmx1
     - Sphinx
     - types-docutils
