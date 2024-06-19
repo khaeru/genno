@@ -9,6 +9,7 @@ repos:
     - nbclient
     - pint
     - pytest
+    - requests-cache
     - sdmx1
     - Sphinx
     - types-docutils
