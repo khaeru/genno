@@ -77,6 +77,13 @@ jobs:
     - name: Install the Python package and dependencies
       run: pip install --upgrade --upgrade-strategy=eager .[tests${{ matrix.python.extras }}]
 
+    # TEMPORARY
+    - name: Force NumPy ≥ 2 over pyam-iamc 2.2.3 (2024-06-17) limitation to < 2
+      # - NumPy 2.x is not available for Python 3.8.
+      # - Pint 0.24 with NumPy 2.x compatibility is not available for Python 3.9.
+      if: ${{ matrix.python.version != '3.8' && matrix.python.version != '3.9' }}
+      run: pip install 'numpy >= 2'
+
     - name: Run test suite using pytest
       run: |
         pytest genno \
