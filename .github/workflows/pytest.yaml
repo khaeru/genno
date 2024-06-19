@@ -59,6 +59,10 @@ jobs:
       with:
         fetch-depth: ${{ env.depth }}
 
+    - if: matrix.os == 'macos-13'
+      run: |
+        brew install graphviz
+
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python.version }}
@@ -66,6 +70,7 @@ jobs:
         cache-dependency-path: "**/pyproject.toml"
 
     - uses: ts-graphviz/setup-graphviz@v2
+      if: matrix.os != 'macos-13'
       with:
         macos-skip-brew-update: true
 
