@@ -13,7 +13,12 @@ from typing import (
 )
 from warnings import warn
 
-import pyam
+try:
+    import pyam
+except AttributeError as e:
+    # https://github.com/unionai-oss/pandera/issues/1656 via pyam-iamc and ixmp4.
+    # Convert AttributeError to ImportError
+    raise ImportError("pandera") from e
 
 import genno
 import genno.operator

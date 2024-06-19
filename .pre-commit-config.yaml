@@ -7,6 +7,7 @@ repos:
     - importlib_resources
     - lxml-stubs
     - nbclient
+    - matplotlib
     - pint
     - pytest
     - sdmx1
