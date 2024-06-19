@@ -1043,7 +1043,8 @@ def unique_units_from_dim(
         assign = units[0]
     else:
         msg = (
-            f"Non-unique units {sorted(units)!r} for {type(qty).__name__} {qty.name!r}"
+            f"Non-unique units {sorted(map(str, units))!r} for {type(qty).__name__} "
+            + repr(qty.name)
         )
         if fail == "raise":
             raise ValueError(msg)
