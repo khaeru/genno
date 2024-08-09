@@ -41,14 +41,6 @@ jobs:
         # from CI.
         # - {version: "3.13.0-rc.1", extras: ""}  # Development version
 
-        # Work around https://github.com/actions/setup-python/issues/696
-        exclude:
-        - {os: macos-latest, python: {version: "3.8", extras: ",sparse"}}
-        - {os: macos-latest, python: {version: "3.9", extras: ",sparse"}}
-        include:
-        - {os: macos-13, python: {version: "3.8", extras: ",sparse"}}
-        - {os: macos-13, python: {version: "3.9", extras: ",sparse"}}
-
       fail-fast: false
 
     runs-on: ${{ matrix.os }}
