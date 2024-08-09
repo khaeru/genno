@@ -946,15 +946,18 @@ def select(
         coords = qty.coords
         idx = dict()
         for dim, labels in indexers.items():
-            s = is_scalar(labels)
-            # Check coords equal to (scalar) label or contained in (iterable of) labels
-            op1 = partial(operator.eq if s else operator.contains, labels)
-            # Take either 1 item (scalar label) or all (collection of labels)
-            ig = operator.itemgetter(0 if s else slice(None))
+            if is_scalar(labels):
+                # Check coords equal to scalar label
+                op1 = partial(operator.eq, labels)
+                # Take 1 item
+                item: Union[int, slice] = 0
+            else:
+                # Check coords contained in collection of labels; take all
+                op1, item = partial(operator.contains, set(labels)), slice(None)
 
             try:
                 # Use only the values from `indexers` (not) appearing in `qty.coords`
-                idx[dim] = ig(list(filter(lambda x: op2(op1(x)), coords[dim].data)))
+                idx[dim] = list(filter(lambda x: op2(op1(x)), coords[dim].data))[item]
             except IndexError:
                 raise KeyError(f"value {labels!r} not found in index {dim!r}")
 

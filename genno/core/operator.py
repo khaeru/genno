@@ -93,8 +93,10 @@ class Operator:
             #    which will skip documenting items that have the same __doc__ as their
             #    class
             result = update_wrapper(klass(), func, updated=())
+            assert isinstance(result, Operator)  # For mypy
 
             if helper:
+                # Register the provided `helper` method for the class
                 result.helper(helper)
 
             return result

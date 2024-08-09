@@ -280,7 +280,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         if pandas_version() < Version("2.1.0"):
             return self._replace(pd.Series(self).clip(min, max))
         else:
-            return super(pd.Series, self).clip(min, max)
+            return super().clip(min, max)  # type: ignore [safe-super]
 
     def drop(self, label):
         """Like :meth:`xarray.DataArray.drop`."""
@@ -610,7 +610,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
             raise NotImplementedError("where(…, drop=True)")
         elif axis is not None or inplace is not False:
             raise NotImplementedError("where(…, axis=…) or where(…, inplace=…)")
-        return super().where(cond, other)
+        return super().where(cond, other)  # type: ignore [safe-super]
 
     @property
     def xindexes(self):  # pragma: no cover
