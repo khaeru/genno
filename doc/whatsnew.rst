@@ -4,7 +4,14 @@ What's new
 Next release
 ============
 
-- genno is compatible and tested with `NumPy 2.0 <https://numpy.org/doc/stable/release/2.0.0-notes.html>`_, released 2024-06-16 (:issue:`140`, :pull:`141`).
+- :mod:`genno` supports and is tested on:
+
+  - `Python 3.13 <https://www.python.org/downloads/release/python-3130/>`_, released 2024-10-07 (:pull:`143`).
+    As of release time, support for :class:`.SparseDataArray` awaits :mod:`sparse`, thus `numba <https://github.com/numba/numba/issues/9413>`__ and `llvmlite <https://github.com/numba/llvmlite/issues/1084>`__.
+    :class:`.SparseDataArray` should be usable once these dependencies are updated.
+  - `NumPy 2.0 <https://numpy.org/doc/stable/release/2.0.0-notes.html>`_, released 2024-06-16 (:issue:`140`, :pull:`141`).
+
+- Support for Python 3.8 is dropped (:pull:`143`), as it has reached end-of-life.
 
 v1.26.0 (2024-03-27)
 ====================
