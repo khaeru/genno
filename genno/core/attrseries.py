@@ -10,7 +10,6 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
-    Tuple,
     Union,
     cast,
 )
@@ -249,13 +248,13 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         return self.values
 
     @property
-    def dims(self) -> Tuple[Hashable, ...]:
+    def dims(self) -> tuple[Hashable, ...]:
         """Like :attr:`xarray.DataArray.dims`."""
         # If 0-D, the single dimension has name `None` → discard
         return tuple(filter(None, self.index.names))
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         """Like :attr:`xarray.DataArray.shape`."""
         idx = self.index.remove_unused_levels()
         return tuple(len(idx.levels[i]) for i in map(idx.names.index, self.dims))
@@ -294,7 +293,10 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         return self.droplevel(names)
 
     def expand_dims(self, dim=None, axis=None, **dim_kwargs: Any) -> "AttrSeries":
-        """Like :meth:`xarray.DataArray.expand_dims`."""
+        """Like :meth:`xarray.DataArray.expand_dims`.
+
+        .. todo:: Support passing a mapping of length > 1 to `dim`.
+        """
         if isinstance(dim, list):
             dim = dict.fromkeys(dim, [])
         dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
@@ -620,7 +622,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
     # Internal methods
     def align_levels(
         self, other: "AttrSeries"
-    ) -> Tuple[Sequence[Hashable], "AttrSeries"]:
+    ) -> tuple[Sequence[Hashable], "AttrSeries"]:
         """Return a copy of `self` with ≥1 dimension(s) in the same order as `other`.
 
         Work-around for https://github.com/pandas-dev/pandas/issues/25760 and other

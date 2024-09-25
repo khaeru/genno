@@ -12,12 +12,10 @@ from typing import (
     Callable,
     Hashable,
     Iterable,
-    List,
     Mapping,
     MutableSequence,
     Optional,
     Sequence,
-    Tuple,
     Union,
     cast,
 )
@@ -247,7 +245,7 @@ class Computer:
 
     # Add computations to the Computer
 
-    def add(self, data, *args, **kwargs) -> Union[KeyLike, Tuple[KeyLike, ...]]:
+    def add(self, data, *args, **kwargs) -> Union[KeyLike, tuple[KeyLike, ...]]:
         """General-purpose method to add computations.
 
         :meth:`add` can be called in several ways; its behaviour depends on `data`; see
@@ -339,10 +337,10 @@ class Computer:
 
     def add_queue(  # noqa: C901  FIXME reduce complexity from 11 → ≤10
         self,
-        queue: Iterable[Tuple],
+        queue: Iterable[tuple],
         max_tries: int = 1,
         fail: Optional[Union[str, int]] = None,
-    ) -> Tuple[KeyLike, ...]:
+    ) -> tuple[KeyLike, ...]:
         """Add tasks from a list or `queue`.
 
         Parameters
@@ -366,7 +364,7 @@ class Computer:
             fail = self._queue_fail[-1]  # Use the same value as an outer call.
 
         # Accumulate added keys
-        added: List[KeyLike] = []
+        added: list[KeyLike] = []
 
         class Item:
             """Container for queue items."""
@@ -504,7 +502,7 @@ class Computer:
 
     def apply(
         self, generator: Callable, *keys, **kwargs
-    ) -> Union[KeyLike, Tuple[KeyLike, ...]]:
+    ) -> Union[KeyLike, tuple[KeyLike, ...]]:
         """Add computations by applying `generator` to `keys`.
 
         Parameters
@@ -529,7 +527,7 @@ class Computer:
         kwargs
             Keyword arguments to `generator`.
         """
-        args: List[Any] = self.check_keys(*keys)
+        args: list[Any] = self.check_keys(*keys)
 
         try:
             # Inspect the generator function
@@ -562,7 +560,7 @@ class Computer:
 
             return tuple(result) if len(result) > 1 else result[0]
 
-    def eval(self, expr: str) -> Tuple[Key, ...]:
+    def eval(self, expr: str) -> tuple[Key, ...]:
         r"""Evaluate `expr` to add tasks and keys.
 
         Parse a statement or block of statements using :mod:`.ast` from the Python
@@ -678,7 +676,7 @@ class Computer:
 
     def check_keys(
         self, *keys: Union[str, Key], predicate=None, action="raise"
-    ) -> List[KeyLike]:
+    ) -> list[KeyLike]:
         """Check that `keys` are in the Computer.
 
         Parameters
@@ -929,7 +927,7 @@ class Computer:
                 raise NotImplementedError("aggregate() along >1 dimension")
 
             key = Key(qty).add_tag(tag)
-            args: Tuple[Any, ...] = (
+            args: tuple[Any, ...] = (
                 operator.aggregate,
                 qty,
                 dask.core.quote(groups),
