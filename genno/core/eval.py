@@ -18,14 +18,6 @@ BINOP = {
 }
 
 
-def unparse(node) -> str:
-    """Compatibility with Python ≤3.9, where :func:`ast.unparse` is not yet defined."""
-    try:
-        return ast.unparse(node)
-    except AttributeError:  # Python 3.8
-        return repr(node)
-
-
 class Parser:
     """Parser for :meth:`.Computer.eval`."""
 
@@ -111,7 +103,7 @@ class Parser:
     def _(self, node: ast.Call):
         if not isinstance(node.func, ast.Name):
             raise NotImplementedError(
-                f"Call {unparse(node.func)}(…) instead of function"
+                f"Call {ast.unparse(node.func)}(…) instead of function"
             )
 
         # Get the computation function
@@ -144,6 +136,6 @@ class Parser:
     def _(self, node: ast.keyword):
         if not isinstance(node.value, ast.Constant):
             raise NotImplementedError(
-                f"Non-literal keyword arg {unparse(node.value)!r}"
+                f"Non-literal keyword arg {ast.unparse(node.value)!r}"
             )
         return (node.arg, node.value.value)
