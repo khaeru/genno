@@ -11,7 +11,6 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
 )
@@ -74,11 +73,11 @@ class DataArrayLike(Protocol):
 
     @property
     @abstractmethod
-    def dims(self) -> Tuple[Hashable, ...]: ...
+    def dims(self) -> tuple[Hashable, ...]: ...
 
     @property
     @abstractmethod
-    def shape(self) -> Tuple[int, ...]: ...
+    def shape(self) -> tuple[int, ...]: ...
 
     @property
     @abstractmethod
@@ -204,7 +203,7 @@ class DataArrayLike(Protocol):
     @abstractmethod
     def pipe(
         self,
-        func: Union[Callable[..., T], Tuple[Callable[..., T], str]],
+        func: Union[Callable[..., T], tuple[Callable[..., T], str]],
         *args: Any,
         **kwargs: Any,
     ): ...

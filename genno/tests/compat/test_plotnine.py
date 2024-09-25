@@ -116,9 +116,10 @@ def test_Plot_deprecated(caplog, tmp_path):
     c.get("plot")
 
     # Raised during add(…, strict=True)
-    with pytest.raises(
-        MissingKeyError, match=re.escape("required keys ('notakey',)")
-    ), pytest.warns(DeprecationWarning):
+    with (
+        pytest.raises(MissingKeyError, match=re.escape("required keys ('notakey',)")),
+        pytest.warns(DeprecationWarning),
+    ):
         c.add("plot4", Plot4.make_task(), strict=True)
 
     # Logged during get()

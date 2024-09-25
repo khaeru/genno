@@ -1,7 +1,6 @@
 import logging
 from functools import partial
 from importlib.util import find_spec
-from typing import List
 
 from genno import Computer, Key
 from genno.config import handles
@@ -31,7 +30,7 @@ def iamc(c: Computer, info):
     name = info.pop("variable")
 
     # Chain of keys produced: first entry is the key for the base quantity
-    keys: List[Key] = [Key(info.pop("base"))]
+    keys: list[Key] = [Key(info.pop("base"))]
 
     # Second entry is a simple rename
     keys.append(single_key(c.add_single(Key(name, keys[0].dims, keys[0].tag), keys[0])))

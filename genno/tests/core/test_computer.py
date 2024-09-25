@@ -151,8 +151,9 @@ class TestComputer:
 
         # aggregate() calls add(), which raises the exception
         g = Key("g", "hi")
-        with pytest.raises(MissingKeyError, match=msg(g)), pytest.warns(
-            DeprecationWarning
+        with (
+            pytest.raises(MissingKeyError, match=msg(g)),
+            pytest.warns(DeprecationWarning),
         ):
             c.aggregate(g, "tag", "i")
 
@@ -178,8 +179,9 @@ class TestComputer:
 
         # MissingKeyError is raised
         g = Key("g", "hi")
-        with pytest.raises(MissingKeyError, match=msg(g)), pytest.warns(
-            DeprecationWarning
+        with (
+            pytest.raises(MissingKeyError, match=msg(g)),
+            pytest.warns(DeprecationWarning),
         ):
             c.disaggregate(g, "j")
 
@@ -459,16 +461,18 @@ def test_add0():
     # One missing key
     with pytest.raises(MissingKeyError, match=msg("b")):
         c.add("ab", "mul", "a", "b")
-    with pytest.raises(MissingKeyError, match=msg("b")), pytest.warns(
-        DeprecationWarning
+    with (
+        pytest.raises(MissingKeyError, match=msg("b")),
+        pytest.warns(DeprecationWarning),
     ):
         c.add_product("ab", "a", "b")
 
     # Two missing keys
     with pytest.raises(MissingKeyError, match=msg("c", "b")):
         c.add("abc", "mul", "c", "a", "b")
-    with pytest.raises(MissingKeyError, match=msg("c", "b")), pytest.warns(
-        DeprecationWarning
+    with (
+        pytest.raises(MissingKeyError, match=msg("c", "b")),
+        pytest.warns(DeprecationWarning),
     ):
         c.add_product("abc", "c", "a", "b")
 
