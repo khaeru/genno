@@ -1,7 +1,7 @@
 from collections.abc import Generator, Sequence
 from itertools import chain, tee
 from operator import itemgetter
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 from .key import Key, KeyLike
 
@@ -29,8 +29,8 @@ class Graph(dict):
        infer
     """
 
-    _unsorted: Dict[KeyLike, KeyLike] = dict()
-    _full: Dict[Key, Key] = dict()
+    _unsorted: dict[KeyLike, KeyLike] = dict()
+    _full: dict[Key, Key] = dict()
 
     def __init__(self, *args, **kwargs):
         # Initialize members

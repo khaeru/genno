@@ -11,13 +11,12 @@ Notes:
 """
 
 from importlib.metadata import version
-from typing import Tuple, Type
 
 import pint
 
 try:
-    PintError: Tuple[Type[Exception], ...] = (pint.PintError,)
-    ApplicationRegistry: Type = pint.ApplicationRegistry
+    PintError: tuple[type[Exception], ...] = (pint.PintError,)
+    ApplicationRegistry: type = pint.ApplicationRegistry
 except AttributeError:  # pragma: no cover
     # Older versions of pint, e.g. 0.17
     PintError = (type("PintError", (Exception,), {}), pint.DefinitionSyntaxError)

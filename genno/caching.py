@@ -5,7 +5,7 @@ from functools import partial, singledispatch, update_wrapper
 from hashlib import blake2b
 from inspect import getmembers, iscode
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Set, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import pandas as pd
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 # Types to ignore in Encoder.default()
-IGNORE: Set[type] = set()
+IGNORE: set[type] = set()
 
 
 @singledispatch
