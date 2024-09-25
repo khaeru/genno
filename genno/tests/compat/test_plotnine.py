@@ -50,7 +50,6 @@ def test_Plot(caplog, tmp_path):
     with pytest.raises(
         TypeError,
         # Messages vary by Python version:
-        # - ≤3.8    : "…with abstract methods generate"
         # - 3.9–3.11: "…with abstract method generate" (no s)
         # - 3.12    : "…without an implementation for abstract method 'generate'"
         match=(
