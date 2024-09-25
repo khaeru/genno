@@ -6,16 +6,11 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
-    Dict,
     Iterable,
-    List,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Set,
-    Tuple,
-    Type,
     Union,
 )
 from warnings import warn
@@ -29,7 +24,7 @@ from genno.util import REPLACE_UNITS
 log = logging.getLogger(__name__)
 
 #: Registry of configuration section handlers.
-HANDLERS: Dict[str, "ConfigHandler"] = {}
+HANDLERS: dict[str, "ConfigHandler"] = {}
 
 #: .. deprecated:: 1.25.0
 #:    Instead, use:
@@ -41,7 +36,7 @@ HANDLERS: Dict[str, "ConfigHandler"] = {}
 #:       handles("section_name", False, False)(store)
 #:
 #: Configuration sections/keys to be stored with no action.
-STORE: Set[str] = set()
+STORE: set[str] = set()
 
 
 def configure(path: Optional[Union[Path, str]] = None, **config):
@@ -182,7 +177,7 @@ def parse_config(
     data = PathHandler().handle(data, c)
 
     # Assemble a queue of (args, kwargs) for Computer.add_queue()
-    queue: List[Tuple[Tuple, Dict]] = []
+    queue: list[tuple[tuple, dict]] = []
 
     # Sections to discard, e.g. with handler._store = False
     discard = set()
@@ -341,7 +336,7 @@ def general(c: Computer, info):
             # log.debug(f"Inferred dimensions ({', '.join(key.dims)}) for '*'")
 
         # If info["comp"] is None, the task is a list that collects other keys
-        _seq: Type = list
+        _seq: type = list
         task = []
 
         if info["comp"] is not None:

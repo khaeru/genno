@@ -4,14 +4,12 @@ from numbers import Number
 from typing import (
     TYPE_CHECKING,
     Any,
-    Dict,
     Generic,
     Hashable,
     Mapping,
     MutableMapping,
     Optional,
     Sequence,
-    Tuple,
     TypeVar,
     Union,
     cast,
@@ -30,7 +28,7 @@ if TYPE_CHECKING:
 class UnitsMixIn:
     """Object with :attr:`.units` and :meth:`._binary_op_units`."""
 
-    attrs: Dict[Hashable, Any]
+    attrs: dict[Hashable, Any]
 
     @property
     # def units(self) -> "Unit":
@@ -60,7 +58,7 @@ class UnitsMixIn:
 
     def _binary_op_units(
         self, other: "UnitsMixIn", op, swap: bool
-    ) -> Tuple["Unit", float]:
+    ) -> tuple["Unit", float]:
         """Determine result units for a binary operation between `self` and `other`.
 
         Returns:
@@ -177,12 +175,12 @@ class BaseQuantity(
     def __init__(
         self,
         data: Any = None,
-        coords: Union[Sequence[Tuple], Mapping[Hashable, Any], None] = None,
+        coords: Union[Sequence[tuple], Mapping[Hashable, Any], None] = None,
         dims: Union[str, Sequence[Hashable], None] = None,
         name: Hashable = None,
         attrs: Optional[Mapping] = None,
         # internal parameters
-        indexes: Optional[Dict[Hashable, pd.Index]] = None,
+        indexes: Optional[dict[Hashable, pd.Index]] = None,
         fastpath: bool = False,
         **kwargs,
     ): ...
@@ -217,7 +215,7 @@ class BaseQuantity(
 
 def prepare_binary_op(
     obj: BaseQuantity, other, op, swap: bool
-) -> Tuple[BaseQuantity, BaseQuantity, "Unit", float]:
+) -> tuple[BaseQuantity, BaseQuantity, "Unit", float]:
     """Prepare inputs for a binary operation.
 
     Returns:
@@ -274,7 +272,7 @@ def rank(op) -> int:
     }[op]
 
 
-def single_column_df(data, name: Hashable) -> Tuple[Any, Hashable]:
+def single_column_df(data, name: Hashable) -> tuple[Any, Hashable]:
     """Handle `data` and `name` arguments to Quantity constructors."""
     if isinstance(data, pd.DataFrame):
         if len(data.columns) != 1:

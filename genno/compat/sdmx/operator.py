@@ -1,4 +1,4 @@
-from typing import Dict, Hashable, Iterable, List, Mapping, Optional, Tuple, Union
+from typing import Hashable, Iterable, Mapping, Optional, Union
 
 import genno
 from genno import Quantity
@@ -23,7 +23,7 @@ __all__ = [
 def codelist_to_groups(
     codes: Union["sdmx.model.common.Codelist", Iterable["sdmx.model.common.Code"]],
     dim: Optional[str] = None,
-) -> Mapping[str, Mapping[str, List[str]]]:
+) -> Mapping[str, Mapping[str, list[str]]]:
     """Convert `codes` into a mapping from parent items to their children.
 
     The returned value is suitable for use with :func:`~.operator.aggregate`.
@@ -74,7 +74,7 @@ def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
           of `ds`, if any.
     """
     # Assemble attributes
-    attrs: Dict[str, str] = {}
+    attrs: dict[str, str] = {}
     if ds.described_by:  # pragma: no cover
         attrs.update(dataflow_urn=util.urn(ds.described_by))
     if ds.structured_by:
@@ -139,7 +139,7 @@ def quantity_to_dataset(
         series_dims = list(dims[:od_index] + dims[od_index + 1 :])
         grouped: Iterable = qty.to_series().groupby(series_dims)
         # For as_obs()
-        obs_dims: Tuple[Hashable, ...] = (od.id,)
+        obs_dims: tuple[Hashable, ...] = (od.id,)
         key_slice = slice(od_index, od_index + 1)
     else:
         # Pseudo-groupby object

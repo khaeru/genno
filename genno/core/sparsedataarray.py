@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Hashable, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Hashable, Mapping, Optional, Sequence, Union
 from warnings import filterwarnings
 
 import numpy as np
@@ -118,17 +118,17 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
     data.
     """
 
-    __slots__: Tuple[str, ...] = tuple()
+    __slots__: tuple[str, ...] = tuple()
 
     def __init__(
         self,
         data: Any = dtypes.NA,
-        coords: Union[Sequence[Tuple], Mapping[Hashable, Any], None] = None,
+        coords: Union[Sequence[tuple], Mapping[Hashable, Any], None] = None,
         dims: Union[str, Sequence[Hashable], None] = None,
         name: Hashable = None,
         attrs: Optional[Mapping] = None,
         # internal parameters
-        indexes: Optional[Dict[Hashable, pd.Index]] = None,
+        indexes: Optional[dict[Hashable, pd.Index]] = None,
         fastpath: bool = False,
         **kwargs,
     ):

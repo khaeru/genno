@@ -4,7 +4,7 @@ import sys
 from contextlib import nullcontext
 from functools import partial
 from itertools import chain, islice
-from typing import TYPE_CHECKING, ContextManager, Dict
+from typing import TYPE_CHECKING, ContextManager
 
 import numpy as np
 import pandas as pd
@@ -401,7 +401,7 @@ def assert_units(qty: "AnyQuantity", exp: str) -> None:
     ).dimensionless, f"Units '{qty.units:~}'; expected {repr(exp)}"
 
 
-def random_qty(shape: Dict[str, int], **kwargs) -> "AnyQuantity":
+def random_qty(shape: dict[str, int], **kwargs) -> "AnyQuantity":
     """Return a Quantity with `shape` and random contents.
 
     Parameters
