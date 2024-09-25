@@ -30,15 +30,16 @@ jobs:
         - {version: "3.9", extras: ",sparse"}
         - {version: "3.10", extras: ",sparse"}
         - {version: "3.11", extras: ",sparse"}
-        # Latest release / latest supported by genno / testable on GHA
         - {version: "3.12", extras: ",sparse"}
+        # Latest release / latest supported by genno / testable on GHA
+        - {version: "3.13", extras: ""}
 
         # For fresh releases and development versions of Python, compiled binary
         # wheels are not available for some dependencies, e.g. numpy, pandas.
         # Compiling these on the job runner requires a more elaborate build
         # environment, currently out of scope for genno. Exclude these versions
         # from CI.
-        # - {version: "3.13.0-rc.1", extras: ""}  # Development version
+        # - {version: "3.14.0-beta.1", extras: ""}  # Development version
 
       fail-fast: false
 
