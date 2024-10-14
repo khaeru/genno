@@ -6,7 +6,6 @@ from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Dict,
     Generator,
     Hashable,
     Iterable,
@@ -14,7 +13,6 @@ from typing import (
     Optional,
     Sequence,
     SupportsInt,
-    Tuple,
     Union,
 )
 from warnings import warn
@@ -36,7 +34,7 @@ BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
 
 
 @singledispatch
-def _name_dims_tag(value) -> Tuple[str, Tuple[str, ...], Optional[str]]:
+def _name_dims_tag(value) -> tuple[str, tuple[str, ...], Optional[str]]:
     """Convert various `value`s into (name, dims, tag) tuples.
 
     Helper for :meth:`.Key.__init__`.
@@ -69,7 +67,7 @@ class Key:
     """A hashable key for a quantity that includes its dimensionality."""
 
     _name: str
-    _dims: Tuple[str, ...]
+    _dims: tuple[str, ...]
     _tag: Optional[str]
 
     def __init__(
@@ -175,7 +173,7 @@ class Key:
             return base
 
         # mypy is fussy here
-        drop_args: Tuple[Union[str, bool], ...] = tuple(
+        drop_args: tuple[Union[str, bool], ...] = tuple(
             [drop] if isinstance(drop, bool) else drop
         )
 
@@ -284,7 +282,7 @@ class Key:
         return self._name
 
     @property
-    def dims(self) -> Tuple[str, ...]:
+    def dims(self) -> tuple[str, ...]:
         """Dimensions of the quantity, :class:`tuple` of :class:`str`."""
         return self._dims
 
@@ -325,7 +323,7 @@ class Key:
             self._name, self._dims, "+".join(filter(None, [self._tag, tag])), _fast=True
         )
 
-    def iter_sums(self) -> Generator[Tuple["Key", Callable, "Key"], None, None]:
+    def iter_sums(self) -> Generator[tuple["Key", Callable, "Key"], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
         from genno.operator import sum
 
@@ -364,7 +362,7 @@ class KeySeq:
     base: Key
 
     # Keys that have been created.
-    _keys: Dict[Hashable, Key]
+    _keys: dict[Hashable, Key]
 
     def __init__(self, *args, **kwargs):
         self.base = Key(*args, **kwargs)
@@ -408,7 +406,7 @@ class KeySeq:
         return self.base.name
 
     @property
-    def dims(self) -> Tuple[str, ...]:
+    def dims(self) -> tuple[str, ...]:
         """Dimensions of the :attr:`.base` Key."""
         return self.base.dims
 
@@ -444,7 +442,7 @@ def combo_partition(iterable):
         yield list(compress(iterable, a)), list(compress(iterable, b))
 
 
-def iter_keys(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Iterator[Key]:
+def iter_keys(value: Union[KeyLike, tuple[KeyLike, ...]]) -> Iterator[Key]:
     """Yield :class:`Keys <Key>` from `value`.
 
     Raises
@@ -467,7 +465,7 @@ def iter_keys(value: Union[KeyLike, Tuple[KeyLike, ...]]) -> Iterator[Key]:
         yield element
 
 
-def single_key(value: Union[KeyLike, Tuple[KeyLike, ...], Iterator]) -> Key:
+def single_key(value: Union[KeyLike, tuple[KeyLike, ...], Iterator]) -> Key:
     """Ensure `value` is a single :class:`Key`.
 
     Raises

@@ -1,6 +1,6 @@
 import re
 from os import PathLike
-from typing import Literal, Mapping, Optional, Set, Union
+from typing import Literal, Mapping, Optional, Union
 
 from genno.core.describe import is_list_of_keys, label
 
@@ -55,9 +55,9 @@ class Visualizer:
         self.graph = Digraph(graph_attr=self.ga, node_attr=na, edge_attr=edge_attr)
 
         # Nodes or edges already seen
-        self.seen: Set[str] = set()
+        self.seen: set[str] = set()
         # Nodes already connected to the graph
-        self.connected: Set[str] = set()
+        self.connected: set[str] = set()
 
     def get_attrs(self, kind: Literal["data", "func"], name: str, **defaults) -> dict:
         """Prepare attributes for a node of `kind`.

@@ -17,10 +17,8 @@ from typing import (
     Collection,
     Hashable,
     Iterable,
-    List,
     Mapping,
     Optional,
-    Tuple,
     Union,
     cast,
 )
@@ -197,7 +195,7 @@ def aggregate(
                 )
 
             # Handle regular expressions in `members`; skip items not in `coords`
-            mem: List[Hashable] = []
+            mem: list[Hashable] = []
             for m in members:
                 if isinstance(m, re.Pattern):
                     mem.extend(filter(m.fullmatch, coords))
@@ -384,8 +382,8 @@ def clip(
 
 def combine(
     *quantities: "AnyQuantity",
-    select: Optional[List[Mapping]] = None,
-    weights: Optional[List[float]] = None,
+    select: Optional[list[Mapping]] = None,
+    weights: Optional[list[float]] = None,
 ) -> "AnyQuantity":  # noqa: F811
     """Sum distinct `quantities` by `weights`.
 
@@ -979,7 +977,7 @@ def sub(a: "AnyQuantity", b: "AnyQuantity") -> "AnyQuantity":
 def sum(
     quantity: "AnyQuantity",
     weights: Optional["AnyQuantity"] = None,
-    dimensions: Optional[List[str]] = None,
+    dimensions: Optional[list[str]] = None,
 ) -> "AnyQuantity":
     """Sum `quantity` over `dimensions`, with optional `weights`.
 
@@ -1006,7 +1004,7 @@ def sum(
 @sum.helper
 def add_sum(
     func, c: "genno.Computer", key, qty, weights=None, dimensions=None, **kwargs
-) -> Union[KeyLike, Tuple[KeyLike, ...]]:
+) -> Union[KeyLike, tuple[KeyLike, ...]]:
     """:meth:`.Computer.add` helper for :func:`.sum`.
 
     If `key` has the name "*", the returned key has name and dimensions inferred from
