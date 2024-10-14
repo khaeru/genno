@@ -62,7 +62,7 @@ jobs:
         macos-skip-brew-update: true
 
     - name: Install the Python package and dependencies
-      run: pip install --upgrade --upgrade-strategy=eager .[tests${{ matrix.python.extras }}]
+      run: pip install --upgrade --upgrade-strategy=eager .[tests${{ matrix.python.extras }}] "pint > 0.17"
 
     - name: Run test suite using pytest
       run: |
