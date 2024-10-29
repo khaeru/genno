@@ -18,6 +18,7 @@ import genno
 from genno import Computer, operator
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import (
+    MARK,
     add_large_data,
     add_test_data,
     assert_logs,
@@ -844,6 +845,7 @@ def test_select0(data, indexers, kwargs, exp_dims, exp_shape) -> None:
         assert exp_shape == result.size
 
 
+@MARK["issue/145"]
 def test_select1(data) -> None:
     # Unpack
     *_, t_foo, t_bar, x = data
