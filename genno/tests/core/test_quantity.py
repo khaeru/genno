@@ -21,6 +21,7 @@ from genno.core.attrseries import AttrSeries
 from genno.core.quantity import assert_quantity, get_class, set_class
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import (
+    MARK,
     add_large_data,
     assert_qty_allclose,
     assert_qty_equal,
@@ -481,6 +482,7 @@ class TestQuantity:
 
         assert ({"y"} if dropped else {"x", "y"}) == set(result.dims)
 
+    @MARK["issue/145"]
     def test_sel_xarray(self, tri) -> None:
         """xarray-style indexing works."""
         # Create indexers
