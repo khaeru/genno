@@ -27,7 +27,6 @@ jobs:
         # release. Only test SparseDataArray where possible.
         # Earliest version supported by genno = earliest Python that has not
         # reached EOL
-        - {version: "3.8", extras: ",sparse"}
         - {version: "3.9", extras: ",sparse"}
         - {version: "3.10", extras: ",sparse"}
         - {version: "3.11", extras: ",sparse"}
