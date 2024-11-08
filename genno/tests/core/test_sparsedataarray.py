@@ -4,17 +4,16 @@ from typing import cast
 import numpy as np
 import pandas as pd
 import pytest
-import sparse
 import xarray as xr
 from xarray.testing import assert_equal as assert_xr_equal
 
 import genno
 from genno import Computer
-from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
+from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import add_test_data, random_qty
 
-pytestmark = pytest.mark.skipif(
-    condition=not HAS_SPARSE,
+sparse = pytest.importorskip(
+    "sparse",
     reason="`sparse` not available → can't test SparseDataArray",
 )
 
