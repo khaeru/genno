@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Type, Union
+from typing import Optional, Union
 
 import sdmx
 
@@ -29,10 +29,10 @@ def urn(obj: "sdmx.model.common.MaintainableArtefact") -> str:
 
 def handle_version(
     version: Union["sdmx.format.Version", str, None],
-) -> Tuple[
+) -> tuple[
     "sdmx.format.Version",
-    Type["sdmx.model.common.BaseDataSet"],
-    Type["sdmx.model.common.BaseObservation"],
+    type["sdmx.model.common.BaseDataSet"],
+    type["sdmx.model.common.BaseObservation"],
 ]:
     """Handle `version` arguments for :mod:`.sdmx.operator`.
 

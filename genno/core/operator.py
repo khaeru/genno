@@ -1,6 +1,6 @@
 from functools import update_wrapper
 from inspect import signature
-from typing import Any, Callable, ClassVar, Dict, Optional, Tuple, Union
+from typing import Any, Callable, ClassVar, Optional, Union
 from warnings import warn
 
 from .computer import Computer
@@ -39,7 +39,7 @@ class Operator:
     #: Function or callable for the Operator.
     func: ClassVar[Callable]
     args = ()
-    keywords: Dict[str, Any] = dict()
+    keywords: dict[str, Any] = dict()
 
     #: Helper method to add tasks to a :class:`.Computer`. Register with :meth:`helper`,
     #: invoke with :meth:`add_tasks`.
@@ -112,13 +112,13 @@ class Operator:
         return decorator
 
     def helper(
-        self, func: Callable[..., Union[KeyLike, Tuple[KeyLike, ...]]]
+        self, func: Callable[..., Union[KeyLike, tuple[KeyLike, ...]]]
     ) -> Callable:
         """Register `func` as the convenience method for adding task(s)."""
         self.__class__._add_tasks = staticmethod(func)
         return func
 
-    def add_tasks(self, c: "Computer", *args, **kwargs) -> Tuple[KeyLike, ...]:
+    def add_tasks(self, c: "Computer", *args, **kwargs) -> tuple[KeyLike, ...]:
         """Invoke :attr:`_add_task` to add tasks to `c`."""
         if self._add_tasks is None:
             raise NotImplementedError

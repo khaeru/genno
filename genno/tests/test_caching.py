@@ -9,7 +9,7 @@ import pytest
 import genno.caching
 from genno.caching import Encoder, decorate, hash_args, hash_code, hash_contents
 from genno.core.attrseries import AttrSeries
-from genno.core.sparsedataarray import SparseDataArray
+from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
 
 
 class TestEncoder:
@@ -58,11 +58,19 @@ class TestEncoder:
 @pytest.mark.parametrize(
     "value, suffix",
     (
-        (np.array([3]), "pickle"),
-        (pd.DataFrame(), "parquet"),
-        (AttrSeries(), "parquet" if sys.version_info >= (3, 9) else "pickle"),
+        (lambda: np.array([3]), "pickle"),
+        (pd.DataFrame, "parquet"),
+        (AttrSeries, "parquet" if sys.version_info >= (3, 9) else "pickle"),
         pytest.param(
-            SparseDataArray(), "parquet", marks=pytest.mark.xfail(raises=TypeError)
+            SparseDataArray,
+            "parquet",
+            marks=[
+                pytest.mark.skipif(
+                    not HAS_SPARSE,
+                    reason="`sparse` not available → can't test SparseDataArray",
+                ),
+                pytest.mark.xfail(raises=TypeError),
+            ],
         ),
     ),
 )
@@ -72,12 +80,12 @@ def test_decorate(caplog, tmp_path, value, suffix):
     caplog.set_level(logging.DEBUG)
 
     def myfunc():
-        return value
+        return value()
 
     decorated = decorate(myfunc, cache_path=tmp_path)
 
     # Decorated function runs
-    assert all(value == decorated())
+    assert all(value() == decorated())
 
     # Value was cached
     # NB use [1] not [-1] to accommodate a possible message about Parquet support
@@ -86,7 +94,7 @@ def test_decorate(caplog, tmp_path, value, suffix):
     assert 1 == len(files)
 
     # Cache hit on the second call
-    assert all(value == decorated())
+    assert all(value() == decorated())
     assert caplog.messages[-1].startswith("Cache hit for myfunc(<")
 
     for f in files:

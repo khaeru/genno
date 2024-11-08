@@ -4,13 +4,10 @@ from inspect import Parameter, signature
 from typing import (
     TYPE_CHECKING,
     Callable,
-    Dict,
     Iterable,
     Mapping,
     MutableMapping,
     Optional,
-    Tuple,
-    Type,
     Union,
 )
 
@@ -104,7 +101,7 @@ def _invalid(unit: str, exc: Exception) -> Exception:
     chars = "".join(filter("-?$".__contains__, unit))
     msg = f"unit {unit!r} cannot be parsed; contains invalid character(s) {chars!r}"
     # Use the original class of `exc`, mapped in some cases
-    cls_map: Mapping[Type[Exception], Type[Exception]] = {TypeError: ValueError}
+    cls_map: Mapping[type[Exception], type[Exception]] = {TypeError: ValueError}
     return_cls = cls_map.get(type(exc), type(exc))
     return return_cls(msg)
 
@@ -187,7 +184,7 @@ def parse_units(data: Iterable, registry=None) -> "pint.Unit":
         raise _invalid(unit, e)
 
 
-_pars_cache: Dict[Tuple[Callable, int, Tuple], Mapping] = {}
+_pars_cache: dict[tuple[Callable, int, tuple], Mapping] = {}
 
 
 def free_parameters(func: Callable) -> Mapping:
@@ -223,7 +220,7 @@ def free_parameters(func: Callable) -> Mapping:
         return _pars_cache.setdefault(key, result)
 
 
-def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMapping]:
+def partial_split(func: Callable, kwargs: Mapping) -> tuple[Callable, MutableMapping]:
     """Forgiving version of :func:`functools.partial`.
 
     Returns a :ref:`partial object <python:partial-objects>` and leftover keyword
@@ -249,7 +246,7 @@ def partial_split(func: Callable, kwargs: Mapping) -> Tuple[Callable, MutableMap
         return func, extra  # Nothing to partial; return `func` as-is
 
 
-def units_with_multiplier(value: Optional[UnitLike]) -> Tuple["pint.Unit", float]:
+def units_with_multiplier(value: Optional[UnitLike]) -> tuple["pint.Unit", float]:
     """Separate units and multiplier from :any:`.UnitLike`.
 
     Returns

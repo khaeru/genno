@@ -50,7 +50,6 @@ def test_Plot(caplog, tmp_path):
     with pytest.raises(
         TypeError,
         # Messages vary by Python version:
-        # - ≤3.8    : "…with abstract methods generate"
         # - 3.9–3.11: "…with abstract method generate" (no s)
         # - 3.12    : "…without an implementation for abstract method 'generate'"
         match=(
@@ -116,9 +115,10 @@ def test_Plot_deprecated(caplog, tmp_path):
     c.get("plot")
 
     # Raised during add(…, strict=True)
-    with pytest.raises(
-        MissingKeyError, match=re.escape("required keys ('notakey',)")
-    ), pytest.warns(DeprecationWarning):
+    with (
+        pytest.raises(MissingKeyError, match=re.escape("required keys ('notakey',)")),
+        pytest.warns(DeprecationWarning),
+    ):
         c.add("plot4", Plot4.make_task(), strict=True)
 
     # Logged during get()

@@ -77,6 +77,7 @@ reference_aliases = {
     "dask$": ":std:doc:`dask:index`",
     "pint$": ":std:doc:`pint <pint:index>`",
     "plotnine$": ":class:`plotnine.ggplot`",
+    "pyarrow$": ":std:doc:`pyarrow <pyarrow:python/index>`",
     "pyam$": ":std:doc:`pyam:index`",
     "sphinx$": ":std:doc:`sphinx <sphinx:index>`",
 }
@@ -108,6 +109,7 @@ intersphinx_mapping = {
     "platformdirs": ("https://platformdirs.readthedocs.io/en/latest", None),
     "plotnine": ("https://plotnine.org", None),
     "pyam": ("https://pyam-iamc.readthedocs.io/en/stable", None),
+    "pyarrow": ("https://arrow.apache.org/docs", None),
     "python": ("https://docs.python.org/3", None),
     "pytest": ("https://docs.pytest.org/en/stable", None),
     "sdmx1": ("https://sdmx1.readthedocs.io/en/stable", None),
