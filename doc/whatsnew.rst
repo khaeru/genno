@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.27.0 (2024-11-08)
+====================
 
 - :mod:`genno` supports and is tested on:
 
