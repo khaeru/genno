@@ -27,12 +27,12 @@ jobs:
         # release. Only test SparseDataArray where possible.
         # Earliest version supported by genno = earliest Python that has not
         # reached EOL
-        - {version: "3.9", extras: ",sparse"}
-        - {version: "3.10", extras: ",sparse"}
-        - {version: "3.11", extras: ",sparse"}
-        - {version: "3.12", extras: ",sparse"}
+        - {version: "3.9", extras: ".[sparse]"}
+        - {version: "3.10", extras: ".[sparse]"}
+        - {version: "3.11", extras: ".[sparse]"}
+        - {version: "3.12", extras: ".[sparse]"}
         # Latest release / latest supported by genno / testable on GHA
-        - {version: "3.13", extras: ""}
+        - {version: "3.13", extras: '"Pint > 0.24"'}
 
         # For fresh releases and development versions of Python, compiled binary
         # wheels are not available for some dependencies, e.g. numpy, pandas.
@@ -62,7 +62,7 @@ jobs:
         macos-skip-brew-update: true
 
     - name: Install the Python package and dependencies
-      run: pip install --upgrade --upgrade-strategy=eager .[tests${{ matrix.python.extras }}]
+      run: pip install --upgrade --upgrade-strategy=eager .[tests] ${{ matrix.python.extras }}
 
     - name: Run test suite using pytest
       run: |
