@@ -24,10 +24,10 @@ from warnings import catch_warnings, warn
 import dask
 import pint
 import xarray as xr
-from dask import get as dask_get  # NB dask.threaded.get causes JPype to segfault
-from dask.optimization import cull
+from dask.core import quote
 
 from genno import caching, operator
+from genno.compat.dask import cull
 from genno.compat.xarray import either_dict_or_kwargs
 from genno.util import partial_split
 
@@ -632,14 +632,14 @@ class Computer:
         # Protect 'config' dict, so that dask schedulers do not try to interpret its
         # contents as further tasks. Workaround for
         # https://github.com/dask/dask/issues/3523
-        self.graph["config"] = dask.core.quote(self.graph.get("config", dict()))
+        self.graph["config"] = quote(self.graph.get("config", dict()))
 
         # Cull the graph, leaving only those needed to compute *key*
         dsk, _ = cull(self.graph, key)
         log.debug(f"Cull {len(self.graph)} -> {len(dsk)} keys")
 
         try:
-            result = dask_get(dsk, key)
+            result = dask.get(dsk, key)
         except Exception as exc:
             raise ComputationError(exc) from None
         else:
@@ -927,12 +927,7 @@ class Computer:
                 raise NotImplementedError("aggregate() along >1 dimension")
 
             key = Key(qty).add_tag(tag)
-            args: tuple[Any, ...] = (
-                operator.aggregate,
-                qty,
-                dask.core.quote(groups),
-                keep,
-            )
+            args: tuple[Any, ...] = (operator.aggregate, qty, quote(groups), keep)
             kwargs = dict()
 
             msg = (
