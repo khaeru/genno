@@ -37,10 +37,13 @@ def test_computationerror_format(caplog):
         str(ce_none)
 
 
+# NB
+# - With dask < 2024.11.0, the second line is (function fail at 0xa1b2c3…,)
+# - With dask >= 2024.11.0, the second line is <Task 'test' fail()>
 EXPECTED = re.compile(
     r"""computing 'test' using:
 
-\(<function fail at \w+>,\)
+.*fail.*
 
 Use Computer.describe\(...\) to trace the computation\.
 

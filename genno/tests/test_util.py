@@ -4,9 +4,8 @@ import re
 import pandas as pd
 import pint
 import pytest
-from dask.core import quote
 
-from genno import Key, Quantity
+from genno import Key, Quantity, quote
 from genno.compat.pint import PintError
 from genno.testing import assert_logs
 from genno.util import (

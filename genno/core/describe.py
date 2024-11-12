@@ -4,8 +4,8 @@ from itertools import chain
 from textwrap import shorten
 from typing import Any, Mapping
 
-import dask.core
 import xarray as xr
+from dask.core import literal
 
 from .key import Key
 
@@ -112,7 +112,7 @@ def label(arg, max_length=MAX_ITEM_LENGTH) -> str:
         )
         fn_repr = getattr(arg.func, "__name__", repr(arg.func))
         return shorten(f"{fn_repr}({fn_args})", max_length)
-    elif isinstance(arg, dask.core.literal):
+    elif isinstance(arg, literal):
         # Item protected with dask.core.quote()
         return shorten(str(arg.data), max_length)
     elif callable(arg):

@@ -10,12 +10,11 @@ import pandas as pd
 import pint
 import pytest
 import xarray as xr
-from dask.core import quote
 from numpy.testing import assert_allclose
 from pandas.testing import assert_series_equal
 
 import genno
-from genno import Computer, operator
+from genno import Computer, operator, quote
 from genno.core.sparsedataarray import SparseDataArray
 from genno.testing import (
     MARK,

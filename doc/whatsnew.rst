@@ -1,8 +1,12 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Bug fix: :mod:`dask` 2024.11.0 would mishandle :class:`genno.Key` used in the task graph (:issue:`149`, :pull:`150`).
+  `Dask 2023.9.1 <https://docs.dask.org/en/stable/changelog.html#v2023-9-1>`_ narrowed the type of graph keys to :class:`str`, :class:`bytes`, :class:`int`, :class:`float` or tuple of same; versions until 2024.10.0 tolerated :class:`genno.Key`, but a backwards-incompatible change was made in 2024.11.0.
+  Add new compatibility functions :func:`genno.compat.dask.to_keylike` and :func:`~genno.compat.dask.cull` to replace Key with :class:`str` equivalents before invoking :func:`.dask.get`.
 
 v1.27.0 (2024-11-08)
 ====================
@@ -524,7 +528,8 @@ v1.0.0 (2021-02-13)
   - :meth:`.Computer.get_comp` and :meth:`.require_compat` are now public methods.
   - Expand tests.
 
-- Protect :class:`.Computer` configuration from :func:`dask.optimization.cull`; this prevents infinite recursion if the configuration contains strings matching keys in the graph. Add :func:`.unquote` (:issue:`25`, :pull:`26`).
+- Protect :class:`.Computer` configuration from :func:`dask.optimization.cull`; this prevents infinite recursion if the configuration contains strings matching keys in the graph.
+  Add :func:`.unquote` (:issue:`25`, :pull:`26`).
 - Simplify :func:`.collect_units` and improve unit handling in :func:`.ratio`  (:issue:`25`, :pull:`26`).
 - Add file-based caching via :meth:`.Computer.cache` and :mod:`genno.caching` (:issue:`20`, :pull:`24`).
 

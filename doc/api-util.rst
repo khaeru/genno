@@ -1,6 +1,9 @@
 Utilities and compatibility
 ***************************
 
+.. automodule:: genno.compat.dask
+   :members:
+
 .. automodule:: genno.compat.graphviz
    :members:
 
