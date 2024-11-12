@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.27.1 (2024-11-12)
+====================
 
 - Bug fix: :mod:`dask` 2024.11.0 would mishandle :class:`genno.Key` used in the task graph (:issue:`149`, :pull:`150`).
   `Dask 2023.9.1 <https://docs.dask.org/en/stable/changelog.html#v2023-9-1>`_ narrowed the type of graph keys to :class:`str`, :class:`bytes`, :class:`int`, :class:`float` or tuple of same; versions until 2024.10.0 tolerated :class:`genno.Key`, but a backwards-incompatible change was made in 2024.11.0.
