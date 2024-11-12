@@ -46,7 +46,14 @@ MARK = {
 
 
 def pytest_sessionstart(session):
-    logging.getLogger("numba").setLevel(logging.INFO)
+    """Quiet some loggers."""
+    for name in (
+        "numba",
+        "matplotlib.backends",
+        "matplotlib.font_manager",
+        "PIL.PngImagePlugin",
+    ):
+        logging.getLogger(name).setLevel(logging.INFO)
 
 
 def pytest_runtest_makereport(item, call):
