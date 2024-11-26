@@ -1,0 +1,19 @@
+name: Compile JOSS paper draft
+on: [push]
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Build draft PDF
+      uses: openjournals/openjournals-draft-action@master
+      with:
+        journal: joss
+        paper-path: doc/joss-2024/paper.md
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: paper
+        path: doc/joss-2024/paper.pdf
