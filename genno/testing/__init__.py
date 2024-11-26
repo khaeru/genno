@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 # Common marks used in multiple places. Do not reuse keys.
 MARK = {
     "issue/145": pytest.mark.xfail(
-        condition="2024.10.0" == version("xarray"),
+        condition="2024.10.0" <= version("xarray"),
         reason="with SparseDataArray only (https://github.com/pydata/xarray/issues/9694)",
     ),
 }
