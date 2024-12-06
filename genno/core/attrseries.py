@@ -178,6 +178,9 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
         # Invoke a pd.Series method like .mul()
         fv = dict(fill_value=0.0) if rank(op) == 1 else {}
+        # FIXME In downstream code this occasionally warns RuntimeWarning: The values
+        #       in the array are unorderable. Pass `sort=False` to suppress this
+        #       warning. Address.
         return getattr(left, op.__name__)(right, **fv).dropna().reorder_levels(order)
 
     def assign_coords(self, coords=None, **coord_kwargs):
