@@ -2,6 +2,7 @@ import logging
 import re
 from collections import namedtuple
 from functools import partial
+from importlib.metadata import version
 from typing import TYPE_CHECKING
 
 import pandas as pd
@@ -178,6 +179,11 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     # Result
     idf2 = c.get(key2)
     df2 = idf2.as_pandas()
+
+    # Adjust changes in behaviour in pyam-iamc ≥ 3 (Python ≥ 3.10) and < 3 (Python 3.9)
+    if version("pyam-iamc") >= "3.0.0":
+        # Version of pyam-iamc that does not sort 'region' and 'variable' dimensions
+        df2 = df2.sort_values(["region", "variable"], ignore_index=True)
 
     # Extra columns have been removed:
     # - m and t by the collapse callback.
