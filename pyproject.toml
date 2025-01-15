@@ -57,7 +57,10 @@ tests = [
   "pytest-rerunfailures",
   "pytest-xdist",
 ]
-sparse = ["sparse >= 0.12"]
+sparse = [
+  "numba >= 0.54",  # Override >= 0.49 as of sparse 0.15.4
+  "sparse >= 0.12",
+]
 
 [project.urls]
 homepage = "https://github.com/khaeru/genno"
