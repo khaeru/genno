@@ -13,7 +13,7 @@ The package name is warning, by reference, to the adage “When you hold a hamme
 License
 =======
 
-Copyright © 2018–2024 genno contributors.
+Copyright © 2018–2025 genno contributors.
 
 Licensed under the GNU General Public License, version 3.0.
 

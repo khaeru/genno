@@ -7,7 +7,7 @@
 # -- Project information ---------------------------------------------------------------
 
 project = "genno"
-copyright = "2018–2024, Genno contributors"
+copyright = "2018–%Y, Genno contributors"
 author = "Genno contributors"
 
 
