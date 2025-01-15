@@ -1,5 +1,6 @@
 [build-system]
-requires = ["build", "setuptools-scm"]
+requires = ["hatchling", "versioningit"]
+build-backend = "hatchling.build"
 
 [project]
 dynamic = ["version"]
@@ -56,7 +57,10 @@ tests = [
   "pytest-rerunfailures",
   "pytest-xdist",
 ]
-sparse = ["sparse >= 0.12"]
+sparse = [
+  "numba >= 0.54",  # Override >= 0.49 as of sparse 0.15.4
+  "sparse >= 0.12",
+]
 
 [project.urls]
 homepage = "https://github.com/khaeru/genno"
@@ -73,6 +77,16 @@ exclude_also = [
   # Exclude bodies of abstract functions
   "\\.{3}$",
   "return NotImplemented",
+]
+
+[tool.hatch]
+version.source = "versioningit"
+
+[tool.mypy]
+files = [
+  "conftest.py",
+  "doc",
+  "genno",
 ]
 
 [[tool.mypy.overrides]]
@@ -111,7 +125,5 @@ ignore = ["E501", "W191"]
 # - .core.computer.add_queue: 11
 mccabe.max-complexity = 10
 
-[tool.setuptools.packages]
-find = {}
-
-[tool.setuptools_scm]
+[tool.versioningit]
+default-version = "0.1.dev1"  # Match setuptools-scm

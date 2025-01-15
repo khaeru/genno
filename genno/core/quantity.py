@@ -20,7 +20,7 @@ def assert_quantity(*args):
     for i, arg in enumerate(args):
         if not isinstance(arg, BaseQuantity):
             raise TypeError(
-                f"arg #{i+1} ({repr(arg)[:20]}) is not Quantity; likely an incorrect key"
+                f"arg #{i + 1} ({repr(arg)[:20]}) is not Quantity; likely an incorrect key"
             )
 
 

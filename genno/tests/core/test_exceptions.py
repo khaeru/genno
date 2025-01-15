@@ -48,9 +48,10 @@ EXPECTED = re.compile(
 Use Computer.describe\(...\) to trace the computation\.
 
 Computation traceback:
-  File ".*", line 4, in fail
-    'x' \+ 3.4  # Raises TypeError(\n.*)?
-TypeError: can only concatenate str \(not "float"\) to str.*"""
+  File ".*", line 5, in fail
+    "x" \+ 3.4  # Raises TypeError.*
+TypeError: can only concatenate str \(not "float"\) to str.*""",
+    re.DOTALL,
 )
 
 

@@ -8,8 +8,7 @@ on:
   schedule:
   - cron: "0 5 * * *"
 
-# Cancel previous runs that have not completed
-concurrency:
+concurrency:  # Cancel previous runs that have not completed
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
@@ -51,31 +50,30 @@ jobs:
       with:
         fetch-depth: ${{ env.depth }}
 
-    - uses: actions/setup-python@v5
+    - name: Set up uv, Python
+      uses: astral-sh/setup-uv@v5
       with:
+        cache-dependency-glob: "**/pyproject.toml"
         python-version: ${{ matrix.python.version }}
-        cache: pip
-        cache-dependency-path: "**/pyproject.toml"
 
     - uses: ts-graphviz/setup-graphviz@v2
       with:
         macos-skip-brew-update: true
 
-    - name: Install the Python package and dependencies
-      run: pip install --upgrade --upgrade-strategy=eager .[tests] ${{ matrix.python.extras }}
+    - name: Install the package and dependencies
+      run: uv pip install .[tests] ${{ matrix.python.extras }}
 
-    - name: Run test suite using pytest
+    - name: Run tests
       run: |
-        pytest genno \
-          --trace-config --color=yes --verbose \
+        uv run --no-sync \
+          pytest \
+          --trace-config --color=yes --durations=20 -ra --verbose \
           --cov-report=xml --cov-report=term \
-          --numprocesses auto
+          --numprocesses=auto
       shell: bash
 
     - name: Upload test coverage to Codecov.io
       uses: codecov/codecov-action@v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   pre-commit:
     name: Code quality
@@ -84,14 +82,13 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
-      with: { python-version: 3.x }
-    - run: python -m pip install pre-commit && python -m pip freeze --local
+    - uses: astral-sh/setup-uv@v5
+      with:
+        cache-dependency-glob: "**/pyproject.toml"
+        python-version: "3.12"  # TEMPORARY work around https://github.com/python/mypy/issues/18216
     - uses: actions/cache@v4
       with:
         path: ~/.cache/pre-commit
         key: pre-commit|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
-    - name: Force recreation of pre-commit virtual environment for mypy
-      if: github.event_name == 'schedule'  # Comment this line to run on a PR
-      run: pre-commit clean
-    - run: pre-commit run --all-files --color=always --show-diff-on-failure
+        lookup-only: ${{ github.event_name == 'schedule' }}  # Set 'true' to recreate cache
+    - run: uvx pre-commit run --all-files --color=always --show-diff-on-failure
