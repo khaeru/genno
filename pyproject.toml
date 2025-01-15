@@ -75,6 +75,13 @@ exclude_also = [
   "return NotImplemented",
 ]
 
+[tool.mypy]
+files = [
+  "conftest.py",
+  "doc",
+  "genno",
+]
+
 [[tool.mypy.overrides]]
 # Packages/modules for which no type hints are available
 module = [

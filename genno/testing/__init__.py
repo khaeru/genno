@@ -412,9 +412,9 @@ def assert_qty_allclose(
 
 def assert_units(qty: "AnyQuantity", exp: str) -> None:
     """Assert that `qty` has units `exp`."""
-    assert (
-        qty.units / qty.units._REGISTRY(exp)
-    ).dimensionless, f"Units '{qty.units:~}'; expected {repr(exp)}"
+    assert (qty.units / qty.units._REGISTRY(exp)).dimensionless, (
+        f"Units '{qty.units:~}'; expected {repr(exp)}"
+    )
 
 
 def random_qty(shape: dict[str, int], **kwargs) -> "AnyQuantity":

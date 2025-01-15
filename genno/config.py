@@ -249,7 +249,7 @@ def aggregate(c: Computer, info):
             _log_or_raise(e, "warning", repr(e))
         else:
             if keys := list(iter_keys(result)):
-                log.info(f"Add {repr(keys[0])} + {len(keys)-1} partial sums")
+                log.info(f"Add {repr(keys[0])} + {len(keys) - 1} partial sums")
 
 
 @handles("alias")
@@ -288,7 +288,7 @@ def combine(c: Computer, info):
 
     added = iter_keys(c.add(key, task, strict=True, sums=True))
 
-    log.info(f"Add {repr(key)} + {len(list(added))-1} partial sums")
+    log.info(f"Add {repr(key)} + {len(list(added)) - 1} partial sums")
     log.debug("    as combination of")
     log.debug(f"    {repr(quantities)}")
 
@@ -354,7 +354,7 @@ def general(c: Computer, info):
         added = c.add(key, _seq(task), strict=True, sums=info.get("sums", False))
 
         if isinstance(added, tuple):
-            log.info(f"    + {len(added)-1} partial sums")
+            log.info(f"    + {len(added) - 1} partial sums")
 
 
 @handles("report")

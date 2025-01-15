@@ -139,9 +139,9 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
 
         attrs = collect_attrs(data, attrs, kwargs)
 
-        assert 0 == len(
-            kwargs
-        ), f"Unrecognized kwargs {kwargs.keys()} to SparseDataArray()"
+        assert 0 == len(kwargs), (
+            f"Unrecognized kwargs {kwargs.keys()} to SparseDataArray()"
+        )
 
         if isinstance(data, int):
             data = float(data)
