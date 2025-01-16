@@ -293,10 +293,10 @@ class Computer:
 
         if func:
             try:
-                # Use an implementation of Computation.add_task()
+                # Use an implementation of Operator.add_task()
                 return func.add_tasks(self, *args, **kwargs)  # type: ignore [attr-defined]
             except (AttributeError, NotImplementedError):
-                # Computation obj that doesn't implement .add_tasks(), or plain callable
+                # Operator obj that doesn't implement .add_tasks(), or plain callable
                 _partialed_func, kw = partial_split(func, kwargs)
                 key = args[0]
                 computation = (_partialed_func,) + args[1:]
@@ -643,6 +643,56 @@ class Computer:
         finally:
             # Unwrap config from protection applied above
             self.graph["config"] = self.graph["config"][0].data
+
+    def insert(self, key: "KeyLike", *args, tag: str = "pre", **kwargs) -> None:
+        """Insert a task before `key`, using `args`, `kwargs`.
+
+        The existing task at `key` is moved to :py:`key + tag`. The `args` and `kwargs`
+        are passed to :meth:`add` to insert a new task at `key`. The `args` must include
+        at least 2 items:
+
+        1. the new :class:`callable` or :class:`Operator`, and
+        2. the :any:`.Ellipsis` (:py:`...`), which is replaced by the shifted
+           :py:`key + tag`.
+
+        If there are more than 2 items, each instance of the :class:`.Ellipsis` is
+        replaced per (2); all other items (and `kwargs`) are passed on as-is.
+
+        The effect is that all existing tasks to which `key` are input will receive,
+        instead, the output of the added task.
+
+        One way to use :func:`insert` is with a ‘pass-through’ `operation` that, for
+        instance, performs logging, assertions, or other steps, then returns its input
+        unchanged. It is also possible to insert a new task that mutates its input in
+        certain ways.
+        """
+        # Determine a key for the task to be shifted
+        k_pre = self.infer_keys(key) + tag
+        if k_pre in self:
+            # Cannot shift `key` because the target key already exists
+            raise KeyExistsError(k_pre)
+
+        # Construct the arguments for the add() call
+        if len(args) < 2:
+            raise ValueError(
+                "Must supply at least 2 args (operator, ...) to Computer.insert(); "
+                f"got {args}"
+            )
+        elif Ellipsis not in args:
+            raise ValueError(f"One arg must be '...'; got {args}")
+
+        _args = [k_pre if a is Ellipsis else a for a in args]
+
+        try:
+            # Preserve the existing task at `key`
+            existing = self.graph[key].copy()
+            # Add `operation` at `key`, operating on the output of the original task
+            self.add(key, *_args, **kwargs)
+        except Exception:
+            raise
+        else:
+            # Move the existing task at `key` to `k_pre`
+            self.graph[k_pre] = existing
 
     # Convenience methods for the graph and its keys
 

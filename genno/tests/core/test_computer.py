@@ -1,6 +1,7 @@
 import logging
 import re
 from functools import partial
+from typing import TYPE_CHECKING, Generator
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,9 @@ from genno.testing import (
     assert_qty_allclose,
     assert_qty_equal,
 )
+
+if TYPE_CHECKING:
+    from genno.types import AnyQuantity
 
 log = logging.getLogger(__name__)
 
@@ -192,6 +196,62 @@ class TestComputer:
         # Invalid method argument
         with pytest.raises(TypeError):
             c.disaggregate("x:", "d", method=None)
+
+    @pytest.fixture
+    def c2(self, c) -> Generator[Computer, None, None]:
+        import genno
+
+        c.add("A:x-y", genno.Quantity([1.0], coords={"x": ["x0"], "y": ["y0"]}))
+        c.add("B:y-z", genno.Quantity([1.0], coords={"y": ["y0"], "z": ["z0"]}))
+        c.add("C", "mul", "A:x-y", "B:y-z")
+        yield c
+
+    def test_duplicate(self, c2):
+        print(c2.describe("C"))
+        c2.duplicate()
+        assert False
+
+    def test_insert0(self, caplog, c2) -> None:
+        def inserted(qty: "AnyQuantity", *, x, y) -> "AnyQuantity":
+            log.info(f"Inserted function, {x=} {y=}")
+            return x * qty
+
+        # print(c2.describe("C"))  # DEBUG
+        c2.insert("A:x-y", inserted, ..., x=2.0, y="foo")
+        # print(c2.describe("C"))  # DEBUG
+
+        with caplog.at_level(logging.INFO):
+            # Result can be obtained
+            result = c2.get("C")
+
+        # Inserted function/operator ran, generating a log message and altering the
+        # result
+        assert ["Inserted function, x=2.0 y='foo'"] == caplog.messages
+        assert 2.0 == result.item()
+
+    def test_insert1(self, caplog, c2) -> None:
+        def inserted(qty: "AnyQuantity", *, x, y) -> "AnyQuantity":  # pragma: no cover
+            log.info(f"Inserted function, {x=} {y=}")
+            return x * qty
+
+        # Key to be inserted already exists
+        c2.add("A:x-y:pre", None)
+        with pytest.raises(KeyExistsError):
+            c2.insert("A:x-y", inserted, ..., x=2.0, y="foo")
+
+        # Too few positional arguments
+        with pytest.raises(ValueError, match="Must supply at least 2 args"):
+            c2.insert("A:x-y", tag="foo")
+        with pytest.raises(ValueError, match="Must supply at least 2 args"):
+            c2.insert("A:x-y", inserted, tag="foo")
+
+        # 2+ positional arguments, but without `...`
+        with pytest.raises(ValueError, match=r"One arg must be '\.\.\.'; got"):
+            c2.insert("A:x-y", inserted, "bla", tag="foo")
+
+        # Incorrect kwargs
+        with pytest.raises(TypeError, match="unexpected keyword argument 'z'"):
+            c2.insert("A:x-y", inserted, ..., tag="foo", z="not_an_arg")
 
 
 def test_cache(caplog, tmp_path, test_data_path, ureg):
