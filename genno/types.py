@@ -5,12 +5,14 @@ if TYPE_CHECKING:
     from pint import Unit
     from xarray.core.types import Dims, InterpOptions, ScalarOrArray
 
+    from .core.key import KeyLike
     from .core.quantity import AnyQuantity
 
     __all__ = [
         "AnyQuantity",
         "Dims",
         "InterpOptions",
+        "KeyLike",
         "ScalarOrArray",
         "Unit",
     ]
