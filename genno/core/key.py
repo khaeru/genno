@@ -1,20 +1,10 @@
 import logging
 import re
+from collections.abc import Callable, Generator, Hashable, Iterable, Iterator, Sequence
 from functools import partial, singledispatch
 from itertools import chain, compress
 from types import MappingProxyType
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Generator,
-    Hashable,
-    Iterable,
-    Iterator,
-    Optional,
-    Sequence,
-    SupportsInt,
-    Union,
-)
+from typing import TYPE_CHECKING, Optional, SupportsInt, Union
 from warnings import warn
 
 from .attrseries import AttrSeries

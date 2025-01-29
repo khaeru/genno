@@ -1,16 +1,9 @@
 import logging
 import re
+from collections.abc import Callable, Collection, Iterable, Mapping
 from functools import partial
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Collection,
-    Iterable,
-    Mapping,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Optional, Union
 from warnings import warn
 
 import pyam

@@ -6,6 +6,7 @@ from .base import BaseQuantity
 from .sparsedataarray import SparseDataArray
 
 if TYPE_CHECKING:
+    # TODO Remove this block once Python 3.10 is the lowest supported version
     from typing import TypeAlias
 
 

@@ -1,7 +1,8 @@
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Hashable, Sequence
 from pathlib import Path
-from typing import Any, Hashable, Optional, Sequence
+from typing import Any, Optional
 from warnings import warn
 
 import plotnine as p9

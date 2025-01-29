@@ -4,7 +4,8 @@ Expanded from and with thanks for https://stackoverflow.com/a/62301461.
 """
 
 import re
-from typing import TYPE_CHECKING, Mapping, Optional
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Optional
 
 from docutils.nodes import Text
 from sphinx.addnodes import pending_xref

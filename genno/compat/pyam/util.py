@@ -1,5 +1,6 @@
 import logging
-from typing import Collection, Mapping, Sequence, Union
+from collections.abc import Collection, Mapping, Sequence
+from typing import Union
 
 import pandas as pd
 import pint

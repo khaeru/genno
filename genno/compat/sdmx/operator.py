@@ -1,4 +1,5 @@
-from typing import Hashable, Iterable, Mapping, Optional, Union
+from collections.abc import Hashable, Iterable, Mapping
+from typing import Optional, Union
 
 import genno
 from genno import Quantity

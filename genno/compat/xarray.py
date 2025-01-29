@@ -1,19 +1,8 @@
 """Compatibility with :mod:`xarray`."""
 
 from abc import abstractmethod
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    Mapping,
-    Optional,
-    Protocol,
-    Sequence,
-    TypeVar,
-    Union,
-)
+from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Optional, Protocol, TypeVar, Union
 
 import numpy as np
 import pandas as pd

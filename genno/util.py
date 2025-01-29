@@ -1,15 +1,8 @@
 import logging
+from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from functools import partial
 from inspect import Parameter, signature
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 import pandas as pd

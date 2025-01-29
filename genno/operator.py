@@ -6,22 +6,12 @@ import logging
 import operator
 import os
 import re
+from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
 from functools import partial, reduce, singledispatch
 from itertools import chain
 from os import PathLike
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Collection,
-    Hashable,
-    Iterable,
-    Mapping,
-    Optional,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import pandas as pd
 import pint

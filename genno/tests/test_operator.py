@@ -1,9 +1,9 @@
 import logging
 import random
 import re
+from collections.abc import Hashable, Iterable, Mapping
 from contextlib import nullcontext
 from functools import partial
-from typing import Hashable, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
