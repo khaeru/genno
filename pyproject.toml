@@ -77,6 +77,8 @@ exclude_also = [
   # Exclude bodies of abstract functions
   "\\.{3}$",
   "return NotImplemented",
+  # A pragma comment that excludes an entire file:
+  "\\A(?s:.*# pragma: exclude file.*)\\Z",
 ]
 
 [tool.hatch]

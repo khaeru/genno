@@ -1,16 +1,19 @@
-# This module should only be imported during type checking
-from typing import TYPE_CHECKING  # pragma: no cover
+"""Types for hinting.
 
-if TYPE_CHECKING:
-    from pint import Unit
-    from xarray.core.types import Dims, InterpOptions, ScalarOrArray
+This module and its contents should usually be imported within an :py:`if TYPE_CHECKING`
+block.
+"""
+# pragma: exclude file
 
-    from .core.quantity import AnyQuantity
+from pint import Unit
+from xarray.core.types import Dims, InterpOptions, ScalarOrArray
 
-    __all__ = [
-        "AnyQuantity",
-        "Dims",
-        "InterpOptions",
-        "ScalarOrArray",
-        "Unit",
-    ]
+from .core.quantity import AnyQuantity
+
+__all__ = [
+    "AnyQuantity",
+    "Dims",
+    "InterpOptions",
+    "ScalarOrArray",
+    "Unit",
+]
