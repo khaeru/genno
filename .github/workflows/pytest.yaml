@@ -31,7 +31,7 @@ jobs:
         - {version: "3.11", extras: ".[sparse]"}
         - {version: "3.12", extras: ".[sparse]"}
         # Latest release / latest supported by genno / testable on GHA
-        - {version: "3.13", extras: '"Pint > 0.24"'}
+        - {version: "3.13", extras: '".[sparse]"'}
 
         # For fresh releases and development versions of Python, compiled binary
         # wheels are not available for some dependencies, e.g. numpy, pandas.
