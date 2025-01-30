@@ -760,7 +760,7 @@ def _load_file_csv(
 
         # - Drop columns not mentioned in *dims*
         # - Rename columns according to *dims*
-        data = data.drop(columns=set(index_columns) - set(dims.keys())).rename(
+        data = data.drop(columns=list(set(index_columns) - set(dims.keys()))).rename(
             columns=dims
         )
 

@@ -101,10 +101,8 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 # Packages/modules for which no type hints are available
 module = [
-  "dask.*",
   "graphviz",
   "pandas.*",
-  "plotnine.*",
   "pyam.*",
   "scipy.*",
   "sparse.*",
