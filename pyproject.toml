@@ -91,6 +91,13 @@ files = [
   "genno",
 ]
 
+# Settings recommended by https://careers.wolt.com/en/blog/tech/professional-grade-mypy-configuration
+# check_untyped_defs = true  # 66 errors
+# disallow_untyped_defs = true  # 535 errors
+# disallow_any_unimported = true  # 20 errors
+# warn_return_any = true  # 24 errors
+warn_unused_ignores = true
+
 [[tool.mypy.overrides]]
 # Packages/modules for which no type hints are available
 module = [
