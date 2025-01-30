@@ -1,8 +1,12 @@
 import logging
-from typing import Collection, Mapping, Sequence, Union
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
 
 import pandas as pd
 import pint
+
+if TYPE_CHECKING:
+    from genno.types import IndexLabel
 
 log = logging.getLogger(__name__)
 
@@ -66,7 +70,7 @@ def collapse(
 
         df[target_col] = df[target_col].str.cat(entries, sep=sep)
 
-    return df.drop(to_drop, axis=1)
+    return df.drop(list(to_drop), axis=1)
 
 
 def _extra(obj):
@@ -74,7 +78,7 @@ def _extra(obj):
     return sorted(set(obj.columns) - IAMC_DIMS - {"value"})
 
 
-def drop(df: pd.DataFrame, columns: Union[Collection[str], str]) -> pd.DataFrame:
+def drop(df: pd.DataFrame, columns: "IndexLabel") -> pd.DataFrame:
     """Drop `columns` if given, or all non-IAMC columns."""
 
     if isinstance(columns, str):

@@ -1,18 +1,10 @@
 import logging
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from copy import copy
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-)
+from typing import Any, Optional, Union
 from warnings import warn
 
 from genno import operator

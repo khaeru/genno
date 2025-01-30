@@ -1,7 +1,7 @@
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Iterable, Sequence
 from itertools import chain, tee
 from operator import itemgetter
-from typing import Any, Iterable, Optional, Union
+from typing import Any, Optional, Union
 
 from .key import Key, KeyLike
 

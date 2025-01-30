@@ -1,24 +1,20 @@
 import logging
 import types
 from collections import deque
-from functools import lru_cache, partial
-from importlib import import_module
-from inspect import signature
-from itertools import compress
-from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
+from collections.abc import (
     Callable,
     Hashable,
     Iterable,
     Mapping,
     MutableSequence,
-    Optional,
     Sequence,
-    Union,
-    cast,
 )
+from functools import lru_cache, partial
+from importlib import import_module
+from inspect import signature
+from itertools import compress
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 from warnings import catch_warnings, warn
 
 import dask

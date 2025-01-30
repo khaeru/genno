@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from functools import update_wrapper
 from inspect import signature
-from typing import Any, Callable, ClassVar, Optional, Union
+from typing import Any, ClassVar, Optional, Union
 from warnings import warn
 
 from .computer import Computer

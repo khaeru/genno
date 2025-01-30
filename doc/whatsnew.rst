@@ -1,8 +1,11 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- :class:`.SparseDataArray` is tested on Python 3.13 (:pull:`158`).
+- :meth:`.AttrSeries.sum` supports the same use of :any:`Ellipsis` as :meth:`xarray.DataArray.sum`, for instance :py:`qty.sum(...)` (:pull:`158`)
 
 v1.27.1 (2024-11-12)
 ====================

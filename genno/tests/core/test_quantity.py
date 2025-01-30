@@ -583,6 +583,13 @@ class TestQuantity:
         with pytest.raises(exc_type, match=match):
             print(foo.squeeze(dim=dim))
 
+    def test_sum(self, foo) -> None:
+        """:meth:`.sum` handles :any:`Ellipsis`."""
+        assert_qty_equal(
+            foo.sum(["a", "b"]),
+            foo.sum(...),
+        )
+
     def test_to_dataframe(self, a) -> None:
         """Test Quantity.to_dataframe()."""
         # Returns pd.DataFrame

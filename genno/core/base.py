@@ -1,19 +1,8 @@
 import operator
 from abc import abstractmethod
+from collections.abc import Hashable, Mapping, MutableMapping, Sequence
 from numbers import Number
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    Hashable,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union, cast
 
 import numpy as np
 import pandas as pd

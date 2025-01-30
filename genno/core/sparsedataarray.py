@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Hashable, Mapping, Optional, Sequence, Union
+from collections.abc import Hashable, Mapping, Sequence
+from typing import Any, Optional, Union
 from warnings import filterwarnings
 
 import numpy as np

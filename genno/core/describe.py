@@ -1,8 +1,8 @@
-from collections.abc import Hashable
+from collections.abc import Hashable, Mapping
 from functools import partial
 from itertools import chain
 from textwrap import shorten
-from typing import Any, Mapping
+from typing import Any
 
 import xarray as xr
 from dask.core import literal

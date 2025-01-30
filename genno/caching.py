@@ -1,11 +1,12 @@
 import json
 import logging
 import pickle
+from collections.abc import Callable
 from functools import partial, singledispatch, update_wrapper
 from hashlib import blake2b
 from inspect import getmembers, iscode
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import pandas as pd
 

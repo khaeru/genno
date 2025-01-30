@@ -1,6 +1,7 @@
 import re
+from collections.abc import Mapping
 from os import PathLike
-from typing import Literal, Mapping, Optional, Union
+from typing import Literal, Optional, Union
 
 from genno.core.describe import is_list_of_keys, label
 

@@ -1,18 +1,8 @@
 import logging
+from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
 from functools import partial
 from itertools import tee
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Hashable,
-    Iterable,
-    Mapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -533,8 +523,10 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         if skipna is not None or min_count is not None:
             raise NotImplementedError
 
-        if dim is None or isinstance(dim, Hashable):
-            dim = tuple(filter(None, (dim,)))
+        if dim is Ellipsis:
+            dim = []
+        elif dim is None or isinstance(dim, Hashable):
+            dim = list(filter(None, (dim,)))
 
         # Check dimensions
         bad_dims = set(dim) - set(self.index.names)
