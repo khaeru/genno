@@ -11,10 +11,24 @@ class TestGraph:
         g["foo:c-b-a"] = 1
         yield g
 
-    def test_contains(self, g) -> None:
+    def test_contains0(self, g) -> None:
         """__contains__ handles incompatible types, returning False."""
         q = Quantity()
         assert (q in g) is False
+
+    def test_contains1(self, g) -> None:
+        """__contains__ handles compatible types."""
+        # Compare to a key originally str and unsorted
+        assert ("foo:c-b-a" in g) is True
+        assert (Key("foo:c-b-a") in g) is True
+        assert (Key("foo:a-b-c") in g) is True
+
+        # Compare to a key originally Key and sorted
+        g[Key("bar:x-y-z")] = None
+        assert ("bar:x-y-z" in g) is True
+        assert ("bar:z-x-y" in g) is True
+        assert (Key("bar:x-y-z") in g) is True
+        assert (Key("bar:z-x-y") in g) is True
 
     def test_delitem(self, g) -> None:
         assert Key("foo", "cba") == g.full_key("foo")

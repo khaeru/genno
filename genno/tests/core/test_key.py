@@ -104,6 +104,14 @@ class TestKey:
     def test_eq(self):
         assert False is (Key("x:a-b-c") == 3.4)
 
+    def test_hash(self) -> None:
+        k1 = Key("x:a-b-c")
+        k2 = Key("x:c-b-a")
+
+        d = {k1: None}
+
+        assert k2 in d
+
     def test_operations(self):
         key = Key("x:a-b-c")
 

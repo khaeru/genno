@@ -89,6 +89,22 @@ class TestComputer:
         with pytest.raises(ValueError, match="cannot give both"):
             c.configure(path, config={"path": path})
 
+    def test_contains(self) -> None:
+        """:meth:`Computer.__contains__` works regardless of dimension order."""
+        c = Computer()
+
+        c.add("a:x-y", 1)
+        assert "a:x-y" in c
+        assert "a:y-x" in c
+        assert Key("a:x-y") in c
+        assert Key("a:y-x") in c
+
+        c.add(Key("b:z-y-x"), 1)
+        assert "b:x-y-z" in c
+        assert "b:y-x-z" in c
+        assert Key("b:x-y-z") in c
+        assert Key("b:y-x-z") in c
+
     def test_deprecated_add_file(self, tmp_path, c):
         # Path to a temporary file
         p = tmp_path / "foo.csv"
@@ -335,15 +351,6 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     caplog.clear()
     c.get("test 2")
     assert "'cache_path' configuration not set; using " in caplog.messages[0]
-
-
-def test_contains():
-    """:meth:`Computer.__contains__` works regardless of dimension order."""
-    c = Computer()
-    c.add("a:x-y", 1)
-
-    assert "a:x-y" in c
-    assert "a:y-x" in c
 
 
 def test_eval(ureg):
