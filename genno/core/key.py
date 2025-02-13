@@ -56,8 +56,12 @@ def _(value: "AnyQuantity"):  # register() only handles bare AnyQuantity in Pyth
 class Key:
     """A hashable key for a quantity that includes its dimensionality."""
 
-    _name: str
+    __slots__ = ("_dims", "_hash", "_name", "_str", "_tag")
+
     _dims: tuple[str, ...]
+    _hash: int
+    _name: str
+    _str: str
     _tag: Optional[str]
 
     def __init__(
@@ -294,7 +298,7 @@ class Key:
         """Return a new Key with `dims` dropped."""
         return Key(
             self._name,
-            [] if dims == (True,) else filter(lambda d: d not in dims, self._dims),
+            tuple() if dims == (True,) else filter(lambda d: d not in dims, self._dims),
             self._tag,
             _fast=True,
         )
