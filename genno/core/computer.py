@@ -636,7 +636,8 @@ class Computer:
         log.debug(f"Cull {len(self.graph)} -> {len(dsk)} keys")
 
         try:
-            result = dask.get(dsk, key)
+            # Dask doesn't know about genno.Key; pass a str with original dim order
+            result = dask.get(dsk, str(key))
         except Exception as exc:
             raise ComputationError(exc) from None
         else:
