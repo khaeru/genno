@@ -269,6 +269,12 @@ class TestComputer:
         with pytest.raises(TypeError, match="unexpected keyword argument 'z'"):
             c2.insert("A:x-y", inserted, ..., tag="foo", z="not_an_arg")
 
+    def test_setitem(self, c2) -> None:
+        c2["D"] = "add", "A:x-y", "B:y-z", dict(sums=True)
+
+        result = c2.get("D:x-y-z")
+        assert set("xyz") == set(result.dims)
+
 
 def test_cache(caplog, tmp_path, test_data_path, ureg):
     caplog.set_level(logging.INFO)

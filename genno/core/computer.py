@@ -79,6 +79,14 @@ class Computer:
     def __contains__(self, item) -> bool:
         return self.graph.__contains__(item)
 
+    def __setitem__(self, data: "KeyLike", *args) -> None:
+        _args, kwargs = args[0], {}
+
+        if isinstance(_args[-1], dict):
+            *_args, kwargs = _args
+
+        self.add(data, *_args, **kwargs)
+
     # Dask data model
 
     def __dask_keys__(self):
