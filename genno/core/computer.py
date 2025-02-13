@@ -30,11 +30,12 @@ from genno.util import partial_split
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .graph import Graph
-from .key import Key, KeyLike
+from .key import Key
 
 if TYPE_CHECKING:
     import genno.core.graph
     import genno.core.key
+    from genno.core.key import KeyLike
 
 
 log = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ class Computer:
     graph: "genno.core.graph.Graph" = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
-    default_key: Optional["genno.core.key.KeyLike"] = None
+    default_key: Optional["KeyLike"] = None
 
     #: List of modules containing operators.
     #:
@@ -75,7 +76,7 @@ class Computer:
 
     # Python data model
 
-    def __contains__(self, item):
+    def __contains__(self, item) -> bool:
         return self.graph.__contains__(item)
 
     # Dask data model
@@ -241,7 +242,7 @@ class Computer:
 
     # Add computations to the Computer
 
-    def add(self, data, *args, **kwargs) -> Union[KeyLike, tuple[KeyLike, ...]]:
+    def add(self, data, *args, **kwargs) -> Union["KeyLike", tuple["KeyLike", ...]]:
         """General-purpose method to add computations.
 
         :meth:`add` can be called in several ways; its behaviour depends on `data`; see
@@ -336,7 +337,7 @@ class Computer:
         queue: Iterable[tuple],
         max_tries: int = 1,
         fail: Optional[Union[str, int]] = None,
-    ) -> tuple[KeyLike, ...]:
+    ) -> tuple["KeyLike", ...]:
         """Add tasks from a list or `queue`.
 
         Parameters
@@ -360,7 +361,7 @@ class Computer:
             fail = self._queue_fail[-1]  # Use the same value as an outer call.
 
         # Accumulate added keys
-        added: list[KeyLike] = []
+        added: list["KeyLike"] = []
 
         class Item:
             """Container for queue items."""
@@ -424,8 +425,8 @@ class Computer:
 
     # Generic graph manipulations
     def add_single(
-        self, key: KeyLike, *computation, strict=False, index=False
-    ) -> KeyLike:
+        self, key: "KeyLike", *computation, strict=False, index=False
+    ) -> "KeyLike":
         """Add a single `computation` at `key`.
 
         Parameters
@@ -498,7 +499,7 @@ class Computer:
 
     def apply(
         self, generator: Callable, *keys, **kwargs
-    ) -> Union[KeyLike, tuple[KeyLike, ...]]:
+    ) -> Union["KeyLike", tuple["KeyLike", ...]]:
         """Add computations by applying `generator` to `keys`.
 
         Parameters
@@ -700,7 +701,7 @@ class Computer:
         """Return the keys of :attr:`~genno.Computer.graph`."""
         return self.graph.keys()
 
-    def full_key(self, name_or_key: KeyLike) -> KeyLike:
+    def full_key(self, name_or_key: "KeyLike") -> "KeyLike":
         """Return the full-dimensionality key for `name_or_key`.
 
         An quantity 'foo' with dimensions (a, c, n, q, x) is available in the Computer
@@ -722,7 +723,7 @@ class Computer:
 
     def check_keys(
         self, *keys: Union[str, Key], predicate=None, action="raise"
-    ) -> list[KeyLike]:
+    ) -> list["KeyLike"]:
         """Check that `keys` are in the Computer.
 
         Parameters
@@ -784,7 +785,9 @@ class Computer:
         return result
 
     def infer_keys(
-        self, key_or_keys: Union[KeyLike, Iterable[KeyLike]], dims: Iterable[str] = []
+        self,
+        key_or_keys: Union["KeyLike", Iterable["KeyLike"]],
+        dims: Iterable[str] = [],
     ):
         """Infer complete `key_or_keys`.
 
@@ -918,7 +921,7 @@ class Computer:
 
     def aggregate(
         self,
-        qty: KeyLike,
+        qty: "KeyLike",
         tag: str,
         dims_or_groups: Union[Mapping, str, Sequence[str]],
         weights: Optional[xr.DataArray] = None,
