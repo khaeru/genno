@@ -103,7 +103,13 @@ class Key:
             + "-".join(self._dims)
             + (f":{self._tag}" if self._tag else "")
         )
-        self._hash = hash(self._str)
+        # Hash is independent of dim order
+        self._hash = hash(
+            self._name
+            + ":"
+            + "-".join(sorted(self._dims))
+            + (f":{self._tag}" if self._tag else "")
+        )
 
     # Class methods
 
