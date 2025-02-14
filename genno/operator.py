@@ -101,7 +101,7 @@ def add_binop(func, c: "genno.Computer", key, *quantities, **kwargs) -> Key:
     """
     # Fetch the full key for each quantity
     base_keys = c.check_keys(
-        *quantities, predicate=lambda v: isinstance(v, genno.Quantity)
+        *quantities, predicate=lambda v: isinstance(v, (genno.Quantity, int, float))
     )
 
     # Compute a key for the result

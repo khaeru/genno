@@ -237,7 +237,9 @@ class Key(KeyGeneratorMixIn):
             Name for the new Key. The names of *keys* are discarded.
         """
         # Iterable of dimension names from all keys, in order, with repetitions
-        dims = chain(*map(lambda k: cls(k).dims, keys))
+        dims = chain(
+            *map(lambda k: cls(k).dims if isinstance(k, (Key, str)) else (), keys)
+        )
 
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
