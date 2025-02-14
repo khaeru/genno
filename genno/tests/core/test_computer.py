@@ -77,6 +77,19 @@ class TestComputer:
         agg3 = c.get(key3)
         assert set(agg3.coords["t"].values) == set(t_groups.keys())
 
+    def test_add_single(self, c: Computer) -> None:
+        """:meth:`.add_single` unwraps a single :class:`.Key`."""
+        foo = Key("foo:a-b-c")
+        bar = Key("bar:x-y-z")
+
+        # Python built-in type stored as-is
+        c.add_single(foo, 1.0)
+        assert c.graph[foo] == 1.0
+
+        # Key also stored as-is
+        c.add_single(bar, foo)
+        assert c.graph[bar] is foo
+
     @pytest.mark.parametrize("suffix", [".json", ".yaml"])
     def test_configure(self, test_data_path, c: Computer, suffix) -> None:
         # Configuration can be read from file

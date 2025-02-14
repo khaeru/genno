@@ -460,8 +460,11 @@ class Computer:
             If `strict` is :obj:`True` and any key referred to by `computation` does
             not exist.
         """
-        if len(computation) == 1 and not callable(computation[0]):
-            # Unpack a length-1 tuple
+        # Unpack a length-1 tuple, except for a tuple starting with a callable (task
+        # with no arguments)
+        if len(computation) == 1 and (
+            isinstance(computation[0], Key) or not callable(computation[0])
+        ):
             computation = computation[0]
 
         if index:

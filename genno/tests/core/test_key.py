@@ -1,6 +1,6 @@
 import pytest
 
-from genno import Key, KeySeq
+from genno import Key, Keys, KeySeq
 from genno.core.key import iter_keys, single_key
 from genno.testing import raises_or_warns
 
@@ -104,6 +104,33 @@ class TestKey:
     def test_eq(self):
         assert False is (Key("x:a-b-c") == 3.4)
 
+    def test_generated(self) -> None:
+        k = Key("A:x")
+
+        # Generate some related keys
+        k[3]
+        k["baz"]
+        k[2]
+        k["bar"]
+        k[1]
+
+        exp = tuple(map(Key, ["A:x:3", "A:x:baz", "A:x:2", "A:x:bar", "A:x:1"]))
+        assert exp == k.generated
+
+    def test_getitem(self) -> None:
+        k = Key("foo:x-y-z:bar")
+
+        # __getitem__ works with str argument
+        assert "foo:x-y-z:bar+baz" == k["baz"]
+        assert "foo:x-y-z:bar+qux" == k["qux"]
+
+        # __getitem__ works with int argument
+        assert "foo:x-y-z:bar+0" == k[0]
+        assert "foo:x-y-z:bar+1" == k[1]
+
+        assert "foo:x-y-z:bar+2" == next(k)
+        assert "foo:x-y-z:bar+2" == k.last
+
     def test_hash(self) -> None:
         k1 = Key("x:a-b-c")
         k2 = Key("x:c-b-a")
@@ -144,6 +171,50 @@ class TestKey:
             key * 2.2
         with pytest.raises(TypeError):
             key / 3.3
+
+
+class TestKeys:
+    """:class:`.Keys` behaves as expected."""
+
+    @pytest.fixture(scope="function")
+    def keys(self) -> Keys:
+        return Keys(foo=Key("foo:a-b-c"), bar="bar:a-b-c")
+
+    def test_init(self, keys: Keys) -> None:
+        """:class:`.Keys` can be initialized with :any:`.KeyLike`."""
+        assert isinstance(keys.foo, Key) and isinstance(keys.bar, Key)
+
+    def test_delattr(self, keys: Keys) -> None:
+        """Keys can be deleted."""
+        del keys.bar
+
+        with pytest.raises(AttributeError):
+            keys.bar
+
+    def test_getattr(self, keys: Keys) -> None:
+        """Keys can be accessed and used."""
+        assert "foo:a-b-c:0" == keys.foo[0]
+
+        # Binary operations work
+        assert "foo:a-c" == keys.foo / "b"
+        assert "foo:a-b-c-d" == keys.foo * "d"
+        assert "foo:a-b-c:tag" == keys.foo + "tag"
+
+    def test_repr(self, keys: Keys) -> None:
+        keys.baz = Key("it's confusing:m-n-o-p")
+        # repr() does not include the Key.name, but the name in the namespace
+        assert "<3 keys: bar baz foo>" == repr(keys)
+
+    def test_setattr(self, keys: Keys) -> None:
+        """Keys can be set and updated."""
+        # Update an existing name
+        keys.bar = Key("bar:x-y-z")
+        # Update occurred
+        assert "bar:x-y-z" == keys.bar
+
+        # New key
+        keys.baz = Key("baz:c-b-a")
+        assert "baz:a-b-c" == keys.baz
 
 
 class TestKeySeq:
