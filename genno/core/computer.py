@@ -40,6 +40,11 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+#: Emit :class:`.FutureWarning` from :meth:`.Computer.add` when :class:`.tuple` is
+#: returned. This default value can be overridden with
+#: :py:`c.configure(config={"warn on result tuple": False})`.
+DEFAULT_WARN_ON_RESULT_TUPLE = False
+
 
 class Computer:
     """Class for describing and executing computations.
@@ -270,13 +275,14 @@ class Computer:
         .iter_keys
         .single_key
         """
+
         # Other methods
         if isinstance(data, Sequence) and not isinstance(data, str):
             # Sequence of (args, kwargs) or args; use add_queue()
-            return self.add_queue(data, *args, **kwargs)
+            return _warn_on_result(self, self.add_queue(data, *args, **kwargs))
         elif isinstance(data, str) and data in dir(self) and data != "add":
             # Name of another method such as "apply" or "eval"
-            return getattr(self, data)(*args, **kwargs)
+            return _warn_on_result(self, getattr(self, data)(*args, **kwargs))
 
         # Possibly identify a named or direct callable in `data` or `args[0]`
         func: Optional[Callable] = None
@@ -303,7 +309,10 @@ class Computer:
         if func:
             try:
                 # Use an implementation of Operator.add_task()
-                return func.add_tasks(self, *args, **kwargs)  # type: ignore [attr-defined]
+                return _warn_on_result(
+                    self,
+                    func.add_tasks(self, *args, **kwargs),  # type: ignore [attr-defined]
+                )
             except (AttributeError, NotImplementedError):
                 # Operator obj that doesn't implement .add_tasks(), or plain callable
                 _partialed_func, kw = partial_split(func, kwargs)
@@ -326,10 +335,12 @@ class Computer:
         # Optionally add sums
         if isinstance(result, Key) and sums:
             # Add one entry for each of the partial sums of `result`
-            return (result,) + self.add_queue(result.iter_sums(), fail=fail)
+            return _warn_on_result(
+                self, (result,) + self.add_queue(result.iter_sums(), fail=fail)
+            )
         else:
             # NB This might be deprecated to simplify expectations of calling code
-            return result
+            return _warn_on_result(self, result)
 
     def cache(self, func):
         """Decorate `func` so that its return value is cached.
@@ -1077,3 +1088,16 @@ class Computer:
         warn(f"Computer.disaggregate(…, {msg}", DeprecationWarning, stacklevel=2)
 
         return self.add(key, method, qty, *args, sums=False, strict=True)
+
+
+def _warn_on_result(computer: Computer, result):
+    if isinstance(result, tuple) and computer.graph.get("config", {}).get(
+        "warn on result tuple", DEFAULT_WARN_ON_RESULT_TUPLE
+    ):
+        warn(
+            f"Return {len(result)}-tuple from Computer.add(); in a future version of "
+            f"genno only the first added Key ({result[0]}) will be returned",
+            FutureWarning,
+            stacklevel=2,
+        )
+    return result

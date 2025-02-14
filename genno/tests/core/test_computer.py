@@ -90,6 +90,15 @@ class TestComputer:
         c.add_single(bar, foo)
         assert c.graph[bar] is foo
 
+    def test_add_warn(self, recwarn, c: Computer) -> None:
+        # No warning emitted with DEFAULT_WARN_ON_RESULT_TUPLE = False
+        assert 0 == len(recwarn)
+
+        # Warning emitted when configured
+        c.configure(config={"warn on result tuple": True})
+        with pytest.warns(FutureWarning, match="Return 8-tuple from Computer.add"):
+            c.add("foo:x-y-z", None, sums=True)
+
     @pytest.mark.parametrize("suffix", [".json", ".yaml"])
     def test_configure(self, test_data_path, c: Computer, suffix) -> None:
         # Configuration can be read from file
