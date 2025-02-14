@@ -6,7 +6,7 @@ block.
 # pragma: exclude file
 
 from collections.abc import Hashable, Sequence
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, TypeVar, Union
 
 from pint import Unit
 from xarray.core.types import Dims, InterpOptions, ScalarOrArray
@@ -17,6 +17,8 @@ from .core.quantity import AnyQuantity
 if TYPE_CHECKING:
     # TODO Remove this block once Python 3.10 is the lowest supported version
     from typing import TypeAlias
+
+    from .core.key import Key
 
 __all__ = [
     "AnyQuantity",
@@ -30,3 +32,7 @@ __all__ = [
 
 # Mirror the definition from pandas-stubs
 IndexLabel: "TypeAlias" = Union[Hashable, Sequence[Hashable]]
+
+#: Similar to :any:`KeyLike`, but as a variable that can be use to match function/method
+#: outputs to inputs.
+TKeyLike = TypeVar("TKeyLike", "Key", str)

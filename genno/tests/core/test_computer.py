@@ -245,9 +245,35 @@ class TestComputer:
         yield c
 
     def test_duplicate(self, c2):
-        print(c2.describe("C"))
-        c2.duplicate()
-        assert False
+        """Test :meth:`.Computer.duplicate`."""
+        N = len(c2.graph)
+
+        k1 = c2.full_key("C")
+
+        # Method runs without error
+        k2 = c2.duplicate(k1, "duplicated")
+
+        # 3 keys/tasks have been added
+        assert N + 3 == len(c2.graph)
+
+        # Added tasks have derived keys
+        k2_desc = c2.describe(k2)
+        assert "'A:x-y:duplicated'" in k2_desc
+        assert "'B:y-z:duplicated'" in k2_desc
+        assert "'C:x-y-z:duplicated'" in k2_desc
+
+        # Original tasks are not modified
+        k1_desc = c2.describe(k1)
+        assert "'A:x-y'" in k1_desc
+        assert "'B:y-z'" in k1_desc
+        assert "'C:x-y-z'" in k1_desc
+
+        # Both the original and duplicated keys can be computed
+        c2["check"] = ([k1, k2],)
+        result = c2.get("check")
+
+        # The results are identical
+        assert_qty_equal(result[0], result[1])
 
     def test_insert0(self, caplog, c2) -> None:
         def inserted(qty: "AnyQuantity", *, x, y) -> "AnyQuantity":

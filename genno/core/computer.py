@@ -36,6 +36,7 @@ if TYPE_CHECKING:
     import genno.core.graph
     import genno.core.key
     from genno.core.key import KeyLike
+    from genno.types import TKeyLike
 
 
 log = logging.getLogger(__name__)
@@ -578,6 +579,31 @@ class Computer:
                 result.append(key)
 
             return tuple(result) if len(result) > 1 else result[0]
+
+    def duplicate(self, key: "TKeyLike", tag: str) -> "TKeyLike":
+        """Duplicate the task at `key` and all of its inputs.
+
+        Re
+
+        Parameters
+        ----------
+        key
+            Starting key to duplicate.
+        tag
+            :attr:`~.Key.tag` to add to duplicated keys.
+        """
+
+        comp = self.graph[key]  # Retrieve the existing computation at `key`
+        new_key = type(key)(Key(key) + tag)  # Identify the new key; same type as `key`
+
+        if isinstance(comp, (list, tuple)):
+            # Rewrite the computation
+            new_comp = [self.duplicate(x, tag) if x in self.graph else x for x in comp]
+            self.graph[new_key] = type(comp)(new_comp)
+        else:
+            self.graph[new_key] = comp
+
+        return new_key
 
     def eval(self, expr: str) -> tuple[Key, ...]:
         r"""Evaluate `expr` to add tasks and keys.
