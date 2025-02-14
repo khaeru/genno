@@ -40,6 +40,18 @@ all"""  # noqa: E501
     )
 
 
+def test_describe_cyclic():
+    """Test that :meth:`.describe` works on a cyclic graph without RecursionError."""
+
+    c = Computer()
+
+    c["x"] = "mul", 1, 2
+    c["y"] = "concat", "x", "z:"
+    c["z"] = "add", "y", 0.5
+
+    assert "CYCLE DETECTED" in c.describe("z")
+
+
 def test_label():
     """:func:`label` handles unusual callables."""
     assert "operator.itemgetter(0)" == label(itemgetter(0))

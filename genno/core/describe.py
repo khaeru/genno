@@ -37,16 +37,27 @@ def describe_recursive(graph, comp, depth=0, seen=None):
     result = []
 
     for arg in comp:
+        try:
+            # Record whether `arg` has been seen already
+            arg_seen = arg in seen
+            # Update `seen` so that `arg` is not handled in recursive calls below
+            seen.add(arg)
+        except TypeError:  # `arg` is unhashable, e.g. dict, list
+            arg_seen = False
+
         # Don't fully reprint keys and their ancestors that have been seen
-        if isinstance(arg, Hashable) and arg in seen:
+        if isinstance(arg, Hashable) and arg_seen:
             if depth > 0:
                 # Don't print top-level items that have been seen
                 result.append(f"{indent}'{arg}' (above)")
             continue
         elif isinstance(arg, (str, Key)) and arg in graph:
             # key that exists in the graph → recurse
-            item = "'{}':\n{}".format(
-                arg, describe_recursive(graph, graph[arg], depth + 1, seen)
+            item = f"'{arg}'"
+            sub_item = describe_recursive(graph, graph[arg], depth + 1, seen)
+            # A direct recurrence of `item` in `subtree` indicates a cycle
+            item += ":\n" + sub_item.replace(
+                f"{indent}{item} (above)", f"{indent}{item} ← CYCLE DETECTED"
             )
         elif is_list_of_keys(arg, graph):
             # list → collection of items
@@ -57,10 +68,6 @@ def describe_recursive(graph, comp, depth=0, seen=None):
             # Anything else: use a readable string representation
             item = label(arg)
 
-        try:
-            seen.add(arg)
-        except TypeError:
-            pass  # `arg` is unhashable, e.g. a list
         result.append(indent + item)
 
     # Combine items
