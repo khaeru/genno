@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
 from functools import partial
-from itertools import tee
+from itertools import product, tee
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
 import numpy as np
@@ -43,6 +43,11 @@ def _ensure_multiindex(obj):
         if len(obj.index) > 1 and obj.index.name is None:
             kw["names"] = ["dim_0"]
         obj.index = pd.MultiIndex.from_product([obj.index], **kw)
+    else:
+        # From a ≥2-dim index, drop a dimension with name `None` and only 1 level
+        if len(obj.index.names) > 1 and None in obj.index.names:
+            obj.index = obj.index.droplevel(obj.index.names.index(None))
+
     return obj
 
 
@@ -285,34 +290,49 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
         return self.droplevel(names)
 
-    def expand_dims(self, dim=None, axis=None, **dim_kwargs: Any) -> "AttrSeries":
-        """Like :meth:`xarray.DataArray.expand_dims`.
-
-        .. todo:: Support passing a mapping of length > 1 to `dim`.
-        """
-        if isinstance(dim, list):
-            dim = dict.fromkeys(dim, [])
-        dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
+    def expand_dims(
+        self,
+        dim: Union[Hashable, Sequence[Hashable], Mapping[Any, Any], None] = None,
+        axis: Union[int, Sequence[int], None] = None,
+        create_index_for_new_dim: bool = True,
+        **dim_kwargs: Any,
+    ) -> "AttrSeries":
+        """Like :meth:`xarray.DataArray.expand_dims`."""
         if axis is not None:
-            raise NotImplementedError  # pragma: no cover
+            raise NotImplementedError(  # pragma: no cover
+                "AttrSeries.expand_dims(…, axis=…) keyword argument"
+            )
 
-        result = self
-        for name, values in reversed(list(dim.items())):
-            N = len(values)
-            if N == 0:  # Dimension without labels
-                N, values = 1, [None]
-            result = pd.concat([result] * N, keys=values, names=[name], sort=False)
+        # Handle inputs. This block identical to part of xr.DataArray.expand_dims.
+        if isinstance(dim, int):
+            raise TypeError("dim should be Hashable or sequence/mapping of Hashables")
+        elif isinstance(dim, Sequence) and not isinstance(dim, str):
+            if len(dim) != len(set(dim)):
+                raise ValueError("dims should not contain duplicate values.")
+            dim = dict.fromkeys(dim, 1)
+        elif dim is not None and not isinstance(dim, Mapping):
+            dim = {dim: 1}
 
-        # Ensure `result` is multiindexed
-        try:
-            i = result.index.names.index(None)
-        except ValueError:
-            pass
-        else:
-            assert 2 == len(result.index.names)
-            result.index = pd.MultiIndex.from_product([result.index.droplevel(i)])
+        if dim is None or 0 == len(dim):
+            # Nothing to do → return early
+            return self.copy()
 
-        return result
+        # Assemble names → keys mapping for added dimensions
+        n_k = {}
+        for dim, value in either_dict_or_kwargs(dim, dim_kwargs, "expand_dims").items():
+            if isinstance(value, int):
+                n_k[dim] = range(value)
+            elif isinstance(value, (list, pd.Index)) and 0 == len(value):
+                log.warning(f'Insert length-1 dimension for {{"{dim}": []}}')
+                n_k[dim] = range(1)
+            else:
+                n_k[dim] = value
+        keys = list(product(*n_k.values()))
+        names = list(n_k.keys())
+
+        return _ensure_multiindex(
+            pd.concat([self] * len(keys), keys=keys, names=names, sort=False)
+        )
 
     def ffill(self, dim: Hashable, limit: Optional[int] = None):
         """Like :meth:`xarray.DataArray.ffill`."""

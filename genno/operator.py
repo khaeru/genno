@@ -6,7 +6,7 @@ import logging
 import operator
 import os
 import re
-from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
+from collections.abc import Callable, Collection, Hashable, Iterable, Mapping, Sequence
 from functools import partial, reduce, singledispatch
 from itertools import chain
 from os import PathLike
@@ -548,6 +548,20 @@ def drop_vars(
     Like :meth:`xarray.DataArray.drop_vars`.
     """
     return qty.drop_vars(names)
+
+
+def expand_dims(
+    qty: "types.TQuantity",
+    dim: Union[Hashable, Sequence[Hashable], Mapping[Any, Any], None] = None,
+    axis: Union[int, Sequence[int], None] = None,
+    create_index_for_new_dim: bool = True,
+    **dim_kwargs: Any,
+) -> "types.TQuantity":
+    """Return a new object with an additional dimension(s).
+
+    Like :meth:`xarray.DataArray.expand_dims`.
+    """
+    return qty.expand_dims(dim, axis, create_index_for_new_dim, **dim_kwargs)
 
 
 def group_sum(qty: "AnyQuantity", group: str, sum: str) -> "AnyQuantity":
