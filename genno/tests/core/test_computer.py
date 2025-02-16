@@ -26,7 +26,7 @@ from genno.testing import (
 )
 
 if TYPE_CHECKING:
-    from genno.types import AnyQuantity
+    from genno.types import TQuantity
 
 log = logging.getLogger(__name__)
 
@@ -276,7 +276,7 @@ class TestComputer:
         assert_qty_equal(result[0], result[1])
 
     def test_insert0(self, caplog, c2) -> None:
-        def inserted(qty: "AnyQuantity", *, x, y) -> "AnyQuantity":
+        def inserted(qty: "TQuantity", *, x, y) -> "TQuantity":
             log.info(f"Inserted function, {x=} {y=}")
             return x * qty
 
@@ -294,7 +294,7 @@ class TestComputer:
         assert 2.0 == result.item()
 
     def test_insert1(self, caplog, c2) -> None:
-        def inserted(qty: "AnyQuantity", *, x, y) -> "AnyQuantity":  # pragma: no cover
+        def inserted(qty: "TQuantity", *, x, y) -> "TQuantity":  # pragma: no cover
             log.info(f"Inserted function, {x=} {y=}")
             return x * qty
 

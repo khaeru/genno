@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     import pandas
 
     from genno.core.computer import Computer
-    from genno.core.quantity import AnyQuantity
+    from genno.types import AnyQuantity, TQuantity
 
 log = logging.getLogger(__name__)
 
@@ -226,11 +226,11 @@ def _(*args: pyam.IamDataFrame, **kwargs) -> "pyam.IamDataFrame":
 
 
 def quantity_from_iamc(
-    qty: Union["AnyQuantity", "pyam.IamDataFrame", "pandas.DataFrame"],
+    qty: Union["TQuantity", "pyam.IamDataFrame", "pandas.DataFrame"],
     variable: str,
     *,
     fail: Union[int, str] = "warning",
-) -> "AnyQuantity":
+) -> "TQuantity":
     """Extract data for a single measure from `qty` with IAMC-like structure.
 
     Parameters
