@@ -4,6 +4,7 @@ import re
 from collections.abc import Hashable, Iterable, Mapping
 from contextlib import nullcontext
 from functools import partial
+from itertools import compress
 
 import numpy as np
 import pandas as pd
@@ -1035,10 +1036,31 @@ def test_write_report0(tmp_path, data) -> None:
     assert "Hello, world!" == p.read_text()
 
 
-def test_write_report1(tmp_path, data) -> None:
+EXP_HEADER = r"""# Hello, world!
+# $
+# Generated: 20..-..-..T..:..:...*$
+# $
+# Units: kg
+# $"""
+
+
+@pytest.mark.parametrize(
+    "kwargs, lines",
+    (
+        (dict(), [1, 1]),
+        (dict(header_datetime=True), [1, 1, 1, 1]),
+        (dict(header_units=True), [1, 1, 0, 0, 1, 1]),
+        (dict(header_datetime=True, header_units=True), [1, 1, 1, 1, 1, 1]),
+    ),
+)
+def test_write_report1(tmp_path, data, kwargs, lines) -> None:
     p = tmp_path.joinpath("foo.csv")
     *_, x = data
 
+    # Compile the expected header
+    expr = re.compile("\n".join(compress(EXP_HEADER.splitlines(), lines)), flags=re.M)
+
     # Header comment is written
-    operator.write_report(x, p, dict(header_comment="Hello, world!\n"))
-    assert p.read_text().startswith("# Hello, world!\n#")
+    operator.write_report(x, p, dict(header_comment="Hello, world!\n") | kwargs)
+    match = expr.match(p.read_text())
+    assert match and 0 == match.pos

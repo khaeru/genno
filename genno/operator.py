@@ -7,6 +7,7 @@ import operator
 import os
 import re
 from collections.abc import Callable, Collection, Hashable, Iterable, Mapping, Sequence
+from datetime import datetime
 from functools import partial, reduce, singledispatch
 from itertools import chain
 from os import PathLike
@@ -1067,7 +1068,17 @@ def where(
     return qty.where(cond, other, drop)
 
 
-def _format_header_comment(value: str) -> str:
+def _format_header_comment(kwargs) -> str:
+    value = kwargs.pop("header_comment", "")
+
+    if kwargs.pop("header_datetime", False):
+        tz = datetime.now().astimezone().tzinfo
+        value += os.linesep + f"Generated: {datetime.now(tz).isoformat()}" + os.linesep
+
+    units = kwargs.pop("units")
+    if kwargs.pop("header_units", False):
+        value += os.linesep + f"Units: {units}" + os.linesep
+
     if not len(value):
         return value
 
@@ -1135,12 +1146,13 @@ def _(
         kwargs.setdefault("index", False)
 
         with open(path, "wb") as f:
-            f.write(_format_header_comment(kwargs.pop("header_comment", "")).encode())
+            f.write(_format_header_comment(kwargs).encode())
             quantity.to_csv(f, **kwargs)
     elif path.suffix == ".xlsx":
         kwargs = kwargs or dict()
         kwargs.setdefault("merge_cells", False)
         kwargs.setdefault("index", False)
+        kwargs.pop("units", None)
 
         quantity.to_excel(path, **kwargs)
     else:
@@ -1155,4 +1167,6 @@ def _(
     kwargs: Optional[dict] = None,
 ) -> None:
     # Convert the Quantity to a pandas.DataFrame, then write
+    kwargs = kwargs or dict()
+    kwargs.setdefault("units", f"{quantity.units:~}")
     write_report(quantity.to_dataframe().reset_index(), path, kwargs)
