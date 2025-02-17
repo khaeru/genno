@@ -212,6 +212,7 @@ def aggregate(c: Computer, info):
     kw = dict(
         fail=info.pop("_fail", None),
         groups={info.pop("_dim"): info},
+        keep=True,
         strict=True,
         sums=True,
     )
