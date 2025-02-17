@@ -566,9 +566,14 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
         idx = self.index.remove_unused_levels()
 
+        if isinstance(dim, Iterable) and not isinstance(dim, str):
+            dim = list(dim)
+        elif dim is not None:
+            dim = [dim]
+
         to_drop = []
         for i, name in enumerate(filter(None, idx.names)):
-            if dim and name != dim:
+            if dim and name not in dim:
                 continue
             elif len(idx.levels[i]) > 1:
                 if dim is None:
