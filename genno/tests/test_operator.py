@@ -17,6 +17,7 @@ from pandas.testing import assert_series_equal
 import genno
 from genno import Computer, operator, quote
 from genno.core.sparsedataarray import SparseDataArray
+from genno.operator import random_qty
 from genno.testing import (
     MARK,
     add_large_data,
@@ -25,7 +26,6 @@ from genno.testing import (
     assert_qty_allclose,
     assert_qty_equal,
     assert_units,
-    random_qty,
 )
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")

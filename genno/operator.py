@@ -14,6 +14,7 @@ from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional, Union, cast
 
+import numpy as np
 import pandas as pd
 import pint
 import xarray as xr
@@ -53,6 +54,7 @@ __all__ = [
     "mul",
     "pow",
     "product",
+    "random_qty",
     "ratio",
     "relabel",
     "rename",
@@ -817,6 +819,33 @@ def pow(a: "TQuantity", b: Union["TQuantity", int]) -> "TQuantity":
         units, so the returned quantity is dimensionless.
     """
     return a**b
+
+
+def random_qty(shape: dict[str, int], **kwargs) -> "AnyQuantity":
+    """Return a Quantity with `shape` and random contents.
+
+    Parameters
+    ----------
+    shape : dict
+        Mapping from dimension names (:class:`str`) to lengths along each dimension
+        (:class:`int`).
+    **kwargs
+        Other keyword arguments to :class:`.Quantity`.
+
+    Returns
+    -------
+    .Quantity
+        Random data with one dimension for each key in `shape`, and coords along those
+        dimensions like "foo1", "foo2", with total length matching the value from
+        `shape`. If `shape` is empty, a scalar (0-dimensional) Quantity.
+    """
+    return genno.Quantity(
+        np.random.rand(*shape.values()) if len(shape) else np.random.rand(1)[0],
+        coords={
+            dim: [f"{dim}{i}" for i in range(length)] for dim, length in shape.items()
+        },
+        **kwargs,
+    )
 
 
 def relabel(

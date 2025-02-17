@@ -417,33 +417,6 @@ def assert_units(qty: "AnyQuantity", exp: str) -> None:
     )
 
 
-def random_qty(shape: dict[str, int], **kwargs) -> "AnyQuantity":
-    """Return a Quantity with `shape` and random contents.
-
-    Parameters
-    ----------
-    shape : dict
-        Mapping from dimension names (:class:`str`) to lengths along each dimension
-        (:class:`int`).
-    **kwargs
-        Other keyword arguments to :class:`.Quantity`.
-
-    Returns
-    -------
-    .Quantity
-        Random data with one dimension for each key in `shape`, and coords along those
-        dimensions like "foo1", "foo2", with total length matching the value from
-        `shape`. If `shape` is empty, a scalar (0-dimensional) Quantity.
-    """
-    return genno.Quantity(
-        np.random.rand(*shape.values()) if len(shape) else np.random.rand(1)[0],
-        coords={
-            dim: [f"{dim}{i}" for i in range(length)] for dim, length in shape.items()
-        },
-        **kwargs,
-    )
-
-
 def raises_or_warns(value, *args, **kwargs) -> ContextManager:
     """Context manager for tests that :func:`.pytest.raises` or :func:`.pytest.warns`.
 
@@ -552,3 +525,19 @@ def quantity_is_sparsedataarray(request):
         yield
     finally:
         set_class(pre)
+
+
+def __getattr__(name):
+    if name == "random_qty":
+        from warnings import warn
+
+        warn(
+            "Import random_qty from genno.testing; import from genno.operator instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        from genno.operator import random_qty
+
+        return random_qty
+    raise AttributeError(name)

@@ -10,7 +10,8 @@ from xarray.testing import assert_equal as assert_xr_equal
 import genno
 from genno import Computer
 from genno.core.sparsedataarray import SparseDataArray
-from genno.testing import add_test_data, random_qty
+from genno.operator import random_qty
+from genno.testing import add_test_data
 
 sparse = pytest.importorskip(
     "sparse",
