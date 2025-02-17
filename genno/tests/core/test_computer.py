@@ -18,6 +18,7 @@ from genno import (
     operator,
 )
 from genno.compat.pint import ApplicationRegistry
+from genno.core.key import single_key
 from genno.testing import (
     add_dantzig,
     add_test_data,
@@ -76,6 +77,14 @@ class TestComputer:
         # Only the aggregated and no original keys along the aggregated dimension
         agg3 = c.get(key3)
         assert set(agg3.coords["t"].values) == set(t_groups.keys())
+
+    def test_add_div_dims(self, c: Computer) -> None:
+        """Dimensions are inferred when :meth:`.add`-ing a :func:`.div` task."""
+        c["X:a-b"] = (None,)
+        c["Y:b-c"] = (None,)
+
+        key = single_key(c.add("Z", "div", "X:a-b", "Y:b-c"))
+        assert set("abc") == set(key.dims)
 
     def test_add_single(self, c: Computer) -> None:
         """:meth:`.add_single` unwraps a single :class:`.Key`."""
