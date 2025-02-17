@@ -1019,6 +1019,13 @@ def test_where(data) -> None:
     assert x.units == result.units
 
 
+def test_wildcard_qty() -> None:
+    result = operator.wildcard_qty(1.0, "dimensionless", "abc")
+
+    assert set("abc") == set(result.dims)
+    assert all(c.data == ["*"] for c in result.coords.values())
+
+
 def test_write_report0(tmp_path, data) -> None:
     p = tmp_path.joinpath("foo.txt")
     *_, x = data

@@ -63,6 +63,7 @@ __all__ = [
     "sum",
     "unique_units_from_dim",
     "where",
+    "wildcard_qty",
     "write_report",
 ]
 
@@ -1066,6 +1067,14 @@ def where(
 ) -> "TQuantity":
     """Call :meth:`.Quantity.where`."""
     return qty.where(cond, other, drop)
+
+
+def wildcard_qty(value, units, dims: Sequence[Hashable]) -> "AnyQuantity":
+    """Return a Quantity with 1 label "*" along each of `dims`."""
+    if genno.Quantity is SparseDataArray:
+        # Convert `value` into a list-of-lists of appropriate depth
+        value = reduce(lambda x, y: [x], range(len(dims)), value)
+    return genno.Quantity(value, coords={d: ["*"] for d in dims}, units=units)
 
 
 def _format_header_comment(kwargs) -> str:
