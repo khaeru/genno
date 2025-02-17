@@ -1,5 +1,5 @@
-from collections.abc import Hashable, Iterable, Mapping
-from typing import TYPE_CHECKING, Optional, Union
+from collections.abc import Callable, Hashable, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 from genno.operator import write_report
 
@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "codelist_to_groups",
+    "coords_to_codelists",
     "dataset_to_quantity",
     "quantity_to_dataset",
     "quantity_to_message",
@@ -56,6 +57,28 @@ def codelist_to_groups(
         groups[code.id] = list(map(str, code.child))
 
     return {dim: groups}
+
+
+def coords_to_codelists(
+    qty: "AnyQuantity", *, id_transform: Optional[Callable] = str.upper, **kwargs
+) -> list["sdmx.model.common.Codelist"]:
+    """Convert the coordinates of `qty` to a collection of :class:`.Codelist`."""
+    from sdmx.model.common import Codelist
+
+    result = []
+
+    def _transform(value: Any) -> str:
+        if id_transform is None:
+            return str(value)
+        else:
+            return id_transform(value)
+
+    for dim_id, labels in qty.coords.items():
+        cl = Codelist(id=_transform(dim_id), **kwargs)
+        [cl.setdefault(id=str(label)) for label in labels.data]
+        result.append(cl)
+
+    return result
 
 
 def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> "AnyQuantity":
