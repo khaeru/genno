@@ -235,6 +235,9 @@ class Key(KeyGeneratorMixIn):
         ----------
         new_name : str
             Name for the new Key. The names of *keys* are discarded.
+        keys
+            May include instances of :class:`.Key`, :class:`str` (converted to Key), or
+            :class:`Quantity` (the dimensions of the quantity are used directly).
         """
         # Iterable of dimension names from all keys, in order, with repetitions
         dims = chain(

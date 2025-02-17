@@ -4,7 +4,7 @@
 **genno** is a Python package for describing and executing complex calculations on labelled, multi-dimensional data.
 It aims to make these calculations efficient, transparent, modular, and easily validated as part of scientific research.
 
-genno is built on high-quality Python data packages including :py:`dask`, :mod:`xarray`, :mod:`pandas`, and :py:`pint`; and provides (current or planned) compatibility with packages including :mod:`plotnine <.compat.plotnine>`, :mod:`sdmx1 <.compat.sdmx>`, :mod:`matplotlib`, :mod:`ixmp`, and :mod:`pyam <.compat.pyam>`.
+genno is built on high-quality Python data packages including :mod:`dask <dask>`, :mod:`xarray`, :mod:`pandas`, :mod:`pint`, and :mod:`sparse`; and provides (current or planned) compatibility with packages including :mod:`plotnine <.compat.plotnine>`, :mod:`sdmx1 <.compat.sdmx>`, :mod:`matplotlib`, :mod:`ixmp`, and :mod:`pyam <.compat.pyam>`.
 
 .. toctree::
    :maxdepth: 2

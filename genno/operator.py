@@ -47,6 +47,7 @@ __all__ = [
     "disaggregate_shares",
     "div",
     "drop_vars",
+    "expand_dims",
     "group_sum",
     "index_to",
     "interpolate",
@@ -558,7 +559,7 @@ def expand_dims(
     create_index_for_new_dim: bool = True,
     **dim_kwargs: Any,
 ) -> "types.TQuantity":
-    """Return a new object with an additional dimension(s).
+    """Return a new object with (an) additional dimension(s).
 
     Like :meth:`xarray.DataArray.expand_dims`.
     """

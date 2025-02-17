@@ -29,6 +29,8 @@ __all__ = [
     "InterpOptions",
     "KeyLike",
     "ScalarOrArray",
+    "TKeyLike",
+    "TQuantity",
     "Unit",
 ]
 
@@ -39,6 +41,6 @@ IndexLabel: "TypeAlias" = Union[Hashable, Sequence[Hashable]]
 #: outputs to inputs.
 TKeyLike = TypeVar("TKeyLike", "Key", str)
 
-#: Similar to AnyQuantity, but as a variable that can be used to match function/method
-#: outputs to inputs
+#: Similar to :any:`.AnyQuantity`, but as a variable that can be used to match function
+#: /method outputs to inputs.
 TQuantity = TypeVar("TQuantity", AttrSeries, SparseDataArray)

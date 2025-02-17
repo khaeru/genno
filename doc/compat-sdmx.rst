@@ -28,6 +28,7 @@ To ensure the operators are available:
    .. autosummary::
 
       codelist_to_groups
+      coords_to_codelists
       dataset_to_quantity
       quantity_to_dataset
       quantity_to_message

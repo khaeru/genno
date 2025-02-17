@@ -36,22 +36,24 @@ Operators
 
    .. autosummary::
       apply_units
-      as_quantity
       assign_units
       concat
       convert_units
       drop_vars
+      expand_dims
       relabel
       rename
       rename_dims
       select
       unique_units_from_dim
 
-   Input and output:
+   Input, output, and generating new quantities:
 
    .. autosummary::
+      as_quantity
       load_file
-      add_load_file
+      random_qty
+      wildcard_qty
       write_report
 
 Helper functions for adding tasks to Computers

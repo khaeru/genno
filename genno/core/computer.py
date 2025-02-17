@@ -879,7 +879,9 @@ class Computer:
         Returns
         -------
         str
-            Description of computations.
+            Description of computations. If a malformed :attr:`.graph` is detected (one
+            key is its own direct ancestor), the text “← CYCLE DETECTED” is shown, and
+            recursion stops.
         """
         # TODO accept a list of keys, like get()
         if key is None:
