@@ -1,6 +1,6 @@
 import pytest
 
-from genno import Key, KeySeq
+from genno import Key, Keys, KeySeq
 from genno.core.key import iter_keys, single_key
 from genno.testing import raises_or_warns
 
@@ -104,6 +104,41 @@ class TestKey:
     def test_eq(self):
         assert False is (Key("x:a-b-c") == 3.4)
 
+    def test_generated(self) -> None:
+        k = Key("A:x")
+
+        # Generate some related keys
+        k[3]
+        k["baz"]
+        k[2]
+        k["bar"]
+        k[1]
+
+        exp = tuple(map(Key, ["A:x:3", "A:x:baz", "A:x:2", "A:x:bar", "A:x:1"]))
+        assert exp == k.generated
+
+    def test_getitem(self) -> None:
+        k = Key("foo:x-y-z:bar")
+
+        # __getitem__ works with str argument
+        assert "foo:x-y-z:bar+baz" == k["baz"]
+        assert "foo:x-y-z:bar+qux" == k["qux"]
+
+        # __getitem__ works with int argument
+        assert "foo:x-y-z:bar+0" == k[0]
+        assert "foo:x-y-z:bar+1" == k[1]
+
+        assert "foo:x-y-z:bar+2" == next(k)
+        assert "foo:x-y-z:bar+2" == k.last
+
+    def test_hash(self) -> None:
+        k1 = Key("x:a-b-c")
+        k2 = Key("x:c-b-a")
+
+        d = {k1: None}
+
+        assert k2 in d
+
     def test_operations(self):
         key = Key("x:a-b-c")
 
@@ -136,6 +171,69 @@ class TestKey:
             key * 2.2
         with pytest.raises(TypeError):
             key / 3.3
+
+    def test_sorted(self) -> None:
+        k1 = Key("foo", "abc")
+        k2 = Key("foo", "cba")
+
+        # Keys with same dimensions, ordered differently, compare equal
+        assert k1 == k2
+
+        # Ordered returns a key with sorted dimensions
+        assert k1.dims == k2.sorted.dims
+
+        # Keys compare equal to an equivalent string and to one another
+        assert k1 == "foo:b-a-c" == k2 == "foo:b-c-a"
+
+        # Keys hash equal to a string with sorted dimensions
+        assert hash("foo:a-b-c") == hash(k1) == hash(k2)
+
+        # `k2` does not hash equal to its own (unsorted) string representation
+        assert hash(k2) != hash(str(k2))
+
+
+class TestKeys:
+    """:class:`.Keys` behaves as expected."""
+
+    @pytest.fixture(scope="function")
+    def keys(self) -> Keys:
+        return Keys(foo=Key("foo:a-b-c"), bar="bar:a-b-c")
+
+    def test_init(self, keys: Keys) -> None:
+        """:class:`.Keys` can be initialized with :any:`.KeyLike`."""
+        assert isinstance(keys.foo, Key) and isinstance(keys.bar, Key)
+
+    def test_delattr(self, keys: Keys) -> None:
+        """Keys can be deleted."""
+        del keys.bar
+
+        with pytest.raises(AttributeError):
+            keys.bar
+
+    def test_getattr(self, keys: Keys) -> None:
+        """Keys can be accessed and used."""
+        assert "foo:a-b-c:0" == keys.foo[0]
+
+        # Binary operations work
+        assert "foo:a-c" == keys.foo / "b"
+        assert "foo:a-b-c-d" == keys.foo * "d"
+        assert "foo:a-b-c:tag" == keys.foo + "tag"
+
+    def test_repr(self, keys: Keys) -> None:
+        keys.baz = Key("it's confusing:m-n-o-p")
+        # repr() does not include the Key.name, but the name in the namespace
+        assert "<3 keys: bar baz foo>" == repr(keys)
+
+    def test_setattr(self, keys: Keys) -> None:
+        """Keys can be set and updated."""
+        # Update an existing name
+        keys.bar = Key("bar:x-y-z")
+        # Update occurred
+        assert "bar:x-y-z" == keys.bar
+
+        # New key
+        keys.baz = Key("baz:c-b-a")
+        assert "baz:a-b-c" == keys.baz
 
 
 class TestKeySeq:
@@ -204,26 +302,7 @@ class TestKeySeq:
         assert "foo:x-z:bar" == (ks / "y").base
 
 
-def test_sorted():
-    k1 = Key("foo", "abc")
-    k2 = Key("foo", "cba")
-
-    # Keys with same dimensions, ordered differently, compare equal
-    assert k1 == k2
-
-    # Ordered returns a key with sorted dimensions
-    assert k1.dims == k2.sorted.dims
-
-    # Keys compare equal to an equivalent string and to one another
-    assert k1 == "foo:b-a-c" == k2 == "foo:b-c-a"
-
-    # Keys do not hash equal
-    assert hash(k1) == hash("foo:a-b-c")
-    assert hash(k2) == hash("foo:c-b-a")
-    assert hash(k1) != hash(k2)
-
-
-def test_gt_lt():
+def test_gt_lt() -> None:
     """Test :meth:`Key.__gt__` and :meth:`Key.__lt__`."""
     k = Key("foo", "abd")
     assert k > "foo:a-b-c"
@@ -239,17 +318,17 @@ def test_gt_lt():
         assert k > 1.1
 
 
-def test_iter_keys():
+def test_iter_keys() -> None:
     # Non-iterable
     with pytest.raises(TypeError):
-        next(iter_keys(1.2))
+        next(iter_keys(1.2))  # type: ignore [arg-type]
 
     # Iterable containing non-keys
     with pytest.raises(TypeError):
-        list(iter_keys([Key("a"), Key("b"), 1.2]))
+        list(iter_keys([Key("a"), Key("b"), 1.2]))  # type: ignore [arg-type]
 
 
-def test_single_key():
+def test_single_key() -> None:
     # Single key is unpacked
     k = Key("a")
     result = single_key((k,))
@@ -257,7 +336,7 @@ def test_single_key():
 
     # Tuple containing 1 non-key
     with pytest.raises(TypeError):
-        single_key((1.2,))
+        single_key((1.2,))  # type: ignore [arg-type]
 
     # Tuple containing >1 Keys
     with pytest.raises(TypeError):
@@ -265,4 +344,4 @@ def test_single_key():
 
     # Empty iterable
     with pytest.raises(TypeError):
-        single_key([])
+        single_key([])  # type: ignore [arg-type]

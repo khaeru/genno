@@ -53,11 +53,52 @@ def _(value: "AnyQuantity"):  # register() only handles bare AnyQuantity in Pyth
     return str(value.name), tuple(map(str, value.dims)), None
 
 
-class Key:
+class KeyGeneratorMixIn:
+    """Mix-in class for classes that can derive :class:`.Key` from a base."""
+
+    __slots__ = ("_base", "_generated")
+
+    _base: "Key"
+    _generated: list[Hashable]
+
+    def __init__(self) -> None:
+        self._generated = []
+
+    def __call__(self, value: Optional[Hashable] = None) -> "Key":
+        return next(self) if value is None else self[value]
+
+    def __getitem__(self, value: Hashable) -> "Key":
+        value = int(value) if isinstance(value, SupportsInt) else str(value)
+        if value not in self._generated:
+            self._generated.append(value)
+        return self._base.add_tag(str(value))
+
+    def __next__(self) -> "Key":
+        return self[self._next_int_tag()]
+
+    def _next_int_tag(self) -> int:
+        return max([-1] + [t for t in self._generated if isinstance(t, int)]) + 1
+
+    @property
+    def generated(self) -> tuple["Key", ...]:
+        """Sequence of previously-created :class:`Keys <.Key>`."""
+        return tuple(self._base.add_tag(str(k)) for k in self._generated)
+
+    @property
+    def last(self) -> "Key":
+        """The most recently created :class:`.Key`."""
+        return self._base.add_tag(str(self._generated[-1]))
+
+
+class Key(KeyGeneratorMixIn):
     """A hashable key for a quantity that includes its dimensionality."""
 
-    _name: str
+    __slots__ = ("_dims", "_hash", "_name", "_str", "_tag")
+
     _dims: tuple[str, ...]
+    _hash: int
+    _name: str
+    _str: str
     _tag: Optional[str]
 
     def __init__(
@@ -92,6 +133,9 @@ class Key:
             self._dims = _dims or tuple(dims)
             self._tag = _tag or tag
 
+        super().__init__()
+        self._base = self
+
         # Pre-compute string representation and hash
         self._str = (
             self._name
@@ -99,7 +143,13 @@ class Key:
             + "-".join(self._dims)
             + (f":{self._tag}" if self._tag else "")
         )
-        self._hash = hash(self._str)
+        # Hash is independent of dim order
+        self._hash = hash(
+            self._name
+            + ":"
+            + "-".join(sorted(self._dims))
+            + (f":{self._tag}" if self._tag else "")
+        )
 
     # Class methods
 
@@ -185,9 +235,19 @@ class Key:
         ----------
         new_name : str
             Name for the new Key. The names of *keys* are discarded.
+        keys
+            May include instances of :class:`.Key`, :class:`str` (converted to Key), or
+            :class:`Quantity` (the dimensions of the quantity are used directly).
         """
         # Iterable of dimension names from all keys, in order, with repetitions
-        dims = chain(*map(lambda k: cls(k).dims, keys))
+        dims = chain(
+            *map(
+                lambda k: cls(k).dims
+                if isinstance(k, (AttrSeries, SparseDataArray, Key, str))
+                else (),
+                keys,
+            )
+        )
 
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
@@ -294,7 +354,7 @@ class Key:
         """Return a new Key with `dims` dropped."""
         return Key(
             self._name,
-            [] if dims == (True,) else filter(lambda d: d not in dims, self._dims),
+            tuple() if dims == (True,) else filter(lambda d: d not in dims, self._dims),
             self._tag,
             _fast=True,
         )
@@ -345,35 +405,49 @@ def _(value: Key):
     return value._name, value._dims, value._tag
 
 
-class KeySeq:
-    """Utility class for generating similar :class:`Keys <.Key>`."""
+class Keys:
+    """A collection of :class:`.Key`.
 
-    #: Base :class:`.Key` of the sequence.
-    base: Key
+    This is essentially the same as :class:`.types.SimpleNamespace`, except every
+    attribute is a :class:`.Key`.
+    """
 
-    # Keys that have been created.
-    _keys: dict[Hashable, Key]
+    __slots__ = ("_keys",)
 
-    def __init__(self, *args, **kwargs):
-        self.base = Key(*args, **kwargs)
-        self._keys = {}
+    _keys: dict[str, Key]
 
-    def _next_int_tag(self) -> int:
-        return max([-1] + [t for t in self._keys if isinstance(t, int)]) + 1
+    def __init__(self, **kwargs: "KeyLike") -> None:
+        object.__setattr__(self, "_keys", {})
+        for name, value in kwargs.items():
+            setattr(self, name, value)
 
-    def __next__(self) -> Key:
-        return self[self._next_int_tag()]
+    def __delattr__(self, name: str) -> None:
+        self._keys.pop(name)
 
-    def __call__(self, value: Optional[Hashable] = None) -> Key:
-        return next(self) if value is None else self[value]
-
-    def __getitem__(self, value: Hashable) -> Key:
-        tag = int(value) if isinstance(value, SupportsInt) else str(value)
-        result = self._keys[tag] = self.base + str(tag)
-        return result
+    def __getattr__(self, name: str) -> "Key":
+        try:
+            return self._keys[name]
+        except KeyError:
+            raise AttributeError(name) from None
 
     def __repr__(self) -> str:
-        return f"<KeySeq from '{self.base!s}'>"
+        return f"<{len(self._keys)} keys: {' '.join(sorted(self._keys))}>"
+
+    def __setattr__(self, name: str, value: "Key") -> None:
+        self._keys[name] = value if isinstance(value, Key) else Key(value)
+
+
+class KeySeq(KeyGeneratorMixIn):
+    """Utility class for generating similar :class:`Keys <.Key>`."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__()
+        self._base = Key(*args, **kwargs)
+
+    def __repr__(self) -> str:
+        return f"<KeySeq from '{self._base!s}'>"
+
+    # Particular to KeySeq
 
     @property
     def keys(self) -> MappingProxyType:
@@ -382,40 +456,47 @@ class KeySeq:
         In the form of a :class:`dict` mapping tags (:class:`int` or :class:`str`) to
         :class:`.Key` values.
         """
-        return MappingProxyType(self._keys)
+        return MappingProxyType(
+            {k: self._base.add_tag(str(k)) for k in self._generated}
+        )
 
     @property
     def prev(self) -> Key:
-        """The most recently created :class:`.Key`."""
-        return next(reversed(self._keys.values()))
+        """Alias of :attr:`.KeyGeneratorMixin.last`."""
+        return self.last
 
     # Access to Key properties
     @property
+    def base(self) -> Key:
+        """The base Key."""
+        return self._base
+
+    @property
     def name(self) -> str:
         """Name of the :attr:`.base` Key."""
-        return self.base.name
+        return self._base.name
 
     @property
     def dims(self) -> tuple[str, ...]:
         """Dimensions of the :attr:`.base` Key."""
-        return self.base.dims
+        return self._base.dims
 
     @property
     def tag(self) -> Optional[str]:
         """Tag of the :attr:`.base` Key."""
-        return self.base.tag
+        return self._base.tag
 
     def __add__(self, other: str) -> "KeySeq":
-        return KeySeq(self.base + other)
+        return KeySeq(self._base.__add__(other))
 
     def __mul__(self, other) -> "KeySeq":
-        return KeySeq(self.base * other)
+        return KeySeq(self._base.__mul__(other))
 
     def __sub__(self, other: Union[str, Iterable[str]]) -> "KeySeq":
-        return KeySeq(self.base - other)
+        return KeySeq(self._base.__sub__(other))
 
     def __truediv__(self, other) -> "KeySeq":
-        return KeySeq(self.base / other)
+        return KeySeq(self._base.__truediv__(other))
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.

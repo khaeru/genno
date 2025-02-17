@@ -30,14 +30,21 @@ from genno.util import partial_split
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
 from .graph import Graph
-from .key import Key, KeyLike
+from .key import Key
 
 if TYPE_CHECKING:
     import genno.core.graph
     import genno.core.key
+    from genno.core.key import KeyLike
+    from genno.types import TKeyLike
 
 
 log = logging.getLogger(__name__)
+
+#: Emit :class:`.FutureWarning` from :meth:`.Computer.add` when :class:`.tuple` is
+#: returned. This default value can be overridden with
+#: :py:`c.configure(config={"warn on result tuple": False})`.
+DEFAULT_WARN_ON_RESULT_TUPLE = False
 
 
 class Computer:
@@ -53,7 +60,7 @@ class Computer:
     graph: "genno.core.graph.Graph" = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
-    default_key: Optional["genno.core.key.KeyLike"] = None
+    default_key: Optional["KeyLike"] = None
 
     #: List of modules containing operators.
     #:
@@ -75,8 +82,16 @@ class Computer:
 
     # Python data model
 
-    def __contains__(self, item):
+    def __contains__(self, item) -> bool:
         return self.graph.__contains__(item)
+
+    def __setitem__(self, data: "KeyLike", *args) -> None:
+        _args, kwargs = args[0], {}
+
+        if isinstance(_args[-1], dict):
+            *_args, kwargs = _args
+
+        self.add(data, *_args, **kwargs)
 
     # Dask data model
 
@@ -241,7 +256,7 @@ class Computer:
 
     # Add computations to the Computer
 
-    def add(self, data, *args, **kwargs) -> Union[KeyLike, tuple[KeyLike, ...]]:
+    def add(self, data, *args, **kwargs) -> Union["KeyLike", tuple["KeyLike", ...]]:
         """General-purpose method to add computations.
 
         :meth:`add` can be called in several ways; its behaviour depends on `data`; see
@@ -261,13 +276,14 @@ class Computer:
         .iter_keys
         .single_key
         """
+
         # Other methods
         if isinstance(data, Sequence) and not isinstance(data, str):
             # Sequence of (args, kwargs) or args; use add_queue()
-            return self.add_queue(data, *args, **kwargs)
+            return _warn_on_result(self, self.add_queue(data, *args, **kwargs))
         elif isinstance(data, str) and data in dir(self) and data != "add":
             # Name of another method such as "apply" or "eval"
-            return getattr(self, data)(*args, **kwargs)
+            return _warn_on_result(self, getattr(self, data)(*args, **kwargs))
 
         # Possibly identify a named or direct callable in `data` or `args[0]`
         func: Optional[Callable] = None
@@ -293,10 +309,13 @@ class Computer:
 
         if func:
             try:
-                # Use an implementation of Computation.add_task()
-                return func.add_tasks(self, *args, **kwargs)  # type: ignore [attr-defined]
+                # Use an implementation of Operator.add_task()
+                return _warn_on_result(
+                    self,
+                    func.add_tasks(self, *args, **kwargs),  # type: ignore [attr-defined]
+                )
             except (AttributeError, NotImplementedError):
-                # Computation obj that doesn't implement .add_tasks(), or plain callable
+                # Operator obj that doesn't implement .add_tasks(), or plain callable
                 _partialed_func, kw = partial_split(func, kwargs)
                 key = args[0]
                 computation = (_partialed_func,) + args[1:]
@@ -317,10 +336,12 @@ class Computer:
         # Optionally add sums
         if isinstance(result, Key) and sums:
             # Add one entry for each of the partial sums of `result`
-            return (result,) + self.add_queue(result.iter_sums(), fail=fail)
+            return _warn_on_result(
+                self, (result,) + self.add_queue(result.iter_sums(), fail=fail)
+            )
         else:
             # NB This might be deprecated to simplify expectations of calling code
-            return result
+            return _warn_on_result(self, result)
 
     def cache(self, func):
         """Decorate `func` so that its return value is cached.
@@ -336,7 +357,7 @@ class Computer:
         queue: Iterable[tuple],
         max_tries: int = 1,
         fail: Optional[Union[str, int]] = None,
-    ) -> tuple[KeyLike, ...]:
+    ) -> tuple["KeyLike", ...]:
         """Add tasks from a list or `queue`.
 
         Parameters
@@ -360,7 +381,7 @@ class Computer:
             fail = self._queue_fail[-1]  # Use the same value as an outer call.
 
         # Accumulate added keys
-        added: list[KeyLike] = []
+        added: list["KeyLike"] = []
 
         class Item:
             """Container for queue items."""
@@ -424,8 +445,8 @@ class Computer:
 
     # Generic graph manipulations
     def add_single(
-        self, key: KeyLike, *computation, strict=False, index=False
-    ) -> KeyLike:
+        self, key: "KeyLike", *computation, strict=False, index=False
+    ) -> "KeyLike":
         """Add a single `computation` at `key`.
 
         Parameters
@@ -451,8 +472,11 @@ class Computer:
             If `strict` is :obj:`True` and any key referred to by `computation` does
             not exist.
         """
-        if len(computation) == 1 and not callable(computation[0]):
-            # Unpack a length-1 tuple
+        # Unpack a length-1 tuple, except for a tuple starting with a callable (task
+        # with no arguments)
+        if len(computation) == 1 and (
+            isinstance(computation[0], Key) or not callable(computation[0])
+        ):
             computation = computation[0]
 
         if index:
@@ -498,7 +522,7 @@ class Computer:
 
     def apply(
         self, generator: Callable, *keys, **kwargs
-    ) -> Union[KeyLike, tuple[KeyLike, ...]]:
+    ) -> Union["KeyLike", tuple["KeyLike", ...]]:
         """Add computations by applying `generator` to `keys`.
 
         Parameters
@@ -555,6 +579,31 @@ class Computer:
                 result.append(key)
 
             return tuple(result) if len(result) > 1 else result[0]
+
+    def duplicate(self, key: "TKeyLike", tag: str) -> "TKeyLike":
+        """Duplicate the task at `key` and all of its inputs.
+
+        Re
+
+        Parameters
+        ----------
+        key
+            Starting key to duplicate.
+        tag
+            :attr:`~.Key.tag` to add to duplicated keys.
+        """
+
+        comp = self.graph[key]  # Retrieve the existing computation at `key`
+        new_key = type(key)(Key(key) + tag)  # Identify the new key; same type as `key`
+
+        if isinstance(comp, (list, tuple)):
+            # Rewrite the computation
+            new_comp = [self.duplicate(x, tag) if x in self.graph else x for x in comp]
+            self.graph[new_key] = type(comp)(new_comp)
+        else:
+            self.graph[new_key] = comp
+
+        return new_key
 
     def eval(self, expr: str) -> tuple[Key, ...]:
         r"""Evaluate `expr` to add tasks and keys.
@@ -635,7 +684,8 @@ class Computer:
         log.debug(f"Cull {len(self.graph)} -> {len(dsk)} keys")
 
         try:
-            result = dask.get(dsk, key)
+            # Dask doesn't know about genno.Key; pass a str with original dim order
+            result = dask.get(dsk, str(key))
         except Exception as exc:
             raise ComputationError(exc) from None
         else:
@@ -644,13 +694,63 @@ class Computer:
             # Unwrap config from protection applied above
             self.graph["config"] = self.graph["config"][0].data
 
+    def insert(self, key: "KeyLike", *args, tag: str = "pre", **kwargs) -> None:
+        """Insert a task before `key`, using `args`, `kwargs`.
+
+        The existing task at `key` is moved to :py:`key + tag`. The `args` and `kwargs`
+        are passed to :meth:`add` to insert a new task at `key`. The `args` must include
+        at least 2 items:
+
+        1. the new :class:`callable` or :class:`Operator`, and
+        2. the :any:`.Ellipsis` (:py:`...`), which is replaced by the shifted
+           :py:`key + tag`.
+
+        If there are more than 2 items, each instance of the :class:`.Ellipsis` is
+        replaced per (2); all other items (and `kwargs`) are passed on as-is.
+
+        The effect is that all existing tasks to which `key` are input will receive,
+        instead, the output of the added task.
+
+        One way to use :func:`insert` is with a ‘pass-through’ `operation` that, for
+        instance, performs logging, assertions, or other steps, then returns its input
+        unchanged. It is also possible to insert a new task that mutates its input in
+        certain ways.
+        """
+        # Determine a key for the task to be shifted
+        k_pre = self.infer_keys(key) + tag
+        if k_pre in self:
+            # Cannot shift `key` because the target key already exists
+            raise KeyExistsError(k_pre)
+
+        # Construct the arguments for the add() call
+        if len(args) < 2:
+            raise ValueError(
+                "Must supply at least 2 args (operator, ...) to Computer.insert(); "
+                f"got {args}"
+            )
+        elif Ellipsis not in args:
+            raise ValueError(f"One arg must be '...'; got {args}")
+
+        _args = [k_pre if a is Ellipsis else a for a in args]
+
+        try:
+            # Preserve the existing task at `key`
+            existing = self.graph[key].copy()
+            # Add `operation` at `key`, operating on the output of the original task
+            self.add(key, *_args, **kwargs)
+        except Exception:
+            raise
+        else:
+            # Move the existing task at `key` to `k_pre`
+            self.graph[k_pre] = existing
+
     # Convenience methods for the graph and its keys
 
     def keys(self):
         """Return the keys of :attr:`~genno.Computer.graph`."""
         return self.graph.keys()
 
-    def full_key(self, name_or_key: KeyLike) -> KeyLike:
+    def full_key(self, name_or_key: "KeyLike") -> "KeyLike":
         """Return the full-dimensionality key for `name_or_key`.
 
         An quantity 'foo' with dimensions (a, c, n, q, x) is available in the Computer
@@ -672,7 +772,7 @@ class Computer:
 
     def check_keys(
         self, *keys: Union[str, Key], predicate=None, action="raise"
-    ) -> list[KeyLike]:
+    ) -> list["KeyLike"]:
         """Check that `keys` are in the Computer.
 
         Parameters
@@ -734,7 +834,9 @@ class Computer:
         return result
 
     def infer_keys(
-        self, key_or_keys: Union[KeyLike, Iterable[KeyLike]], dims: Iterable[str] = []
+        self,
+        key_or_keys: Union["KeyLike", Iterable["KeyLike"]],
+        dims: Iterable[str] = [],
     ):
         """Infer complete `key_or_keys`.
 
@@ -777,7 +879,9 @@ class Computer:
         Returns
         -------
         str
-            Description of computations.
+            Description of computations. If a malformed :attr:`.graph` is detected (one
+            key is its own direct ancestor), the text “← CYCLE DETECTED” is shown, and
+            recursion stops.
         """
         # TODO accept a list of keys, like get()
         if key is None:
@@ -868,7 +972,7 @@ class Computer:
 
     def aggregate(
         self,
-        qty: KeyLike,
+        qty: "KeyLike",
         tag: str,
         dims_or_groups: Union[Mapping, str, Sequence[str]],
         weights: Optional[xr.DataArray] = None,
@@ -1012,3 +1116,16 @@ class Computer:
         warn(f"Computer.disaggregate(…, {msg}", DeprecationWarning, stacklevel=2)
 
         return self.add(key, method, qty, *args, sums=False, strict=True)
+
+
+def _warn_on_result(computer: Computer, result):
+    if isinstance(result, tuple) and computer.graph.get("config", {}).get(
+        "warn on result tuple", DEFAULT_WARN_ON_RESULT_TUPLE
+    ):
+        warn(
+            f"Return {len(result)}-tuple from Computer.add(); in a future version of "
+            f"genno only the first added Key ({result[0]}) will be returned",
+            FutureWarning,
+            stacklevel=2,
+        )
+    return result

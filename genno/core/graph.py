@@ -1,12 +1,15 @@
 from collections.abc import Generator, Iterable, Sequence
 from itertools import chain, tee
 from operator import itemgetter
-from typing import Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
-from .key import Key, KeyLike
+from .key import Key
+
+if TYPE_CHECKING:
+    from .key import KeyLike
 
 
-def _key_arg(key: KeyLike) -> Union[str, Key]:
+def _key_arg(key: "KeyLike") -> Union[str, Key]:
     return Key.bare_name(key) or Key(key)
 
 
@@ -29,10 +32,10 @@ class Graph(dict):
        infer
     """
 
-    _unsorted: dict[KeyLike, KeyLike] = dict()
+    _unsorted: dict["KeyLike", "KeyLike"] = dict()
     _full: dict[Key, Key] = dict()
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         # Initialize members
         super().__init__(*args, **kwargs)
 
@@ -44,7 +47,7 @@ class Graph(dict):
         for k in kwargs.keys():
             self._index(k)
 
-    def _index(self, key: KeyLike):
+    def _index(self, key: "KeyLike") -> None:
         """Add `key` to the indices."""
         k = _key_arg(key)
         if isinstance(k, Key):
@@ -55,7 +58,7 @@ class Graph(dict):
         else:
             self._unsorted[k] = key
 
-    def _deindex(self, key: KeyLike):
+    def _deindex(self, key: "KeyLike") -> None:
         """Remove `key` from the indices."""
         k = _key_arg(key)
         if isinstance(k, Key):
@@ -64,11 +67,11 @@ class Graph(dict):
         else:
             self._unsorted.pop(k, None)
 
-    def __setitem__(self, key: KeyLike, value: Any):
+    def __setitem__(self, key: "KeyLike", value: Any) -> None:
         super().__setitem__(key, value)
         self._index(key)
 
-    def __delitem__(self, key: KeyLike):
+    def __delitem__(self, key: "KeyLike") -> None:
         super().__delitem__(key)
         self._deindex(key)
 
@@ -87,7 +90,7 @@ class Graph(dict):
             self._deindex(args[0])
 
     def update(self, arg=None, **kwargs):
-        """Overload :meth:`dict.pop` to also call :meth:`_index`."""
+        """Overload :meth:`dict.update` to also call :meth:`_index`."""
         if isinstance(arg, (Sequence, Generator)):
             arg0, arg1 = tee(arg)
             arg_keys = map(itemgetter(0), arg0)
@@ -100,18 +103,18 @@ class Graph(dict):
 
         super().update(arg1, **kwargs)
 
-    def unsorted_key(self, key: KeyLike) -> Optional[KeyLike]:
+    def unsorted_key(self, key: "KeyLike") -> Optional["KeyLike"]:
         """Return `key` with its original or unsorted dimensions."""
         k = _key_arg(key)
         return self._unsorted.get(k.sorted if isinstance(k, Key) else k)
 
-    def full_key(self, name_or_key: KeyLike) -> Optional[KeyLike]:
+    def full_key(self, name_or_key: "KeyLike") -> Optional["KeyLike"]:
         """Return `name_or_key` with its full dimensions."""
         return self._full.get(Key(name_or_key).drop_all())
 
     def infer(
         self, key: Union[str, Key], dims: Iterable[str] = []
-    ) -> Optional[KeyLike]:
+    ) -> Optional["KeyLike"]:
         """Infer a `key`.
 
         Parameters

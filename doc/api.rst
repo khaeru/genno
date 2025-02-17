@@ -7,7 +7,7 @@ Top-level classes and functions
 
    Computer
    Key
-   KeySeq
+   Keys
    Quantity
    assert_quantity
    configure
@@ -48,7 +48,9 @@ Also:
       apply
       cache
       describe
+      duplicate
       eval
+      insert
       visualize
 
    Executing computations:
@@ -205,42 +207,43 @@ Also:
    2. zero or more ordered :attr:`dims`, and
    3. an optional :attr:`tag`.
 
-   For example, for a :math:`\text{foo}` with with three dimensions :math:`a, b, c`:
+   For example, for a quantity :math:`\text{foo}` with with three dimensions :math:`a, b, c`:
 
    .. math:: \text{foo}^{abc}
 
-   Key allows a specific, explicit reference to various forms of “foo”:
+   …Key allows a specific, explicit reference to various forms of “foo”:
 
-   - in its full resolution, i.e. indexed by a, b, and c:
+   - in its *full resolution*; that is, indexed by a, b, and c:
 
      >>> k1 = Key("foo", ["a", "b", "c"])
      >>> k1
      <foo:a-b-c>
 
-   - in a partial sum over one dimension, e.g. summed across dimension c, with remaining dimensions a and b:
+   - in a partial sum over one dimension, for instance summed across dimension c, with remaining dimensions a and b:
 
-     >>> k2 = k1.drop('c')
-     >>> k2 == 'foo:a-b'
+     >>> k2 = k1 / "c"
+     >>> k2 == "foo:a-b"
      True
 
    - in a partial sum over multiple dimensions, etc.:
 
-     >>> k1.drop('a', 'c') == k2.drop('a') == 'foo:b'
+     >>> k1.drop("a", "c") == k1 / ("a", "c") == k2 / "a" == "foo:b"
      True
 
    - after it has been manipulated by other computations, e.g.
 
-     >>> k3 = k1.add_tag('normalized')
+     >>> k3 = k1.add_tag(""normalized")
      >>> k3
      <foo:a-b-c:normalized>
-     >>> k4 = k3.add_tag('rescaled')
+     >>> k4 = k3 + "rescaled"
      >>> k4
      <foo:a-b-c:normalized+rescaled>
 
-   **Notes:**
+   **Key comparison.**
 
-   A Key has the same hash, and compares equal to its :class:`str` representation.
-   A Key also compares equal to another key or :class:`str` with the same dimensions in any other order.
+   - Keys with the same name, dimensions, and tag compare and :func:`hash` equal—even if the dimensions are in a different order.
+   - A key compares (but does *not* :func:`hash`) equal to a :class:`str` with the same name, dimensions (in any order) and tag.
+
    :py:`repr(key)` prints the Key in angle brackets ('<>') to signify that it is a Key object.
 
    >>> str(k1)
@@ -263,7 +266,8 @@ Also:
 
    .. _key-arithmethic:
 
-   Keys can also be manipulated using some of the Python arithmetic operators:
+   **Key arithmetic.**
+   Keys can be manipulated using some of the Python arithmetic operators:
 
    - :py:`+`: and :py:`-`: manipulate :attr:`.tag`, same as :meth:`.add_tag` and :meth:`.remove_tag` respectively:
 
@@ -293,46 +297,63 @@ Also:
      >>> k1 / Key("baz", "cde")
      <foo:a-b>
 
+   **Key generation and derivation.**
+   When preparing chains or complicated graphs of computations, it can be useful to use a sequence or set of similar keys to refer to the intermediate steps.
+   Python item-access syntax (:py:`[...]`) and the built-in function :func:`next` can be used to generate or derive keys from an original one, in any order:
+
+   >>> k1 = Key("foo:a-b-c")
+   >>> k[0]
+   <foo:a-b-c:0>
+   >>> k[1]
+   <foo:a-b-c:1>
+   >>> k["bar"]
+   <foo:a-b-c:bar>
+   >>> k[99]
+   <foo:a-b-c:99>
+
+   :func:`.next` always returns the next key in a sequence of integers, starting with :py:`0` and continuing from the *highest previously created tag/Key*:
+
+   >>> next(k)
+   <foo:a-b-c:100>
+   # Same
+
+   A Key is callable, with any value that has a :class:`str` representation:
+
+   >>> k()
+   <foo:a-b-c:101>
+   # Same as item-access syntax
+   >>> k("baz")
+   <foo:a-b-c:baz>
+
+   The attributes :attr:`.last` and :attr:`.generated` allow to inspect one or all of the keys that have been derived from an original:
+
+   >>> k.last
+   <foo:a-b-c:baz>
+   >>> k.generated
+   (<foo:a-b-c:0>,
+    <foo:a-b-c:1>,
+    <foo:a-b-c:bar>,
+    <foo:a-b-c:99>,
+    <foo:a-b-c:100>,
+    <foo:a-b-c:101>,
+    <foo:a-b-c:baz>)
+
+.. autoclass:: genno.Keys
+   :members:
+
+   >>> k = Keys(foo="X:a-b-c-d-e-f", bar="Y:a-b-c:long+sequence+of+tags")
+   >>> k.baz = "Z:a-b-c-e-f"
+
 .. autoclass:: genno.KeySeq
    :members:
 
-   When preparing chains or complicated graphs of computations, it can be useful to use a sequence or set of similar keys to refer to the intermediate steps.
-   The :class:`.KeySeq` class is provided for this purpose.
-   It supports several ways to create related keys starting from a *base key*:
+   .. note:: As of genno 1.28.0, :class:`.Key` provides most of the conveniences and shorthand that were previously provided by KeySeq.
+      User could *should* prefer use of Key and Keys.
+      KeySeq *may* eventually be deprecated and removed.
+
+   KeySeq supports several ways to create related keys starting from a *base key*:
 
    >>> ks = KeySeq("foo:x-y-z:bar")
-
-   One may:
-
-   - Use item access syntax:
-
-     >>> ks["a"]
-     <foo:x-y-z:bar+a>
-     >>> ks["b"]
-     <foo:x-y-z:bar+b>
-
-   - Use the Python built-in :func:`.next`.
-     This always returns the next key in a sequence of integers, starting with :py:`0` and continuing from the *highest previously created Key*:
-
-     >>> next(ks)
-     <foo:x-y-z:bar+0>
-
-     # Skip some values
-     >>> ks[5]
-     <foo:x-y-z:bar+5>
-
-     # next() continues from the highest
-     >>> next(ks)
-     <foo:x-y-z:bar+6>
-
-   - Treat the KeySeq as callable, optionally with any value that has a :class:`.str` representation:
-
-     >>> ks("c")
-     <foo:x-y-z:bar+c>
-
-     # Same as next()
-     >>> ks()
-     <foo:x-y-z:bar+7>
 
    - Access the most recently generated item:
 

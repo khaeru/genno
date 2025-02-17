@@ -120,11 +120,21 @@ Name: Foo, dtype: int64, units: kilogram"""
         https://github.com/iiasa/message_ix/issues/788
         """
         # Squeeze the length-1 dimension "a"
-        result = foo.sel(a=["a1"]).squeeze()
+        result0 = foo.sel(a=["a1"]).squeeze()
 
         # Result is 1-D but multi-indexed
-        assert 1 == len(result.dims)
-        assert isinstance(result.index, pd.MultiIndex)
+        assert 1 == len(result0.dims)
+        assert isinstance(result0.index, pd.MultiIndex)
+
+        # Squeeze only 1 of >1 dimensions with length
+        result1 = foo.sel(a=["a1"], b=["b2"]).squeeze("a")
+        assert 1 == len(result1.dims)
+
+        # Squeeze both
+        result2 = foo.sel(a=["a1"], b=["b2"]).squeeze()
+        assert 0 == len(result2.dims)
+        result3 = foo.sel(a=["a1"], b=["b2"]).squeeze(dim=["a", "b"])
+        assert 0 == len(result3.dims)
 
     def test_sum(self, foo, bar):
         # AttrSeries can be summed across all dimensions

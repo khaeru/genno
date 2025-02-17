@@ -8,6 +8,22 @@ from genno import Computer
 from genno.compat.sdmx import operator
 from genno.testing import add_test_data
 
+VERSION = (None, Version["2.1"], Version["3.0"], "2.1", "3.0")
+
+
+@pytest.fixture(scope="session")
+def dm(test_data_path, dsd):
+    # Read the data message
+    yield sdmx.read_sdmx(test_data_path.joinpath("22_289.xml"), structure=dsd)
+
+
+@pytest.fixture(scope="session")
+def dsd(test_data_path):
+    # Read the data structure definition
+    yield sdmx.read_sdmx(test_data_path.joinpath("22_289-structure.xml")).structure[
+        "DCIS_POPRES1"
+    ]
+
 
 def test_codelist_to_groups() -> None:
     c = Computer()
@@ -44,18 +60,26 @@ def test_codelist_to_groups() -> None:
     assert {"foo", "bar"} == set(result1.coords["t"].data)
 
 
-@pytest.fixture(scope="session")
-def dsd(test_data_path):
-    # Read the data structure definition
-    yield sdmx.read_sdmx(test_data_path.joinpath("22_289-structure.xml")).structure[
-        "DCIS_POPRES1"
-    ]
+@pytest.mark.parametrize(
+    "kwargs, cl0_id",
+    (
+        (dict(), "X"),
+        (dict(id_transform=None), "x"),
+    ),
+)
+def test_coords_to_codelists(kwargs, cl0_id: str) -> None:
+    q_in = genno.operator.random_qty(dict(x=3, y=4, z=5))
 
+    result = operator.coords_to_codelists(q_in, **kwargs)
 
-@pytest.fixture(scope="session")
-def dm(test_data_path, dsd):
-    # Read the data message
-    yield sdmx.read_sdmx(test_data_path.joinpath("22_289.xml"), structure=dsd)
+    # Result is a sequence of Codelist objects
+    assert len(q_in.dims) == len(result)
+    cl0 = result[0]
+    assert isinstance(cl0, Codelist)
+
+    # Code list has the expected ID and items
+    assert cl0_id == cl0.id
+    assert {"x0": Code(id="x0"), "x1": Code(id="x1"), "x2": Code(id="x2")} == cl0.items
 
 
 def test_dataset_to_quantity(dsd, dm) -> None:
@@ -76,9 +100,6 @@ def test_dataset_to_quantity(dsd, dm) -> None:
 
     # All observations are converted
     assert len(ds.obs) == result.size
-
-
-VERSION = (None, Version["2.1"], Version["3.0"], "2.1", "3.0")
 
 
 @pytest.mark.parametrize("observation_dimension", (None, "TIME_PERIOD"))

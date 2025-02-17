@@ -1,6 +1,7 @@
 import logging
 import re
 from functools import partial
+from typing import TYPE_CHECKING, Generator
 
 import numpy as np
 import pandas as pd
@@ -17,12 +18,16 @@ from genno import (
     operator,
 )
 from genno.compat.pint import ApplicationRegistry
+from genno.core.key import single_key
 from genno.testing import (
     add_dantzig,
     add_test_data,
     assert_qty_allclose,
     assert_qty_equal,
 )
+
+if TYPE_CHECKING:
+    from genno.types import TQuantity
 
 log = logging.getLogger(__name__)
 
@@ -73,6 +78,36 @@ class TestComputer:
         agg3 = c.get(key3)
         assert set(agg3.coords["t"].values) == set(t_groups.keys())
 
+    def test_add_div_dims(self, c: Computer) -> None:
+        """Dimensions are inferred when :meth:`.add`-ing a :func:`.div` task."""
+        c["X:a-b"] = (None,)
+        c["Y:b-c"] = (None,)
+
+        key = single_key(c.add("Z", "div", "X:a-b", "Y:b-c"))
+        assert set("abc") == set(key.dims)
+
+    def test_add_single(self, c: Computer) -> None:
+        """:meth:`.add_single` unwraps a single :class:`.Key`."""
+        foo = Key("foo:a-b-c")
+        bar = Key("bar:x-y-z")
+
+        # Python built-in type stored as-is
+        c.add_single(foo, 1.0)
+        assert c.graph[foo] == 1.0
+
+        # Key also stored as-is
+        c.add_single(bar, foo)
+        assert c.graph[bar] is foo
+
+    def test_add_warn(self, recwarn, c: Computer) -> None:
+        # No warning emitted with DEFAULT_WARN_ON_RESULT_TUPLE = False
+        assert 0 == len(recwarn)
+
+        # Warning emitted when configured
+        c.configure(config={"warn on result tuple": True})
+        with pytest.warns(FutureWarning, match="Return 8-tuple from Computer.add"):
+            c.add("foo:x-y-z", None, sums=True)
+
     @pytest.mark.parametrize("suffix", [".json", ".yaml"])
     def test_configure(self, test_data_path, c: Computer, suffix) -> None:
         # Configuration can be read from file
@@ -84,6 +119,22 @@ class TestComputer:
 
         with pytest.raises(ValueError, match="cannot give both"):
             c.configure(path, config={"path": path})
+
+    def test_contains(self) -> None:
+        """:meth:`Computer.__contains__` works regardless of dimension order."""
+        c = Computer()
+
+        c.add("a:x-y", 1)
+        assert "a:x-y" in c
+        assert "a:y-x" in c
+        assert Key("a:x-y") in c
+        assert Key("a:y-x") in c
+
+        c.add(Key("b:z-y-x"), 1)
+        assert "b:x-y-z" in c
+        assert "b:y-x-z" in c
+        assert Key("b:x-y-z") in c
+        assert Key("b:y-x-z") in c
 
     def test_deprecated_add_file(self, tmp_path, c):
         # Path to a temporary file
@@ -193,6 +244,94 @@ class TestComputer:
         with pytest.raises(TypeError):
             c.disaggregate("x:", "d", method=None)
 
+    @pytest.fixture
+    def c2(self, c) -> Generator[Computer, None, None]:
+        import genno
+
+        c.add("A:x-y", genno.Quantity([1.0], coords={"x": ["x0"], "y": ["y0"]}))
+        c.add("B:y-z", genno.Quantity([1.0], coords={"y": ["y0"], "z": ["z0"]}))
+        c.add("C", "mul", "A:x-y", "B:y-z")
+        yield c
+
+    def test_duplicate(self, c2):
+        """Test :meth:`.Computer.duplicate`."""
+        N = len(c2.graph)
+
+        k1 = c2.full_key("C")
+
+        # Method runs without error
+        k2 = c2.duplicate(k1, "duplicated")
+
+        # 3 keys/tasks have been added
+        assert N + 3 == len(c2.graph)
+
+        # Added tasks have derived keys
+        k2_desc = c2.describe(k2)
+        assert "'A:x-y:duplicated'" in k2_desc
+        assert "'B:y-z:duplicated'" in k2_desc
+        assert "'C:x-y-z:duplicated'" in k2_desc
+
+        # Original tasks are not modified
+        k1_desc = c2.describe(k1)
+        assert "'A:x-y'" in k1_desc
+        assert "'B:y-z'" in k1_desc
+        assert "'C:x-y-z'" in k1_desc
+
+        # Both the original and duplicated keys can be computed
+        c2["check"] = ([k1, k2],)
+        result = c2.get("check")
+
+        # The results are identical
+        assert_qty_equal(result[0], result[1])
+
+    def test_insert0(self, caplog, c2) -> None:
+        def inserted(qty: "TQuantity", *, x, y) -> "TQuantity":
+            log.info(f"Inserted function, {x=} {y=}")
+            return x * qty
+
+        # print(c2.describe("C"))  # DEBUG
+        c2.insert("A:x-y", inserted, ..., x=2.0, y="foo")
+        # print(c2.describe("C"))  # DEBUG
+
+        with caplog.at_level(logging.INFO):
+            # Result can be obtained
+            result = c2.get("C")
+
+        # Inserted function/operator ran, generating a log message and altering the
+        # result
+        assert ["Inserted function, x=2.0 y='foo'"] == caplog.messages
+        assert 2.0 == result.item()
+
+    def test_insert1(self, caplog, c2) -> None:
+        def inserted(qty: "TQuantity", *, x, y) -> "TQuantity":  # pragma: no cover
+            log.info(f"Inserted function, {x=} {y=}")
+            return x * qty
+
+        # Key to be inserted already exists
+        c2.add("A:x-y:pre", None)
+        with pytest.raises(KeyExistsError):
+            c2.insert("A:x-y", inserted, ..., x=2.0, y="foo")
+
+        # Too few positional arguments
+        with pytest.raises(ValueError, match="Must supply at least 2 args"):
+            c2.insert("A:x-y", tag="foo")
+        with pytest.raises(ValueError, match="Must supply at least 2 args"):
+            c2.insert("A:x-y", inserted, tag="foo")
+
+        # 2+ positional arguments, but without `...`
+        with pytest.raises(ValueError, match=r"One arg must be '\.\.\.'; got"):
+            c2.insert("A:x-y", inserted, "bla", tag="foo")
+
+        # Incorrect kwargs
+        with pytest.raises(TypeError, match="unexpected keyword argument 'z'"):
+            c2.insert("A:x-y", inserted, ..., tag="foo", z="not_an_arg")
+
+    def test_setitem(self, c2) -> None:
+        c2["D"] = "add", "A:x-y", "B:y-z", dict(sums=True)
+
+        result = c2.get("D:x-y-z")
+        assert set("xyz") == set(result.dims)
+
 
 def test_cache(caplog, tmp_path, test_data_path, ureg):
     caplog.set_level(logging.INFO)
@@ -275,15 +414,6 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     caplog.clear()
     c.get("test 2")
     assert "'cache_path' configuration not set; using " in caplog.messages[0]
-
-
-def test_contains():
-    """:meth:`Computer.__contains__` works regardless of dimension order."""
-    c = Computer()
-    c.add("a:x-y", 1)
-
-    assert "a:x-y" in c
-    assert "a:y-x" in c
 
 
 def test_eval(ureg):

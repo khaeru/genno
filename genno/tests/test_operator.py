@@ -4,6 +4,7 @@ import re
 from collections.abc import Hashable, Iterable, Mapping
 from contextlib import nullcontext
 from functools import partial
+from itertools import compress
 
 import numpy as np
 import pandas as pd
@@ -16,6 +17,7 @@ from pandas.testing import assert_series_equal
 import genno
 from genno import Computer, operator, quote
 from genno.core.sparsedataarray import SparseDataArray
+from genno.operator import random_qty
 from genno.testing import (
     MARK,
     add_large_data,
@@ -24,7 +26,6 @@ from genno.testing import (
     assert_qty_allclose,
     assert_qty_equal,
     assert_units,
-    random_qty,
 )
 
 pytestmark = pytest.mark.usefixtures("parametrize_quantity_class")
@@ -451,6 +452,63 @@ def test_drop_vars(data):
     result = operator.drop_vars(x, "t")
     assert result.name == x.name and result.units == x.units  # Pass through
     assert set(x.dims) == {"t"} | set(result.dims)
+
+
+@pytest.mark.parametrize(
+    "shape_in",
+    (
+        dict(),  # 0 dimensions
+        dict(x=2),  # 1 dimension
+        dict(x=2, y=2, z=2),  # >1 dimension
+    ),
+)
+def test_expand_dims0(shape_in):
+    q_in = random_qty(shape_in, units="kg")
+
+    def _shape(q):
+        return dict(zip(q.dims, q.shape))
+
+    # …no arguments → no-op
+    result0 = operator.expand_dims(q_in, {})
+    assert shape_in == _shape(result0)
+
+    # …single hashable → 1 dim of length 1
+    result1 = operator.expand_dims(q_in, "a")
+    assert dict(a=1) | shape_in == _shape(result1)
+
+    # …iterable of dimension IDs
+    result2 = operator.expand_dims(q_in, tuple("ab"))
+    assert dict(a=1, b=1) | shape_in == _shape(result2)
+    assert_units(result2, "kg")
+
+    # …dict of dimension lengths
+    result3 = operator.expand_dims(q_in, dict(a=2, b=3))
+    assert dict(a=2, b=3) | shape_in == _shape(result3)
+    assert [0, 1] == result3.coords["a"].data.tolist()
+
+    # …dict of dimension values
+    result4 = operator.expand_dims(q_in, dict(a=["a0", "a1"], b=["b0", "b1", "b2"]))
+    assert dict(a=2, b=3) | shape_in == _shape(result4)
+    assert ["a0", "a1"] == result4.coords["a"].data.tolist()
+
+    # …dict of dimension with empty list values
+    result5 = operator.expand_dims(q_in, dict(a=[], b=[]))
+    with (
+        pytest.raises(AssertionError)
+        if isinstance(q_in, SparseDataArray)
+        else nullcontext()
+    ):
+        assert dict(a=1, b=1) | shape_in == _shape(result5)
+
+
+def test_expand_dims1() -> None:
+    q_in = random_qty(dict(), units="kg")
+
+    with pytest.raises(TypeError):
+        operator.expand_dims(q_in, 1)
+
+    with pytest.raises(ValueError):
+        operator.expand_dims(q_in, ["a", "b", "a"])
 
 
 def test_group_sum(ureg):
@@ -961,6 +1019,13 @@ def test_where(data) -> None:
     assert x.units == result.units
 
 
+def test_wildcard_qty() -> None:
+    result = operator.wildcard_qty(1.0, "dimensionless", "abc")
+
+    assert set("abc") == set(result.dims)
+    assert all(c.data == ["*"] for c in result.coords.values())
+
+
 def test_write_report0(tmp_path, data) -> None:
     p = tmp_path.joinpath("foo.txt")
     *_, x = data
@@ -978,10 +1043,31 @@ def test_write_report0(tmp_path, data) -> None:
     assert "Hello, world!" == p.read_text()
 
 
-def test_write_report1(tmp_path, data) -> None:
+EXP_HEADER = r"""# Hello, world!
+# $
+# Generated: 20..-..-..T..:..:...*$
+# $
+# Units: kg
+# $"""
+
+
+@pytest.mark.parametrize(
+    "kwargs, lines",
+    (
+        (dict(), [1, 1]),
+        (dict(header_datetime=True), [1, 1, 1, 1]),
+        (dict(header_units=True), [1, 1, 0, 0, 1, 1]),
+        (dict(header_datetime=True, header_units=True), [1, 1, 1, 1, 1, 1]),
+    ),
+)
+def test_write_report1(tmp_path, data, kwargs, lines) -> None:
     p = tmp_path.joinpath("foo.csv")
     *_, x = data
 
+    # Compile the expected header
+    expr = re.compile("\n".join(compress(EXP_HEADER.splitlines(), lines)), flags=re.M)
+
     # Header comment is written
-    operator.write_report(x, p, dict(header_comment="Hello, world!\n"))
-    assert p.read_text().startswith("# Hello, world!\n#")
+    operator.write_report(x, p, dict(header_comment="Hello, world!\n") | kwargs)
+    match = expr.match(p.read_text())
+    assert match and 0 == match.pos

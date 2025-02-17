@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 @pytest.mark.xfail()
-def test_assert_logs(caplog):
+def test_assert_logs(caplog) -> None:
     caplog.set_level(logging.DEBUG)
 
     with assert_logs(caplog, "foo"):
@@ -23,11 +23,11 @@ def test_assert_logs(caplog):
         log.warning("spam and eggs")
 
 
-def test_assert_units():
+def test_assert_units() -> None:
     assert_units(Quantity(), "")
 
 
-def test_assert_check_type():
+def test_assert_check_type() -> None:
     """Mismatched types in :func:`assert_qty_equal` and :func:`assert_qty_allclose`."""
     with pytest.raises(AssertionError):
         assert_qty_equal(int(1), 2.2)
@@ -36,8 +36,13 @@ def test_assert_check_type():
         assert_qty_allclose(int(1), 2.2)
 
 
+def test_deprecated_import() -> None:
+    with pytest.warns(DeprecationWarning, match="random_qty"):
+        from genno.testing import random_qty  # noqa:F401
+
+
 @pytest.mark.xfail(raises=TypeError)
-def test_runtest_makereport():
+def test_runtest_makereport() -> None:
     """The Pytest hook :func:`.pytest_runtest_makereport` works."""
     c = Computer()
 

@@ -9,7 +9,7 @@ import pandas as pd
 import pint
 
 if TYPE_CHECKING:
-    from genno.types import Unit
+    from genno.types import TQuantity, Unit
 
     from .quantity import AnyQuantity
 
@@ -176,11 +176,11 @@ class BaseQuantity(
 
     def _keep(
         self,
-        target: "AnyQuantity",
+        target: "TQuantity",
         attrs: Optional[Any] = False,
         name: Optional[Any] = False,
         units: Optional[Any] = False,
-    ) -> "AnyQuantity":
+    ) -> "TQuantity":
         """Preserve `name`, `units`, and/or other `attrs` from `self` to `target`.
 
         The action for each argument is:

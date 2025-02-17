@@ -1,8 +1,7 @@
-from collections.abc import Hashable, Iterable, Mapping
-from typing import Optional, Union
+from collections.abc import Callable, Hashable, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Optional, Union
 
-import genno
-from genno import Quantity
+from genno.operator import write_report
 
 try:
     import sdmx
@@ -13,8 +12,12 @@ else:
 
 from . import util
 
+if TYPE_CHECKING:
+    from genno.types import AnyQuantity
+
 __all__ = [
     "codelist_to_groups",
+    "coords_to_codelists",
     "dataset_to_quantity",
     "quantity_to_dataset",
     "quantity_to_message",
@@ -56,7 +59,29 @@ def codelist_to_groups(
     return {dim: groups}
 
 
-def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
+def coords_to_codelists(
+    qty: "AnyQuantity", *, id_transform: Optional[Callable] = str.upper, **kwargs
+) -> list["sdmx.model.common.Codelist"]:
+    """Convert the coordinates of `qty` to a collection of :class:`.Codelist`."""
+    from sdmx.model.common import Codelist
+
+    result = []
+
+    def _transform(value: Any) -> str:
+        if id_transform is None:
+            return str(value)
+        else:
+            return id_transform(value)
+
+    for dim_id, labels in qty.coords.items():
+        cl = Codelist(id=_transform(dim_id), **kwargs)
+        [cl.setdefault(id=str(label)) for label in labels.data]
+        result.append(cl)
+
+    return result
+
+
+def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> "AnyQuantity":
     """Convert :class:`DataSet <sdmx.model.common.BaseDataSet>` to :class:`.Quantity`.
 
     Returns
@@ -74,6 +99,8 @@ def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
           :attr:`structured_by <sdmx.model.common.BaseDataSet.structured_by>` attribute
           of `ds`, if any.
     """
+    from genno import Quantity
+
     # Assemble attributes
     attrs: dict[str, str] = {}
     if ds.described_by:  # pragma: no cover
@@ -85,7 +112,7 @@ def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> Quantity:
 
 
 def quantity_to_dataset(
-    qty: Quantity,
+    qty: "AnyQuantity",
     structure: "sdmx.model.common.BaseDataStructureDefinition",
     *,
     observation_dimension: Optional[str] = None,
@@ -170,7 +197,7 @@ def quantity_to_dataset(
 
 
 def quantity_to_message(
-    qty: Quantity, structure: "sdmx.model.v21.DataStructureDefinition", **kwargs
+    qty: "AnyQuantity", structure: "sdmx.model.v21.DataStructureDefinition", **kwargs
 ) -> "sdmx.message.DataMessage":
     """Convert :class:`.Quantity` to :class:`DataMessage <sdmx.message.DataMessage>`.
 
@@ -197,7 +224,7 @@ def quantity_to_message(
     return sdmx.message.DataMessage(data=[ds], **kwargs)
 
 
-@genno.operator.write_report.register
+@write_report.register
 def _(obj: "sdmx.message.DataMessage", path, kwargs=None) -> None:
     """Write  `obj` to the file at `path`.
 
@@ -205,8 +232,6 @@ def _(obj: "sdmx.message.DataMessage", path, kwargs=None) -> None:
     use :mod:`sdmx` methods to write the file to SDMX-ML. Otherwise, equivalent to
     :func:`genno.operator.write_report`.
     """
-    import genno.compat.sdmx.operator  # noqa: F401
-
     assert path.suffix.lower() == ".xml"
 
     kwargs = kwargs or {}
