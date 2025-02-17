@@ -238,7 +238,12 @@ class Key(KeyGeneratorMixIn):
         """
         # Iterable of dimension names from all keys, in order, with repetitions
         dims = chain(
-            *map(lambda k: cls(k).dims if isinstance(k, (Key, str)) else (), keys)
+            *map(
+                lambda k: cls(k).dims
+                if isinstance(k, (AttrSeries, SparseDataArray, Key, str))
+                else (),
+                keys,
+            )
         )
 
         # Return new key. Use dict to keep only unique *dims*, in same order
