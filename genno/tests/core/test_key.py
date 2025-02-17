@@ -172,6 +172,25 @@ class TestKey:
         with pytest.raises(TypeError):
             key / 3.3
 
+    def test_sorted(self) -> None:
+        k1 = Key("foo", "abc")
+        k2 = Key("foo", "cba")
+
+        # Keys with same dimensions, ordered differently, compare equal
+        assert k1 == k2
+
+        # Ordered returns a key with sorted dimensions
+        assert k1.dims == k2.sorted.dims
+
+        # Keys compare equal to an equivalent string and to one another
+        assert k1 == "foo:b-a-c" == k2 == "foo:b-c-a"
+
+        # Keys hash equal to a string with sorted dimensions
+        assert hash("foo:a-b-c") == hash(k1) == hash(k2)
+
+        # `k2` does not hash equal to its own (unsorted) string representation
+        assert hash(k2) != hash(str(k2))
+
 
 class TestKeys:
     """:class:`.Keys` behaves as expected."""
@@ -283,26 +302,7 @@ class TestKeySeq:
         assert "foo:x-z:bar" == (ks / "y").base
 
 
-def test_sorted():
-    k1 = Key("foo", "abc")
-    k2 = Key("foo", "cba")
-
-    # Keys with same dimensions, ordered differently, compare equal
-    assert k1 == k2
-
-    # Ordered returns a key with sorted dimensions
-    assert k1.dims == k2.sorted.dims
-
-    # Keys compare equal to an equivalent string and to one another
-    assert k1 == "foo:b-a-c" == k2 == "foo:b-c-a"
-
-    # Keys do not hash equal
-    assert hash(k1) == hash("foo:a-b-c")
-    assert hash(k2) == hash("foo:c-b-a")
-    assert hash(k1) != hash(k2)
-
-
-def test_gt_lt():
+def test_gt_lt() -> None:
     """Test :meth:`Key.__gt__` and :meth:`Key.__lt__`."""
     k = Key("foo", "abd")
     assert k > "foo:a-b-c"
@@ -318,17 +318,17 @@ def test_gt_lt():
         assert k > 1.1
 
 
-def test_iter_keys():
+def test_iter_keys() -> None:
     # Non-iterable
     with pytest.raises(TypeError):
-        next(iter_keys(1.2))
+        next(iter_keys(1.2))  # type: ignore [arg-type]
 
     # Iterable containing non-keys
     with pytest.raises(TypeError):
-        list(iter_keys([Key("a"), Key("b"), 1.2]))
+        list(iter_keys([Key("a"), Key("b"), 1.2]))  # type: ignore [arg-type]
 
 
-def test_single_key():
+def test_single_key() -> None:
     # Single key is unpacked
     k = Key("a")
     result = single_key((k,))
@@ -336,7 +336,7 @@ def test_single_key():
 
     # Tuple containing 1 non-key
     with pytest.raises(TypeError):
-        single_key((1.2,))
+        single_key((1.2,))  # type: ignore [arg-type]
 
     # Tuple containing >1 Keys
     with pytest.raises(TypeError):
@@ -344,4 +344,4 @@ def test_single_key():
 
     # Empty iterable
     with pytest.raises(TypeError):
-        single_key([])
+        single_key([])  # type: ignore [arg-type]
