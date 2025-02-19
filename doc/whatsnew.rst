@@ -20,15 +20,15 @@ All changes
 -----------
 
 - :class:`.SparseDataArray` is tested on Python 3.13 (:pull:`158`).
-- Improvements to :class:`.Computer` (:pull:`157`)
+- Improvements to :class:`.Computer`:
 
-  - Item-setter syntax is supported as a shorthand for :meth:`~.Computer.add`, for example :py:`c["X:a-b"] = "mul", "Y:a-b", "Z:b"` (:issue:`160`).
-  - New methods :meth:`~.Computer.duplicate` and :meth:`~.Computer.insert` (:issue:`129`).
-  - :meth:`.Computer.describe` avoids :class:`RecursionError` when called on malformed (cyclic) graphs.
+  - Item-setter syntax is supported as a shorthand for :meth:`~.Computer.add`, for example :py:`c["X:a-b"] = "mul", "Y:a-b", "Z:b"` (:pull:`157`, :issue:`160`).
+  - New methods :meth:`~.Computer.duplicate` and :meth:`~.Computer.insert` (:pull:`157`, :pull:`162`, :issue:`129`).
+  - :meth:`.Computer.describe` avoids :class:`RecursionError` when called on malformed (cyclic) graphs (:pull:`157`).
 - :class:`.Key` directly provides many of the key-generation features previously provided by :class:`.KeySeq` (:pull:`157`).
-- :class:`.Key` hashes the same, regardless of dimension order (:pull:`157`, :issue:`159`).
+- :class:`.Key` hashes the same, regardless of dimension order (:pull:`157`, :pull:`162`, :issue:`159`).
 - New class :class:`.Keys`, a typed namespace of :class:`.Key` (:pull:`157`).
-- New operators :func:`.expand_dims`, :func:`.random_qty` (previously in :mod:`genno.testing`), :func:`.wildcard_qty`, and :func:`.compat.sdmx.operator.coords_to_codelists` (:pull:`157`).
+- New operators :func:`.expand_dims`, :func:`.random_qty` (previously in :mod:`genno.testing`), :func:`.wildcard_qty`, and :func:`.compat.sdmx.operator.coords_to_codelists` (:pull:`157`, :pull:`162`).
 - Operator :func:`.write_report` gains :py:`header_datetime=...` and :py:`header_units=...` keywords for writing to CSV (:pull:`157`).
 - :meth:`.AttrSeries.squeeze` supports the :py:`dim=...` argument (:pull:`157`, :issue:`144`).
 - :meth:`.AttrSeries.sum` supports the same use of :any:`Ellipsis` as :meth:`xarray.DataArray.sum`, for instance :py:`qty.sum(...)` (:pull:`158`).
