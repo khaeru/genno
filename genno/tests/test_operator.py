@@ -486,19 +486,38 @@ def test_expand_dims0(shape_in):
     assert dict(a=2, b=3) | shape_in == _shape(result3)
     assert [0, 1] == result3.coords["a"].data.tolist()
 
-    # …dict of dimension values
-    result4 = operator.expand_dims(q_in, dict(a=["a0", "a1"], b=["b0", "b1", "b2"]))
+    # …kwargs with dimension lengths
+    result4 = operator.expand_dims(q_in, a=2, b=3)
     assert dict(a=2, b=3) | shape_in == _shape(result4)
-    assert ["a0", "a1"] == result4.coords["a"].data.tolist()
+    assert [0, 1] == result4.coords["a"].data.tolist()
+
+    # …dict of dimension values
+    result5 = operator.expand_dims(q_in, dict(a=["a0", "a1"], b=["b0", "b1", "b2"]))
+    assert dict(a=2, b=3) | shape_in == _shape(result5)
+    assert ["a0", "a1"] == result5.coords["a"].data.tolist()
+
+    # …kwargs with dimension values
+    result6 = operator.expand_dims(q_in, a=["a0", "a1"], b=["b0", "b1", "b2"])
+    assert dict(a=2, b=3) | shape_in == _shape(result6)
+    assert ["a0", "a1"] == result6.coords["a"].data.tolist()
 
     # …dict of dimension with empty list values
-    result5 = operator.expand_dims(q_in, dict(a=[], b=[]))
+    result7 = operator.expand_dims(q_in, dict(a=[], b=[]))
     with (
         pytest.raises(AssertionError)
         if isinstance(q_in, SparseDataArray)
         else nullcontext()
     ):
-        assert dict(a=1, b=1) | shape_in == _shape(result5)
+        assert dict(a=1, b=1) | shape_in == _shape(result7)
+
+    # …kwarg with empty list values
+    result8 = operator.expand_dims(q_in, a=[], b=[])
+    with (
+        pytest.raises(AssertionError)
+        if isinstance(q_in, SparseDataArray)
+        else nullcontext()
+    ):
+        assert dict(a=1, b=1) | shape_in == _shape(result8)
 
 
 def test_expand_dims1() -> None:
