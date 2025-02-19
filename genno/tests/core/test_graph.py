@@ -35,6 +35,16 @@ class TestGraph:
         del g["foo:c-b-a"]
         assert None is g.full_key("foo")
 
+    def test_getitem(self, g: Graph) -> None:
+        # Item is accessible using an equivalent KeyLike with dims in different order
+        g[Key("bar:x-y-z")] = 2
+        assert 2 == g[Key("bar:y-z-x")]
+        assert 2 == g["bar:y-z-x"]
+
+        # …however this only works if the item was originally added as a Key
+        with pytest.raises(KeyError):
+            g["foo:a-b-c"]
+
     def test_infer(self, g) -> None:
         g["foo:x-y-z:bar"] = 2
         g["config"] = dict(baz="qux")

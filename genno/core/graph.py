@@ -67,20 +67,23 @@ class Graph(dict):
         else:
             self._unsorted.pop(k, None)
 
-    def __setitem__(self, key: "KeyLike", value: Any) -> None:
-        super().__setitem__(key, value)
-        self._index(key)
-
-    def __delitem__(self, key: "KeyLike") -> None:
-        super().__delitem__(key)
-        self._deindex(key)
-
     def __contains__(self, item) -> bool:
         """:obj:`True` if `item` *or* a key with the same dims in a different order."""
         try:
             return super().__contains__(item) or bool(self.unsorted_key(item))
         except Exception:  # for instance, TypeError
             return False
+
+    def __delitem__(self, key: "KeyLike") -> None:
+        super().__delitem__(key)
+        self._deindex(key)
+
+    def __getitem__(self, key: "KeyLike"):
+        return super().__getitem__(_key_arg(key))
+
+    def __setitem__(self, key: "KeyLike", value: Any) -> None:
+        super().__setitem__(key, value)
+        self._index(key)
 
     def pop(self, *args):
         """Overload :meth:`dict.pop` to also call :meth:`_deindex`."""

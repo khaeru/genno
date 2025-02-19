@@ -312,21 +312,22 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
             dim = dict.fromkeys(dim, 1)
         elif dim is not None and not isinstance(dim, Mapping):
             dim = {dim: 1}
+        _dim = either_dict_or_kwargs(dim, dim_kwargs, "expand_dims")
 
-        if dim is None or 0 == len(dim):
+        if not len(_dim):
             # Nothing to do → return early
             return self.copy()
 
-        # Assemble names → keys mapping for added dimensions
+        # Assemble names → keys mapping for all added dimensions at once
         n_k = {}
-        for dim, value in either_dict_or_kwargs(dim, dim_kwargs, "expand_dims").items():
+        for d, value in _dim.items():
             if isinstance(value, int):
-                n_k[dim] = range(value)
+                n_k[d] = range(value)
             elif isinstance(value, (list, pd.Index)) and 0 == len(value):
-                log.warning(f'Insert length-1 dimension for {{"{dim}": []}}')
-                n_k[dim] = range(1)
+                log.warning(f'Insert length-1 dimension for {{"{d}": []}}')
+                n_k[d] = range(1)
             else:
-                n_k[dim] = value
+                n_k[d] = value
         keys = list(product(*n_k.values()))
         names = list(n_k.keys())
 
