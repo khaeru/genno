@@ -9,6 +9,7 @@ from collections.abc import (
     MutableSequence,
     Sequence,
 )
+from copy import copy
 from functools import lru_cache, partial
 from importlib import import_module
 from inspect import signature
@@ -735,7 +736,7 @@ class Computer:
 
         try:
             # Preserve the existing task at `key`
-            existing = self.graph[key].copy()
+            existing = copy(self.graph[key])
             # Add `operation` at `key`, operating on the output of the original task
             self.add(key, *_args, **kwargs)
         except Exception:

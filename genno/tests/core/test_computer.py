@@ -302,6 +302,9 @@ class TestComputer:
         assert ["Inserted function, x=2.0 y='foo'"] == caplog.messages
         assert 2.0 == result.item()
 
+        # Can insert for a key that refers to a task stored as a tuple
+        c2.insert("C:x-y-z", inserted, ...)
+
     def test_insert1(self, caplog, c2) -> None:
         def inserted(qty: "TQuantity", *, x, y) -> "TQuantity":  # pragma: no cover
             log.info(f"Inserted function, {x=} {y=}")
