@@ -3,8 +3,11 @@ What's new
 
 .. _v1.28.1:
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.28.1 (2025-02-20)
+====================
 
 - Bug fix: genno 1.28.0 (only) would mutate :py:`kwargs` to :func:`.operator.write_report` and, in some cases, pass keyword arguments to :meth:`pandas.DataFrame.to_csv` (:pull:`164`).
 
