@@ -7,6 +7,7 @@ import operator
 import os
 import re
 from collections.abc import Callable, Collection, Hashable, Iterable, Mapping, Sequence
+from copy import deepcopy
 from datetime import datetime
 from functools import partial, reduce, singledispatch
 from itertools import chain
@@ -1114,7 +1115,7 @@ def _format_header_comment(kwargs) -> str:
         tz = datetime.now().astimezone().tzinfo
         value += os.linesep + f"Generated: {datetime.now(tz).isoformat()}" + os.linesep
 
-    units = kwargs.pop("units")
+    units = kwargs.pop("units", "")
     if kwargs.pop("header_units", False):
         value += os.linesep + f"Units: {units}" + os.linesep
 
@@ -1156,9 +1157,18 @@ def write_report(
         :meth:`pandas.DataFrame.to_csv` or :meth:`pandas.DataFrame.to_excel` (according
         to `path`), except for:
 
-        - "header_comment": valid only for `path` ending in :file:`.csv`. Multi-line
+        - "header_comment": handled only for `path` ending in :file:`.csv`. Multi-line
           text that is prepended to the file, with comment characters ("# ") before
           each line.
+        - "header_datetime": handled only for :file:`.csv`. If :any:`True` (default:
+          :any:`False`), append a line like "Generated: 2025-02-20T…" after the
+          `header_comment`.
+        - "header_units": handled only for :file:.csv`. If :any:`True` (default:
+          :any:`False`), append a line like "Units: kg / m / s**2" after the
+          `header_comment`.
+        - "units": used with "header_units", above. If `quantity` is |Quantity|, this
+          is retrieved automatically from its units attribute; if
+          :class:`pandas.DataFrame`, it must be provided explicitly.
 
     Raises
     ------
@@ -1180,19 +1190,19 @@ def _(
 ) -> None:
     path = Path(path)
 
-    if path.suffix == ".csv":
-        kwargs = kwargs or dict()
-        kwargs.setdefault("index", False)
+    kwargs = kwargs or dict()
+    kwargs.setdefault("index", False)
 
+    # Format header comment even if it is not to be used; this consumes the related
+    # keyword arguments so they are not passed to DataFrame.to_{csv,excel}().
+    header = _format_header_comment(kwargs)
+
+    if path.suffix == ".csv":
         with open(path, "wb") as f:
-            f.write(_format_header_comment(kwargs).encode())
+            f.write(header.encode())
             quantity.to_csv(f, **kwargs)
     elif path.suffix == ".xlsx":
-        kwargs = kwargs or dict()
         kwargs.setdefault("merge_cells", False)
-        kwargs.setdefault("index", False)
-        kwargs.pop("units", None)
-
         quantity.to_excel(path, **kwargs)
     else:
         raise NotImplementedError(f"Write pandas.DataFrame to {path.suffix!r}")
@@ -1206,6 +1216,6 @@ def _(
     kwargs: Optional[dict] = None,
 ) -> None:
     # Convert the Quantity to a pandas.DataFrame, then write
-    kwargs = kwargs or dict()
+    kwargs = deepcopy(kwargs or dict())
     kwargs.setdefault("units", f"{quantity.units:~}")
     write_report(quantity.to_dataframe().reset_index(), path, kwargs)

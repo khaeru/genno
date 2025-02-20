@@ -1080,13 +1080,30 @@ EXP_HEADER = r"""# Hello, world!
     ),
 )
 def test_write_report1(tmp_path, data, kwargs, lines) -> None:
-    p = tmp_path.joinpath("foo.csv")
     *_, x = data
 
     # Compile the expected header
     expr = re.compile("\n".join(compress(EXP_HEADER.splitlines(), lines)), flags=re.M)
 
     # Header comment is written
-    operator.write_report(x, p, dict(header_comment="Hello, world!\n") | kwargs)
-    match = expr.match(p.read_text())
+    kwargs = dict(header_comment="Hello, world!\n") | kwargs
+
+    # Write Quantity to CSV
+    p_csv = tmp_path.joinpath("foo.csv")
+    operator.write_report(x, p_csv, kwargs)
+    match = expr.match(p_csv.read_text())
     assert match and 0 == match.pos
+
+    # Write Quantity to .xlsx
+    p_xlsx = tmp_path.joinpath("foo.xlsx")
+    operator.write_report(x, p_xlsx, kwargs)
+    assert p_xlsx.exists()
+
+    # Write pd.DataFrame to .csv
+    x_df = x.to_series().reset_index()
+    p_df_csv = tmp_path.joinpath("foo from dataframe.csv")
+    operator.write_report(x_df, p_df_csv, kwargs)
+
+    # …to .xlsx
+    p_df_xlsx = tmp_path.joinpath("foo from dataframe.xlsx")
+    operator.write_report(x_df, p_df_xlsx, kwargs)
