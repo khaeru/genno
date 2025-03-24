@@ -16,6 +16,8 @@ class OperatorDocumenter(FunctionDocumenter):
         )
 
 
-def setup(app: "sphinx.application.Sphinx"):
+def setup(app: "sphinx.application.Sphinx") -> dict:
     """Configure :mod:`sphinx.ext.autodoc` to handle :class:`Operator` as functions."""
     app.add_autodocumenter(OperatorDocumenter, override=True)
+
+    return dict(parallel_read_safe=True, parallel_write_safe=True)
