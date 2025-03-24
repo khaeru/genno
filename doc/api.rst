@@ -418,29 +418,29 @@ This means that correct units are derived from the units of operands and attache
 Quantity has the following methods and attributes that exactly mirror the signatures and types of the corresponding :class:`.xarray.DataArray` items.
 
 .. autosummary::
-   ~genno.core.attrseries.AttrSeries.assign_coords
-   ~genno.core.attrseries.AttrSeries.bfill
-   ~genno.core.attrseries.AttrSeries.clip
-   ~genno.core.attrseries.AttrSeries.coords
-   ~genno.core.attrseries.AttrSeries.cumprod
-   ~genno.core.attrseries.AttrSeries.data
-   ~genno.core.attrseries.AttrSeries.dims
-   ~genno.core.attrseries.AttrSeries.drop
-   ~genno.core.attrseries.AttrSeries.drop_vars
-   ~genno.core.attrseries.AttrSeries.expand_dims
-   ~genno.core.attrseries.AttrSeries.ffill
-   ~genno.core.attrseries.AttrSeries.interp
-   ~genno.core.attrseries.AttrSeries.item
-   ~genno.core.attrseries.AttrSeries.rename
-   ~genno.core.attrseries.AttrSeries.sel
-   ~genno.core.attrseries.AttrSeries.shape
-   ~genno.core.attrseries.AttrSeries.shift
-   ~genno.core.attrseries.AttrSeries.squeeze
-   ~genno.core.attrseries.AttrSeries.sum
-   ~genno.core.attrseries.AttrSeries.to_dataframe
-   ~genno.core.attrseries.AttrSeries.to_series
-   ~genno.core.attrseries.AttrSeries.transpose
-   ~genno.core.attrseries.AttrSeries.where
+   ~core.attrseries.AttrSeries.assign_coords
+   ~core.attrseries.AttrSeries.bfill
+   ~core.attrseries.AttrSeries.clip
+   ~core.attrseries.AttrSeries.coords
+   ~core.attrseries.AttrSeries.cumprod
+   ~core.attrseries.AttrSeries.data
+   ~core.attrseries.AttrSeries.dims
+   ~core.attrseries.AttrSeries.drop
+   ~core.attrseries.AttrSeries.drop_vars
+   ~core.attrseries.AttrSeries.expand_dims
+   ~core.attrseries.AttrSeries.ffill
+   ~core.attrseries.AttrSeries.interp
+   ~core.attrseries.AttrSeries.item
+   ~core.attrseries.AttrSeries.rename
+   ~core.attrseries.AttrSeries.sel
+   ~core.attrseries.AttrSeries.shape
+   ~core.attrseries.AttrSeries.shift
+   ~core.attrseries.AttrSeries.squeeze
+   ~core.attrseries.AttrSeries.sum
+   ~core.attrseries.AttrSeries.to_dataframe
+   ~core.attrseries.AttrSeries.to_series
+   ~core.attrseries.AttrSeries.transpose
+   ~core.attrseries.AttrSeries.where
 
 .. autofunction:: configure
    :noindex:

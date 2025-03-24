@@ -83,6 +83,7 @@ html_title = "genno"
 # Order matters here; earlier entries are matched first.
 reference_aliases = {
     r"Quantity\.units": "genno.core.base.UnitsMixIn.units",
+    "KeyLike": ":data:`genno.core.key.KeyLike`",
     "Quantity": "genno.core.attrseries.AttrSeries",
     "AnyQuantity": ":data:`genno.core.quantity.AnyQuantity`",
     #
@@ -145,8 +146,6 @@ napoleon_type_aliases = {
     "mapping": "collections.abc.Mapping",
     "sequence": "collections.abc.Sequence",
     "Path": "pathlib.Path",
-    # This package
-    "KeyLike": "genno.core.key.KeyLike",
     # Others
     "Code": "sdmx.model.common.Code",
 }
