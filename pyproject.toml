@@ -40,7 +40,11 @@ dependencies = [
 [project.optional-dependencies]
 # Graphviz, for Computer.describe()
 graphviz = ["graphviz"]
-docs = ["furo", "IPython"]
+docs = [
+  "furo",
+  "IPython",
+  "pickleshare",
+]
 # Specific packages for which compatibility is provided
 plotnine = ["plotnine"]
 pyam = ["pyam-iamc"]
