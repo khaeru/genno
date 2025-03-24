@@ -1,6 +1,6 @@
 import logging
 import re
-from collections.abc import Callable, Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
 from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union
@@ -264,14 +264,17 @@ def quantity_from_iamc(
     if isinstance(qty, pd.DataFrame):
         # Convert pandas.DataFrame to pyam.IamDataFrame
         qty = pyam.IamDataFrame(qty)
+
     if isinstance(qty, pyam.IamDataFrame):
         # Convert IamDataFrame to Quantity
         df = qty.as_pandas()
         qty = genno.Quantity(df.set_index(list(IAMC_DIMS & set(df.columns)))["value"])
 
+    assert isinstance(qty, genno.Quantity)
+
     # Identify a dimension whose name is in `targets`
-    def identify_dim(targets: Collection[str]) -> str:
-        result = list(filter(lambda d: d.lower() in targets, qty.dims))
+    def identify_dim(targets: Collection[str]) -> Hashable:
+        result = [d for d in qty.dims if str(d).lower() in targets]
         if len(result) != 1:
             raise ValueError(
                 f"cannot identify 1 unique dimension for {targets!r} among "
