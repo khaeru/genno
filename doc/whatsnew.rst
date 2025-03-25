@@ -3,8 +3,11 @@ What's new
 
 .. _v1.28.2:
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.28.2 (2025-03-25)
+====================
 
 This release contains no functional changes.
 
