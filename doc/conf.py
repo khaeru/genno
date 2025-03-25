@@ -77,7 +77,7 @@ html_theme_options = dict(
 
 html_title = "genno"
 
-# -- Options for genno.compat.sphinx.reference_alias -----------------------------------
+# -- Options for genno.compat.sphinx.rewrite_refs --------------------------------------
 
 # Mapping from expression → replacement.
 # Order matters here; earlier entries are matched first.
