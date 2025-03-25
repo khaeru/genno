@@ -92,10 +92,12 @@ def resolve_intersphinx_aliases(app, env, node, contnode):
         return missing_reference(app, env, node, contnode)
 
 
-def setup(app: "sphinx.application.Sphinx"):
+def setup(app: "sphinx.application.Sphinx") -> dict:
     """Connect :mod:`.rewrite_refs` event handlers."""
 
     app.add_config_value("reference_aliases", dict(), "")
 
     app.connect("doctree-read", resolve_internal_aliases)
     app.connect("missing-reference", resolve_intersphinx_aliases)
+
+    return dict(parallel_read_safe=True, parallel_write_safe=True)

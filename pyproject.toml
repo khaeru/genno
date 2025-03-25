@@ -40,7 +40,11 @@ dependencies = [
 [project.optional-dependencies]
 # Graphviz, for Computer.describe()
 graphviz = ["graphviz"]
-docs = ["furo", "IPython"]
+docs = [
+  "furo",
+  "IPython",
+  "pickleshare",
+]
 # Specific packages for which compatibility is provided
 plotnine = ["plotnine"]
 pyam = ["pyam-iamc"]
@@ -69,6 +73,7 @@ documentation = "https://genno.rtfd.io/en/stable/"
 
 [tool.coverage.report]
 omit = [
+  ".venv/*",
   "**/genno/compat/sphinx/*",
 ]
 exclude_also = [

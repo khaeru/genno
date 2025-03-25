@@ -1,10 +1,18 @@
 What's new
 **********
 
-.. _v1.28.1:
+.. _v1.28.2:
 
-.. Next release
-.. ============
+Next release
+============
+
+This release contains no functional changes.
+
+- Adjust type hints in :func:`.quantity_from_iamc` to avoid mypy_ errors with xarray >= 2025.3 (:pull:`166`).
+- Mark Sphinx extensions in :mod:`genno.compat.sphinx` as safe for parallel I/O (:program:`sphinx-build --jobs=...`) (:pull:`166`).
+  Expand documentation of these extensions.
+
+.. _v1.28.1:
 
 v1.28.1 (2025-02-20)
 ====================
