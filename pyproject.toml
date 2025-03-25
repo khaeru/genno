@@ -73,6 +73,7 @@ documentation = "https://genno.rtfd.io/en/stable/"
 
 [tool.coverage.report]
 omit = [
+  ".venv/*",
   "**/genno/compat/sphinx/*",
 ]
 exclude_also = [
