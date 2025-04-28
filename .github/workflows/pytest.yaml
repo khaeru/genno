@@ -62,7 +62,12 @@ jobs:
         macos-skip-brew-update: true
 
     - name: Install the package and dependencies
-      run: uv pip install .[tests] ${{ matrix.python.extras }}
+      run: |
+        uv pip install \
+          "dask < 2025.4.0" \
+          ${{ matrix.python.extras }} \
+          .[tests]
+      shell: bash
 
     - name: Run tests
       run: |
