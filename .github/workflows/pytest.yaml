@@ -53,7 +53,8 @@ jobs:
     - name: Set up uv, Python
       uses: astral-sh/setup-uv@v6
       with:
-        cache-dependency-glob: "**/pyproject.toml"
+        activate-environment: true
+        enable-cache: true
         python-version: ${{ matrix.python.version }}
 
     - uses: ts-graphviz/setup-graphviz@v2
@@ -79,15 +80,19 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      python-version: "3.13"
+
     steps:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v6
       with:
-        cache-dependency-glob: "**/pyproject.toml"
-        python-version: "3.12"  # TEMPORARY work around https://github.com/python/mypy/issues/18216
-    - uses: actions/cache@v4
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
-        lookup-only: ${{ github.event_name == 'schedule' }}  # Set 'true' to recreate cache
-    - run: uvx pre-commit run --all-files --color=always --show-diff-on-failure
+        enable-cache: true
+        python-version: ${{ env.python-version }}
+    - name: Clear and re-create the pre-commit environments
+      run: uvx pre-commit clean
+      if: github.event_name == 'schedule'  # Comment this line to force clear
+    - run: |
+        uvx --with=pre-commit-uv \
+          pre-commit run \
+          --all-files --color=always --show-diff-on-failure --verbose
