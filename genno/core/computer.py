@@ -310,7 +310,7 @@ class Computer:
 
         if func:
             try:
-                # Use an implementation of Operator.add_task()
+                # Use an implementation of Operator.add_tasks()
                 return _warn_on_result(
                     self,
                     func.add_tasks(self, *args, **kwargs),  # type: ignore [attr-defined]
