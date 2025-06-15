@@ -185,12 +185,13 @@ class TestQuantity:
         # Exception raised when the values are of the wrong length
         with pytest.raises(
             ValueError,
-            match="conflicting sizes for dimension 'p': length 2 .* and length 3",
+            # NB "and" with xarray <= 2025.4; "but" with xarray >= 2025.6
+            match="conflicting sizes for dimension 'p': length 2 .* (but|and) length 3",
         ):
             a.assign_coords({"p": ["apple", "orange", "banana"]})
         with pytest.raises(
             ValueError,
-            match="conflicting sizes for dimension 'p': length 2 .* and length 1",
+            match="conflicting sizes for dimension 'p': length 2 .* (but|and) length 1",
         ):
             a.assign_coords({"p": ["apple"]})
 
