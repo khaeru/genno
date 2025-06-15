@@ -1,10 +1,12 @@
 What's new
 **********
 
-.. _v1.28.2:
+Next release
+============
 
-.. Next release
-.. ============
+- Adjust test expectations for xarray >= 2025.6 (:pull:`173`).
+
+.. _v1.28.2:
 
 v1.28.2 (2025-03-25)
 ====================
