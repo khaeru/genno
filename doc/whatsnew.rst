@@ -4,6 +4,7 @@ What's new
 Next release
 ============
 
+- Add :meth:`.Computer.update` and support for :py:`|` and :py:`|=` operators (:pull:`176`, :issue:`169`).
 - Adjust test expectations for xarray >= 2025.6 (:pull:`173`).
 
 .. _v1.28.2:
