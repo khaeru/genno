@@ -269,3 +269,15 @@ def unquote(value):
         return value[0].data
     else:
         return value
+
+
+def update_recursive(base: "MutableMapping", other: "Mapping") -> None:
+    """Recursively update `base` with contents of `other`.
+
+    Contents of :class:`dict`-like members are merged.
+    """
+    for k, v in other.items():
+        if isinstance(v, Mapping):
+            update_recursive(base.setdefault(k, {}), v)
+        else:
+            base[k] = v

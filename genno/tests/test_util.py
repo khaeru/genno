@@ -15,6 +15,7 @@ from genno.util import (
     parse_units,
     partial_split,
     unquote,
+    update_recursive,
 )
 
 
@@ -137,3 +138,18 @@ def test_partial_split():
 )
 def test_unquote(value, exp):
     assert exp == unquote(value)
+
+
+def test_update_recursive() -> None:
+    d1 = dict(foo=1, bar=dict(baz=2))
+    d2 = dict(foo=2, bar=dict(qux=3))
+
+    # Function runs without error
+    update_recursive(d1, d2)
+
+    # Ordinary elements are preserved
+    assert 2 == d1["foo"]
+    # Dictionary contents are merged
+    assert 3 == d1["bar"]["qux"]  # type: ignore [index]
+    # Other keys are preserved
+    assert 2 == d1["bar"]["baz"]  # type: ignore [index]
