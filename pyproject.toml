@@ -125,6 +125,8 @@ filterwarnings = [
   "ignore:Jupyter is migrating its paths.*:DeprecationWarning:jupyter_client.connect",
   # https://github.com/dateutil/dateutil/issues/1314
   "ignore:datetime.datetime.utcfromtimestamp.. is deprecated.*:DeprecationWarning:dateutil",
+  # .compat.pyam → ixmp4 → pandera
+  "ignore:Importing pandas-specific classes:FutureWarning:pandera",
 ]
 # commented: This doubles the number of tests in the entire suite.
 # Use only to identify more narrow applications of the same fixture.
