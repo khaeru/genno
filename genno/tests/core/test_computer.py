@@ -1,7 +1,8 @@
 import logging
 import re
+from collections.abc import Iterator
 from functools import partial
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -38,9 +39,18 @@ def msg(*keys):
 
 
 class TestComputer:
-    @pytest.fixture
-    def c(self):
-        return Computer()
+    @pytest.fixture(scope="function")
+    def c(self) -> Iterator[Computer]:
+        yield Computer()
+
+    @pytest.fixture(scope="function")
+    def c2(self, c: Computer) -> Iterator[Computer]:
+        import genno
+
+        c.add("A:x-y", genno.Quantity([1.0], coords={"x": ["x0"], "y": ["y0"]}))
+        c.add("B:y-z", genno.Quantity([1.0], coords={"y": ["y0"], "z": ["z0"]}))
+        c.add("C", "mul", "A:x-y", "B:y-z")
+        yield c
 
     def test_add_invalid0(self, c):
         with pytest.raises(TypeError, match="At least 1 argument required"):
@@ -244,15 +254,6 @@ class TestComputer:
         with pytest.raises(TypeError):
             c.disaggregate("x:", "d", method=None)
 
-    @pytest.fixture
-    def c2(self, c) -> Generator[Computer, None, None]:
-        import genno
-
-        c.add("A:x-y", genno.Quantity([1.0], coords={"x": ["x0"], "y": ["y0"]}))
-        c.add("B:y-z", genno.Quantity([1.0], coords={"y": ["y0"], "z": ["z0"]}))
-        c.add("C", "mul", "A:x-y", "B:y-z")
-        yield c
-
     def test_duplicate(self, c2):
         """Test :meth:`.Computer.duplicate`."""
         N = len(c2.graph)
@@ -329,11 +330,55 @@ class TestComputer:
         with pytest.raises(TypeError, match="unexpected keyword argument 'z'"):
             c2.insert("A:x-y", inserted, ..., tag="foo", z="not_an_arg")
 
+    def test_ior(self, c2: Computer) -> None:
+        c1 = Computer()
+
+        # Operation succeeds
+        c1 |= c2
+
+        # c1 is updated with the contents of c2
+        assert set(c2.graph) == set(c1.graph)
+
+    def test_or(self, c2: Computer) -> None:
+        c1 = Computer()
+        c1.configure(existing_config_key1="foo")
+
+        # Operation succeeds
+        c3 = c1 | c2
+
+        # c3 contains the contents of both c1 and c2
+        assert set(c2.graph) == set(c3.graph)
+        assert "foo" == c3.graph["config"]["existing_config_key1"]
+
     def test_setitem(self, c2) -> None:
         c2["D"] = "add", "A:x-y", "B:y-z", dict(sums=True)
 
         result = c2.get("D:x-y-z")
         assert set("xyz") == set(result.dims)
+
+    def test_update(self, c2: Computer) -> None:
+        c = Computer()
+        c.configure(existing_config_key1="foo")
+        k1 = set(c.graph)
+        k2 = set(c2.graph)
+
+        # Method runs without error
+        c.update(c2)
+
+        # Graph has the union of keys
+        assert k1 | k2 == set(c.graph)
+
+        # Existing configuration keys are present or updated
+        assert "foo" == c.graph["config"]["existing_config_key1"]
+
+        # Computer with a differing task for an existing key
+        c3 = Computer()
+        c3["C:x-y-z"] = (None,)
+
+        with pytest.raises(
+            RuntimeError, match="Existing task C:x-y-z → .* would be overwritten"
+        ):
+            c |= c3
 
 
 def test_cache(caplog, tmp_path, test_data_path, ureg):

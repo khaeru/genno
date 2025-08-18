@@ -26,7 +26,7 @@ from dask.core import quote
 from genno import caching, operator
 from genno.compat.dask import cull
 from genno.compat.xarray import either_dict_or_kwargs
-from genno.util import partial_split
+from genno.util import partial_split, update_recursive
 
 from .describe import describe_recursive
 from .exceptions import ComputationError, KeyExistsError, MissingKeyError
@@ -85,6 +85,18 @@ class Computer:
 
     def __contains__(self, item) -> bool:
         return self.graph.__contains__(item)
+
+    def __ior__(self, other: "Computer") -> "Computer":
+        """Same as :meth:`.update`."""
+        self.update(other)
+        return self
+
+    def __or__(self, other: "Computer") -> "Computer":
+        """Return a new Computer with the union of the contents of two Computers."""
+        result = Computer()
+        result |= self
+        result |= other
+        return result
 
     def __setitem__(self, data: "KeyLike", *args) -> None:
         _args, kwargs = args[0], {}
@@ -897,6 +909,34 @@ class Computer:
         if not quiet:
             print(result, end="\n")
         return result
+
+    def update(self, other: "Computer") -> None:
+        """Update Computer with the contents of `other`.
+
+        Raises
+        ------
+        RuntimeError
+            if any key is present in both the Computer and `other` with a different
+            task.
+        """
+        keys_self = set(self.graph)
+        keys_other = set(other.graph) - {"config"}
+
+        # Check matching keys for conflict before update
+        for k in keys_other & keys_self:
+            if self.graph[k] != other.graph[k]:
+                raise RuntimeError(
+                    f"Existing task {k} → {self.graph[k]} would be overwritten by "
+                    + repr(other.graph[k])
+                )
+
+        # Transfer non-matching keys
+        for k in keys_other - keys_self:
+            self.graph[k] = other.graph[k]
+
+        # Merge configuration
+        if "config" in other.graph:
+            update_recursive(self.graph.setdefault("config", {}), other.graph["config"])
 
     def visualize(self, filename, key=None, optimize_graph=False, **kwargs):
         """Generate an image describing the Computer structure.
