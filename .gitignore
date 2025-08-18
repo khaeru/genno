@@ -7,6 +7,7 @@ dist
 # Editors and development tools
 .benchmarks
 .coverage*
+.dmypy*
 .mypy_cache
 .pytest_cache
 .ruff_cache
