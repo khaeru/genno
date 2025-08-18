@@ -913,6 +913,19 @@ class Computer:
     def update(self, other: "Computer") -> None:
         """Update Computer with the contents of `other`.
 
+        The operators :py:`|` and :py:`|=` invoke this method.
+
+        Examples
+        --------
+        >>> c1 = Computer()
+        >>> c2 = Computer()
+        ### Create a new Computer containing all tasks from both c1 and c2
+        >>> c3 = c1 | c2
+        ### Add all tasks from c2 to c1
+        >>> c1.update(c2)
+        ### Same as above
+        >>> c1 |= c2
+
         Raises
         ------
         RuntimeError
