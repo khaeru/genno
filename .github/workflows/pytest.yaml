@@ -65,6 +65,7 @@ jobs:
       run: |
         uv pip install \
           "dask < 2025.4.0" \
+          "pytest-rerunfailures < 16" \
           ${{ matrix.python.extras }} \
           .[tests]
       shell: bash
