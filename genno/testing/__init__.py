@@ -2,6 +2,7 @@ import contextlib
 import importlib.resources
 import logging
 import os
+import platform
 from contextlib import nullcontext
 from functools import partial
 from importlib.metadata import version
@@ -29,6 +30,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+GHA = "GITHUB_ACTIONS" in os.environ
+
 # Common marks used in multiple places. Do not reuse keys.
 MARK = {
     "issue/145": pytest.mark.xfail(
@@ -43,11 +46,20 @@ MARK = {
 def pytest_configure(config):
     """Force iam-units to use a distinct cache for each worker.
 
-    Work around for https://github.com/hgrecco/flexcache/issues/6 /
-    https://github.com/IAMconsortium/units/issues/54.
+    Work arounds for:
+
+    1. https://github.com/hgrecco/flexcache/issues/6 and
+       https://github.com/IAMconsortium/units/issues/54.
+    2. https://github.com/python/cpython/issues/125235,
+       https://github.com/astral-sh/uv/issues/7036, or similar.
     """
     name = f"iam-units-{os.environ.get('PYTEST_XDIST_WORKER', '')}".rstrip("-")
     os.environ["IAM_UNITS_CACHE"] = str(config.cache.mkdir(name))
+
+    if GHA and platform.system() == "Windows":
+        import matplotlib
+
+        matplotlib.use("agg")
 
 
 def pytest_sessionstart(session):
