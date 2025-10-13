@@ -13,7 +13,7 @@ from functools import partial, reduce, singledispatch
 from itertools import chain
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import pandas as pd
@@ -28,11 +28,12 @@ from .core.key import Key, KeyLike, iter_keys, single_key
 from .core.operator import Operator
 from .core.quantity import assert_quantity
 from .core.sparsedataarray import SparseDataArray
-from .util import UnitLike, collect_units, filter_concat_args, units_with_multiplier
+from .util import collect_units, filter_concat_args, units_with_multiplier
 
 if TYPE_CHECKING:
     from genno import types
-    from genno.types import AnyQuantity, TQuantity
+
+    from .types import AnyQuantity, TQuantity, UnitLike
 
 __all__ = [
     "add",
@@ -223,7 +224,7 @@ def _unit_args(qty, units):
     return *result, getattr(result[1], "dimensionality", {}), result[0].Unit(units)
 
 
-def apply_units(qty: "TQuantity", units: UnitLike) -> "TQuantity":
+def apply_units(qty: "TQuantity", units: "UnitLike") -> "TQuantity":
     """Apply `units` to `qty`.
 
     If `qty` has existing units…
@@ -260,7 +261,7 @@ def apply_units(qty: "TQuantity", units: UnitLike) -> "TQuantity":
     return qty._keep(result, name=True, attrs=True, units=new_units)
 
 
-def as_quantity(info: Union[dict, float, str]) -> "AnyQuantity":
+def as_quantity(info: dict | float | str) -> "AnyQuantity":
     """Convert various values to Quantity.
 
     This operator can be useful when handling values from user input or various file
@@ -308,7 +309,7 @@ def as_quantity(info: Union[dict, float, str]) -> "AnyQuantity":
         raise TypeError(type(info))
 
 
-def assign_units(qty: "TQuantity", units: UnitLike) -> "TQuantity":
+def assign_units(qty: "TQuantity", units: "UnitLike") -> "TQuantity":
     """Set the `units` of `qty` without changing magnitudes.
 
     Logs on level ``INFO`` if `qty` has existing units.
@@ -368,10 +369,10 @@ def broadcast_map(
 
 def clip(
     qty: "TQuantity",
-    min: Optional["types.ScalarOrArray"] = None,
-    max: Optional["types.ScalarOrArray"] = None,
+    min: "types.ScalarOrArray | None" = None,
+    max: "types.ScalarOrArray | None" = None,
     *,
-    keep_attrs: Optional[bool] = None,
+    keep_attrs: bool | None = None,
 ) -> "TQuantity":
     """Call :meth:`.Quantity.clip`."""
     return qty.clip(min, max, keep_attrs=keep_attrs)
@@ -379,8 +380,8 @@ def clip(
 
 def combine(
     *quantities: "TQuantity",
-    select: Optional[list[Mapping]] = None,
-    weights: Optional[list[float]] = None,
+    select: list[Mapping] | None = None,
+    weights: list[float] | None = None,
 ) -> "TQuantity":  # noqa: F811
     """Sum distinct `quantities` by `weights`.
 
@@ -479,7 +480,7 @@ def concat(*objs: "TQuantity", **kwargs) -> "TQuantity":
     return objs[0]._keep(result, name=True, **to_keep)
 
 
-def convert_units(qty: "TQuantity", units: UnitLike) -> "TQuantity":
+def convert_units(qty: "TQuantity", units: "UnitLike") -> "TQuantity":
     """Convert magnitude of `qty` from its current units to `units`.
 
     Parameters
@@ -515,7 +516,7 @@ def disaggregate_shares(quantity: "TQuantity", shares: "TQuantity") -> "TQuantit
 
 
 @Operator.define(helper=add_binop)
-def div(numerator: Union["TQuantity", float], denominator: "TQuantity") -> "TQuantity":
+def div(numerator: "TQuantity | float", denominator: "TQuantity") -> "TQuantity":
     """Compute the ratio `numerator` / `denominator`.
 
     Parameters
@@ -538,11 +539,7 @@ ratio = div
 
 def drop_vars(
     qty: "TQuantity",
-    names: Union[
-        str,
-        Iterable[Hashable],
-        Callable[["TQuantity"], Union[str, Iterable[Hashable]]],
-    ],
+    names: str | Iterable[Hashable] | Callable[["TQuantity"], str | Iterable[Hashable]],
     *,
     errors="raise",
 ) -> "TQuantity":
@@ -554,12 +551,12 @@ def drop_vars(
 
 
 def expand_dims(
-    qty: "types.TQuantity",
-    dim: Union[Hashable, Sequence[Hashable], Mapping[Any, Any], None] = None,
-    axis: Union[int, Sequence[int], None] = None,
+    qty: "TQuantity",
+    dim: Hashable | Sequence[Hashable] | Mapping[Any, Any] | None = None,
+    axis: int | Sequence[int] | None = None,
     create_index_for_new_dim: bool = True,
     **dim_kwargs: Any,
-) -> "types.TQuantity":
+) -> "TQuantity":
     """Return a new object with (an) additional dimension(s).
 
     Like :meth:`xarray.DataArray.expand_dims`.
@@ -580,8 +577,8 @@ def group_sum(qty: "TQuantity", group: str, sum: str) -> "TQuantity":
 
 def index_to(
     qty: "TQuantity",
-    dim_or_selector: Union[str, Mapping],
-    label: Optional[Hashable] = None,
+    dim_or_selector: str | Mapping,
+    label: Hashable | None = None,
 ) -> "TQuantity":
     """Compute an index of `qty` against certain of its values.
 
@@ -622,10 +619,10 @@ def index_to(
 
 def interpolate(
     qty: "TQuantity",
-    coords: Optional[Mapping[Hashable, Any]] = None,
+    coords: Mapping[Hashable, Any] | None = None,
     method: "types.InterpOptions" = "linear",
     assume_sorted: bool = True,
-    kwargs: Optional[Mapping[str, Any]] = None,
+    kwargs: Mapping[str, Any] | None = None,
     **coords_kwargs: Any,
 ) -> "TQuantity":
     """Interpolate `qty`.
@@ -643,9 +640,9 @@ def interpolate(
 @Operator.define()
 def load_file(
     path: Path,
-    dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
-    units: Optional[UnitLike] = None,
-    name: Optional[str] = None,
+    dims: Collection[Hashable] | Mapping[Hashable, Hashable] = {},
+    units: "UnitLike | None" = None,
+    name: str | None = None,
 ) -> Any:
     """Read the file at `path` and return its contents as a :class:`~genno.Quantity`.
 
@@ -729,9 +726,9 @@ UNITS_RE = re.compile(r"# Units?: (.*)\s+")
 
 def _load_file_csv(
     path: Path,
-    dims: Union[Collection[Hashable], Mapping[Hashable, Hashable]] = {},
-    units: Optional[UnitLike] = None,
-    name: Optional[str] = None,
+    dims: Collection[Hashable] | Mapping[Hashable, Hashable] = {},
+    units: "UnitLike | None" = None,
+    name: str | None = None,
 ) -> "AnyQuantity":
     # Peek at the header, if any, and match a units expression
     with open(path, "r", encoding="utf-8") as f:
@@ -809,7 +806,7 @@ def mul(*quantities: "TQuantity") -> "TQuantity":
 product = mul
 
 
-def pow(a: "TQuantity", b: Union["TQuantity", int]) -> "TQuantity":
+def pow(a: "TQuantity", b: "TQuantity | int") -> "TQuantity":
     """Compute `a` raised to the power of `b`.
 
     Returns
@@ -852,7 +849,7 @@ def random_qty(shape: dict[str, int], **kwargs) -> "AnyQuantity":
 
 def relabel(
     qty: "TQuantity",
-    labels: Optional[Mapping[Hashable, Mapping]] = None,
+    labels: Mapping[Hashable, Mapping] | None = None,
     **dim_labels: Mapping,
 ) -> "TQuantity":
     """Replace specific labels along dimensions of `qty`.
@@ -905,7 +902,7 @@ def relabel(
 
 def rename(
     qty: "TQuantity",
-    new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
+    new_name_or_name_dict: Hashable | Mapping[Any, Hashable] = None,
     **names: Hashable,
 ) -> "TQuantity":
     """Returns a new Quantity with renamed dimensions or a new name.
@@ -918,7 +915,7 @@ def rename(
 
 def rename_dims(
     qty: "TQuantity",
-    name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
+    name_dict: Hashable | Mapping[Any, Hashable] = None,
     **names: Hashable,
 ) -> "TQuantity":
     """Returns a new Quantity with renamed dimensions or a new name.
@@ -981,7 +978,7 @@ def select(
                 # Check coords equal to scalar label
                 op1 = partial(operator.eq, labels)
                 # Take 1 item
-                item: Union[int, slice] = 0
+                item: int | slice = 0
             else:
                 # Check coords contained in collection of labels; take all
                 op1, item = partial(operator.contains, set(labels)), slice(None)
@@ -1009,8 +1006,8 @@ def sub(a: "TQuantity", b: "TQuantity") -> "TQuantity":
 @Operator.define()
 def sum(
     quantity: "TQuantity",
-    weights: Optional["TQuantity"] = None,
-    dimensions: Optional[list[str]] = None,
+    weights: "TQuantity | None" = None,
+    dimensions: list[str] | None = None,
 ) -> "TQuantity":
     """Sum `quantity` over `dimensions`, with optional `weights`.
 
@@ -1037,7 +1034,7 @@ def sum(
 @sum.helper
 def add_sum(
     func, c: "genno.Computer", key, qty, weights=None, dimensions=None, **kwargs
-) -> Union[KeyLike, tuple[KeyLike, ...]]:
+) -> KeyLike | tuple[KeyLike, ...]:
     """:meth:`.Computer.add` helper for :func:`.sum`.
 
     If `key` has the name "*", the returned key has name and dimensions inferred from
@@ -1055,7 +1052,7 @@ def add_sum(
 
 
 def unique_units_from_dim(
-    qty: "TQuantity", dim: str, *, fail: Union[str, int] = "raise"
+    qty: "TQuantity", dim: str, *, fail: str | int = "raise"
 ) -> "TQuantity":
     """Assign :attr:`.Quantity.units` using coords from the dimension `dim`.
 
@@ -1129,7 +1126,7 @@ def _format_header_comment(kwargs) -> str:
 
 @singledispatch
 def write_report(
-    quantity: object, path: Union[str, PathLike], kwargs: Optional[dict] = None
+    quantity: object, path: str | PathLike, kwargs: dict | None = None
 ) -> None:
     """Write a quantity to a file.
 
@@ -1180,14 +1177,12 @@ def write_report(
 
 
 @write_report.register
-def _(quantity: str, path: Union[str, PathLike], kwargs: Optional[dict] = None):
+def _(quantity: str, path: str | PathLike, kwargs: dict | None = None):
     Path(path).write_text(quantity)
 
 
 @write_report.register
-def _(
-    quantity: pd.DataFrame, path: Union[str, PathLike], kwargs: Optional[dict] = None
-) -> None:
+def _(quantity: pd.DataFrame, path: str | PathLike, kwargs: dict | None = None) -> None:
     path = Path(path)
 
     kwargs = kwargs or dict()
@@ -1212,8 +1207,8 @@ def _(
 @write_report.register(SparseDataArray)
 def _(
     quantity: "AnyQuantity",  # register() only handles bare AnyQuantity in Python ≥3.11
-    path: Union[str, PathLike],
-    kwargs: Optional[dict] = None,
+    path: str | PathLike,
+    kwargs: dict | None = None,
 ) -> None:
     # Convert the Quantity to a pandas.DataFrame, then write
     kwargs = deepcopy(kwargs or dict())

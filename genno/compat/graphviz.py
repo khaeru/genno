@@ -1,7 +1,7 @@
 import re
 from collections.abc import Mapping
 from os import PathLike
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from genno.core.describe import is_list_of_keys, label
 
@@ -134,13 +134,13 @@ class Visualizer:
 
 def visualize(
     dsk: Mapping,
-    filename: Optional[Union[str, PathLike]] = None,
-    format: Optional[str] = None,
-    data_attributes: Optional[Mapping] = None,
-    function_attributes: Optional[Mapping] = None,
-    graph_attr: Optional[Mapping] = None,
-    node_attr: Optional[Mapping] = None,
-    edge_attr: Optional[Mapping] = None,
+    filename: str | PathLike | None = None,
+    format: str | None = None,
+    data_attributes: Mapping | None = None,
+    function_attributes: Mapping | None = None,
+    graph_attr: Mapping | None = None,
+    node_attr: Mapping | None = None,
+    edge_attr: Mapping | None = None,
     collapse_outputs: bool = False,
     **kwargs,
 ):

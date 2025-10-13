@@ -3,7 +3,7 @@ import re
 from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 from warnings import warn
 
 import pyam
@@ -35,14 +35,14 @@ def as_pyam(
     scenario,
     quantity: "AnyQuantity",
     *,
-    rename: Optional[Mapping[str, str]] = None,
-    collapse: Optional[Callable] = None,
+    rename: Mapping[str, str] | None = None,
+    collapse: Callable | None = None,
     replace=dict(),
-    drop: Union[Collection[str], str] = "auto",
+    drop: Collection[str] | str = "auto",
     unit=None,
     prepend_name: bool = True,
-    model_name: Optional[str] = None,
-    scenario_name: Optional[str] = None,
+    model_name: str | None = None,
+    scenario_name: str | None = None,
 ):
     """Return a :class:`pyam.IamDataFrame` containing the data from `quantity`.
 
@@ -152,7 +152,7 @@ def as_pyam(
 def add_as_pyam(
     func,
     c: "Computer",
-    quantities: Union[KeyLike, Iterable[KeyLike]],
+    quantities: KeyLike | Iterable[KeyLike],
     tag="iamc",
     /,
     **kwargs,
@@ -226,10 +226,10 @@ def _(*args: pyam.IamDataFrame, **kwargs) -> "pyam.IamDataFrame":
 
 
 def quantity_from_iamc(
-    qty: Union["TQuantity", "pyam.IamDataFrame", "pandas.DataFrame"],
+    qty: "TQuantity | pyam.IamDataFrame | pandas.DataFrame",
     variable: str,
     *,
-    fail: Union[int, str] = "warning",
+    fail: int | str = "warning",
 ) -> "TQuantity":
     """Extract data for a single measure from `qty` with IAMC-like structure.
 

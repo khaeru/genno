@@ -1,5 +1,5 @@
 import sys
-from typing import TYPE_CHECKING, Literal, Type, Union
+from typing import TYPE_CHECKING, Literal, Type
 
 from .attrseries import AttrSeries
 from .base import BaseQuantity
@@ -25,7 +25,7 @@ def assert_quantity(*args):
             )
 
 
-def get_class() -> Type[Union[AttrSeries, SparseDataArray]]:
+def get_class() -> Type[AttrSeries | SparseDataArray]:
     """Get the current :class:`.Quantity` implementation in use.
 
     Returns one of the classes :class:`.AttrSeries` or :class:`.SparseDataArray`.
@@ -36,7 +36,7 @@ def get_class() -> Type[Union[AttrSeries, SparseDataArray]]:
 
 def set_class(
     name: Literal["AttrSeries", "SparseDataArray"] = "AttrSeries",
-) -> Type[Union[AttrSeries, SparseDataArray]]:
+) -> Type[AttrSeries | SparseDataArray]:
     """Set the :class:`.Quantity` implementation to be used.
 
     This also updates :py:`genno.Quantity` and :py:`genno.quantity.Quantity` to refer to
@@ -103,4 +103,4 @@ CLASS = "AttrSeries"
 #: Either :class:`.AttrSeries` or :class:`.SparseDataArray`. Code in :mod:`genno` or
 #: user code that receives or returns any Quantity implementation should be typed with
 #: this type.
-AnyQuantity = Union[AttrSeries, SparseDataArray]
+AnyQuantity = AttrSeries | SparseDataArray

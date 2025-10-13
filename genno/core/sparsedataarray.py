@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Hashable, Mapping, Sequence
-from typing import Any, Optional, Union
+from typing import Any
 from warnings import filterwarnings
 
 import numpy as np
@@ -124,12 +124,12 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
     def __init__(
         self,
         data: Any = dtypes.NA,
-        coords: Union[Sequence[tuple], Mapping[Hashable, Any], None] = None,
-        dims: Union[str, Sequence[Hashable], None] = None,
+        coords: Sequence[tuple] | Mapping[Hashable, Any] | None = None,
+        dims: str | Sequence[Hashable] | None = None,
         name: Hashable = None,
-        attrs: Optional[Mapping] = None,
+        attrs: Mapping | None = None,
         # internal parameters
-        indexes: Optional[dict[Hashable, pd.Index]] = None,
+        indexes: dict[Hashable, pd.Index] | None = None,
         fastpath: bool = False,
         **kwargs,
     ):
@@ -218,7 +218,7 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
         """Override :meth:`~xarray.DataArray.clip` to return SparseDataArray."""
         return super().clip(min, max, keep_attrs=keep_attrs)._sda.convert()
 
-    def ffill(self, dim: Hashable, limit: Optional[int] = None):
+    def ffill(self, dim: Hashable, limit: int | None = None):
         """Override :meth:`~xarray.DataArray.ffill` to auto-densify."""
         return self._sda.dense_super.ffill(dim, limit)._sda.convert()
 
@@ -251,8 +251,8 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
 
     def sel(
         self,
-        indexers: Optional[Mapping[Any, Any]] = None,
-        method: Optional[str] = None,
+        indexers: Mapping[Any, Any] | None = None,
+        method: str | None = None,
         tolerance=None,
         drop: bool = False,
         **indexers_kwargs: Any,
@@ -284,8 +284,8 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
 
     def to_dataframe(
         self,
-        name: Optional[Hashable] = None,
-        dim_order: Optional[Sequence[Hashable]] = None,
+        name: Hashable | None = None,
+        dim_order: Sequence[Hashable] | None = None,
     ) -> pd.DataFrame:
         """Convert this array and its coords into a :class:`pandas.DataFrame`.
 

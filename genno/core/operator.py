@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from functools import update_wrapper
 from inspect import signature
-from typing import Any, ClassVar, Optional, Union
+from typing import Any, ClassVar
 from warnings import warn
 
 from .computer import Computer
@@ -44,7 +44,7 @@ class Operator:
 
     #: Helper method to add tasks to a :class:`.Computer`. Register with :meth:`helper`,
     #: invoke with :meth:`add_tasks`.
-    _add_tasks: ClassVar[Optional[Callable]] = None
+    _add_tasks: ClassVar[Callable | None] = None
 
     def __call__(self, *args, **kwargs):
         # The callable is stored as a static method; `self` is not passed
@@ -62,9 +62,9 @@ class Operator:
 
     @staticmethod
     def define(
-        deprecated_func_arg: Optional[Callable] = None,
+        deprecated_func_arg: Callable | None = None,
         *,
-        helper: Optional[Callable] = None,
+        helper: Callable | None = None,
     ) -> Callable[[Callable], "Operator"]:
         """Return a decorator that wraps `func` in a :class:`.Operator` instance.
 
@@ -112,9 +112,7 @@ class Operator:
 
         return decorator
 
-    def helper(
-        self, func: Callable[..., Union[KeyLike, tuple[KeyLike, ...]]]
-    ) -> Callable:
+    def helper(self, func: Callable[..., KeyLike | tuple[KeyLike, ...]]) -> Callable:
         """Register `func` as the convenience method for adding task(s)."""
         self.__class__._add_tasks = staticmethod(func)
         return func

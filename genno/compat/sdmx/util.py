@@ -1,12 +1,19 @@
-from typing import Optional, Union
+from typing import TYPE_CHECKING
 
-import sdmx
+if TYPE_CHECKING:
+    from sdmx.format import Version
+    from sdmx.model.common import (
+        BaseDataSet,
+        BaseDataStructureDefinition,
+        BaseObservation,
+        DimensionComponent,
+        MaintainableArtefact,
+    )
 
 
 def handle_od(
-    value: Union[str, "sdmx.model.common.DimensionComponent", None],
-    structure: "sdmx.model.common.BaseDataStructureDefinition",
-) -> Optional["sdmx.model.common.DimensionComponent"]:
+    value: "str | DimensionComponent | None", structure: "BaseDataStructureDefinition"
+) -> "DimensionComponent | None":
     """Handle `observation_dimension` arguments for :mod:`.sdmx.operator`.
 
     Ensure either None or a DimensionComponent.
@@ -19,8 +26,10 @@ def handle_od(
         return structure.dimensions.get(value)
 
 
-def urn(obj: "sdmx.model.common.MaintainableArtefact") -> str:
+def urn(obj: "MaintainableArtefact") -> str:
     """Return the URN of `obj`, or construct it."""
+    import sdmx.urn
+
     if result := obj.urn:  # pragma: no cover
         return result
     else:
@@ -28,16 +37,13 @@ def urn(obj: "sdmx.model.common.MaintainableArtefact") -> str:
 
 
 def handle_version(
-    version: Union["sdmx.format.Version", str, None],
-) -> tuple[
-    "sdmx.format.Version",
-    type["sdmx.model.common.BaseDataSet"],
-    type["sdmx.model.common.BaseObservation"],
-]:
+    version: "str |Version | None",
+) -> tuple["Version", type["BaseDataSet"], type["BaseObservation"]]:
     """Handle `version` arguments for :mod:`.sdmx.operator`.
 
     Also return either :mod:`sdmx.model.v21` or :mod:`sdmx.model.v30`, as appropriate.
     """
+    import sdmx.model
     from sdmx.format import Version
 
     # Ensure a Version enum member

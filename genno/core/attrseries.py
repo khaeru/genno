@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
 from functools import partial
 from itertools import product, tee
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import pandas as pd
@@ -105,8 +105,8 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         self,
         data: Any = None,
         *args,
-        name: Optional[Hashable] = None,
-        attrs: Optional[Mapping] = None,
+        name: Hashable | None = None,
+        attrs: Mapping | None = None,
         **kwargs,
     ):
         # Emulate behaviour of Series.__init__
@@ -208,7 +208,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         # Return a new object with the new index
         return self.set_axis(new_idx)
 
-    def bfill(self, dim: Hashable, limit: Optional[int] = None):
+    def bfill(self, dim: Hashable, limit: int | None = None):
         """Like :meth:`xarray.DataArray.bfill`."""
         # TODO this likely does not work for 1-D quantities due to unstack(); test and
         #      if needed use _maybe_groupby()
@@ -262,7 +262,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         min=None,
         max=None,
         *,
-        keep_attrs: Optional[bool] = None,
+        keep_attrs: bool | None = None,
     ):
         """Like :meth:`.xarray.DataArray.clip`.
 
@@ -283,17 +283,15 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         """Like :meth:`xarray.DataArray.drop`."""
         return self.droplevel(label)
 
-    def drop_vars(
-        self, names: Union[Hashable, Iterable[Hashable]], *, errors: str = "raise"
-    ):
+    def drop_vars(self, names: Hashable | Iterable[Hashable], *, errors: str = "raise"):
         """Like :meth:`xarray.DataArray.drop_vars`."""
 
         return self.droplevel(names)
 
     def expand_dims(
         self,
-        dim: Union[Hashable, Sequence[Hashable], Mapping[Any, Any], None] = None,
-        axis: Union[int, Sequence[int], None] = None,
+        dim: Hashable | Sequence[Hashable] | Mapping[Any, Any] | None = None,
+        axis: int | Sequence[int] | None = None,
         create_index_for_new_dim: bool = True,
         **dim_kwargs: Any,
     ) -> "AttrSeries":
@@ -335,7 +333,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
             pd.concat([self] * len(keys), keys=keys, names=names, sort=False)
         )
 
-    def ffill(self, dim: Hashable, limit: Optional[int] = None):
+    def ffill(self, dim: Hashable, limit: int | None = None):
         """Like :meth:`xarray.DataArray.ffill`."""
         # TODO this likely does not work for 1-D quantities due to unstack(); test and
         #      if needed use _maybe_groupby()
@@ -356,10 +354,10 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
     def interp(
         self,
-        coords: Optional[Mapping[Hashable, Any]] = None,
+        coords: Mapping[Hashable, Any] | None = None,
         method: str = "linear",
         assume_sorted: bool = True,
-        kwargs: Optional[Mapping[str, Any]] = None,
+        kwargs: Mapping[str, Any] | None = None,
         **coords_kwargs: Any,
     ):
         """Like :meth:`xarray.DataArray.interp`.
@@ -409,7 +407,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
     def rename(
         self,
-        new_name_or_name_dict: Union[Hashable, Mapping[Hashable, Hashable]] = None,
+        new_name_or_name_dict: Hashable | Mapping[Hashable, Hashable] = None,
         **names: Hashable,
     ):
         """Like :meth:`xarray.DataArray.rename`."""
@@ -421,8 +419,8 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
     def sel(
         self,
-        indexers: Optional[Mapping[Any, Any]] = None,
-        method: Optional[str] = None,
+        indexers: Mapping[Any, Any] | None = None,
+        method: str | None = None,
         tolerance=None,
         drop: bool = False,
         **indexers_kwargs: Any,
@@ -513,7 +511,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
     def shift(
         self,
-        shifts: Optional[Mapping[Hashable, int]] = None,
+        shifts: Mapping[Hashable, int] | None = None,
         fill_value: Any = None,
         **shifts_kwargs: int,
     ):
@@ -538,9 +536,9 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         dim: "Dims" = None,
         # Signature from xarray.DataArray
         # *,
-        skipna: Optional[bool] = None,
-        min_count: Optional[int] = None,
-        keep_attrs: Optional[bool] = None,
+        skipna: bool | None = None,
+        min_count: int | None = None,
+        keep_attrs: bool | None = None,
         **kwargs: Any,
     ) -> "AttrSeries":
         """Like :meth:`xarray.DataArray.sum`."""
@@ -602,14 +600,14 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
 
     def to_dataframe(
         self,
-        name: Optional[Hashable] = None,
-        dim_order: Optional[Sequence[Hashable]] = None,
+        name: Hashable | None = None,
+        dim_order: Sequence[Hashable] | None = None,
     ) -> pd.DataFrame:
         """Like :meth:`xarray.DataArray.to_dataframe`."""
         if dim_order is not None:
             raise NotImplementedError("dim_order arg to to_dataframe()")
 
-        self.name = name or self.name or "value"  # type: ignore
+        self.name = name or self.name or "value"
         return self.to_frame()
 
     def to_series(self):

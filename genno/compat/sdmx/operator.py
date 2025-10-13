@@ -1,5 +1,5 @@
 from collections.abc import Callable, Hashable, Iterable, Mapping
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from genno.operator import write_report
 
@@ -25,8 +25,8 @@ __all__ = [
 
 
 def codelist_to_groups(
-    codes: Union["sdmx.model.common.Codelist", Iterable["sdmx.model.common.Code"]],
-    dim: Optional[str] = None,
+    codes: "sdmx.model.common.Codelist | Iterable[sdmx.model.common.Code]",
+    dim: str | None = None,
 ) -> Mapping[str, Mapping[str, list[str]]]:
     """Convert `codes` into a mapping from parent items to their children.
 
@@ -60,7 +60,7 @@ def codelist_to_groups(
 
 
 def coords_to_codelists(
-    qty: "AnyQuantity", *, id_transform: Optional[Callable] = str.upper, **kwargs
+    qty: "AnyQuantity", *, id_transform: Callable | None = str.upper, **kwargs
 ) -> list["sdmx.model.common.Codelist"]:
     """Convert the coordinates of `qty` to a collection of :class:`.Codelist`."""
     from sdmx.model.common import Codelist
@@ -115,8 +115,8 @@ def quantity_to_dataset(
     qty: "AnyQuantity",
     structure: "sdmx.model.common.BaseDataStructureDefinition",
     *,
-    observation_dimension: Optional[str] = None,
-    version: Union["sdmx.format.Version", str, None] = None,
+    observation_dimension: str | None = None,
+    version: "sdmx.format.Version | str | None" = None,
 ) -> "sdmx.model.common.BaseDataSet":
     """Convert :class:`.Quantity` to :class:`DataSet <sdmx.model.common.BaseDataSet>`.
 

@@ -2,7 +2,7 @@ import operator
 from abc import abstractmethod
 from collections.abc import Hashable, Mapping, MutableMapping, Sequence
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 import numpy as np
 import pandas as pd
@@ -42,7 +42,7 @@ class UnitsMixIn:
         )
 
     @units.setter
-    def units(self, value: Union["Unit", str]) -> None:
+    def units(self, value: "Unit | str") -> None:
         self.attrs["_unit"] = pint.get_application_registry().Unit(value)
 
     def _binary_op_units(
@@ -158,18 +158,18 @@ class BaseQuantity(
     The class has units and unit-aware binary operations.
     """
 
-    name: Optional[Hashable]
+    name: Hashable | None
 
     @abstractmethod
     def __init__(
         self,
         data: Any = None,
-        coords: Union[Sequence[tuple], Mapping[Hashable, Any], None] = None,
-        dims: Union[str, Sequence[Hashable], None] = None,
+        coords: Sequence[tuple] | Mapping[Hashable, Any] | None = None,
+        dims: str | Sequence[Hashable] | None = None,
         name: Hashable = None,
-        attrs: Optional[Mapping] = None,
+        attrs: Mapping | None = None,
         # internal parameters
-        indexes: Optional[dict[Hashable, pd.Index]] = None,
+        indexes: dict[Hashable, pd.Index] | None = None,
         fastpath: bool = False,
         **kwargs,
     ): ...
@@ -177,9 +177,9 @@ class BaseQuantity(
     def _keep(
         self,
         target: "TQuantity",
-        attrs: Optional[Any] = False,
-        name: Optional[Any] = False,
-        units: Optional[Any] = False,
+        attrs: Any | None = False,
+        name: Any | None = False,
+        units: Any | None = False,
     ) -> "TQuantity":
         """Preserve `name`, `units`, and/or other `attrs` from `self` to `target`.
 
@@ -198,7 +198,7 @@ class BaseQuantity(
             target.attrs.update(attrs)
         if units is not False:
             # Only units; not other attrs
-            target.units = self.units if units is True else units
+            target.units = self.units if units is True else units  # type: ignore [assignment]
         return target
 
 
@@ -229,7 +229,7 @@ def prepare_binary_op(
 
 
 def collect_attrs(
-    data, attrs_arg: Optional[Mapping], kwargs: MutableMapping
+    data, attrs_arg: Mapping | None, kwargs: MutableMapping
 ) -> MutableMapping:
     """Handle `attrs` and 'units' `kwargs` to Quantity constructors."""
     # Use attrs, if any, from an existing object, if any

@@ -6,7 +6,7 @@ from functools import partial, singledispatch, update_wrapper
 from hashlib import blake2b
 from inspect import getmembers, iscode
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -140,7 +140,7 @@ def hash_code(func: Callable) -> str:
     return Encoder().default(code_obj)
 
 
-def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
+def hash_contents(path: Path | str, chunk_size=65536) -> str:
     """Return the :func:`hashlib.blake2b` hex digest the file contents of `path`.
 
     Parameters
@@ -157,7 +157,7 @@ def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
 
 def decorate(
     func: Callable,
-    computer: Optional["genno.Computer"] = None,
+    computer: "genno.Computer | None" = None,
     cache_path=None,
     cache_skip: bool = False,
 ) -> Callable:

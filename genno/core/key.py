@@ -4,7 +4,7 @@ from collections.abc import Callable, Generator, Hashable, Iterable, Iterator, S
 from functools import partial, singledispatch
 from itertools import chain, compress
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Optional, SupportsInt, Union
+from typing import TYPE_CHECKING, SupportsInt
 from warnings import warn
 
 from .attrseries import AttrSeries
@@ -24,7 +24,7 @@ BARE_STR = re.compile(r"^\s*(?P<name>[^:]+)\s*$")
 
 
 @singledispatch
-def _name_dims_tag(value) -> tuple[str, tuple[str, ...], Optional[str]]:
+def _name_dims_tag(value) -> tuple[str, tuple[str, ...], str | None]:
     """Convert various `value`s into (name, dims, tag) tuples.
 
     Helper for :meth:`.Key.__init__`.
@@ -64,7 +64,7 @@ class KeyGeneratorMixIn:
     def __init__(self) -> None:
         self._generated = []
 
-    def __call__(self, value: Optional[Hashable] = None) -> "Key":
+    def __call__(self, value: Hashable | None = None) -> "Key":
         return next(self) if value is None else self[value]
 
     def __getitem__(self, value: Hashable) -> "Key":
@@ -99,13 +99,13 @@ class Key(KeyGeneratorMixIn):
     _hash: int
     _name: str
     _str: str
-    _tag: Optional[str]
+    _tag: str | None
 
     def __init__(
         self,
-        name_or_value: Union[str, "Key", "AnyQuantity"],
+        name_or_value: "str | Key | AnyQuantity",
         dims: Iterable[str] = [],
-        tag: Optional[str] = None,
+        tag: str | None = None,
         _fast: bool = False,
     ):
         if _fast:
@@ -154,7 +154,7 @@ class Key(KeyGeneratorMixIn):
     # Class methods
 
     @classmethod
-    def bare_name(cls, value) -> Optional[str]:
+    def bare_name(cls, value) -> str | None:
         """If `value` is a bare name (no dims or tags), return it; else :obj:`None`."""
         if not isinstance(value, str):
             return None
@@ -164,10 +164,10 @@ class Key(KeyGeneratorMixIn):
     @classmethod
     def from_str_or_key(
         cls,
-        value: Union[str, "Key", "AnyQuantity"],
-        drop: Union[Iterable[str], bool] = [],
+        value: "str | Key | AnyQuantity",
+        drop: Iterable[str] | bool = [],
         append: Iterable[str] = [],
-        tag: Optional[str] = None,
+        tag: str | None = None,
     ) -> "Key":
         """Return a new Key from *value*.
 
@@ -213,7 +213,7 @@ class Key(KeyGeneratorMixIn):
             return base
 
         # mypy is fussy here
-        drop_args: tuple[Union[str, bool], ...] = tuple(
+        drop_args: tuple[str | bool, ...] = tuple(
             [drop] if isinstance(drop, bool) else drop
         )
 
@@ -221,7 +221,7 @@ class Key(KeyGeneratorMixIn):
         return base.drop(*drop_args).append(*tuple(append)).add_tag(tag)
 
     @classmethod
-    def product(cls, new_name: str, *keys, tag: Optional[str] = None) -> "Key":
+    def product(cls, new_name: str, *keys, tag: str | None = None) -> "Key":
         """Return a new Key that has the union of dimensions on *keys*.
 
         Dimensions are ordered by their first appearance:
@@ -257,10 +257,10 @@ class Key(KeyGeneratorMixIn):
             raise TypeError(type(other))
         return self.add_tag(other)
 
-    def __sub__(self, other: Union[str, Iterable[str]]) -> "Key":
+    def __sub__(self, other: str | Iterable[str]) -> "Key":
         return self.remove_tag(*((other,) if isinstance(other, str) else other))
 
-    def __mul__(self, other: Union[str, "Key", Sequence[str]]) -> "Key":
+    def __mul__(self, other: "str | Key | Sequence[str]") -> "Key":
         if isinstance(other, str):
             other_dims: Sequence[str] = (other,)
         elif isinstance(other, Key):
@@ -272,7 +272,7 @@ class Key(KeyGeneratorMixIn):
 
         return self.append(*other_dims)
 
-    def __truediv__(self, other: Union[str, "Key", Sequence[str]]) -> "Key":
+    def __truediv__(self, other: "str | Key | Sequence[str]") -> "Key":
         if isinstance(other, str):
             other_dims: Sequence[str] = (other,)
         elif isinstance(other, Key):
@@ -337,7 +337,7 @@ class Key(KeyGeneratorMixIn):
         return self._dims
 
     @property
-    def tag(self) -> Optional[str]:
+    def tag(self) -> str | None:
         """Quantity tag, :class:`str` or :obj:`None`."""
         return self._tag
 
@@ -350,7 +350,7 @@ class Key(KeyGeneratorMixIn):
         """Return a Key with a replaced `name`."""
         return Key(name, self._dims, self._tag, _fast=True)
 
-    def drop(self, *dims: Union[str, bool]) -> "Key":
+    def drop(self, *dims: str | bool) -> "Key":
         """Return a new Key with `dims` dropped."""
         return Key(
             self._name,
@@ -367,7 +367,7 @@ class Key(KeyGeneratorMixIn):
         """Return a new Key with additional dimensions `dims`."""
         return Key(self._name, list(self._dims) + list(dims), self._tag, _fast=True)
 
-    def add_tag(self, tag: Optional[str]) -> "Key":
+    def add_tag(self, tag: str | None) -> "Key":
         """Return a new Key with `tag` appended."""
         return Key(
             self._name, self._dims, "+".join(filter(None, [self._tag, tag])), _fast=True
@@ -482,7 +482,7 @@ class KeySeq(KeyGeneratorMixIn):
         return self._base.dims
 
     @property
-    def tag(self) -> Optional[str]:
+    def tag(self) -> str | None:
         """Tag of the :attr:`.base` Key."""
         return self._base.tag
 
@@ -492,7 +492,7 @@ class KeySeq(KeyGeneratorMixIn):
     def __mul__(self, other) -> "KeySeq":
         return KeySeq(self._base.__mul__(other))
 
-    def __sub__(self, other: Union[str, Iterable[str]]) -> "KeySeq":
+    def __sub__(self, other: str | Iterable[str]) -> "KeySeq":
         return KeySeq(self._base.__sub__(other))
 
     def __truediv__(self, other) -> "KeySeq":
@@ -500,7 +500,7 @@ class KeySeq(KeyGeneratorMixIn):
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.
-KeyLike = Union[Key, str]
+KeyLike = Key | str
 
 
 def combo_partition(iterable):
@@ -513,7 +513,7 @@ def combo_partition(iterable):
         yield list(compress(iterable, a)), list(compress(iterable, b))
 
 
-def iter_keys(value: Union[KeyLike, tuple[KeyLike, ...]]) -> Iterator[Key]:
+def iter_keys(value: KeyLike | tuple[KeyLike, ...]) -> Iterator[Key]:
     """Yield :class:`Keys <Key>` from `value`.
 
     Raises
@@ -536,7 +536,7 @@ def iter_keys(value: Union[KeyLike, tuple[KeyLike, ...]]) -> Iterator[Key]:
         yield element
 
 
-def single_key(value: Union[KeyLike, tuple[KeyLike, ...], Iterator]) -> Key:
+def single_key(value: KeyLike | tuple[KeyLike, ...] | Iterator) -> Key:
     """Ensure `value` is a single :class:`Key`.
 
     Raises

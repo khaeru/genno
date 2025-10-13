@@ -15,7 +15,7 @@ from importlib import import_module
 from inspect import signature
 from itertools import compress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, cast
 from warnings import catch_warnings, warn
 
 import dask
@@ -61,7 +61,7 @@ class Computer:
     graph: "genno.core.graph.Graph" = Graph(config=dict())
 
     #: The default key to :meth:`.get` with no argument.
-    default_key: Optional["KeyLike"] = None
+    default_key: "KeyLike | None" = None
 
     #: List of modules containing operators.
     #:
@@ -118,9 +118,9 @@ class Computer:
 
     def configure(
         self,
-        path: Optional[Union[Path, str]] = None,
-        fail: Union[str, int] = "raise",
-        config: Optional[Mapping[str, Any]] = None,
+        path: Path | str | None = None,
+        fail: str | int = "raise",
+        config: Mapping[str, Any] | None = None,
         **config_kw,
     ):
         """Configure the Computer.
@@ -166,7 +166,7 @@ class Computer:
 
     # Manipulating callables
 
-    def get_operator(self, name) -> Optional[Callable]:
+    def get_operator(self, name) -> Callable | None:
         """Return a function, :class:`.Operator`, or callable for use in a task.
 
         :meth:`get_operator` checks each of the :attr:`modules` for a callable with the
@@ -187,7 +187,7 @@ class Computer:
         return self._get_operator(name)
 
     @lru_cache()
-    def _get_operator(self, name: str) -> Optional[Callable]:
+    def _get_operator(self, name: str) -> Callable | None:
         for module in reversed(self.modules):
             try:
                 # Retrieve the operator from `module`
@@ -208,7 +208,7 @@ class Computer:
     #: Alias of :meth:`get_operator`.
     get_comp = get_operator
 
-    def require_compat(self, pkg: Union[str, types.ModuleType]):
+    def require_compat(self, pkg: str | types.ModuleType):
         """Register a module for :meth:`get_operator`.
 
         The specified module is appended to :attr:`modules`.
@@ -269,7 +269,7 @@ class Computer:
 
     # Add computations to the Computer
 
-    def add(self, data, *args, **kwargs) -> Union["KeyLike", tuple["KeyLike", ...]]:
+    def add(self, data, *args, **kwargs) -> "KeyLike | tuple[KeyLike, ...]":
         """General-purpose method to add computations.
 
         :meth:`add` can be called in several ways; its behaviour depends on `data`; see
@@ -299,7 +299,7 @@ class Computer:
             return _warn_on_result(self, getattr(self, data)(*args, **kwargs))
 
         # Possibly identify a named or direct callable in `data` or `args[0]`
-        func: Optional[Callable] = None
+        func: Callable | None = None
         if func := self.get_operator(data):
             # `data` is the name of a pre-defined computation
             # NB in the future, could raise some warning here to suggest the second form
@@ -369,7 +369,7 @@ class Computer:
         self,
         queue: Iterable[tuple],
         max_tries: int = 1,
-        fail: Optional[Union[str, int]] = None,
+        fail: str | int | None = None,
     ) -> tuple["KeyLike", ...]:
         """Add tasks from a list or `queue`.
 
@@ -410,7 +410,7 @@ class Computer:
                 else:
                     self.args, self.kwargs = value, {}  # `value` is positional only
 
-        def _log(msg: str, i: Item, e: Optional[Exception] = None, level=logging.DEBUG):
+        def _log(msg: str, i: Item, e: Exception | None = None, level=logging.DEBUG):
             """Log information for debugging."""
             log.log(
                 level,
@@ -535,7 +535,7 @@ class Computer:
 
     def apply(
         self, generator: Callable, *keys, **kwargs
-    ) -> Union["KeyLike", tuple["KeyLike", ...]]:
+    ) -> "KeyLike | tuple[KeyLike, ...]":
         """Add computations by applying `generator` to `keys`.
 
         Parameters
@@ -784,7 +784,7 @@ class Computer:
         return result
 
     def check_keys(
-        self, *keys: Union[str, Key], predicate=None, action="raise"
+        self, *keys: str | Key, predicate=None, action="raise"
     ) -> list["KeyLike"]:
         """Check that `keys` are in the Computer.
 
@@ -847,9 +847,7 @@ class Computer:
         return result
 
     def infer_keys(
-        self,
-        key_or_keys: Union["KeyLike", Iterable["KeyLike"]],
-        dims: Iterable[str] = [],
+        self, key_or_keys: "KeyLike | Iterable[KeyLike]", dims: Iterable[str] = []
     ):
         """Infer complete `key_or_keys`.
 
@@ -1028,11 +1026,11 @@ class Computer:
         self,
         qty: "KeyLike",
         tag: str,
-        dims_or_groups: Union[Mapping, str, Sequence[str]],
-        weights: Optional[xr.DataArray] = None,
+        dims_or_groups: Mapping | str | Sequence[str],
+        weights: xr.DataArray | None = None,
         keep: bool = True,
         sums: bool = False,
-        fail: Optional[Union[str, int]] = None,
+        fail: str | int | None = None,
     ):
         """Deprecated.
 
