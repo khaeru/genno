@@ -1,6 +1,7 @@
 import contextlib
 import importlib.resources
 import logging
+import os
 from contextlib import nullcontext
 from functools import partial
 from importlib.metadata import version
@@ -37,6 +38,16 @@ MARK = {
 }
 
 # Pytest hooks
+
+
+def pytest_configure(config):
+    """Force iam-units to use a distinct cache for each worker.
+
+    Work around for https://github.com/hgrecco/flexcache/issues/6 /
+    https://github.com/IAMconsortium/units/issues/54.
+    """
+    name = f"iam-units-{os.environ.get('PYTEST_XDIST_WORKER', '')}".rstrip("-")
+    os.environ["IAM_UNITS_CACHE"] = str(config.cache.mkdir(name))
 
 
 def pytest_sessionstart(session):
