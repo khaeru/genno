@@ -1,6 +1,6 @@
 import contextlib
+import importlib.resources
 import logging
-import sys
 from contextlib import nullcontext
 from functools import partial
 from importlib.metadata import version
@@ -21,12 +21,6 @@ from genno import ComputationError, Computer, Key, set_class
 from genno.compat.pint import PintError
 from genno.core.attrseries import AttrSeries
 from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
-
-if sys.version_info.minor >= 10:
-    import importlib.resources as importlib_resources
-else:
-    # Use the backport to get identical behaviour
-    import importlib_resources  # type: ignore [no-redef]
 
 if TYPE_CHECKING:
     from genno.core.quantity import AnyQuantity
@@ -464,7 +458,7 @@ def raises_or_warns(value, *args, **kwargs) -> ContextManager:
 @pytest.fixture(scope="session")
 def test_data_path():
     """Path to the directory containing test data."""
-    return importlib_resources.files("genno.tests.data")
+    return importlib.resources.files("genno.tests.data")
 
 
 @pytest.fixture(scope="session")
