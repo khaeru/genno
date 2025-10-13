@@ -4,6 +4,21 @@ What's new
 Next release
 ============
 
+- :mod:`genno` supports and is tested on `Python 3.14 <https://www.python.org/downloads/release/python-3140/>`_,
+  released 2025-10-07 (:pull:`179`).
+  As of release time:
+
+  - `llvmlite <https://github.com/numba/llvmlite/issues/1281>`__
+    and `numba <https://github.com/numba/numba/issues/9957>`__ do not yet support Python 3.14.
+    :class:`.SparseDataArray` should be usable once these dependencies are updated.
+  - `pyarrow <https://github.com/apache/arrow/issues/47438>`__
+    does not yet support Python 3.14.
+    Genno depends on :mod:`fastparquet` instead for :doc:`cache`.
+    Once a compatible version of :mod:`pyarrow` is released,
+    it should be usable with this version of genno.
+
+- Support for Python 3.9 is dropped (:pull:`179`),
+  as it has reached end-of-life.
 - Add :meth:`.Computer.update` and support for :py:`|` and :py:`|=` operators (:pull:`176`, :issue:`169`).
 - Adjust test expectations for xarray >= 2025.6 (:pull:`173`).
 
