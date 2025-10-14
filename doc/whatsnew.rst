@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.29.0 (2025-10-14)
+====================
 
 - :mod:`genno` supports and is tested on `Python 3.14 <https://www.python.org/downloads/release/python-3140/>`_,
   released 2025-10-07 (:pull:`179`).
