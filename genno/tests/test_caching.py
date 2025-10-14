@@ -1,5 +1,4 @@
 import logging
-import sys
 from types import new_class
 
 import numpy as np
@@ -60,7 +59,7 @@ class TestEncoder:
     (
         (lambda: np.array([3]), "pickle"),
         (pd.DataFrame, "parquet"),
-        (AttrSeries, "parquet" if sys.version_info >= (3, 9) else "pickle"),
+        (AttrSeries, "parquet"),
         pytest.param(
             SparseDataArray,
             "parquet",
@@ -95,7 +94,7 @@ def test_decorate(caplog, tmp_path, value, suffix):
 
     # Cache hit on the second call
     assert all(value() == decorated())
-    assert caplog.messages[-1].startswith("Cache hit for myfunc(<")
+    assert 1 == sum(m.startswith("Cache hit for myfunc(<") for m in caplog.messages)
 
     for f in files:
         f.unlink()
