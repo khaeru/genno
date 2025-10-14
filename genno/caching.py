@@ -266,6 +266,10 @@ def _write(path: Path, data):
         else:
             df = data
 
+        # Work around https://github.com/dask/fastparquet/issues/730
+        if df.empty and isinstance(df.index, pd.MultiIndex):
+            df.reset_index(drop=True, inplace=True)
+
         # Write to Parquet
         df.to_parquet(path.with_suffix(".parquet"))
     else:
