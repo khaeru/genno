@@ -38,6 +38,10 @@ MARK = {
         condition="2024.10.0" <= version("xarray"),
         reason="with SparseDataArray only (https://github.com/pydata/xarray/issues/9694)",
     ),
+    "jupyter_client#1079": pytest.mark.skipif(
+        condition=platform.python_version_tuple() >= ("3", "14", "0"),
+        reason="https://jupyter/jupyter_client/issues/1079",
+    ),
 }
 
 # Pytest hooks
@@ -364,7 +368,7 @@ def assert_qty_equal(
     else:
         import xarray.testing
 
-        if ignore_extra_coords:
+        if ignore_extra_coords:  # pragma: no cover
             a = a.reset_coords(set(a.coords.keys()) - set(a.dims), drop=True)
             b = b.reset_coords(set(b.coords.keys()) - set(b.dims), drop=True)
 

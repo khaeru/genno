@@ -4,7 +4,7 @@ import re
 import pytest
 
 from genno import ComputationError, Computer
-from genno.testing import assert_logs
+from genno.testing import MARK, assert_logs
 from genno.testing.jupyter import get_cell_output, run_notebook
 
 
@@ -55,6 +55,7 @@ TypeError: can only concatenate str \(not "float"\) to str.*""",
 )
 
 
+@MARK["jupyter_client#1079"]
 @pytest.mark.flaky(
     reruns=5,
     rerun_delay=2,
