@@ -1,7 +1,7 @@
 from collections.abc import Generator, Iterable, Sequence
 from itertools import chain, tee
 from operator import itemgetter
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from .key import Key
 
@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from .key import KeyLike
 
 
-def _key_arg(key: "KeyLike") -> Union[str, Key]:
+def _key_arg(key: "KeyLike") -> str | Key:
     return Key.bare_name(key) or Key(key)
 
 
@@ -106,18 +106,16 @@ class Graph(dict):
 
         super().update(arg1, **kwargs)
 
-    def unsorted_key(self, key: "KeyLike") -> Optional["KeyLike"]:
+    def unsorted_key(self, key: "KeyLike") -> "KeyLike | None":
         """Return `key` with its original or unsorted dimensions."""
         k = _key_arg(key)
         return self._unsorted.get(k.sorted if isinstance(k, Key) else k)
 
-    def full_key(self, name_or_key: "KeyLike") -> Optional["KeyLike"]:
+    def full_key(self, name_or_key: "KeyLike") -> "KeyLike | None":
         """Return `name_or_key` with its full dimensions."""
         return self._full.get(Key(name_or_key).drop_all())
 
-    def infer(
-        self, key: Union[str, Key], dims: Iterable[str] = []
-    ) -> Optional["KeyLike"]:
+    def infer(self, key: str | Key, dims: Iterable[str] = []) -> "KeyLike | None":
         """Infer a `key`.
 
         Parameters

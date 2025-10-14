@@ -2,7 +2,7 @@
 
 from abc import abstractmethod
 from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Optional, Protocol, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -74,7 +74,7 @@ class DataArrayLike(Protocol):
 
     def assign_coords(
         self,
-        coords: Optional[Mapping[Any, Any]] = None,
+        coords: Mapping[Any, Any] | None = None,
         **coords_kwargs: Any,
     ): ...
 
@@ -94,16 +94,16 @@ class DataArrayLike(Protocol):
     def bfill(
         self,
         dim: Hashable,
-        limit: Optional[int] = None,
+        limit: int | None = None,
     ): ...
 
     @abstractmethod
     def clip(
         self,
-        min: Optional["xarray.core.types.ScalarOrArray"] = None,
-        max: Optional["xarray.core.types.ScalarOrArray"] = None,
+        min: "xarray.core.types.ScalarOrArray | None" = None,
+        max: "xarray.core.types.ScalarOrArray | None" = None,
         *,
-        keep_attrs: Optional[bool] = None,
+        keep_attrs: bool | None = None,
     ): ...
 
     @abstractmethod
@@ -118,17 +118,15 @@ class DataArrayLike(Protocol):
         self,
         dim: "Dims" = None,
         *,
-        skipna: Optional[bool] = None,
-        keep_attrs: Optional[bool] = None,
+        skipna: bool | None = None,
+        keep_attrs: bool | None = None,
         **kwargs: Any,
     ): ...
 
     @abstractmethod
     def drop_vars(
         self,
-        names: Union[
-            str, Iterable[Hashable], Callable[[Any], Union[str, Iterable[Hashable]]]
-        ],
+        names: str | Iterable[Hashable] | Callable[[Any], str | Iterable[Hashable]],
         *,
         errors="raise",
     ): ...
@@ -145,7 +143,7 @@ class DataArrayLike(Protocol):
     def ffill(
         self,
         dim: Hashable,
-        limit: Optional[int] = None,
+        limit: int | None = None,
     ): ...
 
     @abstractmethod
@@ -159,10 +157,10 @@ class DataArrayLike(Protocol):
     @abstractmethod
     def interp(
         self,
-        coords: Optional[Mapping[Any, Any]] = None,
+        coords: Mapping[Any, Any] | None = None,
         method: "xarray.core.types.InterpOptions" = "linear",
         assume_sorted: bool = False,
-        kwargs: Optional[Mapping[str, Any]] = None,
+        kwargs: Mapping[str, Any] | None = None,
         **coords_kwargs: Any,
     ): ...
 
@@ -174,8 +172,8 @@ class DataArrayLike(Protocol):
         self,
         dim: "Dims" = None,
         *,
-        skipna: Optional[bool] = None,
-        keep_attrs: Optional[bool] = None,
+        skipna: bool | None = None,
+        keep_attrs: bool | None = None,
         **kwargs: Any,
     ): ...
 
@@ -184,15 +182,15 @@ class DataArrayLike(Protocol):
         self,
         dim: "Dims" = None,
         *,
-        skipna: Optional[bool] = None,
-        keep_attrs: Optional[bool] = None,
+        skipna: bool | None = None,
+        keep_attrs: bool | None = None,
         **kwargs: Any,
     ): ...
 
     @abstractmethod
     def pipe(
         self,
-        func: Union[Callable[..., T], tuple[Callable[..., T], str]],
+        func: Callable[..., T] | tuple[Callable[..., T], str],
         *args: Any,
         **kwargs: Any,
     ): ...
@@ -200,7 +198,7 @@ class DataArrayLike(Protocol):
     @abstractmethod
     def rename(
         self,
-        new_name_or_name_dict: Union[Hashable, Mapping[Any, Hashable]] = None,
+        new_name_or_name_dict: Hashable | Mapping[Any, Hashable] = None,
         **names: Hashable,
     ): ...
 
@@ -210,8 +208,8 @@ class DataArrayLike(Protocol):
     @abstractmethod
     def sel(
         self,
-        indexers: Optional[Mapping[Any, Any]] = None,
-        method: Optional[str] = None,
+        indexers: Mapping[Any, Any] | None = None,
+        method: str | None = None,
         tolerance=None,
         drop: bool = False,
         **indexers_kwargs: Any,
@@ -220,16 +218,16 @@ class DataArrayLike(Protocol):
     @abstractmethod
     def shift(
         self,
-        shifts: Optional[Mapping[Any, int]] = None,
+        shifts: Mapping[Any, int] | None = None,
         fill_value: Any = None,
         **shifts_kwargs: int,
     ): ...
 
     def squeeze(
         self,
-        dim: Union[Hashable, Iterable[Hashable], None] = None,
+        dim: Hashable | Iterable[Hashable] | None = None,
         drop: bool = False,
-        axis: Union[int, Iterable[int], None] = None,
+        axis: int | Iterable[int] | None = None,
     ): ...
 
     @abstractmethod
@@ -238,17 +236,17 @@ class DataArrayLike(Protocol):
         dim: "Dims" = None,
         # Signature from xarray.DataArray
         *,
-        skipna: Optional[bool] = None,
-        min_count: Optional[int] = None,
-        keep_attrs: Optional[bool] = None,
+        skipna: bool | None = None,
+        min_count: int | None = None,
+        keep_attrs: bool | None = None,
         **kwargs: Any,
     ): ...
 
     @abstractmethod
     def to_dataframe(
         self,
-        name: Optional[Hashable] = None,
-        dim_order: Optional[Sequence[Hashable]] = None,
+        name: Hashable | None = None,
+        dim_order: Sequence[Hashable] | None = None,
     ) -> pd.DataFrame: ...
 
     @abstractmethod

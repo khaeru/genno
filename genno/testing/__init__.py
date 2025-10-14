@@ -1,6 +1,8 @@
 import contextlib
+import importlib.resources
 import logging
-import sys
+import os
+import platform
 from contextlib import nullcontext
 from functools import partial
 from importlib.metadata import version
@@ -22,17 +24,13 @@ from genno.compat.pint import PintError
 from genno.core.attrseries import AttrSeries
 from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
 
-if sys.version_info.minor >= 10:
-    import importlib.resources as importlib_resources
-else:
-    # Use the backport to get identical behaviour
-    import importlib_resources  # type: ignore [no-redef]
-
 if TYPE_CHECKING:
     from genno.core.quantity import AnyQuantity
 
 
 log = logging.getLogger(__name__)
+
+GHA = "GITHUB_ACTIONS" in os.environ
 
 # Common marks used in multiple places. Do not reuse keys.
 MARK = {
@@ -40,9 +38,32 @@ MARK = {
         condition="2024.10.0" <= version("xarray"),
         reason="with SparseDataArray only (https://github.com/pydata/xarray/issues/9694)",
     ),
+    "jupyter_client#1079": pytest.mark.skipif(
+        condition=platform.python_version_tuple() >= ("3", "14", "0"),
+        reason="https://jupyter/jupyter_client/issues/1079",
+    ),
 }
 
 # Pytest hooks
+
+
+def pytest_configure(config):
+    """Force iam-units to use a distinct cache for each worker.
+
+    Work arounds for:
+
+    1. https://github.com/hgrecco/flexcache/issues/6 and
+       https://github.com/IAMconsortium/units/issues/54.
+    2. https://github.com/python/cpython/issues/125235,
+       https://github.com/astral-sh/uv/issues/7036, or similar.
+    """
+    name = f"iam-units-{os.environ.get('PYTEST_XDIST_WORKER', '')}".rstrip("-")
+    os.environ["IAM_UNITS_CACHE"] = str(config.cache.mkdir(name))
+
+    if GHA and platform.system() == "Windows":
+        import matplotlib
+
+        matplotlib.use("agg")
 
 
 def pytest_sessionstart(session):
@@ -347,7 +368,7 @@ def assert_qty_equal(
     else:
         import xarray.testing
 
-        if ignore_extra_coords:
+        if ignore_extra_coords:  # pragma: no cover
             a = a.reset_coords(set(a.coords.keys()) - set(a.dims), drop=True)
             b = b.reset_coords(set(b.coords.keys()) - set(b.dims), drop=True)
 
@@ -464,7 +485,7 @@ def raises_or_warns(value, *args, **kwargs) -> ContextManager:
 @pytest.fixture(scope="session")
 def test_data_path():
     """Path to the directory containing test data."""
-    return importlib_resources.files("genno.tests.data")
+    return importlib.resources.files("genno.tests.data")
 
 
 @pytest.fixture(scope="session")

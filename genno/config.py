@@ -4,7 +4,7 @@ from copy import copy
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 from warnings import warn
 
 from genno import operator
@@ -31,7 +31,7 @@ HANDLERS: dict[str, "ConfigHandler"] = {}
 STORE: set[str] = set()
 
 
-def configure(path: Optional[Union[Path, str]] = None, **config):
+def configure(path: Path | str | None = None, **config):
     """Configure :mod:`.genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
@@ -74,7 +74,7 @@ class ConfigHandler:
     key: str
 
     #: Callable
-    callback: Callable[[Optional[Computer], Union[Mapping, Sequence]], Any]
+    callback: Callable[[Computer | None, Mapping | Sequence], Any]
 
     #: If :any:`True`, apply :attr:`callback` iteratively to each member of the
     #: value/section.
@@ -83,7 +83,7 @@ class ConfigHandler:
     #: If :any:`True`, discard the configuration contents after handling.
     discard: bool
 
-    def handle(self, data: Union[Mapping, Sequence], c: Optional[Computer]):
+    def handle(self, data: Mapping | Sequence, c: Computer | None):
         if self.iterate:
             if isinstance(data, Mapping):
                 iterator: Iterable = data.items()
@@ -159,9 +159,9 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
 
 
 def parse_config(
-    c: Optional[Computer],
+    c: Computer | None,
     data: MutableMapping[str, Any],
-    fail: Optional[Union[str, int]] = None,
+    fail: str | int | None = None,
 ):
     _convert_deprecated_store_global()
 

@@ -5,7 +5,7 @@ Expanded from and with thanks for https://stackoverflow.com/a/62301461.
 
 import re
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from docutils.nodes import Text
 from sphinx.addnodes import pending_xref
@@ -16,10 +16,10 @@ if TYPE_CHECKING:
 
 
 class Replacement:
-    refdomain: Optional[str]
-    reftype: Optional[str]
+    refdomain: str | None
+    reftype: str | None
     reftarget: str
-    text: Optional[str]
+    text: str | None
 
     # Identifier characters
     c = "[^`<>]+"

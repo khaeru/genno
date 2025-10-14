@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from functools import partial
 from inspect import Parameter, signature
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,8 @@ from .core.key import Key
 
 if TYPE_CHECKING:
     import pint
+
+    from .types import UnitLike
 
 log = logging.getLogger(__name__)
 
@@ -29,9 +31,6 @@ log = logging.getLogger(__name__)
 REPLACE_UNITS = {
     "%": "percent",
 }
-
-# For use in type hints
-UnitLike = Union[str, "pint.Unit", "pint.Quantity"]
 
 
 def clean_units(input_string):
@@ -239,7 +238,7 @@ def partial_split(func: Callable, kwargs: Mapping) -> tuple[Callable, MutableMap
         return func, extra  # Nothing to partial; return `func` as-is
 
 
-def units_with_multiplier(value: Optional[UnitLike]) -> tuple["pint.Unit", float]:
+def units_with_multiplier(value: "UnitLike | None") -> tuple["pint.Unit", float]:
     """Separate units and multiplier from :any:`.UnitLike`.
 
     Returns

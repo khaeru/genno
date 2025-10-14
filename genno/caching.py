@@ -6,7 +6,7 @@ from functools import partial, singledispatch, update_wrapper
 from hashlib import blake2b
 from inspect import getmembers, iscode
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -140,7 +140,7 @@ def hash_code(func: Callable) -> str:
     return Encoder().default(code_obj)
 
 
-def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
+def hash_contents(path: Path | str, chunk_size=65536) -> str:
     """Return the :func:`hashlib.blake2b` hex digest the file contents of `path`.
 
     Parameters
@@ -157,7 +157,7 @@ def hash_contents(path: Union[Path, str], chunk_size=65536) -> str:
 
 def decorate(
     func: Callable,
-    computer: Optional["genno.Computer"] = None,
+    computer: "genno.Computer | None" = None,
     cache_path=None,
     cache_skip: bool = False,
 ) -> Callable:
@@ -265,6 +265,10 @@ def _write(path: Path, data):
             df.attrs.update(_unit=str(data.units), _is_genno_quantity=True)
         else:
             df = data
+
+        # Work around https://github.com/dask/fastparquet/issues/730
+        if df.empty and isinstance(df.index, pd.MultiIndex):
+            df.reset_index(drop=True, inplace=True)
 
         # Write to Parquet
         df.to_parquet(path.with_suffix(".parquet"))
