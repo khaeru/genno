@@ -128,6 +128,11 @@ filterwarnings = [
   "ignore:datetime.datetime.utcfromtimestamp.. is deprecated.*:DeprecationWarning:dateutil",
   # .compat.pyam → ixmp4 → pandera
   "ignore:Importing pandas-specific classes:FutureWarning:pandera",
+  # Occurs with pandas >=3.x and plotnine <=0.15.2
+  # The warning type is pandas.errors.Pandas4Warning, but this is not available
+  # on Python 3.10 / pandas 2.3.x
+  # TODO Remove when plotnine is adjusted for pandas 3.0
+  "ignore:The 'mode.copy_on_write' option is deprecated.:DeprecationWarning:contextlib",
 ]
 # commented: This doubles the number of tests in the entire suite.
 # Use only to identify more narrow applications of the same fixture.
