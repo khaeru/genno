@@ -73,7 +73,7 @@ jobs:
     - name: Run tests
       run: |
         pytest \
-          --trace-config --color=yes --durations=20 -ra --verbose \
+          --color=yes --durations=20 -ra --trace-config --verbose \
           --cov-report=xml --cov-report=term \
           --numprocesses=auto
       shell: bash

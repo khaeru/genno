@@ -72,9 +72,11 @@ homepage = "https://github.com/khaeru/genno"
 repository = "https://github.com/khaeru/genno"
 documentation = "https://genno.rtfd.io/en/stable/"
 
+[tool.coverage.run]
+source = ["genno"]
+
 [tool.coverage.report]
 omit = [
-  ".venv/*",
   "**/genno/compat/sphinx/*",
 ]
 exclude_also = [
@@ -134,6 +136,7 @@ filterwarnings = [
   # TODO Remove when plotnine is adjusted for pandas 3.0
   "ignore:The 'mode.copy_on_write' option is deprecated.:DeprecationWarning:contextlib",
 ]
+test_paths = ["genno/tests"]
 # commented: This doubles the number of tests in the entire suite.
 # Use only to identify more narrow applications of the same fixture.
 # usefixtures = "parametrize_copy_on_write"
