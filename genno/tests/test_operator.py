@@ -12,10 +12,12 @@ import pint
 import pytest
 import xarray as xr
 from numpy.testing import assert_allclose
+from packaging.version import Version
 from pandas.testing import assert_series_equal
 
 import genno
 from genno import Computer, operator, quote
+from genno.compat.pandas import version as pandas_version
 from genno.core.sparsedataarray import SparseDataArray
 from genno.operator import random_qty
 from genno.testing import (
@@ -373,7 +375,7 @@ def test_combine(ureg, data):
         operator.combine(x, x2, select=(dict(t=t_bar), dict(t=t_bar)), weights=(-1, 1))
 
 
-def test_concat(ureg, data):
+def test_concat(ureg, data) -> None:
     *_, t_foo, t_bar, x = data
 
     # Split x into two concatenateable quantities
@@ -383,12 +385,18 @@ def test_concat(ureg, data):
     # Concatenate
     operator.concat(a, b, dim="t")
 
-    # Concatenate twice on a new dimension
-    result = operator.concat(x, x, dim=pd.Index(["z1", "z2"], name="z"))
+    # XFAIL for https://github.com/pydata/xarray/issues/11098
+    with (
+        pytest.raises(TypeError)
+        if isinstance(x, SparseDataArray) and Version("3") <= pandas_version()
+        else nullcontext()
+    ):
+        # Concatenate twice on a new dimension
+        result = operator.concat(x, x, dim=pd.Index(["z1", "z2"], name="z"))
 
-    # NB for AttrSeries, the new dimension is first; for SparseDataArray, last
-    assert {"t", "y", "z"} == set(result.dims)
-    assert ureg.Unit("kg") == x.units == result.units
+        # NB for AttrSeries, the new dimension is first; for SparseDataArray, last
+        assert {"t", "y", "z"} == set(result.dims)
+        assert ureg.Unit("kg") == x.units == result.units
 
 
 def test_concat_dim_order(data):
