@@ -530,8 +530,18 @@ def parametrize_quantity_class(request):
 
 @pytest.fixture(params=[True, False], ids=["cow-true", "cow-false"])
 def parametrize_copy_on_write(monkeypatch, request):
-    """Fixture to run tests with pandas copy-on-write either enabled or disabled."""
-    monkeypatch.setattr(pd.options.mode, "copy_on_write", request.param)
+    """Fixture to run tests with pandas copy-on-write either enabled or disabled.
+
+    The fixture has no effect in pandas 3.0.0 and later, in which the copy_on_write
+    option is always enabled.
+    """
+    from packaging.version import Version
+
+    from genno.compat.pandas import version
+
+    if version() < Version("3"):
+        monkeypatch.setattr(pd.options.mode, "copy_on_write", request.param)
+
     yield
 
 

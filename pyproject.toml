@@ -57,7 +57,7 @@ tests = [
   "bottleneck",
   "jupyter",
   "nbclient",
-  "pytest",
+  "pytest >= 9",
   "pytest-cov",
   "pytest-rerunfailures",
   "pytest-xdist",
@@ -72,9 +72,11 @@ homepage = "https://github.com/khaeru/genno"
 repository = "https://github.com/khaeru/genno"
 documentation = "https://genno.rtfd.io/en/stable/"
 
+[tool.coverage.run]
+source = ["genno"]
+
 [tool.coverage.report]
 omit = [
-  ".venv/*",
   "**/genno/compat/sphinx/*",
 ]
 exclude_also = [
@@ -115,20 +117,19 @@ module = [
 ]
 ignore_missing_imports = true
 
-[tool.pytest.ini_options]
-addopts = "--cov=genno --cov-report="
+[tool.pytest]
+minversion = "9.0"
+addopts = ["--cov=genno", "--cov-report="]
 filterwarnings = [
-  "ignore:elementwise comparison failed.*:FutureWarning:genno.operator",
-  # Mirror (a) filter(s) set in .core.sparsedataarray
-  "ignore:Conversion of an array with ndim > 0 to a scalar:DeprecationWarning:sparse._coo.core",
-  # Upstream changes that won't affect genno
-  "ignore:configure_currency.*will no longer be the default:DeprecationWarning:iam_units",
-  "ignore:Jupyter is migrating its paths.*:DeprecationWarning:jupyter_client.connect",
-  # https://github.com/dateutil/dateutil/issues/1314
-  "ignore:datetime.datetime.utcfromtimestamp.. is deprecated.*:DeprecationWarning:dateutil",
-  # .compat.pyam → ixmp4 → pandera
-  "ignore:Importing pandas-specific classes:FutureWarning:pandera",
+  # - Occurs with pandas >=3.x and plotnine <=0.15.2.
+  # - The warning type is pandas.errors.Pandas4Warning, but this is not available
+  #   on Python 3.10 / pandas 2.3.x.
+  # - TODO Remove when plotnine is adjusted for pandas 3.0.
+  "ignore:The 'mode.copy_on_write' option is deprecated.:DeprecationWarning:contextlib",
 ]
+strict_config = true
+strict_markers = true
+testpaths = ["genno/tests"]
 # commented: This doubles the number of tests in the entire suite.
 # Use only to identify more narrow applications of the same fixture.
 # usefixtures = "parametrize_copy_on_write"

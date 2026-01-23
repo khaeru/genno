@@ -1,8 +1,11 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- :mod:`genno` supports and is tested with `Pandas 3.0.0 <https://pandas.pydata.org/pandas-docs/stable/whatsnew/v3.0.0.html>`_,
+  released 2026-01-21 (:pull:`182`).
 
 v1.29.0 (2025-10-14)
 ====================

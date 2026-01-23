@@ -10,8 +10,8 @@ import pandas.core.indexes.base as ibase
 import xarray as xr
 from packaging.version import Version
 from pandas.core.generic import NDFrame
-from pandas.core.internals.base import DataManager
 
+from genno.compat.pandas import manager_classes
 from genno.compat.pandas import version as pandas_version
 from genno.compat.xarray import (
     Coordinates,
@@ -28,7 +28,6 @@ if TYPE_CHECKING:
     from _typeshed import SupportsRichComparisonT
 
     from genno.types import Dims
-
 
 log = logging.getLogger(__name__)
 
@@ -110,7 +109,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         **kwargs,
     ):
         # Emulate behaviour of Series.__init__
-        if isinstance(data, DataManager) and "fastpath" not in kwargs:
+        if isinstance(data, manager_classes()) and "fastpath" not in kwargs:
             if not (
                 0 == len(args) == len(kwargs) and attrs is None
             ):  # pragma: no cover
