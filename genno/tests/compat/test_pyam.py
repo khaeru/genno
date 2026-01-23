@@ -269,7 +269,8 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     assert ("var_cost::iamc", "var_cost::iamc") == keys
 
 
-def test_deprecated_convert_pyam():
+@pytest.mark.filterwarnings("ignore:Computer.convert_pyam")
+def test_deprecated_convert_pyam() -> None:
     """Test deprecated usage of `replace` parameter to as_pyam."""
     c = Computer()
 
