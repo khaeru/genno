@@ -474,6 +474,9 @@ def concat(*objs: "TQuantity", **kwargs) -> "TQuantity":
         # of `objs` to concatenate along.
         # FIXME this may result in non-unique indices; avoid this.
         kwargs.setdefault("dim", (objs[0].dims or [None])[0])
+        # Avoid FutureWarning: In a future version of xarray the default value for join
+        # will change from join="outer" to join="exact"…
+        kwargs.setdefault("join", "outer")
 
         result = xr.concat(cast(xr.DataArray, objs), **kwargs)._sda.convert()
 
