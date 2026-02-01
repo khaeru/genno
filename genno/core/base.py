@@ -60,8 +60,8 @@ class UnitsMixIn:
 
         # Ensure there is not a mix of pint.Unit and pint.registry.Unit; this throws off
         # pint's internal logic
-        if ou.__class__ is not self.units.__class__:
-            ou = self.units.__class__(ou)
+        if type(ou) is not type(self.units):
+            ou = type(self.units)(ou)
 
         if rank(op) == 1:
             # Determine multiplicative factor to align `other` to `self`
