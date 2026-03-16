@@ -11,6 +11,7 @@ build:
 
 python:
   install:
+  - requirements: doc/requirements.txt
   - method: pip
     path: .
     extra_requirements: [docs,tests]
