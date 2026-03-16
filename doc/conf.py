@@ -95,6 +95,7 @@ reference_aliases = {
     "plotnine$": ":class:`plotnine.ggplot`",
     "pyarrow$": ":std:doc:`pyarrow <pyarrow:python/index>`",
     "pyam$": ":std:doc:`pyam:index`",
+    "sparse$": ":std:doc:`sparse <sparse:index>`",
     "sphinx$": ":std:doc:`sphinx <sphinx:index>`",
 }
 
