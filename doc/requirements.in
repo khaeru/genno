@@ -1,0 +1,2 @@
+# To work around https://github.com/khaeru/genno/issues/185
+sphinx<9
