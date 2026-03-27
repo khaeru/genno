@@ -23,7 +23,9 @@ packaging==26.0
 pygments==2.19.2
     # via sphinx
 requests==2.33.0
-    # via sphinx
+    # via
+    #   -r requirements.in
+    #   sphinx
 roman-numerals==4.1.0
     # via roman-numerals-py
 roman-numerals-py==4.1.0
