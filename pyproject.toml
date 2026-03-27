@@ -27,15 +27,14 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-  "dask[array] >= 2.14",
+  "dask[array] >= 2020",
   "fastparquet; python_version >= '3.14'",
-  "pandas >= 1.0",
+  "pandas >= 2",
   "pandas[parquet]; python_version < '3.14'",
   "platformdirs",
   "pint",
   "PyYAML",
-  # 2022.6.0 is affected by pydata/xarray#6822
-  "xarray >= 0.17, != 2022.6.0",
+  "xarray > 2022.6.0",
 ]
 
 [project.optional-dependencies]
@@ -105,17 +104,6 @@ files = [
 # disallow_any_unimported = true  # 20 errors
 # warn_return_any = true  # 24 errors
 warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-# Packages/modules for which no type hints are available
-module = [
-  "graphviz",
-  "pandas.*",
-  "pyam.*",
-  "scipy.*",
-  "sparse.*",
-]
-ignore_missing_imports = true
 
 [tool.pytest]
 minversion = "9.0"

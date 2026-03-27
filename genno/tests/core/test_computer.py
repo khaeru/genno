@@ -1071,7 +1071,8 @@ def vis_computer():
     (
         dict(filename="visualize.png"),
         dict(filename="visualize.svg"),
-        dict(filename="visualize.svg", key="all"),
+        dict(filename="visualize.svg", key="all"),  # Default key
+        dict(filename="visualize.svg", key="z:t"),  # Other key
         # Works, although the output is not useful.
         dict(filename="visualize.svg", key="all", collapse_outputs=True),
         dict(filename="visualize.svg", rankdir="LR"),

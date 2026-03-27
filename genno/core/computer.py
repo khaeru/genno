@@ -34,6 +34,8 @@ from .graph import Graph
 from .key import Key
 
 if TYPE_CHECKING:
+    from os import PathLike
+
     import genno.core.graph
     import genno.core.key
     from genno.core.key import KeyLike
@@ -949,22 +951,22 @@ class Computer:
         if "config" in other.graph:
             update_recursive(self.graph.setdefault("config", {}), other.graph["config"])
 
-    def visualize(self, filename, key=None, optimize_graph=False, **kwargs):
+    def visualize(
+        self,
+        filename: "str | PathLike",
+        key: "KeyLike | None" = None,
+        optimize_graph: bool = False,
+        **kwargs,
+    ):
         """Generate an image describing the Computer structure.
 
         This is similar to :func:`dask.visualize`; see
         :func:`.compat.graphviz.visualize`. Requires
         `graphviz <https://pypi.org/project/graphviz/>`__.
         """
-        from dask.base import collections_to_dsk, unpack_collections
-
         from genno.compat.graphviz import visualize
 
-        # In dask, these calls appear in dask.base.visualize; see docstring of
-        # .compat.graphviz.visualize
-        args, _ = unpack_collections(self, traverse=False)
-        dsk = dict(collections_to_dsk(args, optimize_graph=optimize_graph))
-
+        dsk = self.graph
         if key:
             # Cull the graph, leaving only those needed to compute *key*
             N = len(dsk)
