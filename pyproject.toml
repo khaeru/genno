@@ -27,7 +27,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-  "dask[array] >= 2.14",
+  "dask[array] >= 2020",
   "fastparquet; python_version >= '3.14'",
   "pandas >= 2",
   "pandas[parquet]; python_version < '3.14'",
