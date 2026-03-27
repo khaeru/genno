@@ -1,2 +1,5 @@
+# Per CVE-2026-25645; see
+# https://requests.rtfd.io/en/latest/community/updates/
+requests>=2.33.0
 # To work around https://github.com/khaeru/genno/issues/185
 sphinx<9
