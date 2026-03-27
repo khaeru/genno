@@ -106,17 +106,6 @@ files = [
 # warn_return_any = true  # 24 errors
 warn_unused_ignores = true
 
-[[tool.mypy.overrides]]
-# Packages/modules for which no type hints are available
-module = [
-  "graphviz",
-  "pandas.*",
-  "pyam.*",
-  "scipy.*",
-  "sparse.*",
-]
-ignore_missing_imports = true
-
 [tool.pytest]
 minversion = "9.0"
 addopts = ["--cov=genno", "--cov-report="]
