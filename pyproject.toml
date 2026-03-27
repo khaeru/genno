@@ -34,8 +34,7 @@ dependencies = [
   "platformdirs",
   "pint",
   "PyYAML",
-  # 2022.6.0 is affected by pydata/xarray#6822
-  "xarray >= 0.17, != 2022.6.0",
+  "xarray > 2022.6.0",
 ]
 
 [project.optional-dependencies]
