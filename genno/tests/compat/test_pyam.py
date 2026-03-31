@@ -1,18 +1,22 @@
 import logging
 import re
 from collections import namedtuple
+from collections.abc import Iterator
 from functools import partial
 from importlib.metadata import version
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal, assert_series_equal
+from pint import UnitRegistry
 
 from genno import Computer, Key, Quantity
 from genno.compat.pyam import operator, util
 from genno.operator import add, load_file
 from genno.testing import assert_logs, assert_units
+from genno.types import HasScenarioIdentifiers
 
 if TYPE_CHECKING:
     import pathlib
@@ -27,7 +31,7 @@ pytestmark = pytest.mark.filterwarnings(
 
 
 @pytest.fixture(scope="session")
-def scenario():
+def scenario() -> Iterator[HasScenarioIdentifiers]:
     """Mock object which resembles ixmp.Scenario."""
     Scenario = namedtuple("Scenario", ["model", "scenario"])
     yield Scenario(model="Canning problem (MESSAGE scheme)", scenario="standard")
@@ -35,7 +39,9 @@ def scenario():
 
 # Session scope so that ureg.define() is only called once
 @pytest.fixture(scope="session")
-def dantzig_computer(test_data_path, scenario, ureg):
+def dantzig_computer(
+    test_data_path: Path, scenario: HasScenarioIdentifiers, ureg: UnitRegistry
+) -> Iterator[Computer]:
     """Computer with minimal contents for below tests."""
     c = Computer()
 
@@ -48,6 +54,7 @@ def dantzig_computer(test_data_path, scenario, ureg):
     # Reduced version of the "total operation & maintenance" calculation in MESSAGEix;
     # for test_concat()
     vom = c.full_key("vom")
+    assert isinstance(vom, Key)
     fom = Key("fom", dims=vom.dims)
     c.add(fom, c.get(vom)[0:0], sums=True)
     c.add(Key("tom", dims=vom.dims), add, fom, vom, sums=True)
@@ -58,7 +65,7 @@ def dantzig_computer(test_data_path, scenario, ureg):
     yield c
 
 
-def test_require_compat():
+def test_require_compat() -> None:
     # New object does not understand "as_pyam" as the name of a computation
     c = Computer()
     assert c.get_operator("as_pyam") is None
@@ -68,7 +75,7 @@ def test_require_compat():
     assert c.get_operator("as_pyam") is not None
 
 
-def test_config(test_data_path):
+def test_config(test_data_path: Path) -> None:
     """iamc: section in configuration files is parsed correctly."""
     """Test handling configuration file syntax using test data files."""
     c = Computer()
@@ -79,19 +86,19 @@ def test_config(test_data_path):
     c.configure(path=test_data_path / "config-pyam.yaml")
 
 
-def test_as_pyam(dantzig_computer, scenario):
+def test_as_pyam(dantzig_computer: Computer, scenario: HasScenarioIdentifiers) -> None:
     c = dantzig_computer
 
     # Quantities for 'ACT' variable at full resolution
     qty = c.get(c.full_key("ACT"))
 
     # Call as_pyam() with an empty quantity
-    kw = dict(rename=dict(nl="region", ya="year"))
+    kw: dict[str, Any] = dict(rename=dict(nl="region", ya="year"))
     idf = operator.as_pyam(scenario, qty[0:0], **kw)
     assert isinstance(idf, pyam.IamDataFrame)
 
     # Call as_pyam() with model_name and/or scenario_name kwargs
-    def add_tm(df):
+    def add_tm(df: pd.DataFrame) -> pd.DataFrame:
         """Callback for collapsing ACT columns."""
         df["variable"] = df["variable"] + "|" + df["t"] + "|" + df["m"]
         return df.drop(["t", "m"], axis=1)
@@ -126,12 +133,18 @@ def test_as_pyam(dantzig_computer, scenario):
         operator.as_pyam(scenario, input)
 
 
-def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
+def test_computer_as_pyam(
+    caplog: "pytest.LogCaptureFixture",
+    tmp_path: Path,
+    test_data_path: Path,
+    dantzig_computer: Computer,
+) -> None:
     caplog.set_level(logging.INFO)
     c = dantzig_computer
 
     # Key for 'ACT' variable at full resolution
     ACT = c.full_key("ACT")
+    assert isinstance(ACT, Key)
 
     # Add a computation that converts ACT to a pyam.IamDataFrame
     # NB drop={} is provided to mimic the test in message_ix and allow the log assertion
@@ -160,7 +173,7 @@ def test_computer_as_pyam(caplog, tmp_path, test_data_path, dantzig_computer):
     ) in caplog.record_tuples
 
     # Repeat, using the convert_pyam() convenience function
-    def add_tm(df, name="Activity"):
+    def add_tm(df: pd.DataFrame, name: str = "Activity") -> pd.DataFrame:
         """Callback for collapsing ACT columns."""
         df["variable"] = f"{name}|" + df["t"] + "|" + df["m"]
         return df.drop(["t", "m"], axis=1)
@@ -285,7 +298,7 @@ def test_deprecated_convert_pyam() -> None:
         c.convert_pyam("foo", replace=dict(bar="baz"))
 
 
-def test_concat(dantzig_computer):
+def test_concat(dantzig_computer: Computer) -> None:
     """pyam.operator.concat() passes through to base concat()."""
     c = dantzig_computer
 
@@ -310,7 +323,7 @@ def test_concat(dantzig_computer):
     c.get(key)
 
 
-def test_clean_units():
+def test_clean_units() -> None:
     input = pd.DataFrame([["kg"], ["km"]], columns=["unit"])
     with pytest.raises(
         ValueError, match=re.escape("cannot convert non-unique units ['kg', 'km']")
@@ -318,14 +331,14 @@ def test_clean_units():
         util.clean_units(input, unit="tonne")
 
 
-def test_collapse():
-    data = []
-    columns = ["value"] + list("abcdef")
+def test_collapse() -> None:
+    data: list[list[int | str]] = []
+    columns0 = ["value"] + list("abcdef")
     for row in range(10):
         data.append([row])
-        for col in columns[1:]:
+        for col in columns0[1:]:
             data[-1].append(f"{col}{row}")
-    input = pd.DataFrame(data, columns=columns)
+    input = pd.DataFrame(data, columns=columns0)
 
     # No arguments = pass through
     assert_frame_equal(input, util.collapse(input))
@@ -334,28 +347,30 @@ def test_collapse():
         util.collapse(input, columns=dict(foo=["a", "b"]))
 
     # Collapse multiple columns
-    columns = dict(variable=["f", "a", "d"])
-    df1 = util.collapse(input, columns=columns)
+    columns1 = dict(variable=["f", "a", "d"])
+    df1 = util.collapse(input, columns=columns1)
     assert df1.loc[0, "variable"] == "f0|a0|d0"
 
     # Two targets
-    columns["region"] = ["e", "b"]
-    df2 = util.collapse(input, columns=columns)
+    columns1["region"] = ["e", "b"]
+    df2 = util.collapse(input, columns=columns1)
     assert df2.loc[9, "region"] == "e9|b9"
 
     # String entries
-    columns["scenario"] = ["foo", "c", "bar"]
-    df3 = util.collapse(input, columns=columns)
+    columns1["scenario"] = ["foo", "c", "bar"]
+    df3 = util.collapse(input, columns=columns1)
     assert df3.loc[0, "scenario"] == "foo|c0|bar"
     assert df3.loc[9, "scenario"] == "foo|c9|bar"
 
 
-def test_drop():
+def test_drop() -> None:
     with pytest.raises(ValueError, match="foo"):
         util.drop(pd.DataFrame, "foo")
 
 
-def test_quantity_from_iamc(caplog, test_data_path: "pathlib.Path") -> None:
+def test_quantity_from_iamc(
+    caplog: "pytest.LogCaptureFixture", test_data_path: "pathlib.Path"
+) -> None:
     # NB this does not pass with parametrize_quantity_class / SparseDataArray, since
     #    unused values on the `units` dimension are not dropped automatically.
     from genno.compat.pyam.operator import quantity_from_iamc

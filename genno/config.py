@@ -1,10 +1,16 @@
 import logging
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
-from copy import copy
+from collections.abc import (
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 from genno import operator
@@ -12,6 +18,9 @@ from genno.core.computer import Computer
 from genno.core.exceptions import KeyExistsError, MissingKeyError
 from genno.core.key import Key, iter_keys
 from genno.util import REPLACE_UNITS
+
+if TYPE_CHECKING:
+    from genno.types import KeyLike
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +40,7 @@ HANDLERS: dict[str, "ConfigHandler"] = {}
 STORE: set[str] = set()
 
 
-def configure(path: Path | str | None = None, **config):
+def configure(path: Path | str | None = None, **config: Any) -> None:
     """Configure :mod:`.genno` globally.
 
     Modifies global variables that affect the behaviour of *all* Computers and
@@ -52,7 +61,7 @@ def configure(path: Path | str | None = None, **config):
     parse_config(None, data=config, fail="raise")
 
 
-def _convert_deprecated_store_global():
+def _convert_deprecated_store_global() -> None:
     if len(STORE):
         warn(
             'genno.config.STORE; use @handles("section_name", False, False)(store)',
@@ -83,7 +92,7 @@ class ConfigHandler:
     #: If :any:`True`, discard the configuration contents after handling.
     discard: bool
 
-    def handle(self, data: Mapping | Sequence, c: Computer | None):
+    def handle(self, data: Mapping | Sequence, c: Computer | None) -> Iterator:
         if self.iterate:
             if isinstance(data, Mapping):
                 iterator: Iterable = data.items()
@@ -96,37 +105,34 @@ class ConfigHandler:
             ]
         else:
             self.callback(c, data)
+            yield from []
 
 
 class PathHandler(ConfigHandler):
     """Special :class:`ConfigHandler` that reads from a YAML file."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def handle(self, data, c):
-        path = data.pop("path", None)
-        if path is None:
-            return data
+    def handle(self, data: Mapping | Sequence, c: Computer | None) -> Iterator:
+        assert isinstance(data, Mapping)
+        new_data: dict[str, Any] = {}
+        if path := data.get("path", None):
+            import yaml
 
-        import yaml
+            # Load configuration from file
+            # Also store the directory where the configuration file was located
+            # Overwrite the file content with direct configuration values
+            path = Path(path)
+            with open(path, "r") as f:
+                new_data |= yaml.safe_load(f) | dict(config_dir=path.parent) | data
+            new_data.pop("path")
 
-        # Load configuration from file
-        path = Path(path)
-        with open(path, "r") as f:
-            new_data = yaml.safe_load(f)
-
-        # Overwrite the file content with direct configuration values
-        new_data.update(data)
-        data = new_data
-
-        # Also store the directory where the configuration file was located
-        data.update(config_dir=path.parent)
-
-        return data
+        # Yield (key, value) tuples; parse_config() uses these to update the config data
+        yield from new_data.items()
 
 
-def handles(section_name: str, iterate: bool = True, discard: bool = True):
+def handles(section_name: str, iterate: bool = True, discard: bool = True) -> Callable:
     """Decorator to register a configuration section handler in :data:`HANDLERS`.
 
     Parameters
@@ -143,7 +149,7 @@ def handles(section_name: str, iterate: bool = True, discard: bool = True):
         called. If :obj:`False`, the data is retained and stored on the Computer.
     """
 
-    def wrapper(f: Callable):
+    def wrapper(f: Callable) -> Callable:
         ch = ConfigHandler(section_name, f, iterate, discard)
 
         try:
@@ -162,11 +168,11 @@ def parse_config(
     c: Computer | None,
     data: MutableMapping[str, Any],
     fail: str | int | None = None,
-):
+) -> None:
     _convert_deprecated_store_global()
 
-    # Handle configuration from a file
-    data = PathHandler().handle(data, c)
+    # Handle configuration from a file. Iterate once to force the method to run.
+    data.update(PathHandler().handle(data, c))
 
     # Assemble a queue of (args, kwargs) for Computer.add_queue()
     queue: list[tuple[tuple, dict]] = []
@@ -200,10 +206,10 @@ def parse_config(
 
 
 @handles("aggregate")
-def aggregate(c: Computer, info):
+def aggregate(c: Computer, info: Mapping) -> None:
     """Handle one entry from the ``aggregate:`` config section."""
     # Copy for destructive .pop()
-    info = copy(info)
+    info = dict(info)
 
     # Unpack `info`
     quantities = c.infer_keys(info.pop("_quantities"))
@@ -217,7 +223,7 @@ def aggregate(c: Computer, info):
         sums=True,
     )
 
-    def _log_or_raise(exc: Exception, default_level: str, message: str):
+    def _log_or_raise(exc: Exception, default_level: str, message: str) -> None:
         """Either raise `exc` if ``kw["fail"]`` > `default_level`, or log `message`."""
         fail_level = getattr(logging, (kw["fail"] or default_level).upper())
         if fail_level >= logging.ERROR:
@@ -246,13 +252,13 @@ def aggregate(c: Computer, info):
 
 
 @handles("alias")
-def alias(c: Computer, info):
+def alias(c: Computer, info: tuple["KeyLike", "KeyLike"]) -> None:
     """Handle one entry from the ``alias:`` config section."""
     c.add(info[0], info[1])
 
 
 @handles("combine")
-def combine(c: Computer, info):
+def combine(c: Computer, info: Mapping) -> None:
     """Handle one entry from the ``combine:`` config section."""
     # Split inputs into three lists
     quantities, select, weights = [], [], []
@@ -287,14 +293,17 @@ def combine(c: Computer, info):
 
 
 @handles("default", iterate=False)
-def default(c: Computer, info):
+def default(c: Computer, info: str) -> None:
     """Handle the ``default:`` config section."""
     c.default_key = info
 
 
 @handles("files")
-def files(c: Computer, info):
+def files(c: Computer, info: Mapping) -> None:
     """Handle one entry from the ``files:`` config section."""
+    # Copy for modification
+
+    info = dict(info)
     # Files with exogenous data
     path = Path(info["path"])
     if not path.is_absolute():
@@ -308,7 +317,7 @@ def files(c: Computer, info):
 
 
 @handles("general")
-def general(c: Computer, info):
+def general(c: Computer, info: Mapping) -> None:
     """Handle one entry from the ``general:`` config section."""
     # Inputs
     # TODO allow to specify a more narrow key and *not* have infer_keys applied; perhaps
@@ -351,7 +360,7 @@ def general(c: Computer, info):
 
 
 @handles("report")
-def report(c: Computer, info):
+def report(c: Computer, info: Mapping) -> None:
     """Handle one entry from the ``report:`` config section."""
     log.info(f"Add report {info['key']} with {len(info['members'])} table(s)")
 
@@ -362,13 +371,13 @@ def report(c: Computer, info):
 @handles("cache_path", iterate=False, discard=False)
 @handles("cache_skip", iterate=False, discard=False)
 @handles("config_dir", iterate=False, discard=False)
-def store(c: Computer, info):
+def store(c: Computer, info: Any) -> None:
     """Config sections/keys to be stored with no modification."""
     pass
 
 
 @handles("units", iterate=False)
-def units(c: Computer, info):
+def units(c: Computer, info: Mapping) -> None:
     """Handle the ``units:`` config section."""
     import pint
 

@@ -2,7 +2,8 @@ import logging
 import re
 from collections.abc import Iterator
 from functools import partial
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -28,12 +29,12 @@ from genno.testing import (
 )
 
 if TYPE_CHECKING:
-    from genno.types import TQuantity
+    from genno.types import KeyLike, QuantityKwargs, TQuantity
 
 log = logging.getLogger(__name__)
 
 
-def msg(*keys):
+def msg(*keys: Any) -> str:
     """Return a regex for str(MissingKeyError(*keys))."""
     return re.escape(f"required keys {repr(tuple(keys))} not defined")
 
@@ -52,11 +53,11 @@ class TestComputer:
         c.add("C", "mul", "A:x-y", "B:y-z")
         yield c
 
-    def test_add_invalid0(self, c):
+    def test_add_invalid0(self, c: Computer) -> None:
         with pytest.raises(TypeError, match="At least 1 argument required"):
             c.add("foo")
 
-    def test_add_aggregate(self, c):
+    def test_add_aggregate(self, c: Computer) -> None:
         """Using :func:`.operator.aggregate` through :meth:`.add`."""
         t, t_foo, t_bar, qty_x = add_test_data(c)
 
@@ -109,7 +110,7 @@ class TestComputer:
         c.add_single(bar, foo)
         assert c.graph[bar] is foo
 
-    def test_add_warn(self, recwarn, c: Computer) -> None:
+    def test_add_warn(self, recwarn: pytest.WarningsRecorder, c: Computer) -> None:
         # No warning emitted with DEFAULT_WARN_ON_RESULT_TUPLE = False
         assert 0 == len(recwarn)
 
@@ -119,7 +120,7 @@ class TestComputer:
             c.add("foo:x-y-z", None, sums=True)
 
     @pytest.mark.parametrize("suffix", [".json", ".yaml"])
-    def test_configure(self, test_data_path, c: Computer, suffix) -> None:
+    def test_configure(self, test_data_path: Path, c: Computer, suffix: str) -> None:
         # Configuration can be read from file
         path = test_data_path.joinpath("config-0").with_suffix(suffix)
         c.configure(path)
@@ -146,7 +147,7 @@ class TestComputer:
         assert Key("b:x-y-z") in c
         assert Key("b:y-x-z") in c
 
-    def test_deprecated_add_file(self, tmp_path, c):
+    def test_deprecated_add_file(self, tmp_path: Path, c: Computer) -> None:
         # Path to a temporary file
         p = tmp_path / "foo.csv"
 
@@ -164,7 +165,7 @@ class TestComputer:
         result = c.get(k1)
         assert ("x", "y") == result.dims
 
-    def test_deprecated_aggregate(self, c):
+    def test_deprecated_aggregate(self, c: Computer) -> None:
         t, t_foo, t_bar, x = add_test_data(c)
 
         # Define some groups
@@ -218,12 +219,12 @@ class TestComputer:
         ):
             c.aggregate(g, "tag", "i")
 
-    def test_deprecated_disaggregate(self, c):
+    def test_deprecated_disaggregate(self, c: Computer) -> None:
         *_, x = add_test_data(c)
         c.add("z_shares", "<share data>")
         c.add("a:t-y", "x:t-y", sums=False)
 
-        def func(qty):
+        def func(qty: Any) -> None:
             pass  # pragma: no cover
 
         with pytest.warns(DeprecationWarning):
@@ -254,7 +255,7 @@ class TestComputer:
         with pytest.raises(TypeError):
             c.disaggregate("x:", "d", method=None)
 
-    def test_duplicate(self, c2):
+    def test_duplicate(self, c2: Computer) -> None:
         """Test :meth:`.Computer.duplicate`."""
         N = len(c2.graph)
 
@@ -285,8 +286,8 @@ class TestComputer:
         # The results are identical
         assert_qty_equal(result[0], result[1])
 
-    def test_insert0(self, caplog, c2) -> None:
-        def inserted(qty: "TQuantity", *, x, y) -> "TQuantity":
+    def test_insert0(self, caplog: pytest.LogCaptureFixture, c2: Computer) -> None:
+        def inserted(qty: "TQuantity", *, x: float, y: float) -> "TQuantity":
             log.info(f"Inserted function, {x=} {y=}")
             return x * qty
 
@@ -306,8 +307,10 @@ class TestComputer:
         # Can insert for a key that refers to a task stored as a tuple
         c2.insert("C:x-y-z", inserted, ...)
 
-    def test_insert1(self, caplog, c2) -> None:
-        def inserted(qty: "TQuantity", *, x, y) -> "TQuantity":  # pragma: no cover
+    def test_insert1(self, caplog: pytest.LogCaptureFixture, c2: Computer) -> None:
+        def inserted(
+            qty: "TQuantity", *, x: float, y: float
+        ) -> "TQuantity":  # pragma: no cover
             log.info(f"Inserted function, {x=} {y=}")
             return x * qty
 
@@ -350,7 +353,7 @@ class TestComputer:
         assert set(c2.graph) == set(c3.graph)
         assert "foo" == c3.graph["config"]["existing_config_key1"]
 
-    def test_setitem(self, c2) -> None:
+    def test_setitem(self, c2: Computer) -> None:
         c2["D"] = "add", "A:x-y", "B:y-z", dict(sums=True)
 
         result = c2.get("D:x-y-z")
@@ -381,7 +384,12 @@ class TestComputer:
             c |= c3
 
 
-def test_cache(caplog, tmp_path, test_data_path, ureg):
+def test_cache(
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+    test_data_path: Path,
+    ureg: pint.UnitRegistry,
+) -> None:
     caplog.set_level(logging.INFO)
 
     # Set the cache path
@@ -397,7 +405,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     exp.attrs["args"] = repr(args)
     exp.attrs["kwargs"] = repr(kwargs)
 
-    def myfunc1(*args, **kwargs):
+    def myfunc1(*args: Any, **kwargs: Any) -> dict:
         # Send something to the log for caplog to pick up when the function runs
         log.info("myfunc executing")
         result = operator.load_file(args[0])
@@ -416,7 +424,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
 
     # Same function, but cached
     @c.cache
-    def myfunc2(*args, **kwargs):
+    def myfunc2(*args: Any, **kwargs: Any) -> Any:
         return myfunc1(*args, **kwargs)
 
     # Add to the computer
@@ -464,7 +472,7 @@ def test_cache(caplog, tmp_path, test_data_path, ureg):
     assert "'cache_path' configuration not set; using " in caplog.messages[0]
 
 
-def test_eval(ureg):
+def test_eval(ureg: pint.UnitRegistry) -> None:
     c = Computer()
     add_test_data(c)
 
@@ -504,7 +512,7 @@ def test_eval(ureg):
         ("z = index_to(x, dim=x)", NotImplementedError, "Non-literal keyword arg .*"),
     ),
 )
-def test_eval_error(expr, exc_type, match):
+def test_eval_error(expr: str, exc_type: type[Exception], match: str) -> None:
     c = Computer()
     add_test_data(c)
 
@@ -512,7 +520,7 @@ def test_eval_error(expr, exc_type, match):
         c.eval(expr)
 
 
-def test_get():
+def test_get() -> None:
     """Computer.get() using a default key."""
     c = Computer()
 
@@ -527,7 +535,7 @@ def test_get():
     assert c.get() == 42
 
 
-def test_order():
+def test_order() -> None:
     """:meth:`.describe` and :meth:`.get` work with dimensions in a different order."""
     c = Computer()
 
@@ -552,7 +560,7 @@ def test_order():
 
     c.add("b:x-y", 2.2)
 
-    def func(*args):
+    def func(*args: float) -> float:
         return sum(args)
 
     # Dimensions in correct order
@@ -565,12 +573,12 @@ def test_order():
     assert np.isclose(3.3, c.get(key))
 
 
-def test_get_operator():
+def test_get_operator() -> None:
     # Invalid name for a function returns None
     assert Computer().get_operator(42) is None
 
 
-def test_infer_keys():
+def test_infer_keys() -> None:
     c = Computer()
 
     X_key = Key("X", list("abcdef"))
@@ -598,7 +606,7 @@ def test_infer_keys():
     assert isinstance(result, str) and "Y::" == result
 
 
-def test_require_compat():
+def test_require_compat() -> None:
     c = Computer()
     assert 1 == len(c.modules)
 
@@ -618,7 +626,7 @@ def test_require_compat():
     assert 2 == len(c.modules)
 
 
-def test_add0():
+def test_add0() -> None:
     """Adding computations that refer to missing keys raises KeyError."""
     c = Computer()
     c.add("a", 3)
@@ -632,7 +640,7 @@ def test_add0():
     with pytest.raises(KeyExistsError, match=r"key 'a' already exists"):
         c.add("a", 5, strict=True)
 
-    def gen(other):  # pragma: no cover
+    def gen(other: "KeyLike") -> tuple:  # pragma: no cover
         """A generator for apply()."""
         return (lambda a, b: a * b, "a", other)
 
@@ -676,24 +684,24 @@ def test_add0():
         c.add("select", "bar", "a", bad_kwarg="foo")
 
 
-def test_add1():
+def test_add1() -> None:
     """:meth:`._rewrite_comp` is a no-op for types other that list and tuple."""
     Computer().add("a", 1, strict=True)
     Computer().add("a", pd.DataFrame(), strict=True)
 
 
-def test_add_queue(caplog):
+def test_add_queue(caplog: pytest.LogCaptureFixture) -> None:
     c = Computer()
     c.add("foo-0", (lambda x: x, 42))
 
     # An operator
-    def _product(a, b):
+    def _product(a: float, b: float) -> float:
         return a * b
 
     # A queue of computations to add. Only foo-1 succeeds on the first pass; only foo-2
     # on the second pass, etc.
     strict = dict(strict=True)
-    queue = [
+    queue: list[tuple[tuple, dict] | tuple] = [
         # 2-tuples of (args, kwargs)
         (("foo-4", _product, "foo-3", 10), strict),
         (("foo-3", _product, "foo-2", 10), strict),
@@ -722,7 +730,7 @@ def test_add_queue(caplog):
     assert 16 == len(added)
 
 
-def test_apply():
+def test_apply() -> None:
     # Computer with two scalar values
     c = Computer()
     c.add("foo", (lambda x: x, 42))
@@ -731,11 +739,11 @@ def test_apply():
     N = len(c.keys())
 
     # A computation
-    def _product(a, b):
+    def _product(a: float, b: float) -> float:
         return a * b
 
     # A generator function that yields keys and computations
-    def baz_qux(key):
+    def baz_qux(key: str) -> Iterator[tuple[str, tuple]]:
         yield key + " baz", (_product, key, 0.5)
         yield key + " qux", (_product, key, 1.1)
 
@@ -755,7 +763,7 @@ def test_apply():
     assert c.get("bar qux") == 11 * 1.1
 
     # A generator that takes two arguments
-    def twoarg(key1, key2):
+    def twoarg(key1: str, key2: str) -> Iterator[tuple[str, tuple]]:
         yield key1 + "__" + key2, (_product, key1, key2)
 
     result2 = c.apply(twoarg, "foo baz", "bar qux")
@@ -768,7 +776,7 @@ def test_apply():
     assert c.get("foo baz__bar qux") == 42 * 0.5 * 11 * 1.1
 
     # A useless generator that does nothing
-    def useless():
+    def useless() -> None:
         return
 
     result3 = c.apply(useless)
@@ -781,10 +789,11 @@ def test_apply():
     assert N == len(c.keys())
 
     # Adding with a function that takes Computer as the first argument and returns keys
-    def add_many(c_: Computer, max=5):
+    def add_many(c_: Computer, max: int = 5) -> list["KeyLike"]:
         return [c_.add(f"foo{x}", _product, "foo", x) for x in range(max)]
 
     result5 = c.apply(add_many, max=10)
+    assert isinstance(result5, (list, tuple))
 
     # Function was called, adding keys
     assert 10 == len(result5)
@@ -794,7 +803,7 @@ def test_apply():
     assert 42 * 9 == c.get("foo9") == c.get(result5[-1])
 
     # Same, but with a single key returned
-    def add_one(c_: Computer):
+    def add_one(c_: Computer) -> "KeyLike":
         return c_.add("foo10", _product, "foo", 10.0)
 
     result6 = c.apply(add_one)
@@ -802,7 +811,7 @@ def test_apply():
     assert "foo10" == result6
 
 
-def test_add_product(ureg):
+def test_add_product(ureg: pint.UnitRegistry) -> None:
     c = Computer()
 
     *_, x = add_test_data(c)
@@ -821,7 +830,7 @@ def test_add_product(ureg):
     key = c.add("product", "x_squared", "x", "x", sums=True)
 
 
-def test_check_keys():
+def test_check_keys() -> None:
     """:meth:`.check_keys` succeeds even with dimensions in a different order."""
     c = Computer()
 
@@ -842,7 +851,7 @@ def test_check_keys():
     assert [Key("a", "yx", "foo")] == c.check_keys("a::foo")
 
 
-def test_dantzig(ureg):
+def test_dantzig(ureg: pint.UnitRegistry) -> None:
     c = Computer()
     add_dantzig(c)
 
@@ -860,7 +869,7 @@ def test_dantzig(ureg):
 
     # Weighted sum
     weights = Quantity([1, 2, 3], coords={"j": "chicago new-york topeka".split()})
-    new_key = c.add("*::weighted", "sum", "d:i-j", weights, "j")
+    new_key = single_key(c.add("*::weighted", "sum", "d:i-j", weights, "j"))
 
     # ...produces the expected new key with the summed dimension removed and tag added
     assert "d:i:weighted" == new_key
@@ -868,18 +877,18 @@ def test_dantzig(ureg):
     # ...produces the expected new value
     obs = c.get(new_key)
     d_ij = c.get("d:i-j")
-    exp = Quantity(
+    exp0 = Quantity(
         (d_ij * weights).sum(dim=["j"]) / weights.sum(dim=["j"]).item(),
         attrs=d_ij.attrs,
         name="d",
     )
 
-    assert_qty_equal(exp, obs)
+    assert_qty_equal(exp0, obs)
 
     # Disaggregation with explicit data
     # (cases of canned food 'p'acked in oil or water)
     shares = Quantity([0.8, 0.2], coords={"p": ["oil", "water"]})
-    new_key = c.add("b", "mul", "b:j", shares, sums=False)
+    new_key = single_key(c.add("b", "mul", "b:j", shares, sums=False))
 
     # ...produces the expected key with new dimension added
     assert new_key == "b:j-p"
@@ -893,16 +902,18 @@ def test_dantzig(ureg):
     assert c.get("j") == ["new-york", "chicago", "topeka"]
 
     # 'all' key retrieves all quantities
-    exp = set(
+    exp1 = set(
         "a b d f x z cost cost-margin demand demand-margin supply supply-margin".split()
     )
-    assert all(qty.name in exp for qty in c.get("all"))
+    assert all(qty.name in exp1 for qty in c.get("all"))
 
     # Shorthand for retrieving a full key name
     assert c.full_key("d") == "d:i-j" and isinstance(c.full_key("d"), Key)
 
 
-def test_describe(test_data_path, capsys, ureg):
+def test_describe(
+    test_data_path: Path, capsys: pytest.CaptureFixture, ureg: pint.UnitRegistry
+) -> None:
     c = Computer()
     add_dantzig(c)
 
@@ -931,7 +942,7 @@ def test_describe(test_data_path, capsys, ureg):
     assert desc2 == out2
 
 
-def test_file_io(tmp_path):
+def test_file_io(tmp_path: Path) -> None:
     c = Computer()
 
     # Path to a temporary file
@@ -961,7 +972,7 @@ def test_file_io(tmp_path):
     assert p2.read_text() == "Hello, world!"
 
 
-def test_file_formats(test_data_path, tmp_path):
+def test_file_formats(test_data_path: Path, tmp_path: Path) -> None:
     c = Computer()
 
     expected = Quantity(
@@ -1000,7 +1011,7 @@ def test_file_formats(test_data_path, tmp_path):
     # TODO check the contents of the Excel file
 
 
-def test_full_key():
+def test_full_key() -> None:
     c = Computer()
 
     # Using add() updates the index of full keys
@@ -1025,7 +1036,7 @@ def test_full_key():
     assert c.full_key("a::foo") == "a:i-j-k:foo"
 
 
-def test_units(ureg):
+def test_units(ureg: pint.UnitRegistry) -> None:
     """Test handling of units within operators."""
     c = Computer()
 
@@ -1033,7 +1044,7 @@ def test_units(ureg):
     assert isinstance(c.unit_registry, (pint.UnitRegistry, ApplicationRegistry))
 
     # Create some dummy data
-    dims = dict(coords={"x": list("abc")})
+    dims: "QuantityKwargs" = dict(coords={"x": list("abc")})
     c.add("energy:x", Quantity([1.0, 3, 8], **dims, units="MJ"))
     c.add("time", Quantity([5.0, 6, 8], **dims, units="hour"))
     c.add("efficiency", Quantity([0.9, 0.8, 0.95], **dims))
@@ -1052,7 +1063,7 @@ def test_units(ureg):
 
 
 @pytest.fixture(scope="module")
-def vis_computer():
+def vis_computer() -> Iterator[Computer]:
     from operator import itemgetter
 
     c = Computer()
@@ -1085,7 +1096,7 @@ def vis_computer():
         dict(filename=None, format="svg"),
     ),
 )
-def test_visualize(tmp_path, vis_computer, kw):
+def test_visualize(tmp_path: Path, vis_computer: Computer, kw: dict) -> None:
     if kw["filename"] is not None:
         kw["filename"] = tmp_path.joinpath(kw["filename"])
 
@@ -1099,7 +1110,7 @@ def test_visualize(tmp_path, vis_computer, kw):
     assert kw["filename"] is None or kw["filename"].exists()
 
 
-def test_visualize_unwrap(tmp_path, vis_computer):
+def test_visualize_unwrap(tmp_path: Path, vis_computer: Computer) -> None:
     """:meth:`.visualize` works with certain patterns of '<>' characters in keys.
 
     dot gives "Error: <stdin>: syntax error in line 5 near '>'" without modification or
@@ -1110,14 +1121,14 @@ def test_visualize_unwrap(tmp_path, vis_computer):
     class Obj:
         """Callable class whose repr() contains matched '<' and '>'."""
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             # NB the following do *not* trigger errors:
             # - "< < -> >>", "<< -> > >" → leading or trailing " " after 1 pass of
             #   unwrap()
             # - "<< -> >x>" → trailing "x" (not ">") after 1 pass of unwrap()
             return "<< -> >>"
 
-        def __call__(self): ...
+        def __call__(self) -> None: ...
 
     # Add a key and a callable containing a problematic character sequence
     key = c.add("<>>", Obj(), "all", "foo")

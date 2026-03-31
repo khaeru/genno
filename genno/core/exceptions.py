@@ -15,10 +15,10 @@ class ComputationError(Exception):
       the exception.
     """
 
-    def __init__(self, exc):
+    def __init__(self, exc) -> None:
         self._exc = exc
 
-    def __str__(self):
+    def __str__(self) -> str:
         """String representation.
 
         Most exception handling (Python, IPython, Jupyter) will print the traceback that
@@ -35,7 +35,7 @@ class ComputationError(Exception):
             # Fall back to printing the underlying exception
             return str(self._exc)
 
-    def _format(self):
+    def _format(self) -> str:
         key, task, frames = process_dask_tb(self._exc)
 
         # Assemble the exception printout
@@ -59,18 +59,18 @@ class ComputationError(Exception):
 class KeyExistsError(KeyError):
     """Raised by :meth:`.Computer.add` when the target key exists."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"key {repr(self.args[0])} already exists"
 
 
 class MissingKeyError(KeyError):
     """Raised by :meth:`.Computer.add` when a required input key is missing."""
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"required keys {repr(self.args)} not defined"
 
 
-def process_dask_tb(exc):
+def process_dask_tb(exc: Exception) -> tuple:
     """Process *exc* arising from :meth:`.Computer.get`.
 
     Returns a tuple with 3 elements:
@@ -97,12 +97,13 @@ def process_dask_tb(exc):
         if frame.name == "execute_task":
             # Current frame is the dask internal call to execute a task
             try:
+                assert frame.locals is not None
                 # Retrieve information about the key/task that triggered the
                 # exception. These are not the raw values of variables, but
                 # their string repr().
                 key = frame.locals["key"]
                 task = frame.locals["task"]
-            except (TypeError, KeyError):  # pragma: no cover
+            except (AssertionError, KeyError):  # pragma: no cover
                 # No locals, or 'key' or 'task' not present
                 pass
 

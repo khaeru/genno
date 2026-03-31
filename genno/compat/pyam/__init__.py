@@ -1,10 +1,14 @@
 import logging
 from functools import partial
 from importlib.util import find_spec
+from typing import TYPE_CHECKING
 
 from genno import Computer, Key
 from genno.config import handles
 from genno.core.key import single_key
+
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
 
 log = logging.getLogger(__name__)
 
@@ -13,7 +17,7 @@ HAS_PYAM = find_spec("pyam") is not None
 
 
 @handles("iamc")
-def iamc(c: Computer, info):
+def iamc(c: Computer, info: "MutableMapping") -> None:
     """Handle one entry from the ``iamc:`` config section."""
     try:
         c.require_compat("pyam")

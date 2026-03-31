@@ -2,6 +2,7 @@ import logging
 import re
 from pathlib import Path
 
+import pandas as pd
 import plotnine as p9
 import pytest
 
@@ -17,7 +18,7 @@ class Plot2(Plot):
     basename = "test"
     suffix = ".svg"
 
-    def generate(self, x, y):
+    def generate(self, x: pd.DataFrame, y: pd.DataFrame) -> p9.ggplot:
         return p9.ggplot(x.merge(y, on="t"), p9.aes(x="x", y="y")) + p9.geom_point()
 
 
@@ -27,7 +28,7 @@ class Plot3(Plot2):
     suffix = ".pdf"
     inputs = ["x:t", "y:t"]
 
-    def generate(self, x, y):
+    def generate(self, x: pd.DataFrame, y: pd.DataFrame) -> p9.ggplot:
         """Return an iterable of 2 plots."""
         return (super().generate(x, y), super().generate(x, y))
 
@@ -39,7 +40,7 @@ class Plot4(Plot3):
 
 
 @pytest.mark.usefixtures("parametrize_copy_on_write")
-def test_Plot(caplog, tmp_path):
+def test_Plot(caplog: pytest.LogCaptureFixture, tmp_path: Path) -> None:
     c = Computer(output_dir=tmp_path)
     t = {"t": [-1, 0, 1]}
     c.add("x:t", Quantity([1.0, 2, 3], coords=t, name="x"))
@@ -87,7 +88,7 @@ def test_Plot(caplog, tmp_path):
     assert "Missing input(s) ('notakey',) to plot 'test'; no output" in caplog.messages
 
 
-def test_Plot_deprecated(caplog, tmp_path):
+def test_Plot_deprecated(caplog: pytest.LogCaptureFixture, tmp_path: Path) -> None:
     """Same as above, but using deprecated Plot.make_task()."""
     c = Computer(output_dir=tmp_path)
     t = {"t": [-1, 0, 1]}
@@ -129,7 +130,7 @@ def test_Plot_deprecated(caplog, tmp_path):
     assert "Missing input(s) ('notakey',) to plot 'test'; no output" in caplog.messages
 
 
-def test_plot_none(caplog, tmp_path):
+def test_plot_none(caplog: pytest.LogCaptureFixture, tmp_path: Path) -> None:
     """Messages are logged when Plot.generate() returns nothing."""
     caplog.set_level(logging.INFO)
     c = Computer(output_dir=tmp_path)
@@ -137,13 +138,13 @@ def test_plot_none(caplog, tmp_path):
     class Plot1(Plot):
         basename = "test-1"
 
-        def generate(self):
+        def generate(self) -> None:
             return None
 
     class Plot2(Plot):
         basename = "test-2"
 
-        def generate(self):
+        def generate(self) -> list:
             return []
 
     c.add("plot-1", Plot1)

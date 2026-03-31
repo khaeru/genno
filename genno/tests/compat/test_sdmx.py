@@ -1,28 +1,39 @@
+from collections.abc import Iterator
+from pathlib import Path
+from typing import cast
+
 import pytest
 import sdmx
 from sdmx.format import Version
+from sdmx.message import DataMessage, StructureMessage
 from sdmx.model.common import Code, Codelist
+from sdmx.model.v21 import DataStructureDefinition
 
 import genno.operator
 from genno import Computer
 from genno.compat.sdmx import operator
+from genno.core.key import single_key
 from genno.testing import add_test_data
 
 VERSION = (None, Version["2.1"], Version["3.0"], "2.1", "3.0")
 
 
 @pytest.fixture(scope="session")
-def dm(test_data_path, dsd):
+def dm(test_data_path: Path, dsd: DataStructureDefinition) -> Iterator[DataMessage]:
     # Read the data message
-    yield sdmx.read_sdmx(test_data_path.joinpath("22_289.xml"), structure=dsd)
+    yield cast(
+        DataMessage,
+        sdmx.read_sdmx(test_data_path.joinpath("22_289.xml"), structure=dsd),
+    )
 
 
 @pytest.fixture(scope="session")
-def dsd(test_data_path):
+def dsd(test_data_path: Path) -> Iterator[DataStructureDefinition]:
     # Read the data structure definition
-    yield sdmx.read_sdmx(test_data_path.joinpath("22_289-structure.xml")).structure[
-        "DCIS_POPRES1"
-    ]
+    yield cast(
+        StructureMessage,
+        sdmx.read_sdmx(test_data_path.joinpath("22_289-structure.xml")),
+    ).structure["DCIS_POPRES1"]
 
 
 def test_codelist_to_groups() -> None:
@@ -54,7 +65,7 @@ def test_codelist_to_groups() -> None:
     c.add("t::groups", "codelist_to_groups", "t::codes")
     key = c.add("x::agg", "aggregate", "x:t-y", "t::groups", False)
 
-    result1 = c.get(key)
+    result1 = c.get(single_key(key))
 
     # Quantity was aggregated per `cl`
     assert {"foo", "bar"} == set(result1.coords["t"].data)
@@ -67,7 +78,7 @@ def test_codelist_to_groups() -> None:
         (dict(id_transform=None), "x"),
     ),
 )
-def test_coords_to_codelists(kwargs, cl0_id: str) -> None:
+def test_coords_to_codelists(kwargs: dict, cl0_id: str) -> None:
     q_in = genno.operator.random_qty(dict(x=3, y=4, z=5))
 
     result = operator.coords_to_codelists(q_in, **kwargs)
@@ -82,7 +93,7 @@ def test_coords_to_codelists(kwargs, cl0_id: str) -> None:
     assert {"x0": Code(id="x0"), "x1": Code(id="x1"), "x2": Code(id="x2")} == cl0.items
 
 
-def test_dataset_to_quantity(dsd, dm) -> None:
+def test_dataset_to_quantity(dsd: DataStructureDefinition, dm: DataMessage) -> None:
     # Select the data set
     ds = dm.data[0]
 
@@ -106,7 +117,11 @@ def test_dataset_to_quantity(dsd, dm) -> None:
 @pytest.mark.parametrize("version", VERSION)
 @pytest.mark.parametrize("with_attrs", (True, False))
 def test_quantity_to_dataset(
-    dsd, dm, observation_dimension, version, with_attrs
+    dsd: DataStructureDefinition,
+    dm: DataMessage,
+    observation_dimension: str | None,
+    version: str | Version | None,
+    with_attrs: bool,
 ) -> None:
     ds = dm.data[0]
     qty = operator.dataset_to_quantity(ds)
@@ -127,7 +142,12 @@ def test_quantity_to_dataset(
 
 @pytest.mark.parametrize("observation_dimension", (None, "TIME_PERIOD"))
 @pytest.mark.parametrize("version", VERSION)
-def test_quantity_to_message(dsd, dm, observation_dimension, version) -> None:
+def test_quantity_to_message(
+    dsd: DataStructureDefinition,
+    dm: DataMessage,
+    observation_dimension: str | None,
+    version: str | Version | None,
+) -> None:
     ds = dm.data[0]
     qty = operator.dataset_to_quantity(ds)
 
@@ -168,7 +188,13 @@ def test_quantity_to_message(dsd, dm, observation_dimension, version) -> None:
         ),
     ),
 )
-def test_write_report(tmp_path, dsd, dm, observation_dimension, version) -> None:
+def test_write_report(
+    tmp_path: Path,
+    dsd: DataStructureDefinition,
+    dm: DataMessage,
+    observation_dimension: str | None,
+    version: str | Version | None,
+) -> None:
     ds = dm.data[0]
     qty = operator.dataset_to_quantity(ds)
 

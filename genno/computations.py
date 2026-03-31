@@ -1,7 +1,9 @@
+from typing import Any
+
 _warned = False
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> Any:
     global _warned
     if not _warned:
         from warnings import warn

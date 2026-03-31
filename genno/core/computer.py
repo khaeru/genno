@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     import genno.core.graph
     import genno.core.key
     from genno.core.key import KeyLike
-    from genno.types import TKeyLike
 
 
 log = logging.getLogger(__name__)
@@ -77,7 +76,7 @@ class Computer:
     # element is current; the leftmost is the default.
     _queue_fail: MutableSequence[int]
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         self.graph = Graph(config=dict())
         self.modules = [operator]
         self._queue_fail = deque([logging.ERROR])
@@ -271,7 +270,7 @@ class Computer:
 
     # Add computations to the Computer
 
-    def add(self, data, *args, **kwargs) -> "KeyLike | tuple[KeyLike, ...]":
+    def add(self, data, *args, **kwargs) -> "KeyLike":
         """General-purpose method to add computations.
 
         :meth:`add` can be called in several ways; its behaviour depends on `data`; see
@@ -280,8 +279,9 @@ class Computer:
 
         Returns
         -------
-        KeyLike or tuple of KeyLike
-            Some or all of the keys added to the Computer.
+        KeyLike
+            A key added to the Computer. If the operation adds 2 or more keys, this
+            **may** be the final key in a sequence of computations.
 
         See also
         ---------
@@ -595,7 +595,7 @@ class Computer:
 
             return tuple(result) if len(result) > 1 else result[0]
 
-    def duplicate(self, key: "TKeyLike", tag: str) -> "TKeyLike":
+    def duplicate(self, key: "KeyLike", tag: str) -> "KeyLike":
         """Duplicate the task at `key` and all of its inputs.
 
         Re
@@ -666,7 +666,7 @@ class Computer:
         # Return the new keys corresponding to the LHS of each expression
         return tuple(p.new_keys.values())
 
-    def get(self, key=None):
+    def get(self, key: "KeyLike | None" = None) -> Any:
         """Execute and return the result of the computation `key`.
 
         Only `key` and its dependencies are computed.

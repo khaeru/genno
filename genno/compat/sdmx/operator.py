@@ -1,4 +1,5 @@
-from collections.abc import Callable, Hashable, Iterable, Mapping
+from collections.abc import Callable, Hashable, Iterable, Mapping, MutableMapping
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from genno.operator import write_report
@@ -13,7 +14,8 @@ else:
 from . import util
 
 if TYPE_CHECKING:
-    from genno.types import AnyQuantity
+    from genno.types import AnyDataStructureDefinition, AnyObservation, AnyQuantity
+
 
 __all__ = [
     "codelist_to_groups",
@@ -60,7 +62,7 @@ def codelist_to_groups(
 
 
 def coords_to_codelists(
-    qty: "AnyQuantity", *, id_transform: Callable | None = str.upper, **kwargs
+    qty: "AnyQuantity", *, id_transform: Callable | None = str.upper, **kwargs: Any
 ) -> list["sdmx.model.common.Codelist"]:
     """Convert the coordinates of `qty` to a collection of :class:`.Codelist`."""
     from sdmx.model.common import Codelist
@@ -113,7 +115,7 @@ def dataset_to_quantity(ds: "sdmx.model.common.BaseDataSet") -> "AnyQuantity":
 
 def quantity_to_dataset(
     qty: "AnyQuantity",
-    structure: "sdmx.model.common.BaseDataStructureDefinition",
+    structure: "AnyDataStructureDefinition",
     *,
     observation_dimension: str | None = None,
     version: "sdmx.format.Version | str | None" = None,
@@ -135,17 +137,6 @@ def quantity_to_dataset(
     _, DataSet, Observation = util.handle_version(version)
     Key = sdmx.model.common.Key
     SeriesKey = sdmx.model.common.SeriesKey
-
-    # Narrow type
-    # NB This is necessary because BaseDataStructureDefinition.measures is not defined
-    # TODO Remove once addressed upstream
-    assert isinstance(
-        structure,
-        (
-            sdmx.model.v21.DataStructureDefinition,
-            sdmx.model.v30.DataStructureDefinition,
-        ),
-    )
 
     try:
         # URN of DSD stored on `qty` matches `structure`
@@ -174,12 +165,13 @@ def quantity_to_dataset(
         grouped = [(None, qty.to_series())]
         obs_dims, key_slice = dims, slice(None)
 
-    def as_obs(key, value):
+    def as_obs(key: Any, value: Any) -> "AnyObservation":
         """Convert a single pd.Series element to an sdmx Observation."""
+
         return Observation(
             # Select some or all elements of the SeriesGroupBy key
             dimension=structure.make_key(Key, dict(zip(obs_dims, key[key_slice]))),
-            value_for=measure,
+            value_for=measure,  # type: ignore [arg-type]
             value=value,
         )
 
@@ -197,7 +189,9 @@ def quantity_to_dataset(
 
 
 def quantity_to_message(
-    qty: "AnyQuantity", structure: "sdmx.model.v21.DataStructureDefinition", **kwargs
+    qty: "AnyQuantity",
+    structure: "sdmx.model.v21.DataStructureDefinition",
+    **kwargs: Any,
 ) -> "sdmx.message.DataMessage":
     """Convert :class:`.Quantity` to :class:`DataMessage <sdmx.message.DataMessage>`.
 
@@ -225,7 +219,9 @@ def quantity_to_message(
 
 
 @write_report.register
-def _(obj: "sdmx.message.DataMessage", path, kwargs=None) -> None:
+def _(
+    obj: "sdmx.message.DataMessage", path: Path, kwargs: MutableMapping | None = None
+) -> None:
     """Write  `obj` to the file at `path`.
 
     If `obj` is a :class:`sdmx.message.DataMessage` and `path` ends with ".xml", use

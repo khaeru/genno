@@ -5,10 +5,11 @@ if TYPE_CHECKING:
     from sdmx.model.common import (
         BaseDataSet,
         BaseDataStructureDefinition,
-        BaseObservation,
         DimensionComponent,
         MaintainableArtefact,
     )
+
+    from genno.types import AnyObservation
 
 
 def handle_od(
@@ -38,7 +39,7 @@ def urn(obj: "MaintainableArtefact") -> str:
 
 def handle_version(
     version: "str |Version | None",
-) -> tuple["Version", type["BaseDataSet"], type["BaseObservation"]]:
+) -> tuple["Version", type["BaseDataSet"], type["AnyObservation"]]:
     """Handle `version` arguments for :mod:`.sdmx.operator`.
 
     Also return either :mod:`sdmx.model.v21` or :mod:`sdmx.model.v30`, as appropriate.

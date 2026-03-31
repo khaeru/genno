@@ -5,9 +5,11 @@ block.
 """
 # pragma: exclude file
 
-from collections.abc import Hashable, Sequence
-from typing import TypeAlias, TypeVar
+from collections.abc import Hashable, Iterable, Mapping, Sequence
+from typing import Protocol, TypeAlias, TypedDict, TypeVar
 
+import sdmx.model.v21
+import sdmx.model.v30
 from pint import Quantity, Unit
 from xarray.core.types import Dims, InterpOptions, ScalarOrArray
 
@@ -28,8 +30,29 @@ __all__ = [
     "Unit",
 ]
 
+
+AnyDataStructureDefinition = (
+    sdmx.model.v21.DataStructureDefinition | sdmx.model.v30.DataStructureDefinition
+)
+AnyObservation = sdmx.model.v21.Observation | sdmx.model.v30.Observation
+
+
+class HasScenarioIdentifiers(Protocol):
+    @property
+    def model(self) -> str: ...
+
+    @property
+    def scenario(self) -> str: ...
+
+
 # Mirror the definition from pandas-stubs
 IndexLabel: TypeAlias = Hashable | Sequence[Hashable]
+
+
+class QuantityKwargs(TypedDict, total=False):
+    coords: Mapping[str, Iterable[str]]
+    units: Unit | str
+
 
 #: Similar to :any:`KeyLike`, but as a variable that can be use to match function/method
 #: outputs to inputs.

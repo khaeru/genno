@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import pint
 import xarray as xr
+from typing_extensions import Unpack
 
 import genno
 
@@ -33,7 +34,7 @@ from .util import collect_units, filter_concat_args, units_with_multiplier
 if TYPE_CHECKING:
     from genno import types
 
-    from .types import AnyQuantity, TQuantity, UnitLike
+    from .types import AnyQuantity, QuantityKwargs, TQuantity, UnitLike
 
 __all__ = [
     "add",
@@ -79,7 +80,13 @@ log = logging.getLogger(__name__)
 xr.set_options(keep_attrs=True)
 
 
-def add_binop(func, c: "genno.Computer", key, *quantities, **kwargs) -> Key:
+def add_binop(
+    func: Callable,
+    c: "genno.Computer",
+    key: KeyLike,
+    *quantities: KeyLike,
+    **kwargs: Any,
+) -> Key:
     """:meth:`.Computer.add` helper for binary operations.
 
     Add a computation that applies :func:`.add`, :func:`.div`, :func:`.mul`, or
@@ -219,7 +226,8 @@ def aggregate(
     return quantity._keep(result, name=True, attrs=True)
 
 
-def _unit_args(qty, units):
+def _unit_args(qty: "AnyQuantity", units: "UnitLike") -> tuple:
+    """Retrieve unit-related arguments."""
     result = [pint.get_application_registry(), qty.attrs.get("_unit", None)]
     return *result, getattr(result[1], "dimensionality", {}), result[0].Unit(units)
 
@@ -436,7 +444,7 @@ def combine(
 
 
 @singledispatch
-def concat(*objs: "TQuantity", **kwargs) -> "TQuantity":
+def concat(*objs: "TQuantity", **kwargs: Any) -> "TQuantity":
     """Concatenate Quantity `objs`.
 
     Any strings included amongst `objs` are discarded, with a logged warning; these
@@ -544,7 +552,7 @@ def drop_vars(
     qty: "TQuantity",
     names: str | Iterable[Hashable] | Callable[["TQuantity"], str | Iterable[Hashable]],
     *,
-    errors="raise",
+    errors: str = "raise",
 ) -> "TQuantity":
     """Return a Quantity with dropped variables (coordinates).
 
@@ -691,7 +699,13 @@ def load_file(
 
 
 @load_file.helper
-def add_load_file(func, c: "genno.Computer", path, key=None, **kwargs):
+def add_load_file(
+    func: Callable,
+    c: "genno.Computer",
+    path: PathLike,
+    key: KeyLike | None = None,
+    **kwargs: Any,
+) -> KeyLike:
     """:meth:`.Computer.add` helper for :func:`.load_file`.
 
     Add a task to load an exogenous quantity from `path`. Computing the `key` or using
@@ -823,7 +837,9 @@ def pow(a: "TQuantity", b: "TQuantity | int") -> "TQuantity":
     return a**b
 
 
-def random_qty(shape: dict[str, int], **kwargs) -> "AnyQuantity":
+def random_qty(
+    shape: dict[str, int], **kwargs: "Unpack[QuantityKwargs]"
+) -> "AnyQuantity":
     """Return a Quantity with `shape` and random contents.
 
     Parameters
@@ -879,7 +895,7 @@ def relabel(
     # Iterate over (dim, label_map) for only dims included in `qty`
     iter = filter(lambda kv: kv[0] in qty.dims, maps.items())
 
-    def map_labels(mapper, values):
+    def map_labels(mapper: Mapping, values: Iterable) -> list[str]:
         """Generate the new labels for a single dimension."""
         return list(map(lambda label: mapper.get(label, label), values))
 
@@ -929,7 +945,7 @@ def rename_dims(
     return qty.rename(name_dict, **names)
 
 
-def round(qty: "TQuantity", *args, **kwargs) -> "TQuantity":
+def round(qty: "TQuantity", *args: Any, **kwargs: Any) -> "TQuantity":
     """Like :meth:`xarray.DataArray.round`."""
     return qty.round(*args, **kwargs)
 
@@ -1036,7 +1052,13 @@ def sum(
 
 @sum.helper
 def add_sum(
-    func, c: "genno.Computer", key, qty, weights=None, dimensions=None, **kwargs
+    func: Callable,
+    c: "genno.Computer",
+    key: KeyLike,
+    qty: KeyLike,
+    weights: KeyLike | None = None,
+    dimensions: list[str] | None = None,
+    **kwargs: Any,
 ) -> KeyLike | tuple[KeyLike, ...]:
     """:meth:`.Computer.add` helper for :func:`.sum`.
 
@@ -1100,15 +1122,19 @@ def where(
     return qty.where(cond, other, drop)
 
 
-def wildcard_qty(value, units, dims: Sequence[Hashable]) -> "AnyQuantity":
+def wildcard_qty(
+    value: float | int, units: "UnitLike", dims: Sequence[Hashable]
+) -> "AnyQuantity":
     """Return a Quantity with 1 label "*" along each of `dims`."""
     if genno.Quantity is SparseDataArray:
         # Convert `value` into a list-of-lists of appropriate depth
-        value = reduce(lambda x, y: [x], range(len(dims)), value)
-    return genno.Quantity(value, coords={d: ["*"] for d in dims}, units=units)
+        _value: Any = reduce(lambda x, y: [x], range(len(dims) - 1), [value])
+    else:
+        _value = value
+    return genno.Quantity(_value, coords={d: ["*"] for d in dims}, units=units)
 
 
-def _format_header_comment(kwargs) -> str:
+def _format_header_comment(kwargs: Any) -> str:
     value = kwargs.pop("header_comment", "")
 
     if kwargs.pop("header_datetime", False):
@@ -1180,7 +1206,7 @@ def write_report(
 
 
 @write_report.register
-def _(quantity: str, path: str | PathLike, kwargs: dict | None = None):
+def _(quantity: str, path: str | PathLike, kwargs: dict | None = None) -> None:
     Path(path).write_text(quantity)
 
 

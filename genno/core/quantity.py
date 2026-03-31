@@ -1,5 +1,5 @@
 import sys
-from typing import TYPE_CHECKING, Literal, Type
+from typing import TYPE_CHECKING, Any, Literal, Type
 
 from .attrseries import AttrSeries
 from .base import BaseQuantity
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from typing import TypeAlias
 
 
-def assert_quantity(*args):
+def assert_quantity(*args: Any) -> None:
     """Assert that each of `args` is a Quantity object.
 
     Raises
@@ -89,7 +89,7 @@ def set_class(
         setattr(sys.modules[module], "Quantity", cls)
 
     # Update global
-    CLASS = cls.__name__
+    CLASS = cls.__name__  # type: ignore [assignment]
 
     return cls
 
@@ -98,7 +98,7 @@ def set_class(
 Quantity: "TypeAlias" = AttrSeries
 
 #: Name of :class:`.Quantity`.
-CLASS = "AttrSeries"
+CLASS: Literal["AttrSeries", "SparseDataArray"] = "AttrSeries"
 
 #: Either :class:`.AttrSeries` or :class:`.SparseDataArray`. Code in :mod:`genno` or
 #: user code that receives or returns any Quantity implementation should be typed with

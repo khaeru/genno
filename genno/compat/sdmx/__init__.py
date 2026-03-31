@@ -1,9 +1,11 @@
+from typing import Any
+
 __all__ = [
     "codelist_to_groups",
 ]
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "codelist_to_groups":
         from warnings import warn
 

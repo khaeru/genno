@@ -34,6 +34,7 @@ dependencies = [
   "platformdirs",
   "pint",
   "PyYAML",
+  "typing_extensions; python_version < '3.11'",
   "xarray > 2022.6.0",
 ]
 
@@ -99,10 +100,10 @@ files = [
 ]
 
 # Settings recommended by https://careers.wolt.com/en/blog/tech/professional-grade-mypy-configuration
-# check_untyped_defs = true  # 66 errors
-# disallow_untyped_defs = true  # 535 errors
-# disallow_any_unimported = true  # 20 errors
-# warn_return_any = true  # 24 errors
+# check_untyped_defs = true  # 33 errors
+# disallow_untyped_defs = true  # 318 errors
+# disallow_any_unimported = true  # 35 errors
+# warn_return_any = true  # 62 errors
 warn_unused_ignores = true
 
 [tool.pytest]
