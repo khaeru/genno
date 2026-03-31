@@ -27,15 +27,15 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-  "dask[array] >= 2.14",
+  "dask[array] >= 2020",
   "fastparquet; python_version >= '3.14'",
-  "pandas >= 1.0",
+  "pandas >= 2",
   "pandas[parquet]; python_version < '3.14'",
   "platformdirs",
   "pint",
   "PyYAML",
-  # 2022.6.0 is affected by pydata/xarray#6822
-  "xarray >= 0.17, != 2022.6.0",
+  "typing_extensions; python_version < '3.11'",
+  "xarray > 2022.6.0",
 ]
 
 [project.optional-dependencies]
@@ -100,22 +100,11 @@ files = [
 ]
 
 # Settings recommended by https://careers.wolt.com/en/blog/tech/professional-grade-mypy-configuration
-# check_untyped_defs = true  # 66 errors
-# disallow_untyped_defs = true  # 535 errors
-# disallow_any_unimported = true  # 20 errors
-# warn_return_any = true  # 24 errors
+# check_untyped_defs = true  # 33 errors
+# disallow_untyped_defs = true  # 318 errors
+# disallow_any_unimported = true  # 35 errors
+# warn_return_any = true  # 62 errors
 warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-# Packages/modules for which no type hints are available
-module = [
-  "graphviz",
-  "pandas.*",
-  "pyam.*",
-  "scipy.*",
-  "sparse.*",
-]
-ignore_missing_imports = true
 
 [tool.pytest]
 minversion = "9.0"

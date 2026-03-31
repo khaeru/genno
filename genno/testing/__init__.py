@@ -3,11 +3,12 @@ import importlib.resources
 import logging
 import os
 import platform
-from contextlib import nullcontext
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, nullcontext
 from functools import partial
 from importlib.metadata import version
 from itertools import chain, islice
-from typing import TYPE_CHECKING, ContextManager
+from typing import TYPE_CHECKING, Any, ContextManager
 
 import numpy as np
 import pandas as pd
@@ -25,7 +26,11 @@ from genno.core.attrseries import AttrSeries
 from genno.core.sparsedataarray import HAS_SPARSE, SparseDataArray
 
 if TYPE_CHECKING:
+    from importlib.resources.abc import Traversable
+
     from genno.core.quantity import AnyQuantity
+
+    Comparable = float | int | AnyQuantity
 
 
 log = logging.getLogger(__name__)
@@ -47,7 +52,7 @@ MARK = {
 # Pytest hooks
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     """Force iam-units to use a distinct cache for each worker.
 
     Work arounds for:
@@ -66,7 +71,7 @@ def pytest_configure(config):
         matplotlib.use("agg")
 
 
-def pytest_sessionstart(session):
+def pytest_sessionstart(session: pytest.Session) -> None:
     """Quiet some loggers."""
     for name in (
         "numba",
@@ -77,13 +82,19 @@ def pytest_sessionstart(session):
         logging.getLogger(name).setLevel(logging.INFO)
 
 
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(
+    item: pytest.Item, call: pytest.CallInfo
+) -> pytest.TestReport | None:
     """Pytest hook to unwrap :class:`genno.ComputationError`.
 
     This allows to "xfail" tests more precisely on the underlying exception, rather than
     the ComputationError which wraps it.
     """
-    if call.when == "call" and getattr(call.excinfo, "type", None) is ComputationError:
+    if (
+        call.when == "call"
+        and call.excinfo is not None
+        and getattr(call.excinfo, "type", None) is ComputationError
+    ):
         # Retrieve the Exception wrapped by ComputationError
         e = call.excinfo.value.args[0]
         # Look for an "xfail" marker whose raises= class(es) match `e`
@@ -99,9 +110,12 @@ def pytest_runtest_makereport(item, call):
 
             # Generate and return the report
             return pytest.TestReport.from_item_and_call(item, call)
+    return None
 
 
-def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
+def add_large_data(
+    c: Computer, num_params: int, N_dims: int = 6, N_data: int = 0
+) -> list[Key]:
     """Add nodes to `c` that return large-ish data.
 
     The result is a matrix wherein the Cartesian product of all the keys is very large—
@@ -110,7 +124,7 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
     by :class:`numpy.ndarray`.
     """
 
-    def _fib():
+    def _fib() -> Iterator[tuple[str, int]]:
         """Yield dimensions and their lengths: Fibonacci numbers."""
         a, b = 233, 377
         dim_names = iter("abcdefghijklmnopqrstuvwxyz")
@@ -137,7 +151,7 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
     # )
 
     # Names like f_00000 ... f_01596 along each dimension
-    dtypes = {"value": float}
+    dtypes: dict[str, pd.CategoricalDtype] = {}
     for d, N in zip(dims, sizes):
         categories = [f"{d}_{i:05d}" for i in range(N)]
         # Add to Computer
@@ -148,14 +162,14 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
     # Random generator
     rng = np.random.default_rng()
 
-    def get_large_quantity(name):
+    def get_large_quantity(name: str) -> "AnyQuantity":
         """Make a DataFrame containing each label in *coords* ≥ 1 time."""
         log.info(f"{N_data} values")
 
         # Allocate memory for the data frame using the given data types
         df = pd.DataFrame(
             index=pd.RangeIndex(N_data), columns=list(dims) + ["value"]
-        ).astype(dtypes)
+        ).astype(dtypes | {"value": float})
 
         # Fill values
         df.loc[:, "value"] = rng.random(N_data)
@@ -163,7 +177,8 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
         # Fill labels
         for d in dims:
             df[d] = pd.Categorical.from_codes(
-                rng.integers(0, len(dtypes[d].categories), N_data), dtype=dtypes[d]
+                rng.integers(0, len(dtypes[d].categories), N_data),
+                dtype=dtypes[d],
             )
 
         return genno.Quantity(
@@ -176,13 +191,13 @@ def add_large_data(c: Computer, num_params, N_dims=6, N_data=0):
     keys = []
     for i in range(num_params):
         key = Key(f"q_{i:02d}", dims)
-        c.add(key, (partial(get_large_quantity, key),))
+        c.add(key, (partial(get_large_quantity, key.name),))
         keys.append(key)
 
     return keys
 
 
-def add_test_data(c: Computer):
+def add_test_data(c: Computer) -> tuple[list[str], list[str], list[str], "AnyQuantity"]:
     """:func:`add_test_data` operating on a Computer, not an ixmp.Scenario."""
     # TODO combine with add_dantzig(), below
     # New sets
@@ -247,7 +262,7 @@ def get_test_quantity(key: Key) -> "AnyQuantity":
     return genno.Quantity(value, name=key.name, units=unit)
 
 
-def add_dantzig(c: Computer):
+def add_dantzig(c: Computer) -> None:
     """Add contents analogous to the ixmp Dantzig scenario."""
 
     c.add("i", quote(_i))
@@ -262,7 +277,11 @@ def add_dantzig(c: Computer):
 
 
 @contextlib.contextmanager
-def assert_logs(caplog, message_or_messages=None, at_level=None):
+def assert_logs(
+    caplog: pytest.LogCaptureFixture,
+    message_or_messages: str | list[str] | None = None,
+    at_level: int | str | None = None,
+) -> Iterator:
     """Assert that *message_or_messages* appear in logs.
 
     Use assert_logs as a context manager for a statement that is expected to trigger
@@ -288,6 +307,7 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
     __tracebackhide__ = True
 
     # Wrap a string in a list
+    message_or_messages = message_or_messages or []
     expected = (
         [message_or_messages]
         if isinstance(message_or_messages, str)
@@ -300,7 +320,9 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
     if at_level is not None:
         # Use the pytest caplog fixture's built-in context manager to temporarily set
         # the level of the logger for the whole package (parent of the current module)
-        ctx = caplog.at_level(at_level, logger=__name__.split(".")[0])
+        ctx: AbstractContextManager = caplog.at_level(
+            at_level, logger=__name__.split(".")[0]
+        )
     else:
         # ctx does nothing
         ctx = contextlib.nullcontext()
@@ -325,14 +347,27 @@ def assert_logs(caplog, message_or_messages=None, at_level=None):
             pytest.fail("\n".join(lines))
 
 
+def _check_types(
+    a: "Comparable", b: "Comparable", check_type: bool
+) -> tuple[AttrSeries, AttrSeries] | tuple[SparseDataArray, SparseDataArray]:
+    types = set([type(a), type(b)])
+    if len(types) > 1 and check_type:
+        assert False, f"mismatched types {type(a)} != {type(b)}"
+    else:
+        # Convert both arguments to Quantity
+        return a if isinstance(a, genno.Quantity) else genno.Quantity(
+            a
+        ), b if isinstance(b, genno.Quantity) else genno.Quantity(b)
+
+
 def assert_qty_equal(
-    a,
-    b,
+    a: "Comparable",
+    b: "Comparable",
     check_type: bool = True,
     check_attrs: bool = True,
     ignore_extra_coords: bool = False,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """Assert that objects `a` and `b` are equal.
 
     Parameters
@@ -348,17 +383,9 @@ def assert_qty_equal(
     """
     __tracebackhide__ = True
 
-    try:
-        assert type(a) is type(b) is genno.Quantity
-    except AssertionError:
-        if check_type:
-            raise
-        else:
-            # Convert both arguments to Quantity
-            a = genno.Quantity(a)
-            b = genno.Quantity(b)
+    a, b = _check_types(a, b, check_type)
 
-    if genno.Quantity is AttrSeries:
+    if type(a) is AttrSeries:
         try:
             a = a.sort_index().dropna()
             b = b.sort_index().dropna()
@@ -378,17 +405,17 @@ def assert_qty_equal(
 
     # Check attributes are equal
     if check_attrs:
-        assert a.attrs == b.attrs
+        assert hasattr(a, "attrs") and hasattr(b, "attrs") and a.attrs == b.attrs
 
 
 def assert_qty_allclose(
-    a,
-    b,
+    a: "Comparable",
+    b: "Comparable",
     check_type: bool = True,
     check_attrs: bool = True,
     ignore_extra_coords: bool = False,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> None:
     """Assert that objects `a` and `b` have numerically close values.
 
     Parameters
@@ -404,15 +431,7 @@ def assert_qty_allclose(
     """
     __tracebackhide__ = True
 
-    try:
-        assert type(a) is type(b) is genno.Quantity
-    except AssertionError:
-        if check_type:
-            raise
-        else:
-            # Convert both arguments to Quantity
-            a = genno.Quantity(a)
-            b = genno.Quantity(b)
+    a, b = _check_types(a, b, check_type)
 
     if genno.Quantity is AttrSeries:
         assert_series_equal(a.sort_index(), b.sort_index(), **kwargs)
@@ -438,7 +457,7 @@ def assert_units(qty: "AnyQuantity", exp: str) -> None:
     )
 
 
-def raises_or_warns(value, *args, **kwargs) -> ContextManager:
+def raises_or_warns(value: Any, *args: Any, **kwargs: Any) -> ContextManager:
     """Context manager for tests that :func:`.pytest.raises` or :func:`.pytest.warns`.
 
     If `value` is a context manager—such as returned by :func:`.pytest.raises`, it is
@@ -483,13 +502,13 @@ def raises_or_warns(value, *args, **kwargs) -> ContextManager:
 
 
 @pytest.fixture(scope="session")
-def test_data_path():
+def test_data_path() -> "Traversable":
     """Path to the directory containing test data."""
     return importlib.resources.files("genno.tests.data")
 
 
 @pytest.fixture(scope="session")
-def ureg():
+def ureg() -> Iterator[pint.UnitRegistry]:
     """Application-wide units registry."""
     registry = pint.get_application_registry()
 
@@ -512,7 +531,7 @@ def ureg():
     ],
     ids=["attrseries", "sparsedataarray"],
 )
-def parametrize_quantity_class(request):
+def parametrize_quantity_class(request: pytest.FixtureRequest) -> Iterator[None]:
     """Fixture to run tests twice, for both Quantity implementations."""
     from genno.core import quantity
 
@@ -529,7 +548,9 @@ def parametrize_quantity_class(request):
 
 
 @pytest.fixture(params=[True, False], ids=["cow-true", "cow-false"])
-def parametrize_copy_on_write(monkeypatch, request):
+def parametrize_copy_on_write(
+    monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> Iterator[None]:
     """Fixture to run tests with pandas copy-on-write either enabled or disabled.
 
     The fixture has no effect in pandas 3.0.0 and later, in which the copy_on_write
@@ -546,7 +567,7 @@ def parametrize_copy_on_write(monkeypatch, request):
 
 
 @pytest.fixture(scope="function")
-def quantity_is_sparsedataarray(request):
+def quantity_is_sparsedataarray(request: pytest.FixtureRequest) -> Iterator[None]:
     from genno.core import quantity
 
     pre = quantity.CLASS
@@ -558,7 +579,7 @@ def quantity_is_sparsedataarray(request):
         set_class(pre)
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> Any:
     if name == "random_qty":
         from warnings import warn
 

@@ -5,7 +5,7 @@ from genno.core.key import iter_keys, single_key
 from genno.testing import raises_or_warns
 
 
-def test_key():
+def test_key() -> None:
     k1 = Key("foo", ["a", "b", "c"])
     k2 = Key("bar", ["d", "c", "b"])
 
@@ -78,7 +78,7 @@ class TestKey:
             ),
         ),
     )
-    def test_init1(self, args, expected):
+    def test_init1(self, args: tuple, expected: Key) -> None:
         assert expected == Key(*args)
 
     @pytest.mark.parametrize("value, expected", CASES)
@@ -94,14 +94,14 @@ class TestKey:
             (dict(drop="b", tag="t2"), "foo:a-b-c:t1", Key("foo:a-c:t1+t2")),
         ),
     )
-    def test_from_str_or_key1(self, kwargs, value, expected):
+    def test_from_str_or_key1(self, kwargs: dict, value: str, expected: Key) -> None:
         assert expected == Key.from_str_or_key(value, **kwargs)
 
-    def test_drop(self):
+    def test_drop(self) -> None:
         key = Key("out:nl-t-yv-ya-m-nd-c-l-h-hd")
         assert "out:t-yv-ya-c-l" == key.drop("h", "hd", "m", "nd", "nl")
 
-    def test_eq(self):
+    def test_eq(self) -> None:
         assert False is (Key("x:a-b-c") == 3.4)
 
     def test_generated(self) -> None:
@@ -139,7 +139,7 @@ class TestKey:
 
         assert k2 in d
 
-    def test_operations(self):
+    def test_operations(self) -> None:
         key = Key("x:a-b-c")
 
         # __add__: Add a tag
@@ -164,13 +164,13 @@ class TestKey:
         assert "x:b" == key / ("a", "c")
         assert "x:b" == key / Key("foo", "ac")
 
-        # Invalid
+        # Invalid operations raise TypeError
         with pytest.raises(TypeError):
-            key + 1.1
+            key + 1.1  # type: ignore [operator]
         with pytest.raises(TypeError):
-            key * 2.2
+            key * 2.2  # type: ignore [operator]
         with pytest.raises(TypeError):
-            key / 3.3
+            key / 3.3  # type: ignore [operator]
 
     def test_sorted(self) -> None:
         k1 = Key("foo", "abc")
@@ -241,7 +241,7 @@ class TestKeySeq:
     def ks(self) -> KeySeq:
         return KeySeq("foo:x-y-z:bar")
 
-    def test_call(self, ks) -> None:
+    def test_call(self, ks: KeySeq) -> None:
         assert "foo:x-y-z:bar+0" == ks()
         assert "foo:x-y-z:bar+1" == ks()
         assert "foo:x-y-z:bar+2" == ks()
@@ -251,14 +251,14 @@ class TestKeySeq:
         ks[5]
         assert "foo:x-y-z:bar+6" == next(ks)
 
-    def test_getitem(self, ks) -> None:
+    def test_getitem(self, ks: KeySeq) -> None:
         assert "foo:x-y-z:bar+baz" == ks["baz"]
         assert "foo:x-y-z:bar+qux" == ks["qux"]
         assert "foo:x-y-z:bar+qux" == ks.prev
         assert "foo:x-y-z:bar+0" == next(ks)
         assert "foo:x-y-z:bar+0" == ks.prev
 
-    def test_keys(sefl, ks) -> None:
+    def test_keys(self, ks: KeySeq) -> None:
         ks["foo"]
         ks[5]
         next(ks)
@@ -268,7 +268,7 @@ class TestKeySeq:
         # .keys preserves order of creation
         assert ("foo", 5, 6, "baz", 0) == tuple(ks.keys)
 
-    def test_next(self, ks) -> None:
+    def test_next(self, ks: KeySeq) -> None:
         assert "foo:x-y-z:bar+0" == next(ks)
         assert "foo:x-y-z:bar+1" == next(ks)
         assert "foo:x-y-z:bar+2" == next(ks)
@@ -278,15 +278,15 @@ class TestKeySeq:
         ks[5]
         assert "foo:x-y-z:bar+6" == next(ks)
 
-    def test_repr(self, ks) -> None:
+    def test_repr(self, ks: KeySeq) -> None:
         assert "<KeySeq from 'foo:x-y-z:bar'>" == repr(ks)
 
-    def test_key_attrs(self, ks) -> None:
+    def test_key_attrs(self, ks: KeySeq) -> None:
         assert "foo" == ks.name
         assert ("x", "y", "z") == ks.dims
         assert "bar" == ks.tag
 
-    def test_key_ops(self, ks) -> None:
+    def test_key_ops(self, ks: KeySeq) -> None:
         # __add__
         assert "foo:x-y-z:bar+baz" == (ks + "baz").base
 

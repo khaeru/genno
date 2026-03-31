@@ -46,18 +46,18 @@ class Operator:
     #: invoke with :meth:`add_tasks`.
     _add_tasks: ClassVar[Callable | None] = None
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         # The callable is stored as a static method; `self` is not passed
         return self.func(*args, **kwargs)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.func)
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         """Compares equal to the wrapped `func`."""
         return other == self.func
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<operator {self.__class__.__name__}>"
 
     @staticmethod
@@ -117,7 +117,9 @@ class Operator:
         self.__class__._add_tasks = staticmethod(func)
         return func
 
-    def add_tasks(self, c: "Computer", *args, **kwargs) -> tuple[KeyLike, ...]:
+    def add_tasks(
+        self, c: "Computer", *args: Any, **kwargs: Any
+    ) -> tuple[KeyLike, ...]:
         """Invoke :attr:`_add_task` to add tasks to `c`."""
         if self._add_tasks is None:
             raise NotImplementedError

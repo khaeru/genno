@@ -1,4 +1,4 @@
-def test_import_pyam():
+def test_import_pyam() -> None:
     """.compat.pyam.operator is populated only if pyam itself is installed.
 
     Unlike the tests in :mod:`.test_pyam`, this test should pass regardless of whether

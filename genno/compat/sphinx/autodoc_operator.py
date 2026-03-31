@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from sphinx.ext.autodoc import FunctionDocumenter
 
@@ -10,7 +10,9 @@ if TYPE_CHECKING:
 
 class OperatorDocumenter(FunctionDocumenter):
     @classmethod
-    def can_document_member(cls, member, membername, isattr, parent) -> bool:
+    def can_document_member(
+        cls, member: Any, membername: str, isattr: bool, parent: Any
+    ) -> bool:
         return isinstance(member, Operator) or super().can_document_member(
             member, membername, isattr, parent
         )

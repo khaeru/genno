@@ -33,7 +33,7 @@ REPLACE_UNITS = {
 }
 
 
-def clean_units(input_string):
+def clean_units(input_string: str) -> str:
     """Tolerate messy strings for units.
 
     - Dimensions enclosed in “[]” have these characters stripped.
@@ -98,7 +98,9 @@ def _invalid(unit: str, exc: Exception) -> Exception:
     return return_cls(msg)
 
 
-def parse_units(data: Iterable, registry=None) -> "pint.Unit":
+def parse_units(
+    data: Iterable, registry: "pint.UnitRegistry | None" = None
+) -> "pint.Unit":
     """Return a :class:`pint.Unit` for an iterable of strings.
 
     Valid unit expressions not already present in the `registry` are defined, e.g.:

@@ -1,8 +1,11 @@
 """Tests of AttrSeries in particular."""
 
+from collections.abc import Hashable, Iterator
+
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
+import pint
 import pytest
 
 from genno import Computer
@@ -12,16 +15,16 @@ from genno.testing import add_large_data
 
 class TestAttrSeries:
     @pytest.fixture
-    def foo(self):
+    def foo(self) -> Iterator[AttrSeries]:
         idx = pd.MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]], names=["a", "b"])
         yield AttrSeries([0, 1, 2, 3], index=idx, name="Foo", units="kg")
 
     @pytest.fixture
-    def bar(self):
+    def bar(self) -> Iterator[AttrSeries]:
         """A 1-dimensional quantity."""
         yield AttrSeries([0, 1], index=pd.Index(["a1", "a2"], name="a"))
 
-    def test_align_levels(self, foo, bar):
+    def test_align_levels(self, foo: AttrSeries, bar: AttrSeries) -> None:
         # Scalar vs scalar
         q = AttrSeries(0.1)
         other = AttrSeries(2.2)
@@ -53,7 +56,7 @@ class TestAttrSeries:
         with pytest.raises(NotImplementedError, match="keep_attrs=False"):
             foo.clip(1.0, keep_attrs=False)
 
-    def test_cumprod(self, foo, bar):
+    def test_cumprod(self, foo: AttrSeries, bar: AttrSeries) -> None:
         """AttrSeries.cumprod works with 1-dimensional quantities."""
         result0 = (1.1 + bar).cumprod("a")
         assert ("a",) == result0.dims
@@ -66,22 +69,23 @@ class TestAttrSeries:
         with pytest.raises(NotImplementedError):
             foo.cumprod()
 
-    def test_data(self, foo):
+    def test_data(self, foo: AttrSeries) -> None:
         assert isinstance(foo.data, np.ndarray)
 
-    def test_expand_dims(self, ureg, foo):
+    def test_expand_dims(self, ureg: pint.UnitRegistry, foo: AttrSeries) -> None:
         # Name and units pass through expand_dims
         result = foo.expand_dims(c=["c1", "c2"])
         assert foo.name == result.name and ureg.Unit("kg") == foo.units == result.units
 
-    def test_interp(self, foo):
+    def test_interp(self, foo: AttrSeries) -> None:
         with pytest.raises(NotImplementedError):
             foo.interp(coords=dict(a=["a1", "a1.5", "a2"], b=["b1", "b1.5", "b2"]))
 
-    def test_rename(self, foo):
-        assert foo.rename({"a": "c", "b": "d"}).dims == ("c", "d")
+    def test_rename(self, foo: AttrSeries) -> None:
+        renames: dict[Hashable, Hashable] = {"a": "c", "b": "d"}
+        assert foo.rename(renames).dims == ("c", "d")
 
-    def test_repr(self, foo):
+    def test_repr(self, foo: AttrSeries) -> None:
         assert (
             "a   b \n"
             """a1  b1    0
@@ -94,7 +98,7 @@ Name: Foo, dtype: int64, units: kilogram"""
     @pytest.mark.parametrize(
         "indexers_kwargs, dims", ((dict(a="a2"), ()), (dict(a=["a2"]), ("a",)))
     )
-    def test_sel(self, bar, indexers_kwargs, dims) -> None:
+    def test_sel(self, bar: AttrSeries, indexers_kwargs: dict, dims: tuple) -> None:
         # Selecting 1 element from 1-D parameter still returns AttrSeries
         result = bar.sel(**indexers_kwargs)
         assert isinstance(result, AttrSeries)
@@ -102,18 +106,18 @@ Name: Foo, dtype: int64, units: kilogram"""
         assert dims == result.dims
         assert result.iloc[0] == 1
 
-    def test_sel_not_implemented(self, bar):
+    def test_sel_not_implemented(self, bar: AttrSeries) -> None:
         with pytest.raises(NotImplementedError):
             bar.sel(a="a2", method="bfill")
 
         with pytest.raises(NotImplementedError):
             bar.sel(a="a2", tolerance=0.01)
 
-    def test_shift(self, foo):
+    def test_shift(self, foo: AttrSeries) -> None:
         foo.shift(a=1)
         foo.shift(b=1)
 
-    def test_squeeze(self, foo) -> None:
+    def test_squeeze(self, foo: AttrSeries) -> None:
         """:meth:`squeeze` results in MultiIndex.
 
         https://github.com/khaeru/genno/issues/120
@@ -136,7 +140,7 @@ Name: Foo, dtype: int64, units: kilogram"""
         result3 = foo.sel(a=["a1"], b=["b2"]).squeeze(dim=["a", "b"])
         assert 0 == len(result3.dims)
 
-    def test_sum(self, foo, bar):
+    def test_sum(self, foo: AttrSeries, bar: AttrSeries) -> None:
         # AttrSeries can be summed across all dimensions
         result = foo.sum(dim=["a", "b"])
         assert isinstance(result, AttrSeries)  # returns an AttrSeries
@@ -164,7 +168,7 @@ Name: Foo, dtype: int64, units: kilogram"""
         with pytest.raises(NotImplementedError):
             bar.sum("a", skipna=False)
 
-    def test_others(self, foo, bar):
+    def test_others(self, foo: AttrSeries, bar: AttrSeries) -> None:
         # Exercise other compatibility functions
         assert type(foo.to_frame()) is pd.DataFrame
         assert foo.drop("a").dims == ("b",)
@@ -185,7 +189,7 @@ Name: Foo, dtype: int64, units: kilogram"""
 
 
 @pytest.mark.skip(reason="Slow, for benchmarking only")
-def test_sum_large(N_data=1e7):  # pragma: no cover
+def test_sum_large(N_data: int = int(1e7)) -> None:  # pragma: no cover
     """Test :meth:`.AttrSeries.sum` for large, sparse data."""
     # Create a single large AttrSeries
     c = Computer()

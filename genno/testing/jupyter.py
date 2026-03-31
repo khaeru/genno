@@ -5,14 +5,25 @@ Copied 2023-04-27 from the corresponding module in ixmp.
 
 import os
 import sys
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 import pytest
 
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+    from pathlib import Path
+
+    from nbformat import NotebookNode
 nbformat = pytest.importorskip("nbformat")
 
 
-def run_notebook(nb_path, tmp_path, env=None, **kwargs):
+def run_notebook(
+    nb_path: "Path",
+    tmp_path: "Path",
+    env: "MutableMapping | None" = None,
+    **kwargs: Any,
+) -> tuple:
     """Execute a Jupyter notebook via :mod:`nbclient` and collect output.
 
     Parameters
@@ -89,7 +100,9 @@ def run_notebook(nb_path, tmp_path, env=None, **kwargs):
     return nb, errors
 
 
-def get_cell_output(nb, name_or_index, kind="data"):
+def get_cell_output(
+    nb: "NotebookNode", name_or_index: int | str, kind: str = "data"
+) -> Any:
     """Retrieve a cell from `nb` according to its metadata `name_or_index`:
 
     The Jupyter notebook format allows specifying a document-wide unique 'name' metadata

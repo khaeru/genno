@@ -2,8 +2,9 @@ import logging
 import re
 from collections.abc import Callable, Collection, Hashable, Iterable, Mapping
 from functools import partial
+from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from warnings import warn
 
 import pyam
@@ -16,10 +17,12 @@ from genno.core.operator import Operator
 from . import util
 
 if TYPE_CHECKING:
+    from collections.abc import MutableMapping
+
     import pandas
 
     from genno.core.computer import Computer
-    from genno.types import AnyQuantity, TQuantity
+    from genno.types import AnyQuantity, HasScenarioIdentifiers, TQuantity
 
 log = logging.getLogger(__name__)
 
@@ -32,18 +35,18 @@ __all__ = [
 
 @Operator.define()
 def as_pyam(
-    scenario,
+    scenario: "HasScenarioIdentifiers",
     quantity: "AnyQuantity",
     *,
     rename: Mapping[str, str] | None = None,
     collapse: Callable | None = None,
-    replace=dict(),
+    replace: "MutableMapping" = dict(),
     drop: Collection[str] | str = "auto",
-    unit=None,
+    unit: str | None = None,
     prepend_name: bool = True,
     model_name: str | None = None,
     scenario_name: str | None = None,
-):
+) -> "pyam.IamDataFrame":
     """Return a :class:`pyam.IamDataFrame` containing the data from `quantity`.
 
     Warnings are logged if the arguments result in additional, unhandled columns in the
@@ -150,13 +153,13 @@ def as_pyam(
 
 @as_pyam.helper
 def add_as_pyam(
-    func,
+    func: Callable,
     c: "Computer",
     quantities: KeyLike | Iterable[KeyLike],
-    tag="iamc",
+    tag: str = "iamc",
     /,
-    **kwargs,
-):
+    **kwargs: Any,
+) -> KeyLike | tuple[KeyLike, ...]:
     """:meth:`.Computer.add` helper for :func:`.as_pyam`.
 
     Add conversion of one or more `quantities` to the IAMC data structure.
@@ -216,7 +219,7 @@ def add_as_pyam(
 
 
 @genno.operator.concat.register
-def _(*args: pyam.IamDataFrame, **kwargs) -> "pyam.IamDataFrame":
+def _(*args: pyam.IamDataFrame, **kwargs: Any) -> "pyam.IamDataFrame":
     """Concatenate `args`, which must all be :class:`pyam.IamDataFrame`.
 
     Otherwise, equivalent to :func:`genno.operator.concat`.
@@ -310,7 +313,7 @@ def quantity_from_iamc(
 
 
 @genno.operator.write_report.register
-def _(quantity: pyam.IamDataFrame, path, kwargs=None) -> None:
+def _(quantity: pyam.IamDataFrame, path: PathLike, kwargs: Any = None) -> None:
     """Write  `obj` to the file at `path`.
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",
@@ -334,7 +337,7 @@ def _(quantity: pyam.IamDataFrame, path, kwargs=None) -> None:
         )
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name in ("concat", "write_report"):
         warn(
             f"Importing {name!r} from genno.compat.pyam.operator; import from "

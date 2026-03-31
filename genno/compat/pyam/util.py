@@ -18,7 +18,7 @@ IAMC_DIMS = frozenset("model scenario region variable unit year time".split())
 IAMC_IDX = IAMC_DIMS
 
 
-def clean_units(df: pd.DataFrame, unit=None) -> pd.DataFrame:
+def clean_units(df: pd.DataFrame, unit: str | pint.Unit | None = None) -> pd.DataFrame:
     """Convert magnitudes and units of `df` to `unit` in :class:`str`.
 
     Raises
@@ -46,7 +46,7 @@ def clean_units(df: pd.DataFrame, unit=None) -> pd.DataFrame:
 
 
 def collapse(
-    df: pd.DataFrame, columns: Mapping[str, Sequence[str]] = dict(), sep="|"
+    df: pd.DataFrame, columns: Mapping[str, Sequence[str]] = dict(), sep: str = "|"
 ) -> pd.DataFrame:
     """Collapse `columns` into the IAMC columns of `df`."""
     to_drop = set()
@@ -73,7 +73,7 @@ def collapse(
     return df.drop(list(to_drop), axis=1)
 
 
-def _extra(obj):
+def _extra(obj: pd.DataFrame) -> list[str]:
     """Extra columns in `obj`."""
     return sorted(set(obj.columns) - IAMC_DIMS - {"value"})
 

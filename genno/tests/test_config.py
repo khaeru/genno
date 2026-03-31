@@ -1,6 +1,7 @@
 import logging
 import re
 from importlib import import_module
+from pathlib import Path
 
 import pytest
 
@@ -9,7 +10,7 @@ from genno.compat.pyam import HAS_PYAM
 from genno.config import HANDLERS, ConfigHandler, handles
 
 
-def test_deprecated_store_global(recwarn):
+def test_deprecated_store_global(recwarn: pytest.WarningsRecorder) -> None:
     config.STORE.add("FOO")
 
     # Warning is emitted here since Computer.__init__() calls parse_config()
@@ -27,7 +28,7 @@ def test_deprecated_store_global(recwarn):
     HANDLERS.pop("FOO")
 
 
-def test_handlers():
+def test_handlers() -> None:
     # Account for handlers in packages modules that may be installed in the user's
     # testing environment
     third_party_handlers = 0
@@ -63,7 +64,7 @@ def test_handlers():
         "config-units.yaml",
     ],
 )
-def test_file(test_data_path, name):
+def test_file(test_data_path: Path, name: str) -> None:
     """Test handling configuration file syntax using test data files."""
     c = Computer()
 
@@ -74,7 +75,7 @@ def test_file(test_data_path, name):
     c.configure(path=test_data_path / name)
 
 
-def test_general_infer_dims():
+def test_general_infer_dims() -> None:
     """Test dimension inference in handling "general:" config items."""
     c = Computer()
 
@@ -88,7 +89,7 @@ def test_general_infer_dims():
     assert "Z:a-b-c-d-e-f-g:foo" in c
 
 
-def test_global(test_data_path):
+def test_global(test_data_path: Path) -> None:
     configure(path=test_data_path / "config-units.yaml")
 
     with pytest.raises(
@@ -97,19 +98,21 @@ def test_global(test_data_path):
         configure(path=test_data_path / "config-global.yaml")
 
 
-def test_handles(caplog, monkeypatch):
+def test_handles(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """:func:`handles` raises a warning when used twice."""
     monkeypatch.delitem(HANDLERS, "foo", raising=False)
     caplog.set_level(logging.DEBUG)
 
     @handles("foo")
-    def foo1(c: Computer, info):
+    def foo1(c: Computer, info: dict) -> None:
         """Test function; never executed."""
 
     assert len(caplog.messages) == 0
 
     @handles("foo")
-    def foo2(c: Computer, info):
+    def foo2(c: Computer, info: dict) -> None:
         """Test function; never executed."""
 
     assert 1 == len(caplog.messages)

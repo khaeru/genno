@@ -1,8 +1,26 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- :mod:`genno` supports and is tested with dask 2025.4.0 and later (:issue:`171`, :pull:`188`).
+- Increased minimum versions for dependencies:
+
+  - dask 2.14 → 2020.0.0
+  - pandas 1.0 → 2.0.0
+  - xarray 0.17 → 2022.6.1
+
+  In practice, these versions are all quite old,
+  and may contain bugs (for instance, :issue:`170`)
+  or be incompatible with newer versions of Python or other dependencies.
+  It is recommended to use the newest versions of all dependencies.
+- Improved type hints for downstream applications (:issue:`174`, :pull:`188`).
+  In particular,
+  :meth:`.Computer.add` is typed to return a single :class:`.Key` or :class:`str`,
+  and no longer a :class:`tuple` of multiple :class:`.Key`.
+  This should obviate the need to use :func:`.single_key` solely for type hinting
+  in downstream applications.
 
 v1.29.1 (2026-01-23)
 ====================

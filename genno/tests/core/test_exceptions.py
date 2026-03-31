@@ -1,5 +1,7 @@
 import os
 import re
+from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -8,11 +10,11 @@ from genno.testing import MARK, assert_logs
 from genno.testing.jupyter import get_cell_output, run_notebook
 
 
-def test_computationerror():
+def test_computationerror() -> None:
     """ComputationError._format() works in the context of a failed computation."""
     c = Computer()
 
-    def func(x):
+    def func(x: Any) -> str:
         return "a" + x
 
     c.add("test", func, 1.0)
@@ -25,7 +27,7 @@ def test_computationerror():
     assert re.match("computing 'test' using.*TypeError", r, flags=re.DOTALL)
 
 
-def test_computationerror_format(caplog):
+def test_computationerror_format(caplog: pytest.LogCaptureFixture) -> None:
     """Test failures in ComputationError._format."""
     ce_none = ComputationError(None)
 
@@ -62,7 +64,7 @@ TypeError: can only concatenate str \(not "float"\) to str.*""",
     condition="GITHUB_ACTIONS" in os.environ,
     reason="Flaky; fails occasionally on GitHub Actions runners",
 )
-def test_computationerror_ipython(test_data_path, tmp_path):
+def test_computationerror_ipython(test_data_path: Path, tmp_path: Path) -> None:
     # NB this requires nbformat >= 5.0, because the output kind "evalue" was
     #    different pre-5.0
     fname = test_data_path / "exceptions.ipynb"
