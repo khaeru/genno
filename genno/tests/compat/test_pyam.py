@@ -22,7 +22,9 @@ if TYPE_CHECKING:
     import pathlib
 
 # Skip this entire file if pyam is not installed
-pyam = pytest.importorskip("pyam", reason="pyam-iamc not installed")
+pyam = pytest.importorskip(
+    "pyam", reason="pyam-iamc not installed", exc_type=ImportError
+)
 
 # Warning emitted by pandas ≥ 2.1.0 with pyam 1.9.0
 pytestmark = pytest.mark.filterwarnings(
