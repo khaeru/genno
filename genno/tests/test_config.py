@@ -34,7 +34,10 @@ def test_handlers() -> None:
     third_party_handlers = 0
     try:
         import_module("ixmp")
-    except ImportError:
+    except (
+        AttributeError,  # Occurs with ixmp4 ≥0.15.0 and ixmp <3.12
+        ImportError,
+    ):
         pass
     else:  # pragma: no cover
         third_party_handlers += 2
