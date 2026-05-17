@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.30.0 (2026-05-17)
+====================
 
 - :mod:`genno` supports and is tested with dask 2025.4.0 and later (:issue:`171`, :pull:`188`).
 - Increased minimum versions for dependencies:
