@@ -7,14 +7,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from warnings import warn
 
-import pyam
-
 import genno
 import genno.operator
 from genno.core.key import Key, KeyLike
 from genno.core.operator import Operator
 
-from . import util
+from . import HAS_PYAM, util
 
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
@@ -24,13 +22,20 @@ if TYPE_CHECKING:
     from genno.core.computer import Computer
     from genno.types import AnyQuantity, HasScenarioIdentifiers, TQuantity
 
-log = logging.getLogger(__name__)
-
-
 __all__ = [
     "as_pyam",
     "quantity_from_iamc",
 ]
+
+log = logging.getLogger(__name__)
+
+if HAS_PYAM:
+    from pyam import IamDataFrame
+else:
+    # pyam not available → define a dummy class for register() decorators
+
+    class IamDataFrame:  # type: ignore [no-redef]
+        pass
 
 
 @Operator.define()
@@ -46,7 +51,7 @@ def as_pyam(
     prepend_name: bool = True,
     model_name: str | None = None,
     scenario_name: str | None = None,
-) -> "pyam.IamDataFrame":
+) -> "IamDataFrame":
     """Return a :class:`pyam.IamDataFrame` containing the data from `quantity`.
 
     Warnings are logged if the arguments result in additional, unhandled columns in the
@@ -219,17 +224,19 @@ def add_as_pyam(
 
 
 @genno.operator.concat.register
-def _(*args: pyam.IamDataFrame, **kwargs: Any) -> "pyam.IamDataFrame":
+def _(*args: "IamDataFrame", **kwargs: Any) -> "IamDataFrame":
     """Concatenate `args`, which must all be :class:`pyam.IamDataFrame`.
 
     Otherwise, equivalent to :func:`genno.operator.concat`.
     """
+    import pyam
+
     # Use pyam.concat() top-level function
     return pyam.concat(args, **kwargs)
 
 
 def quantity_from_iamc(
-    qty: "TQuantity | pyam.IamDataFrame | pandas.DataFrame",
+    qty: "TQuantity | IamDataFrame | pandas.DataFrame",
     variable: str,
     *,
     fail: int | str = "warning",
@@ -259,6 +266,7 @@ def quantity_from_iamc(
     unique_units_from_dim
     """
     import pandas as pd
+    from pyam import IamDataFrame
 
     from genno.operator import relabel, select, unique_units_from_dim
 
@@ -266,9 +274,9 @@ def quantity_from_iamc(
 
     if isinstance(qty, pd.DataFrame):
         # Convert pandas.DataFrame to pyam.IamDataFrame
-        qty = pyam.IamDataFrame(qty)
+        qty = IamDataFrame(qty)
 
-    if isinstance(qty, pyam.IamDataFrame):
+    if isinstance(qty, IamDataFrame):
         # Convert IamDataFrame to Quantity
         df = qty.as_pandas()
         qty = genno.Quantity(df.set_index(list(IAMC_DIMS & set(df.columns)))["value"])
@@ -313,7 +321,7 @@ def quantity_from_iamc(
 
 
 @genno.operator.write_report.register
-def _(quantity: pyam.IamDataFrame, path: PathLike, kwargs: Any = None) -> None:
+def _(quantity: "IamDataFrame", path: PathLike, kwargs: Any = None) -> None:
     """Write  `obj` to the file at `path`.
 
     If `obj` is a :class:`pyam.IamDataFrame` and `path` ends with ".csv" or ".xlsx",

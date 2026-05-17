@@ -1,10 +1,10 @@
 import logging
 from functools import partial
+from importlib import import_module
 from importlib.util import find_spec
 from typing import TYPE_CHECKING
 
 from genno import Computer, Key
-from genno.config import handles
 from genno.core.key import single_key
 
 if TYPE_CHECKING:
@@ -12,12 +12,23 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
-#: :class:`bool` indicating whether :mod:`pyam` is available.
-HAS_PYAM = find_spec("pyam") is not None
+#: :class:`bool` indicating whether :mod:`pyam` is available. If either the package is
+#: not installed, or it is installed but raises some exception on import, this will be
+#: :any:`False`, and the operators and configuration handling in the current module will
+#: be unavailable.
+HAS_PYAM = False
+
+if find_spec("pyam"):
+    try:
+        import_module("pyam")
+    except Exception as e:
+        # Handle pyam is installed but cannot be imported
+        log.warning(f"{__name__} unavailable due to {e}")
+    else:
+        HAS_PYAM = True
 
 
-@handles("iamc")
-def iamc(c: Computer, info: "MutableMapping") -> None:
+def handle_config(c: Computer, info: "MutableMapping") -> None:
     """Handle one entry from the ``iamc:`` config section."""
     try:
         c.require_compat("pyam")
@@ -75,3 +86,10 @@ def iamc(c: Computer, info: "MutableMapping") -> None:
 
     log.info(f"Add {repr(keys[-1])} from {repr(keys[0])}")
     log.debug(f"    {len(keys)} keys total")
+
+
+if HAS_PYAM:
+    # Register the configuration handler only if pyam is actually available
+    import genno.config
+
+    genno.config.handles("iamc")(handle_config)
