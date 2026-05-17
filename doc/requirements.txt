@@ -49,4 +49,6 @@ sphinxcontrib-qthelp==2.0.0
 sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 urllib3==2.7.0
-    # via requests
+    # via
+    #   -r requirements.in
+    #   requests

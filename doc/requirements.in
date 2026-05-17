@@ -6,3 +6,6 @@ pygments>=2.20.0
 requests>=2.33.0
 # To work around https://github.com/khaeru/genno/issues/185
 sphinx<9
+# Per https://github.com/advisories/GHSA-mf9v-mfxr-j63j
+# and https://github.com/advisories/GHSA-qccp-gfcp-xxvc
+urllib3>=2.7.0
