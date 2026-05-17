@@ -15,6 +15,8 @@ Next release
   and may contain bugs (for instance, :issue:`170`)
   or be incompatible with newer versions of Python or other dependencies.
   It is recommended to use the newest versions of all dependencies.
+- Handle incompatibilities between certain versions of :mod:`pyam` (``pyam-iamc``) less than v3.3.1
+  and :mod:`ixmp4` version 0.15.0 or greater (:issue:`192`, :pull:`193`).
 - Improved type hints for downstream applications (:issue:`174`, :pull:`188`).
   In particular,
   :meth:`.Computer.add` is typed to return a single :class:`.Key` or :class:`str`,
