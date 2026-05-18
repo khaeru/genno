@@ -8,7 +8,10 @@ def test_import_pyam() -> None:
     or not pyam is installed.
     """
 
-    from genno.compat.pyam import HAS_PYAM
+    # Name 'iamc' can be imported; as in e.g. message-ix-models
+    from genno.compat.pyam import HAS_PYAM, iamc
+
+    del iamc
 
     c = Computer()
 
