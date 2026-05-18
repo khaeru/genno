@@ -28,7 +28,7 @@ if find_spec("pyam"):
         HAS_PYAM = True
 
 
-def handle_config(c: Computer, info: "MutableMapping") -> None:
+def iamc(c: Computer, info: "MutableMapping") -> None:
     """Handle one entry from the ``iamc:`` config section."""
     try:
         c.require_compat("pyam")
@@ -92,4 +92,4 @@ if HAS_PYAM:
     # Register the configuration handler only if pyam is actually available
     import genno.config
 
-    genno.config.handles("iamc")(handle_config)
+    genno.config.handles("iamc")(iamc)
