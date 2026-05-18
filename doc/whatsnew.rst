@@ -1,8 +1,11 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.30.1 (2026-05-18)
+====================
 
 - Bug fix: in v1.30.0,
   :func:`.iamc` was not importable from :mod:`genno.compat.pyam` (:pull:`195`)
