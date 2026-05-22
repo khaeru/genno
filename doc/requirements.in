@@ -1,3 +1,10 @@
+# Specific/minimum versions of documentation build dependencies
+#
+# Unless otherwise noted, these are set in response to dependabot
+# security alerts; view the line blame for details.
+
+idna>=3.15
+
 # Per CVE-2026-4539; see
 # https://github.com/pygments/pygments/issues/3058
 pygments>=2.20.0
