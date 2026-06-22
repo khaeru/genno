@@ -5,6 +5,7 @@ from collections.abc import Hashable, Iterable, Mapping
 from contextlib import nullcontext
 from functools import partial
 from itertools import compress
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -649,6 +650,8 @@ def test_interpolate(caplog, ureg, shape):
         ("input1.csv", dict(dims=dict(i="i", j_dim="j"))),
         ("input2.csv", dict(dims=["i", "j"])),
         ("input2.csv", dict(dims=["i", "j"], units="km")),  # Logs a warning
+        # Test of khaeru/genno#200
+        ("input3.csv", dict(dims=["i", "j"], units="0.1 km")),
         # Exceptions
         pytest.param(
             "input1.csv",
@@ -666,7 +669,9 @@ def test_interpolate(caplog, ureg, shape):
         ),
     ],
 )
-def test_load_file(test_data_path, ureg, name, kwargs):
+def test_load_file(
+    test_data_path: Path, ureg: pint.UnitRegistry, name: str, kwargs: dict
+) -> None:
     qty = operator.load_file(test_data_path / name, name="baz", **kwargs)
 
     assert ("i", "j") == qty.dims

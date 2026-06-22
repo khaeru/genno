@@ -10,7 +10,7 @@ from collections.abc import Callable, Collection, Hashable, Iterable, Mapping, S
 from copy import deepcopy
 from datetime import datetime
 from functools import partial, reduce, singledispatch
-from itertools import chain
+from itertools import chain, takewhile
 from os import PathLike
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
@@ -654,6 +654,7 @@ def load_file(
     dims: Collection[Hashable] | Mapping[Hashable, Hashable] = {},
     units: "UnitLike | None" = None,
     name: str | None = None,
+    **kwargs,
 ) -> Any:
     """Read the file at `path` and return its contents as a :class:`~genno.Quantity`.
 
@@ -661,9 +662,18 @@ def load_file(
     computations:
 
     :file:`.csv`:
-       Converted to :class:`.Quantity`. CSV files must have a 'value' column; all others
-       are treated as indices, except as given by `dims`. Lines beginning with '#' are
-       ignored.
+       - Read using :func:`pandas.read_csv`.
+       - The file at `path` must have a 'value' column; all others are treated as
+         dimensions, except as given by `dims`.
+       - If `units` is not given, units are inferred from:
+
+         - A header line like "# Units: 0.1 kg / second". All other linse beginning with
+           ‘#’ are ignored.
+         - A column named ‘units’, which **must** contain identical values for all rows.
+       - `kwargs` may contain :py:`ensure_numeric=bool(...)`. If :any:`True` (the
+         default) the 'value' column is forcibly converted to a numeric dtype, even if
+         not done automatically by :func:`pandas.read_csv`. For this conversion, all
+         whitespace is stripped from 'value'.
 
     User code **may** define an operator with the same name ("load_file") in order to
     override this behaviour and/or add tailored support for others data file formats,
@@ -682,6 +692,9 @@ def load_file(
         Units to apply to the loaded Quantity.
     name : str
         Name for the loaded Quantity.
+    kwargs :
+        Other parameters, passed to lower-level functions such as
+        :func:`_load_file_csv`.
 
     See also
     --------
@@ -690,7 +703,7 @@ def load_file(
     # TODO optionally cache: if the same Computer is used repeatedly, then the file will
     #      be read each time; instead cache the contents in memory.
     if path.suffix == ".csv":
-        return _load_file_csv(path, dims, units, name)
+        return _load_file_csv(path, dims, units, name, **kwargs)
     elif path.suffix in (".xls", ".xlsx", ".yaml"):  # pragma: no cover
         raise NotImplementedError  # To be handled by downstream code
     else:
@@ -746,18 +759,21 @@ def _load_file_csv(
     dims: Collection[Hashable] | Mapping[Hashable, Hashable] = {},
     units: "UnitLike | None" = None,
     name: str | None = None,
+    *,
+    ensure_numeric: bool = True,
 ) -> "AnyQuantity":
     # Peek at the header, if any, and match a units expression
     with open(path, "r", encoding="utf-8") as f:
-        for line, match in map(lambda li: (li, UNITS_RE.fullmatch(li)), f):
-            if match:
-                if units:
-                    log.warning(f"Replace {match.group(1)!r} from file with {units!r}")
-                else:
-                    units = match.group(1)
-                break
-            elif not line.startswith("#"):
-                break  # Give up at first non-commented line
+        # - Iterate over header lines starting with "#"; stop at first non-header line.
+        # - Apply UNITS_RE.
+        # - Handle the first matching line.
+        for match in filter(
+            None, map(UNITS_RE.fullmatch, takewhile(lambda li: li.startswith("#"), f))
+        ):
+            if units:
+                log.warning(f"Replace {match.group(1)!r} from file with {units!r}")
+            units = units or match.group(1)
+            break
 
     # Read the data
     data = pd.read_csv(path, comment="#", skipinitialspace=True)
@@ -775,14 +791,15 @@ def _load_file_csv(
     else:
         # Use a unique value for units of the quantity
         if len(units_col) > 1:
-            raise ValueError(
-                f"Cannot load {path} with non-unique units {repr(units_col)}"
-            )
+            raise ValueError(f"Cannot load {path} with non-unique units {units_col!r}")
         elif units and units not in units_col:
             raise ValueError(
                 f"Explicit units {units} do not match {units_col[0]} in {path}"
             )
         units = units_col[0]
+
+    # Decode units and optional multiplier
+    units, k = units_with_multiplier(units)
 
     if dims:
         # Convert a list, set, etc. to a dict
@@ -795,10 +812,11 @@ def _load_file_csv(
         )
 
         index_columns = list(data.columns)
-        index_columns.pop(index_columns.index("value"))
+        index_columns.remove("value")
 
-    # Decode units and multiplier
-    units, k = units_with_multiplier(units)
+    if ensure_numeric and not pd.api.types.is_numeric_dtype(data.dtypes["value"]):
+        # Aggressively strip whitespace from "value", convert to numeric dtype
+        data = data.assign(value=pd.to_numeric(data.value.str.strip()))
 
     # Prepare a quantity object
     return genno.Quantity(
