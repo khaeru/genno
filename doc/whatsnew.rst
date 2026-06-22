@@ -1,14 +1,18 @@
 What's new
 **********
 
-.. Next release
-.. ============
+Next release
+============
+
+- Handle trailing non-breaking space in :func:`.load_file` (:pull:`201`).
+  In v1.30.1 and earlier, this would raise :class:`TypeError` (:issue:`200`).
 
 v1.30.1 (2026-05-18)
 ====================
 
 - Bug fix: in v1.30.0,
-  :func:`.iamc` was not importable from :mod:`genno.compat.pyam` (:pull:`195`)
+  :func:`~.pyam.iamc` was not importable from :mod:`genno.compat.pyam`
+  (:pull:`195`).
 
 v1.30.0 (2026-05-17)
 ====================
