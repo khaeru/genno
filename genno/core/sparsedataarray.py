@@ -206,6 +206,10 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
         # Invoke an xr.DataArray method like .__mul__()
         return getattr(left_, f"__{op.__name__}__")(right)
 
+    def __bool__(self) -> bool:
+        """Override :meth:`~xarray.DataArray.__bool__` to auto-densify."""
+        return self._sda.dense_super.__bool__()
+
     def __len__(self) -> int:
         v = self.variable
         return 0 if getattr(v.data, "nnz", 1) == 0 else len(v)
