@@ -17,7 +17,7 @@ def test_import_pyam() -> None:
 
     try:
         c.require_compat("pyam")
-    except ModuleNotFoundError:
+    except ModuleNotFoundError:  # pragma: no cover
         pass  # Fails if HAS_PYAM is False
 
     # Try to retrieve the as_pyam() operator

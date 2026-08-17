@@ -21,7 +21,7 @@ HAS_PYAM = False
 if find_spec("pyam"):
     try:
         import_module("pyam")
-    except Exception as e:
+    except Exception as e:  # pragma: no cover
         # Handle pyam is installed but cannot be imported
         log.warning(f"{__name__} unavailable due to {e}")
     else:

@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 
 if HAS_PYAM:
     from pyam import IamDataFrame
-else:
+else:  # pragma: no cover
     # pyam not available → define a dummy class for register() decorators
 
     class IamDataFrame:  # type: ignore [no-redef]

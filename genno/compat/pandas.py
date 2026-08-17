@@ -70,7 +70,7 @@ def manager_classes() -> tuple[type, ...]:
         from pandas.core.internals.base import DataManager
 
         return (DataManager,)
-    else:
+    else:  # pragma: no cover
         from pandas.core.internals.managers import SingleBlockManager
 
         return (SingleBlockManager,)
