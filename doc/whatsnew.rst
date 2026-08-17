@@ -6,6 +6,9 @@ Next release
 
 - Handle trailing non-breaking space in :func:`.load_file` (:pull:`201`).
   In v1.30.1 and earlier, this would raise :class:`TypeError` (:issue:`200`).
+- Adjust for compatibility with sparse version 0.19.0,
+  `released 2026-07-02 <https://pypi.org/project/sparse/#history>`_
+  (:issue:`202`, :pull:`203`).
 
 v1.30.1 (2026-05-18)
 ====================
