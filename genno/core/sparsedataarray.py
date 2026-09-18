@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Hashable, Mapping, Sequence
-from typing import Any
+from typing import Any, Self
 from warnings import filterwarnings
 
 import numpy as np
@@ -260,7 +260,7 @@ class SparseDataArray(BaseQuantity, OverrideItem, xr.DataArray):
         tolerance=None,
         drop: bool = False,
         **indexers_kwargs: Any,
-    ) -> "SparseDataArray":
+    ) -> Self:
         """Return a new array by selecting labels along the specified dim(s).
 
         Overrides :meth:`~xarray.DataArray.sel` to handle >1-D indexers with sparse
