@@ -13,13 +13,12 @@ from functools import partial, reduce, singledispatch
 from itertools import chain, takewhile
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Unpack, cast
 
 import numpy as np
 import pandas as pd
 import pint
 import xarray as xr
-from typing_extensions import Unpack
 
 import genno
 

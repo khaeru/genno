@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
 from functools import partial
 from itertools import product, tee
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
 import numpy as np
 import pandas as pd
@@ -293,7 +293,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         axis: int | Sequence[int] | None = None,
         create_index_for_new_dim: bool = True,
         **dim_kwargs: Any,
-    ) -> "AttrSeries":
+    ) -> Self:
         """Like :meth:`xarray.DataArray.expand_dims`."""
         if axis is not None:
             raise NotImplementedError(  # pragma: no cover
@@ -539,7 +539,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         min_count: int | None = None,
         keep_attrs: bool | None = None,
         **kwargs: Any,
-    ) -> "AttrSeries":
+    ) -> Self:
         """Like :meth:`xarray.DataArray.sum`."""
         if skipna is not None or min_count is not None:
             raise NotImplementedError
@@ -638,9 +638,7 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         return Indexes(dict(), None)
 
     # Internal methods
-    def align_levels(
-        self, other: "AttrSeries"
-    ) -> tuple[Sequence[Hashable], "AttrSeries"]:
+    def align_levels(self, other: Self) -> tuple[Sequence[Hashable], Self]:
         """Return a copy of `self` with ≥1 dimension(s) in the same order as `other`.
 
         Work-around for https://github.com/pandas-dev/pandas/issues/25760 and other
@@ -688,8 +686,8 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
         self,
         dim: Hashable,
         levels: Iterable["SupportsRichComparisonT"],
-        func: Callable[["AttrSeries"], "AttrSeries"],
-    ) -> "AttrSeries":
+        func: Callable[[Self], Self],
+    ) -> Self:
         """Group along `dim`, ensure levels `levels`, and apply `func`.
 
         `func` should accept and return AttrSeries. The resulting AttrSeries are
@@ -749,6 +747,6 @@ class AttrSeries(BaseQuantity, pd.Series, DataArrayLike):
             levels = list(filter(lambda d: d not in dim, self.index.names))
             return self.groupby(level=levels, group_keys=False, observed=True)
 
-    def _replace(self, data) -> "AttrSeries":
+    def _replace(self, data) -> Self:
         """Shorthand to preserve attrs."""
         return self.__class__(data, name=self.name, attrs=self.attrs)
