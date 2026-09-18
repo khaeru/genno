@@ -34,7 +34,6 @@ dependencies = [
   "platformdirs",
   "pint",
   "PyYAML",
-  "typing_extensions; python_version < '3.11'",
   "xarray > 2022.6.0",
 ]
 
