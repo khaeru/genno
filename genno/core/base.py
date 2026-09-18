@@ -90,10 +90,13 @@ class UnitsMixIn:
                 return pint.get_application_registry().dimensionless, np.nan
 
 
+T = TypeVar("T", bound="BaseQuantity")
+
+
 def make_binary_op(op, *, swap: bool):
     """Create a method for binary operator `name`."""
 
-    def method(obj: "BaseQuantity", other: "BaseQuantity"):
+    def method(obj: T, other: T | Number) -> T:
         scalar_other = False
         if isinstance(other, Number):
             other = type(obj)(other)
@@ -116,9 +119,6 @@ def make_binary_op(op, *, swap: bool):
         )
 
     return method
-
-
-T = TypeVar("T")
 
 
 class BinaryOpsMixIn(Generic[T]):

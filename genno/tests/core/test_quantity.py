@@ -48,10 +48,12 @@ class TestQuantity:
 
     @pytest.fixture
     def a(self):
+        """A 1-dimensional Quantity."""
         yield genno.Quantity([0.8, 0.2], coords={"p": ["oil", "water"]})
 
     @pytest.fixture
     def foo(self):
+        """A 2-dimensional Quantity."""
         # NB 0.0 because sparse cannot handle data that is all int
         yield genno.Quantity(
             [[0.0, 1], [2, 3]],

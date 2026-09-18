@@ -62,12 +62,14 @@ class Plot(ABC):
 
         # Convert Quantity arguments to pd.DataFrame for use with plotnine
         _args = map(
-            lambda arg: arg
-            if not isinstance(arg, genno.Quantity)
-            else arg.to_series()
-            .rename(arg.name or "value")
-            .reset_index()
-            .assign(unit=f"{arg.units:~}"),
+            lambda arg: (
+                arg
+                if not isinstance(arg, genno.Quantity)
+                else arg.to_series()
+                .rename(arg.name or "value")
+                .reset_index()
+                .assign(unit=f"{arg.units:~}")
+            ),
             args,
         )
 

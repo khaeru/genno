@@ -171,7 +171,7 @@ def parse_units(
         except PintError as e:
             # registry.define() failed somehow
             raise _invalid(unit, e)
-    except (AttributeError, TypeError) + PintError as e:  # type: ignore [misc]
+    except (AttributeError, TypeError) + PintError as e:
         # Unit contains a character like '-' that throws off pint
         # NB this 'except' clause must be *after* UndefinedUnitError, since that is a
         #    subclass of AttributeError.

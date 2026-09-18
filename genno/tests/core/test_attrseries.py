@@ -16,12 +16,13 @@ from genno.testing import add_large_data
 class TestAttrSeries:
     @pytest.fixture
     def foo(self) -> Iterator[AttrSeries]:
+        """A 2-dimensional AttrSeries."""
         idx = pd.MultiIndex.from_product([["a1", "a2"], ["b1", "b2"]], names=["a", "b"])
         yield AttrSeries([0, 1, 2, 3], index=idx, name="Foo", units="kg")
 
     @pytest.fixture
     def bar(self) -> Iterator[AttrSeries]:
-        """A 1-dimensional quantity."""
+        """A 1-dimensional AttrSeries."""
         yield AttrSeries([0, 1], index=pd.Index(["a1", "a2"], name="a"))
 
     def test_align_levels(self, foo: AttrSeries, bar: AttrSeries) -> None:
@@ -58,11 +59,11 @@ class TestAttrSeries:
 
     def test_cumprod(self, foo: AttrSeries, bar: AttrSeries) -> None:
         """AttrSeries.cumprod works with 1-dimensional quantities."""
-        result0 = (1.1 + bar).cumprod("a")
+        result0 = (bar + 1.1).cumprod("a")
         assert ("a",) == result0.dims
 
         # Same result with dim=None
-        result1 = (1.1 + bar).cumprod()
+        result1 = (bar + 1.1).cumprod()
         pdt.assert_series_equal(result0, result1)
 
         # But not with ≥1D
