@@ -4,6 +4,10 @@ What's new
 Next release
 ============
 
+- :mod:`genno` supports and is tested on `Python 3.15 <https://www.python.org/downloads/release/python-3150/>`_,
+  released 2026-10-01 (:pull:`204`).
+- Support for Python 3.10 is dropped (:pull:`204`),
+  as it has reached end-of-life.
 - Handle trailing non-breaking space in :func:`.load_file` (:pull:`201`).
   In v1.30.1 and earlier, this would raise :class:`TypeError` (:issue:`200`).
 - Adjust for compatibility with sparse version 0.19.0,
