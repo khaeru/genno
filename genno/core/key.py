@@ -4,7 +4,7 @@ from collections.abc import Callable, Generator, Hashable, Iterable, Iterator, S
 from functools import partial, singledispatch
 from itertools import chain, compress
 from types import MappingProxyType
-from typing import TYPE_CHECKING, SupportsInt
+from typing import TYPE_CHECKING, Self, SupportsInt
 from warnings import warn
 
 from .attrseries import AttrSeries
@@ -103,7 +103,7 @@ class Key(KeyGeneratorMixIn):
 
     def __init__(
         self,
-        name_or_value: "str | Key | AnyQuantity",
+        name_or_value: "str | Self | AnyQuantity",
         dims: Iterable[str] = [],
         tag: str | None = None,
         _fast: bool = False,
@@ -164,11 +164,11 @@ class Key(KeyGeneratorMixIn):
     @classmethod
     def from_str_or_key(
         cls,
-        value: "str | Key | AnyQuantity",
+        value: "str | Self | AnyQuantity",
         drop: Iterable[str] | bool = [],
         append: Iterable[str] = [],
         tag: str | None = None,
-    ) -> "Key":
+    ) -> Self:
         """Return a new Key from *value*.
 
         .. versionchanged:: 1.18.0
@@ -221,7 +221,7 @@ class Key(KeyGeneratorMixIn):
         return base.drop(*drop_args).append(*tuple(append)).add_tag(tag)
 
     @classmethod
-    def product(cls, new_name: str, *keys, tag: str | None = None) -> "Key":
+    def product(cls, new_name: str, *keys, tag: str | None = None) -> Self:
         """Return a new Key that has the union of dimensions on *keys*.
 
         Dimensions are ordered by their first appearance:
@@ -252,15 +252,15 @@ class Key(KeyGeneratorMixIn):
         # Return new key. Use dict to keep only unique *dims*, in same order
         return cls(new_name, dict.fromkeys(dims).keys()).add_tag(tag)
 
-    def __add__(self, other: str) -> "Key":
+    def __add__(self, other: str) -> Self:
         if not isinstance(other, str):
             raise TypeError(type(other))
         return self.add_tag(other)
 
-    def __sub__(self, other: str | Iterable[str]) -> "Key":
+    def __sub__(self, other: str | Iterable[str]) -> Self:
         return self.remove_tag(*((other,) if isinstance(other, str) else other))
 
-    def __mul__(self, other: "str | Key | Sequence[str]") -> "Key":
+    def __mul__(self, other: "str | Self | Sequence[str]") -> Self:
         if isinstance(other, str):
             other_dims: Sequence[str] = (other,)
         elif isinstance(other, Key):
@@ -272,7 +272,7 @@ class Key(KeyGeneratorMixIn):
 
         return self.append(*other_dims)
 
-    def __truediv__(self, other: "str | Key | Sequence[str]") -> "Key":
+    def __truediv__(self, other: "str | Self | Sequence[str]") -> Self:
         if isinstance(other, str):
             other_dims: Sequence[str] = (other,)
         elif isinstance(other, Key):
@@ -342,49 +342,51 @@ class Key(KeyGeneratorMixIn):
         return self._tag
 
     @property
-    def sorted(self) -> "Key":
+    def sorted(self) -> Self:
         """A version of the Key with its :attr:`.dims` :func:`sorted`."""
-        return Key(self._name, sorted(self._dims), self._tag, _fast=True)
+        return type(self)(self._name, sorted(self._dims), self._tag, _fast=True)
 
-    def rename(self, name: str) -> "Key":
+    def rename(self, name: str) -> Self:
         """Return a Key with a replaced `name`."""
-        return Key(name, self._dims, self._tag, _fast=True)
+        return type(self)(name, self._dims, self._tag, _fast=True)
 
-    def drop(self, *dims: str | bool) -> "Key":
+    def drop(self, *dims: str | bool) -> Self:
         """Return a new Key with `dims` dropped."""
-        return Key(
+        return type(self)(
             self._name,
             tuple() if dims == (True,) else filter(lambda d: d not in dims, self._dims),
             self._tag,
             _fast=True,
         )
 
-    def drop_all(self) -> "Key":
+    def drop_all(self) -> Self:
         """Return a new Key with all dimensions dropped / zero dimensions."""
-        return Key(self._name, tuple(), self._tag, _fast=True)
+        return type(self)(self._name, tuple(), self._tag, _fast=True)
 
-    def append(self, *dims: str) -> "Key":
+    def append(self, *dims: str) -> Self:
         """Return a new Key with additional dimensions `dims`."""
-        return Key(self._name, list(self._dims) + list(dims), self._tag, _fast=True)
+        return type(self)(
+            self._name, list(self._dims) + list(dims), self._tag, _fast=True
+        )
 
-    def add_tag(self, tag: str | None) -> "Key":
+    def add_tag(self, tag: str | None) -> Self:
         """Return a new Key with `tag` appended."""
-        return Key(
+        return type(self)(
             self._name, self._dims, "+".join(filter(None, [self._tag, tag])), _fast=True
         )
 
-    def iter_sums(self) -> Generator[tuple["Key", Callable, "Key"], None, None]:
+    def iter_sums(self) -> Generator[tuple[Self, Callable, Self], None, None]:
         """Generate (key, task) for all possible partial sums of the Key."""
         from genno.operator import sum
 
         for agg_dims, others in combo_partition(self.dims):
             yield (
-                Key(self._name, agg_dims, self.tag, _fast=True),
+                type(self)(self._name, agg_dims, self.tag, _fast=True),
                 partial(sum, dimensions=others, weights=None),
                 self,
             )
 
-    def remove_tag(self, *tags: str) -> "Key":
+    def remove_tag(self, *tags: str) -> Self:
         """Return a key with any of `tags` dropped.
 
         Raises
@@ -396,7 +398,7 @@ class Key(KeyGeneratorMixIn):
         new_tag = "+".join(new_tags) if new_tags else None
         if new_tag == self.tag:
             raise ValueError(f"No existing tags {tags!r} to remove")
-        return Key(self._name, self._dims, new_tag, _fast=True)
+        return type(self)(self._name, self._dims, new_tag, _fast=True)
 
 
 @_name_dims_tag.register
@@ -486,17 +488,17 @@ class KeySeq(KeyGeneratorMixIn):
         """Tag of the :attr:`.base` Key."""
         return self._base.tag
 
-    def __add__(self, other: str) -> "KeySeq":
-        return KeySeq(self._base.__add__(other))
+    def __add__(self, other: str) -> Self:
+        return type(self)(self._base.__add__(other))
 
-    def __mul__(self, other) -> "KeySeq":
-        return KeySeq(self._base.__mul__(other))
+    def __mul__(self, other) -> Self:
+        return type(self)(self._base.__mul__(other))
 
-    def __sub__(self, other: str | Iterable[str]) -> "KeySeq":
-        return KeySeq(self._base.__sub__(other))
+    def __sub__(self, other: str | Iterable[str]) -> Self:
+        return type(self)(self._base.__sub__(other))
 
-    def __truediv__(self, other) -> "KeySeq":
-        return KeySeq(self._base.__truediv__(other))
+    def __truediv__(self, other) -> Self:
+        return type(self)(self._base.__truediv__(other))
 
 
 #: Type shorthand for :class:`Key` or any other value that can be used as a key.

@@ -2,14 +2,14 @@ import operator
 from abc import abstractmethod
 from collections.abc import Hashable, Mapping, MutableMapping, Sequence
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar, cast
 
 import numpy as np
 import pandas as pd
 import pint
 
 if TYPE_CHECKING:
-    from genno.types import TQuantity, Unit
+    from genno.types import Unit
 
     from .quantity import AnyQuantity
 
@@ -176,11 +176,11 @@ class BaseQuantity(
 
     def _keep(
         self,
-        target: "TQuantity",
+        target: Self,
         attrs: Any | None = False,
         name: Any | None = False,
         units: Any | None = False,
-    ) -> "TQuantity":
+    ) -> Self:
         """Preserve `name`, `units`, and/or other `attrs` from `self` to `target`.
 
         The action for each argument is:

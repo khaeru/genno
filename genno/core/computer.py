@@ -15,7 +15,7 @@ from importlib import import_module
 from inspect import signature
 from itertools import compress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 from warnings import catch_warnings, warn
 
 import dask
@@ -87,14 +87,14 @@ class Computer:
     def __contains__(self, item) -> bool:
         return self.graph.__contains__(item)
 
-    def __ior__(self, other: "Computer") -> "Computer":
+    def __ior__(self, other: Self) -> Self:
         """Same as :meth:`.update`."""
         self.update(other)
         return self
 
-    def __or__(self, other: "Computer") -> "Computer":
+    def __or__(self, other: Self) -> Self:
         """Return a new Computer with the union of the contents of two Computers."""
-        result = Computer()
+        result = type(self)()
         result |= self
         result |= other
         return result
@@ -910,7 +910,7 @@ class Computer:
             print(result, end="\n")
         return result
 
-    def update(self, other: "Computer") -> None:
+    def update(self, other: Self) -> None:
         """Update Computer with the contents of `other`.
 
         The operators :py:`|` and :py:`|=` invoke this method.
