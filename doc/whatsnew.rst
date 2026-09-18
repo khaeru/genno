@@ -4,6 +4,18 @@ What's new
 Next release
 ============
 
+- :mod:`genno` supports and is tested on `Python 3.15 <https://www.python.org/downloads/release/python-3150/>`_,
+  released 2026-10-09 (:pull:`204`).
+  As of release time:
+
+  - :mod:`pandas` is affected by `pandas-dev/pandas#71254 <https://github.com/pandas-dev/pandas/issues/71254>`_.
+    This may affect use of :mod:`genno` on Windows.
+  - :mod:`matplotlib` v3.11.2 does not yet declare support for Python 3.15
+    (see `matplotlib/matplotlib#32202 <https://github.com/matplotlib/matplotlib/pull/32202>`_).
+    :mod:`genno.compat.plotnine` may not be usable on Windows.
+
+- Support for Python 3.10 is dropped (:pull:`204`),
+  as it has reached end-of-life.
 - Handle trailing non-breaking space in :func:`.load_file` (:pull:`201`).
   In v1.30.1 and earlier, this would raise :class:`TypeError` (:issue:`200`).
 - Adjust for compatibility with sparse version 0.19.0,
