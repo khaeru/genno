@@ -21,9 +21,16 @@ from genno.types import HasScenarioIdentifiers
 if TYPE_CHECKING:
     import pathlib
 
-# Skip this entire file if pyam is not installed
+# Skip this entire file if pyam is not installed, or if it errors on import
 pyam = pytest.importorskip(
-    "pyam", reason="pyam-iamc not installed", exc_type=ImportError
+    "pyam",
+    reason="pyam-iamc not installed",
+    # Parent class of sqlalchemy.exc.InvalidRequestError,
+    # per https://github.com/iiasa/ixmp4/issues/272
+    exc_type=Exception,  # type: ignore [arg-type]
+    # Not installed *or* raises ImportError directly or indirectly. See
+    # https://docs.pytest.org/en/stable/deprecations.html#import-or-skip-import-error
+    # exc_type=ImportError,
 )
 
 # Warning emitted by pandas ≥ 2.1.0 with pyam 1.9.0
