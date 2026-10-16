@@ -13,13 +13,12 @@ from functools import partial, reduce, singledispatch
 from itertools import chain, takewhile
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Unpack, cast
 
 import numpy as np
 import pandas as pd
 import pint
 import xarray as xr
-from typing_extensions import Unpack
 
 import genno
 
@@ -539,7 +538,7 @@ def div(numerator: "TQuantity | float", denominator: "TQuantity") -> "TQuantity"
     --------
     add_binop
     """
-    return numerator / denominator
+    return cast("TQuantity", numerator / denominator)
 
 
 #: Alias of :func:`~genno.operator.div`, for backwards compatibility.
@@ -1146,7 +1145,9 @@ def wildcard_qty(
     """Return a Quantity with 1 label "*" along each of `dims`."""
     if genno.Quantity is SparseDataArray:
         # Convert `value` into a list-of-lists of appropriate depth
-        _value: Any = reduce(lambda x, y: [x], range(len(dims) - 1), [value])
+        _value: list[list | float | int] | float | int = [value]
+        for i in range(len(dims) - 1):
+            _value = [_value]
     else:
         _value = value
     return genno.Quantity(_value, coords={d: ["*"] for d in dims}, units=units)

@@ -36,14 +36,14 @@ def disable_copy_on_write(name: str) -> Iterator[None]:
     cow = "mode.copy_on_write"
 
     was_enabled = version() < Version("3") and pandas.get_option(cow)
-    if was_enabled:
+    if was_enabled:  # pragma: no cover
         log.debug(f"Override pandas.options.{cow} = True for {name}")
         pandas.set_option(cow, False if Version("2.2") <= version() else "warn")
 
     try:
         yield
     finally:
-        if was_enabled:
+        if was_enabled:  # pragma: no cover
             pandas.set_option(cow, True)
 
 

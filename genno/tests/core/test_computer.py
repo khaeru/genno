@@ -289,7 +289,7 @@ class TestComputer:
     def test_insert0(self, caplog: pytest.LogCaptureFixture, c2: Computer) -> None:
         def inserted(qty: "TQuantity", *, x: float, y: float) -> "TQuantity":
             log.info(f"Inserted function, {x=} {y=}")
-            return x * qty
+            return qty * x
 
         # print(c2.describe("C"))  # DEBUG
         c2.insert("A:x-y", inserted, ..., x=2.0, y="foo")
@@ -312,7 +312,7 @@ class TestComputer:
             qty: "TQuantity", *, x: float, y: float
         ) -> "TQuantity":  # pragma: no cover
             log.info(f"Inserted function, {x=} {y=}")
-            return x * qty
+            return qty * x
 
         # Key to be inserted already exists
         c2.add("A:x-y:pre", None)
