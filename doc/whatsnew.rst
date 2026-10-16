@@ -1,14 +1,17 @@
 What's new
 **********
 
-Next release
-============
+.. Next release
+.. ============
+
+v1.31.0 (2026-10-16)
+====================
 
 - :mod:`genno` supports and is tested on `Python 3.15 <https://www.python.org/downloads/release/python-3150/>`_,
   released 2026-10-09 (:pull:`204`).
   As of release time:
 
-  - :mod:`pandas` is affected by `pandas-dev/pandas#71254 <https://github.com/pandas-dev/pandas/issues/71254>`_.
+  - :mod:`pandas` v3.0.6 is affected by `pandas-dev/pandas#71254 <https://github.com/pandas-dev/pandas/issues/71254>`_.
     This may affect use of :mod:`genno` on Windows.
   - :mod:`matplotlib` v3.11.2 does not yet declare support for Python 3.15
     (see `matplotlib/matplotlib#32202 <https://github.com/matplotlib/matplotlib/pull/32202>`_).
