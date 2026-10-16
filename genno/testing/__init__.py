@@ -560,7 +560,7 @@ def parametrize_copy_on_write(
 
     from genno.compat.pandas import version
 
-    if version() < Version("3"):
+    if version() < Version("3"):  # pragma: no cover
         monkeypatch.setattr(pd.options.mode, "copy_on_write", request.param)
 
     yield
