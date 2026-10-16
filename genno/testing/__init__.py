@@ -66,9 +66,12 @@ def pytest_configure(config: pytest.Config) -> None:
     os.environ["IAM_UNITS_CACHE"] = str(config.cache.mkdir(name))
 
     if GHA and platform.system() == "Windows":
-        import matplotlib
+        try:
+            import matplotlib
 
-        matplotlib.use("agg")
+            matplotlib.use("agg")
+        except ImportError:  # pragma: no cover
+            pass
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
